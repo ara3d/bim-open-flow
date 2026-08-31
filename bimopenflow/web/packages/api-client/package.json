@@ -1,0 +1,11 @@
+{
+  "name": "@bimopenflow/api-client",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Generated typed client for the host HTTP API. Do not edit src/index.ts by hand; edit contracts/contracts.json and run node contracts/generate.mjs.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@bimopenflow/contracts": "0.1.0"
+  }
+}

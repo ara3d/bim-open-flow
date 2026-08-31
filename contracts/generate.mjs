@@ -66,6 +66,83 @@ for (const [name, fields] of Object.entries(idl.types)) {
   ts += `export interface ${name} {\n${body}\n}\n\n`;
 }
 
+// --- endpoints ------------------------------------------------------------
+const endpoints = idl.endpoints ?? [];
+const pathParams = (p) => [...p.matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
+
+// C#: route constants + endpoint metadata for the host to bind handlers against.
+let csEp = `public static class ApiRoutes\n{\n`;
+for (const e of endpoints)
+  csEp += `    public const string ${upper(e.name)} = "${e.path}";\n`;
+csEp += `}\n\n`;
+cs += csEp;
+
+// TS: a fully generated fetch client (never hand-edited).
+let tsEp = `export interface ApiClientOptions {
+  baseUrl?: string;
+  fetch?: typeof fetch;
+}
+
+export class ApiClient {
+  private readonly baseUrl: string;
+  private readonly fetchFn: typeof fetch;
+
+  constructor(options: ApiClientOptions = {}) {
+    this.baseUrl = (options.baseUrl ?? "").replace(/\\/$/, "");
+    this.fetchFn = options.fetch ?? fetch.bind(globalThis);
+  }
+
+  private async request(method: string, path: string, query?: Record<string, unknown>, body?: string): Promise<Response> {
+    let url = this.baseUrl + path;
+    if (query) {
+      const q = Object.entries(query).filter(([, v]) => v !== undefined && v !== null)
+        .map(([k, v]) => k + "=" + encodeURIComponent(String(v))).join("&");
+      if (q) url += "?" + q;
+    }
+    const res = await this.fetchFn(url, { method, body, headers: body !== undefined ? { "content-type": "application/json" } : undefined });
+    if (!res.ok) throw new Error(method + " " + path + " -> " + res.status + ": " + await res.text());
+    return res;
+  }
+
+`;
+for (const e of endpoints) {
+  const pp = pathParams(e.path);
+  const args = pp.map((p) => `${p}: string`);
+  if (e.body === "text") args.push(`body: string`);
+  const queryKeys = Object.keys(e.query ?? {});
+  for (const [k, t] of Object.entries(e.query ?? {})) args.push(`${k}?: ${tsType(t.replace(/\?$/, ""))}`);
+  const pathExpr = "`" + e.path.replace(/\{(\w+)\}/g, "${encodeURIComponent($1)}") + "`";
+  const queryExpr = queryKeys.length ? `{ ${queryKeys.join(", ")} }` : "undefined";
+  if (e.sse) {
+    tsEp += `  /** Server-sent events stream of ${e.sse}. Returns an unsubscribe function. */
+  ${e.name}(${args.join(", ")}, onEvent: (e: ${tsType(e.sse)}) => void, onError?: (err: unknown) => void): () => void {
+    const source = new EventSource(this.baseUrl + ${pathExpr});
+    source.onmessage = (m) => onEvent(JSON.parse(m.data) as ${tsType(e.sse)});
+    if (onError) source.onerror = onError;
+    return () => source.close();
+  }
+
+`;
+    continue;
+  }
+  const bodyArg = e.body === "text" ? "body" : "undefined";
+  const retType = e.response === "text" ? "string" : tsType(e.response);
+  const parse = e.response === "text" ? "res.text()" : `res.json() as Promise<${retType}>`;
+  tsEp += `  async ${e.name}(${args.join(", ")}): Promise<${retType}> {
+    const res = await this.request("${e.method}", ${pathExpr}, ${queryExpr}, ${bodyArg});
+    return ${parse};
+  }
+
+`;
+}
+tsEp += `}\n`;
+
+const tsClient = `// Generated from contracts/contracts.json v${idl.version} by contracts/generate.mjs.
+// Do not edit by hand.
+import type { ${[...new Set(endpoints.flatMap((e) => [e.response, e.sse].filter((t) => t && t !== "text").map((t) => parseType(t).core)))].join(", ")} } from "@bimopenflow/contracts";
+
+${tsEp}`;
+
 // --- emit -----------------------------------------------------------------
 const emit = (path, content) => {
   mkdirSync(dirname(path), { recursive: true });
@@ -74,3 +151,4 @@ const emit = (path, content) => {
 };
 emit(join(root, "generated", "csharp", "BimOpenFlow.Contracts.g.cs"), cs);
 emit(join(root, "..", "bimopenflow", "web", "packages", "contracts", "src", "index.ts"), ts);
+emit(join(root, "..", "bimopenflow", "web", "packages", "api-client", "src", "index.ts"), tsClient);

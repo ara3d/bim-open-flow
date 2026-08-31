@@ -51,6 +51,21 @@ public enum Verdict
     InfoNotAvailable,
 }
 
+public enum ModelKind
+{
+    Ifc,
+    Bos,
+}
+
+public enum NodeStatus
+{
+    Ok,
+    Unready,
+    EffectPending,
+    Unavailable,
+    Error,
+}
+
 public sealed record ColumnSchema(
     string Name,
     ColumnType Type);
@@ -80,4 +95,63 @@ public sealed record NodeDescriptor(
 
 public sealed record NodeCatalog(
     IReadOnlyList<NodeDescriptor> Nodes);
+
+public sealed record ModelSummary(
+    string Id,
+    string Name,
+    ModelKind Kind,
+    int SizeBytes,
+    string LastWriteUtc);
+
+public sealed record AnalysisSummary(
+    string Id,
+    string GraphHash);
+
+public sealed record AnalysisVersion(
+    int Version,
+    string GraphHash);
+
+public sealed record NodeState(
+    string NodeId,
+    NodeStatus Status,
+    string? Error = null,
+    IReadOnlyList<string> Warnings);
+
+public sealed record EvalUpdate(
+    string AnalysisId,
+    IReadOnlyList<NodeState> Nodes);
+
+public sealed record TableSlice(
+    IReadOnlyList<ColumnSchema> Columns,
+    IReadOnlyList<IReadOnlyList<object>> Rows,
+    int TotalRows,
+    int Skip);
+
+public sealed record RunSummary(
+    string FileName,
+    string TimestampUtc,
+    string GraphHash);
+
+public sealed record SelectionEvent(
+    string Source,
+    IReadOnlyList<string> Ids);
+
+public sealed record ApiError(
+    string Error);
+
+public static class ApiRoutes
+{
+    public const string ListModels = "/api/models";
+    public const string ListAnalyses = "/api/analyses";
+    public const string GetAnalysis = "/api/analyses/{id}";
+    public const string PutAnalysis = "/api/analyses/{id}";
+    public const string GetAnalysisHistory = "/api/analyses/{id}/history";
+    public const string GetNodeCatalog = "/api/catalog/nodes";
+    public const string GetAnalysisState = "/api/analyses/{id}/state";
+    public const string GetResult = "/api/analyses/{id}/results/{nodeId}/{port}";
+    public const string ListRuns = "/api/analyses/{id}/runs";
+    public const string CreateRun = "/api/analyses/{id}/runs";
+    public const string GetRun = "/api/analyses/{id}/runs/{fileName}";
+    public const string AnalysisEvents = "/api/analyses/{id}/events";
+}
 

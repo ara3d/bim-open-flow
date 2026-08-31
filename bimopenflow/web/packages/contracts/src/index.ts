@@ -36,6 +36,17 @@ export type Verdict =
   | "NeedsReview"
   | "InfoNotAvailable";
 
+export type ModelKind =
+  | "Ifc"
+  | "Bos";
+
+export type NodeStatus =
+  | "Ok"
+  | "Unready"
+  | "EffectPending"
+  | "Unavailable"
+  | "Error";
+
 export interface ColumnSchema {
   name: string;
   type: ColumnType;
@@ -70,5 +81,57 @@ export interface NodeDescriptor {
 
 export interface NodeCatalog {
   nodes: NodeDescriptor[];
+}
+
+export interface ModelSummary {
+  id: string;
+  name: string;
+  kind: ModelKind;
+  sizeBytes: number;
+  lastWriteUtc: string;
+}
+
+export interface AnalysisSummary {
+  id: string;
+  graphHash: string;
+}
+
+export interface AnalysisVersion {
+  version: number;
+  graphHash: string;
+}
+
+export interface NodeState {
+  nodeId: string;
+  status: NodeStatus;
+  error?: string | undefined;
+  warnings: string[];
+}
+
+export interface EvalUpdate {
+  analysisId: string;
+  nodes: NodeState[];
+}
+
+export interface TableSlice {
+  columns: ColumnSchema[];
+  rows: unknown[][];
+  totalRows: number;
+  skip: number;
+}
+
+export interface RunSummary {
+  fileName: string;
+  timestampUtc: string;
+  graphHash: string;
+}
+
+export interface SelectionEvent {
+  source: string;
+  ids: string[];
+}
+
+export interface ApiError {
+  error: string;
 }
 

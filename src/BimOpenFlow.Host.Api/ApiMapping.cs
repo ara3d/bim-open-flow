@@ -22,10 +22,9 @@ public static class ApiMapping
     public static string ToUtcString(this DateTime utc)
         => utc.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture);
 
-    // TODO: contract SizeBytes is int; models over 2 GB clamp. Propose long in contracts.json.
     public static ModelSummary ToSummary(this ModelEntry entry)
         => new(entry.Id, entry.Name, entry.Kind.ByName<ModelKind>(),
-            (int)Math.Min(entry.SizeBytes, int.MaxValue), entry.LastWriteUtc.ToUtcString());
+            entry.SizeBytes, entry.LastWriteUtc.ToUtcString());
 
     public static EvalUpdate ToEvalUpdate(this EvalSnapshot snapshot, string analysisId)
         => new(analysisId, snapshot.Results.Values

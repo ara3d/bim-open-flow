@@ -2,6 +2,7 @@
 // Generated from contracts/contracts.json v0.1.0 by contracts/generate.mjs.
 // Do not edit by hand.
 // </auto-generated>
+#nullable enable
 using System.Collections.Generic;
 
 namespace BimOpenFlow.Contracts;

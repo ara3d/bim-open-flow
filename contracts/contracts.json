@@ -1,0 +1,43 @@
+{
+  "version": "0.1.0",
+  "description": "Single source of truth for app-level shared types. Edit this file, run `node contracts/generate.mjs`, commit the generated outputs. Never hand-edit generated files.",
+  "enums": {
+    "ParamKind": ["Boolean", "Integer", "Number", "Text", "Enum", "FilePath", "ModelRef", "Expression", "Json"],
+    "PortType": ["Boolean", "Integer", "Number", "Text", "Table", "Any"],
+    "ColumnType": ["Boolean", "Integer", "Number", "Text"],
+    "NodeCapability": ["Pure", "Effect"],
+    "Verdict": ["Pass", "Fail", "NeedsReview", "InfoNotAvailable"]
+  },
+  "types": {
+    "ColumnSchema": {
+      "name": "string",
+      "type": "ColumnType"
+    },
+    "TableData": {
+      "columns": "ColumnSchema[]",
+      "rows": "any[][]"
+    },
+    "PortDescriptor": {
+      "name": "string",
+      "type": "PortType"
+    },
+    "ParamDescriptor": {
+      "name": "string",
+      "kind": "ParamKind",
+      "default": "string",
+      "enumValues": "string[]?"
+    },
+    "NodeDescriptor": {
+      "kind": "string",
+      "version": "int",
+      "capability": "NodeCapability",
+      "inputs": "PortDescriptor[]",
+      "outputs": "PortDescriptor[]",
+      "params": "ParamDescriptor[]",
+      "description": "string"
+    },
+    "NodeCatalog": {
+      "nodes": "NodeDescriptor[]"
+    }
+  }
+}

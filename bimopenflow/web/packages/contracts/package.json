@@ -1,0 +1,8 @@
+{
+  "name": "@bimopenflow/contracts",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Generated shared types. Do not edit src/index.ts by hand; edit contracts/contracts.json and run node contracts/generate.mjs.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts"
+}

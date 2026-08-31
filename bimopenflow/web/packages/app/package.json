@@ -1,0 +1,27 @@
+{
+  "name": "@bimopenflow/app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "BimOpenFlow editor shell: canvas editing on gratify, node catalog browsing, panes, session/run controls. Owns the layout and session layers of a graph file; never evaluates anything.",
+  "scripts": {
+    "dev": "vite --port 5300 --strictPort",
+    "build": "vite build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bimopenflow/api-client": "0.1.0",
+    "@bimopenflow/contracts": "0.1.0",
+    "@bimopenflow/panes": "0.1.0",
+    "@bimopenflow/state": "0.1.0",
+    "three": "^0.185.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "jsdom": "^26.0.0",
+    "typescript": "^5.6.0",
+    "vite": "^5.4.0",
+    "vitest": "^3.0.0"
+  }
+}

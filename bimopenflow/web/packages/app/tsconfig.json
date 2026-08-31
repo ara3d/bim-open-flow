@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": ["vite/client"],
+    "baseUrl": ".",
+    // gratify is consumed from the submodule source (same pattern as
+    // platoflow/web); the vite alias in vite.config.ts is the runtime twin.
+    "paths": {
+      "gratify": ["../../../../submodules/gratify/src/gratify/index.ts"]
+    }
+  },
+  "include": ["src", "test"]
+}

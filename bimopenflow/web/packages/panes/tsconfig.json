@@ -8,15 +8,7 @@
     "noEmit": true,
     "isolatedModules": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "baseUrl": ".",
-    // TODO: drop these paths once the wave's owner runs npm install and the
-    // @ara3d/viewer-* file: dependencies resolve through node_modules.
-    "paths": {
-      "@ara3d/viewer-core": ["../../../../viewer/packages/core/src/index.ts"],
-      "@ara3d/viewer-loaders": ["../../../../viewer/packages/loaders/src/index.ts"],
-      "@ara3d/viewer-controls": ["../../../../viewer/packages/controls/src/index.ts"]
-    }
+    "forceConsistentCasingInFileNames": true
   },
   // vitest.config.ts is excluded: it imports node:url and @types/node is not
   // installed in this workspace yet (vitest transpiles its own config).

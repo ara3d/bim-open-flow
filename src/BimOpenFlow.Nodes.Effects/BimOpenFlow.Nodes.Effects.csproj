@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PlatformTarget>x64</PlatformTarget>
+    <Description>BimOpenFlow node pack: all Run-gated sinks (CSV export, byte-exact IFC pset write-back, report emission).</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ara3D.DataFlowEngine.Abstractions\Ara3D.DataFlowEngine.Abstractions.csproj" />
+    <ProjectReference Include="..\Ara3D.DataFlowEngine.Runs\Ara3D.DataFlowEngine.Runs.csproj" />
+    <ProjectReference Include="..\Ara3D.Ifc.Editing\Ara3D.Ifc.Editing.csproj" />
+    <PackageReference Include="Ara3D.DataTable" Version="$(Ara3DSdkVersion)" />
+    <PackageReference Include="Ara3D.Utils" Version="$(Ara3DSdkVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="BimOpenFlow.Nodes.Effects.Tests" />
+  </ItemGroup>
+
+</Project>

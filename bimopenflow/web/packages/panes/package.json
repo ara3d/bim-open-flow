@@ -1,0 +1,32 @@
+{
+  "name": "@bimopenflow/panes",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Pane implementations for the BimOpenFlow editor: table, chart, 3D view, inspector, verdict list. Each pane is an isolated module behind the single pane contract (data in, events out).",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ara3d/viewer-controls": "file:../../../../viewer/packages/controls",
+    "@ara3d/viewer-core": "file:../../../../viewer/packages/core",
+    "@ara3d/viewer-loaders": "file:../../../../viewer/packages/loaders",
+    "@bimopenflow/contracts": "0.1.0",
+    "@bimopenflow/viz": "0.1.0"
+  },
+  "peerDependencies": {
+    "three": ">=0.180.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/three": "^0.180.0",
+    "jsdom": "^26.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0"
+  }
+}

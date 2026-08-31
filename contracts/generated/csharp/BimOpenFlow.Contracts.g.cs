@@ -82,7 +82,7 @@ public sealed record ParamDescriptor(
     string Name,
     ParamKind Kind,
     string Default,
-    IReadOnlyList<string>? EnumValues = null);
+    IReadOnlyList<string>? EnumValues);
 
 public sealed record NodeDescriptor(
     string Kind,
@@ -100,7 +100,7 @@ public sealed record ModelSummary(
     string Id,
     string Name,
     ModelKind Kind,
-    int SizeBytes,
+    long SizeBytes,
     string LastWriteUtc);
 
 public sealed record AnalysisSummary(
@@ -114,7 +114,7 @@ public sealed record AnalysisVersion(
 public sealed record NodeState(
     string NodeId,
     NodeStatus Status,
-    string? Error = null,
+    string? Error,
     IReadOnlyList<string> Warnings);
 
 public sealed record EvalUpdate(

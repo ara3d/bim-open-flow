@@ -19,7 +19,7 @@ const parseType = (t) => {
 
 const csType = (t) => {
   const { core, arrays, optional } = parseType(t);
-  const map = { string: "string", int: "int", number: "double", bool: "bool", any: "object" };
+  const map = { string: "string", int: "int", long: "long", number: "double", bool: "bool", any: "object" };
   let cs = map[core] ?? core;
   for (let i = 0; i < arrays; i++) cs = `IReadOnlyList<${cs}>`;
   return optional ? `${cs}?` : cs;
@@ -27,7 +27,7 @@ const csType = (t) => {
 
 const tsType = (t) => {
   const { core, arrays, optional } = parseType(t);
-  const map = { string: "string", int: "number", number: "number", bool: "boolean", any: "unknown" };
+  const map = { string: "string", int: "number", long: "number", number: "number", bool: "boolean", any: "unknown" };
   let ts = map[core] ?? core;
   for (let i = 0; i < arrays; i++) ts = `${ts}[]`;
   return optional ? `${ts} | undefined` : ts;
@@ -46,8 +46,10 @@ namespace BimOpenFlow.Contracts;
 for (const [name, values] of Object.entries(idl.enums))
   cs += `public enum ${name}\n{\n${values.map((v) => `    ${v},`).join("\n")}\n}\n\n`;
 for (const [name, fields] of Object.entries(idl.types)) {
+  // No default values: an optional field before a required one is CS1737, and
+  // System.Text.Json constructor binding fills missing members with default(T) anyway.
   const args = Object.entries(fields)
-    .map(([f, t]) => `    ${csType(t)} ${upper(f)}${t.endsWith("?") ? " = null" : ""}`)
+    .map(([f, t]) => `    ${csType(t)} ${upper(f)}`)
     .join(",\n");
   cs += `public sealed record ${name}(\n${args});\n\n`;
 }

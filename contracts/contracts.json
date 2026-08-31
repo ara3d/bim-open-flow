@@ -45,7 +45,7 @@
       "id": "string",
       "name": "string",
       "kind": "ModelKind",
-      "sizeBytes": "int",
+      "sizeBytes": "long",
       "lastWriteUtc": "string"
     },
     "AnalysisSummary": {

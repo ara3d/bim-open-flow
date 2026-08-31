@@ -1,0 +1,26 @@
+{
+  "name": "@bimopenflow/viz",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Chart and table rendering components shared by the editor panes and the C# dashboard generator. Plain TS + DOM, no UI framework.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "files": [
+    "src",
+    "dist"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "bundle": "esbuild src/index.ts --bundle --minify --format=iife --global-name=BofViz --target=es2019 --outfile=dist/viz.iife.js"
+  },
+  "dependencies": {
+    "@bimopenflow/contracts": "0.1.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "jsdom": "^26.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0"
+  }
+}

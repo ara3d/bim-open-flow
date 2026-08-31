@@ -46,7 +46,7 @@ describe("makePaneContext.requestTable", () => {
 describe("makePaneContext.resolveAsset", () => {
   it("maps the model: scheme to the assumed host geometry endpoint", () => {
     const ctx = makePaneContext(fakeApi().api, "an1");
-    expect(ctx.resolveAsset("model:abc")).toBe("/api/models/abc/geometry.bos");
+    expect(ctx.resolveAsset("model:abc")).toBe("/api/models/abc/bos");
   });
 
   it("passes other urls through", () => {

@@ -23,11 +23,11 @@ export function makePaneContext(api: ResultApi, analysisId: string): PaneContext
     requestTable: (nodeId, port, skip = 0, take = DEFAULT_PAGE_SIZE) =>
       api.getResult(analysisId, nodeId, port, skip, take),
     // TODO: real model-url scheme once the host serves geometry. Assumed:
-    // "model:{id}" resolves to /api/models/{id}/geometry.bos; anything else
+    // "model:{id}" resolves to /api/models/{id}/bos; anything else
     // passes through unchanged.
     resolveAsset: (url) =>
       url.startsWith("model:")
-        ? `/api/models/${encodeURIComponent(url.slice("model:".length))}/geometry.bos`
+        ? `/api/models/${encodeURIComponent(url.slice("model:".length))}/bos`
         : url,
   };
 }

@@ -112,7 +112,7 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
       if (token !== fetchToken || pane !== activePane) return; // stale
       if (activeKind === "view3d") {
         // TODO: push a { kind: "model" } input once the host serves geometry
-        // (assumed scheme: resolveAsset("model:{id}") -> /api/models/{id}/geometry.bos).
+        // (scheme: resolveAsset("model:{id}") -> /api/models/{id}/bos, served by the host).
         pane.update({ kind: "instances", data });
       } else {
         pane.update({ kind: "table", data });

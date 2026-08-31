@@ -61,7 +61,7 @@ gratify is consumed from the submodule source via a vite/tsc alias to
 ## Assumptions and stubs
 
 - 3D model URLs: `resolveAsset("model:{id}")` maps to
-  `/api/models/{id}/geometry.bos` — a stub until the host serves geometry
+  `/api/models/{id}/bos` — a stub until the host serves geometry
   (TODO markers in `paneContext.ts` / `paneArea.ts`); the 3D pane currently
   receives only the `instances` table.
 - "New" creates an analysis by `PUT`-ing an empty document (the API has no

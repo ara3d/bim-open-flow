@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>bimopenflow-mcp</AssemblyName>
+    <RootNamespace>BimOpenFlow.Mcp</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Ara3D.MCP" Version="$(Ara3DSdkVersion)" />
+    <ProjectReference Include="..\BimOpenFlow.Host\BimOpenFlow.Host.csproj" />
+  </ItemGroup>
+
+</Project>

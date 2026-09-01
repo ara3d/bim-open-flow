@@ -28,7 +28,7 @@ export function createSidebar(
     return list;
   };
 
-  const analysisList = section("Analyses", "bof-app-analyses");
+  const analysisList = section("Flows", "bof-app-analyses");
 
   const catalogHeader = doc.createElement("h3");
   catalogHeader.textContent = "Node catalog";

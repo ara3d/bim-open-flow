@@ -62,7 +62,7 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
   const resultApi = { getResult: api.getResult.bind(api) };
   const boundCtx = {
     requestTable: (nodeId: string, port: string, skip?: number, take?: number) => {
-      if (!currentId) return Promise.reject(new Error("No analysis open"));
+      if (!currentId) return Promise.reject(new Error("No flow open"));
       return makePaneContext(resultApi, currentId).requestTable(nodeId, port, skip, take);
     },
     resolveAsset: makePaneContext(resultApi, "").resolveAsset,
@@ -77,7 +77,7 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
   });
 
   // ── canvas ─────────────────────────────────────────────────────────────────
-  const canvasEditor = createCanvasEditor(shell.canvas, store, () => catalog, fail);
+  const canvasEditor = createCanvasEditor(shell.canvas, store, () => catalog, fail, loadThemeChoice());
 
   // ── chrome ─────────────────────────────────────────────────────────────────
   const topbar = createTopbar(shell.topbarEl, {
@@ -90,9 +90,7 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
       canvasEditor.setTheme(name);
     },
   });
-  const initialTheme = loadThemeChoice();
-  topbar.setTheme(initialTheme);
-  canvasEditor.setTheme(initialTheme);
+  topbar.setTheme(loadThemeChoice());
 
   const sidebar = createSidebar(
     shell.sidebarEl,
@@ -152,12 +150,12 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
       topbar.setAnalyses(analyses, id);
     } catch (e) {
       topbar.setConnection("offline");
-      fail(`Could not open '${id}': ${e instanceof Error ? e.message : e}`);
+      fail(`Could not open flow '${id}': ${e instanceof Error ? e.message : e}`);
     }
   }
 
   // No prompt: embedded browsers throw on window.prompt. The id is the next
-  // free untitled-N; the sidebar rename flow is the way to name it.
+  // free untitled-N. TODO: no rename UI exists yet, so the name sticks.
   async function newAnalysis(): Promise<void> {
     const id = freshUntitledId(analyses.map((a) => a.id));
     try {
@@ -170,7 +168,7 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
   }
 
   async function save(): Promise<void> {
-    if (!connection) return fail("No analysis open");
+    if (!connection) return fail("No flow open");
     try {
       await connection.save();
       showToast("Saved.");
@@ -180,7 +178,7 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
   }
 
   async function run(): Promise<void> {
-    if (!currentId) return fail("No analysis open");
+    if (!currentId) return fail("No flow open");
     try {
       const summary = await api.createRun(currentId);
       showToast(`Run recorded: ${summary.fileName}`);
@@ -190,7 +188,7 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
   }
 
   function addNode(desc: NodeDescriptor): void {
-    if (!currentId) return fail("Open an analysis first");
+    if (!currentId) return fail("Open a flow first");
     const state = store.getState();
     const id = freshNodeId(desc.kind, state.document.structure.nodes.map((n) => n.id));
     // TODO: fold add+place into one undo step once the state package offers a
@@ -227,9 +225,10 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
       sidebar.setCatalog(cat.nodes);
       canvasEditor.refresh();
       topbar.setConnection("connected");
-      // Always land in an open analysis so no click can fail for lack of one.
+      // Always land in an open analysis so no click can fail for lack of one;
+      // if the stored analysis fails to open, fall back to a fresh one.
       if (analyses.length > 0) await openAnalysis(analyses[0]!.id);
-      else await newAnalysis();
+      if (currentId === null) await newAnalysis();
     } catch {
       topbar.setConnection("offline");
       showToast("Host not reachable — start it and reload (see README).", "error");

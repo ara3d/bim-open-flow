@@ -108,6 +108,7 @@ function installSplitter(
   cfg: SplitterConfig,
 ): void {
   splitter.addEventListener("pointerdown", (down) => {
+    if (down.button !== 0) return;
     down.preventDefault();
     splitter.setPointerCapture(down.pointerId);
     const doc = root.ownerDocument;
@@ -126,14 +127,21 @@ function installSplitter(
       width = dragWidth(startWidth, startX, e.clientX, spec);
       ghost.style.left = `${ghostX(startX, startWidth, width, spec.sign)}px`;
     };
-    const up = () => {
+    const finish = (apply: boolean) => {
       splitter.removeEventListener("pointermove", move);
       splitter.removeEventListener("pointerup", up);
+      splitter.removeEventListener("pointercancel", cancel);
+      splitter.removeEventListener("lostpointercapture", cancel);
       ghost.remove();
+      if (!apply) return;
       root.style.setProperty(cfg.cssVar, `${width}px`);
       writePref(cfg.storageKey, String(Math.round(width)));
     };
+    const up = () => finish(true);
+    const cancel = () => finish(false);
     splitter.addEventListener("pointermove", move);
     splitter.addEventListener("pointerup", up);
+    splitter.addEventListener("pointercancel", cancel);
+    splitter.addEventListener("lostpointercapture", cancel);
   });
 }

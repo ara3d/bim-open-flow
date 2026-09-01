@@ -76,7 +76,7 @@ export function createTopbar(root: HTMLElement, handlers: TopbarHandlers): Topba
       picker.textContent = "";
       const placeholder = doc.createElement("option");
       placeholder.value = "";
-      placeholder.textContent = list.length ? "— open analysis —" : "no analyses";
+      placeholder.textContent = list.length ? "— open flow —" : "no flows";
       picker.appendChild(placeholder);
       for (const a of list) {
         const opt = doc.createElement("option");

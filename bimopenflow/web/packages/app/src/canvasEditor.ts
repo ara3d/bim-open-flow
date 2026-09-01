@@ -24,8 +24,9 @@ export function createCanvasEditor(
   store: Store,
   getCatalog: () => ReadonlyMap<string, NodeDescriptor>,
   onError: (message: string) => void,
+  initialTheme: CanvasThemeName = defaultCanvasTheme,
 ): CanvasEditor {
-  applyCanvasTheme(defaultCanvasTheme);
+  applyCanvasTheme(initialTheme);
   const model = (): CanvasModel => buildCanvasModel(store.getState(), getCatalog());
   const runtime: Runtime<CanvasModel, CanvasIntent> = mount(canvas, {
     init: model(),

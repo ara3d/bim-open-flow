@@ -36,7 +36,7 @@ public static class SampleSeeding
         foreach (var file in Directory.EnumerateFiles(analysesDir, "*.json").Order(StringComparer.Ordinal))
         {
             var id = Path.GetFileNameWithoutExtension(file);
-            var doc = GraphDocumentIO.Parse(File.ReadAllText(file, GraphDocumentIO.Utf8NoBom));
+            var doc = GraphDocumentIO.Load(file);
             store.Save(id, RewritePaths(doc, samplesDir));
             ids.Add(id);
         }

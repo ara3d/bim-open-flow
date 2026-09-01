@@ -31,7 +31,8 @@ import {
   Tokens,
   v,
 } from "gratify";
-import type { ParamKind } from "@bimopenflow/contracts";
+import type { ParamKind, SuggestDescriptor, SuggestionList } from "@bimopenflow/contracts";
+import { attachSuggestions } from "./suggestInput.js";
 import type { CanvasParam } from "./canvasSlots.js";
 import { COMPACT_SLOT_H, FIELD_SLOT_H } from "./canvasSlots.js";
 import { canvasThemes, currentCanvasTheme } from "./canvasTheme.js";
@@ -235,6 +236,7 @@ interface IslandSlotProps {
   paramKind: ParamKind;
   value: string;
   w: number;
+  suggest?: SuggestDescriptor;
   states?: Record<string, boolean>;
 }
 
@@ -246,12 +248,23 @@ export function setInlineControlDispatch(fn: (intent: CanvasIntent) => void): vo
   dispatchIntent = fn;
 }
 
+export type SuggestionProvider = (nodeId: string, param: string) => Promise<SuggestionList>;
+
+let suggestionProvider: SuggestionProvider | null = null;
+
+/** The app registers how suggest-annotated params fetch their live values
+ *  (the suggestions endpoint of the open analysis). */
+export function setSuggestionProvider(fn: SuggestionProvider | null): void {
+  suggestionProvider = fn;
+}
+
 interface IslandEntry {
   el: HTMLInputElement;
   themeV: number;
   /** Canonical value last pushed into the element (revert target). */
   canonical: string;
   paramKind: ParamKind;
+  detachSuggest?: () => void;
 }
 
 const islands = new Map<string, IslandEntry>();
@@ -262,6 +275,7 @@ export const islandKey = (nodeId: string, name: string): string => `${nodeId}::$
 export function pruneInlineControls(liveKeys: ReadonlySet<string>): void {
   for (const [key, entry] of islands) {
     if (!liveKeys.has(key)) {
+      entry.detachSuggest?.();
       entry.el.remove();
       islands.delete(key);
     }
@@ -321,6 +335,11 @@ function islandFor(props: IslandSlotProps): IslandEntry {
       dispatchIntent({ kind: "setParam", nodeId: props.nodeId, name: props.name, value: canonical });
     };
     el.addEventListener("change", commit);
+    if (props.suggest && el.type === "text")
+      entry.detachSuggest = attachSuggestions(el, `bof-suggest-${key}`, () =>
+        suggestionProvider
+          ? suggestionProvider(props.nodeId, props.name)
+          : Promise.reject(new Error("No suggestion provider")));
     el.addEventListener("keydown", (e) => {
       if (e.key === "Enter") el.blur();
       if (e.key === "Escape") {
@@ -401,6 +420,7 @@ export function slotElement(nodeId: string, param: CanvasParam, w: number): Elem
         paramKind: param.kind,
         value: param.value,
         w,
+        ...(param.suggest ? { suggest: param.suggest } : {}),
       });
   }
 }

@@ -7,13 +7,14 @@
 // the label on the left; text-like kinds (Text, FilePath, DateTime) get a
 // caption line plus a full-width input, because values need the width.
 
-import type { ParamDescriptor, ParamKind } from "@bimopenflow/contracts";
+import type { ParamDescriptor, ParamKind, SuggestDescriptor } from "@bimopenflow/contracts";
 
 export interface CanvasParam {
   readonly name: string;
   readonly kind: ParamKind;
   readonly value: string;
   readonly enumValues?: readonly string[];
+  readonly suggest?: SuggestDescriptor;
 }
 
 /** Kinds edited inline on the node. Json/Expression/ModelRef stay in the
@@ -69,6 +70,7 @@ export function inlineParams(
       kind: p.kind,
       value: values[p.name] ?? p.default,
       ...(p.enumValues ? { enumValues: p.enumValues } : {}),
+      ...(p.suggest ? { suggest: p.suggest } : {}),
     }));
 }
 

@@ -18,6 +18,10 @@ function fakeApi(): { api: ResultApi; calls: unknown[][] } {
         calls.push([analysisId, nodeId, port, skip, take]);
         return Promise.resolve(slice(skip ?? 0, Math.min(take ?? 0, 500)));
       },
+      getSuggestions: (analysisId, nodeId, param) => {
+        calls.push(["suggest", analysisId, nodeId, param]);
+        return Promise.resolve({ status: "Ok" as const, values: [{ value: "name" }] });
+      },
     },
   };
 }

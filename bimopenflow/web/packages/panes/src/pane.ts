@@ -2,6 +2,7 @@ import type {
   NodeDescriptor,
   NodeState,
   SelectionEvent,
+  SuggestionList,
   TableSlice,
 } from "@bimopenflow/contracts";
 
@@ -22,6 +23,8 @@ export interface PaneContext {
   ): Promise<TableSlice>;
   /** Maps a model/asset URL from graph data to a fetchable URL. */
   resolveAsset(url: string): string;
+  /** Live value suggestions for a suggest-annotated node parameter. */
+  requestSuggestions?(nodeId: string, param: string): Promise<SuggestionList>;
 }
 
 /**
@@ -41,6 +44,8 @@ export type PaneInput =
       node: NodeDescriptor;
       values: Record<string, string>;
       state?: NodeState;
+      /** Graph node id, for panes that call back per node (e.g. suggestions). */
+      nodeId?: string;
     }
   /** A model to load into the 3D pane; format inferred from the URL when omitted. */
   | { kind: "model"; url: string; format?: ModelFormat }

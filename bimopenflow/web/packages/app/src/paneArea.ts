@@ -102,7 +102,7 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
     const { nodeId, desc, values, state } = shown;
     try {
       if (activeKind === "params" || activeKind === "inspector") {
-        if (desc) pane.update({ kind: "inspect", node: desc, values, state });
+        if (desc) pane.update({ kind: "inspect", node: desc, values, state, nodeId });
         return;
       }
       const port = firstTableOutput(desc);

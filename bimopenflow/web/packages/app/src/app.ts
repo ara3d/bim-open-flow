@@ -20,6 +20,7 @@ import { createPaneArea } from "./paneArea.js";
 import { makePaneContext } from "./paneContext.js";
 import { createCanvasEditor } from "./canvasEditor.js";
 import { inlineParams } from "./canvasSlots.js";
+import { setSuggestionProvider } from "./canvasControls.js";
 import { buildCanvasModel, freePosition, nodeHeight, nodeWidth } from "./viewModel.js";
 import { freshNodeId, freshUntitledId } from "./ids.js";
 import { loadThemeChoice, saveThemeChoice } from "./themeChoice.js";
@@ -63,14 +64,22 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
   // ── panes ──────────────────────────────────────────────────────────────────
   // The pane area outlives analysis switches, so the context late-binds the
   // current analysis id on every request.
-  const resultApi = { getResult: api.getResult.bind(api) };
+  const resultApi = {
+    getResult: api.getResult.bind(api),
+    getSuggestions: api.getSuggestions.bind(api),
+  };
   const boundCtx = {
     requestTable: (nodeId: string, port: string, skip?: number, take?: number) => {
       if (!currentId) return Promise.reject(new Error("No flow open"));
       return makePaneContext(resultApi, currentId).requestTable(nodeId, port, skip, take);
     },
+    requestSuggestions: (nodeId: string, param: string) => {
+      if (!currentId) return Promise.reject(new Error("No flow open"));
+      return makePaneContext(resultApi, currentId).requestSuggestions!(nodeId, param);
+    },
     resolveAsset: makePaneContext(resultApi, "").resolveAsset,
   };
+  setSuggestionProvider(boundCtx.requestSuggestions);
 
   const paneArea = createPaneArea(shell.paneEl, {
     ctx: boundCtx,
@@ -250,6 +259,7 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
     openAnalysis,
     dispose() {
       unsubscribe();
+      setSuggestionProvider(null);
       connection?.dispose();
       canvasEditor.dispose();
       paneArea.dispose();

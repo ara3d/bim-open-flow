@@ -4,19 +4,21 @@
 // the pane area maps them to store dispatches (panes never mutate anything).
 
 import type { ParamDescriptor } from "@bimopenflow/contracts";
-import type { Pane, PaneEvent, PaneInput } from "@bimopenflow/panes";
+import type { Pane, PaneContext, PaneEvent, PaneInput } from "@bimopenflow/panes";
 import {
   fromDatetimeLocal,
   normalizeInteger,
   normalizeNumber,
   toDatetimeLocal,
 } from "./paramText.js";
+import { attachSuggestions, type SuggestFetch } from "./suggestInput.js";
 
 function editorFor(
   doc: Document,
   param: ParamDescriptor,
   value: string,
   onChange: (value: string) => void,
+  suggest?: { fetch: SuggestFetch; listId: string; onDetach: (fn: () => void) => void },
 ): HTMLElement {
   if (param.kind === "Enum") {
     const select = doc.createElement("select");
@@ -58,17 +60,37 @@ function editorFor(
     return input;
   }
   input.addEventListener("change", () => onChange(input.value));
+  if (suggest) suggest.onDetach(attachSuggestions(input, suggest.listId, suggest.fetch));
   return input;
 }
 
 /** Editable parameter form for the inspected node. Accepts "inspect" inputs. */
 export function createParamsPane(): Pane {
   let root: HTMLElement | null = null;
+  let ctx: PaneContext | null = null;
   const handlers: Array<(e: PaneEvent) => void> = [];
   const emit = (e: PaneEvent) => handlers.forEach((h) => h(e));
+  let detachers: Array<() => void> = [];
+
+  const detachAll = () => {
+    for (const detach of detachers) detach();
+    detachers = [];
+  };
+
+  const suggestFor = (input: Extract<PaneInput, { kind: "inspect" }>, param: ParamDescriptor) => {
+    const request = ctx?.requestSuggestions;
+    const nodeId = input.nodeId;
+    if (!param.suggest || !request || !nodeId) return undefined;
+    return {
+      fetch: () => request(nodeId, param.name),
+      listId: `bof-pane-suggest-${nodeId}-${param.name}`,
+      onDetach: (fn: () => void) => detachers.push(fn),
+    };
+  };
 
   const render = (input: Extract<PaneInput, { kind: "inspect" }>) => {
     const doc = root!.ownerDocument;
+    detachAll();
     root!.textContent = "";
     if (input.node.params.length === 0) {
       const empty = doc.createElement("div");
@@ -85,15 +107,17 @@ export function createParamsPane(): Pane {
       grid.appendChild(label);
       grid.appendChild(
         editorFor(doc, param, input.values[param.name] ?? param.default, (value) =>
-          emit({ kind: "action", action: "setParam", payload: { name: param.name, value } })),
+          emit({ kind: "action", action: "setParam", payload: { name: param.name, value } }),
+          suggestFor(input, param)),
       );
     }
     root!.appendChild(grid);
   };
 
   return {
-    mount(el) {
+    mount(el, paneCtx) {
       root = el;
+      ctx = paneCtx ?? null;
     },
     update(input) {
       if (!root) throw new Error("update before mount");
@@ -103,8 +127,10 @@ export function createParamsPane(): Pane {
       handlers.push(handler);
     },
     destroy() {
+      detachAll();
       root?.replaceChildren();
       root = null;
+      ctx = null;
     },
   };
 }

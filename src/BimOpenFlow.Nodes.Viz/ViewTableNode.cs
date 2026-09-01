@@ -4,6 +4,9 @@ namespace BimOpenFlow.Nodes.Viz;
 
 /// <summary>Names and optionally projects a table for the table pane — a
 /// pinned, titled view rather than transient click-a-node inspection.</summary>
+// TODO: the columns projection duplicates table.project (Nodes.Tables) — decide
+// whether view.table should delegate to a shared Support helper or table.project
+// should retire in favor of this node (core proposal Set 3/4 overlap).
 public sealed class ViewTableNode : IFlowNode
 {
     public const string Kind = "view.table";

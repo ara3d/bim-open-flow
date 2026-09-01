@@ -34,6 +34,8 @@ public sealed class ChartBarNode : IFlowNode
             parameters.GetText("labelColumn"), Kind);
         if (label < 0)
             label = VizProjection.FirstTextColumn(table);
+        // TODO: a valueColumns entry naming the label column duplicates it in
+        // the output (and the web pane filters it out) — exclude it here.
         var values = VizProjection.ValueColumns(context, table,
             parameters.GetText("valueColumns"), label, Kind);
         var columns = label >= 0 ? values.Prepend(label).ToList() : values;

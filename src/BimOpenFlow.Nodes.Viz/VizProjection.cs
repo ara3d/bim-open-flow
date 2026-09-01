@@ -6,6 +6,9 @@ namespace BimOpenFlow.Nodes.Viz;
 
 /// <summary>Column selection, row ordering, and projection shared by the viz
 /// nodes. Everything builds new tables; input tables are never mutated.</summary>
+// TODO: hoist a shared Project(table, indices, rowOrder) into Nodes.Support —
+// this copy loop now exists here, in TableProjectNode (Nodes.Tables), and in
+// TableColumns.WithOrdinal (Support); Bos.TableOps.KeepRows is a fourth cousin.
 internal static class VizProjection
 {
     public static bool IsNumeric(this IDataColumn column)

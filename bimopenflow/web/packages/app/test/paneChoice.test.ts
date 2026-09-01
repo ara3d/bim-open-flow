@@ -72,6 +72,14 @@ describe("choosePanes", () => {
     expect(choosePanes(desc("geometry.color", [{ name: "instances", type: "Table", optional: false }]))[0])
       .toBe("view3d");
   });
+
+  it("puts view3d first for boxes outputs", () => {
+    expect(choosePanes(desc("geometry.bounds", [{ name: "boxes", type: "Table", optional: false }]))[0])
+      .toBe("view3d");
+    // a non-Table port named boxes does not trigger the 3D pane
+    expect(choosePanes(desc("geometry.bounds", [{ name: "boxes", type: "Integer", optional: false }])))
+      .toEqual(["params", "inspector"]);
+  });
 });
 
 describe("chartPaneOptions", () => {

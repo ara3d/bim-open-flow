@@ -1,7 +1,7 @@
 // The thin, real wiring between the 3D pane and the viewer workspace
 // (@ara3d/viewer-core/-loaders/-controls). Everything testable lives in
 // instanceTable.ts; this module is deliberately minimal glue.
-import { Viewer } from "@ara3d/viewer-core";
+import { InstancedGroup, Viewer } from "@ara3d/viewer-core";
 import { loadBos, loadGlb } from "@ara3d/viewer-loaders";
 import {
   OrbitControls,
@@ -13,11 +13,16 @@ import {
 } from "@ara3d/viewer-controls";
 import type { ModelFormat } from "./pane";
 import type { GroupEntityMap } from "./instanceTable";
+import { UNIT_CUBE } from "./boxTable";
 
 /** A mounted viewer with controls; what the 3D pane drives. */
 export interface ViewerRig {
   /** Loads a model into the scene; resolves to the group→entity mapping (empty for GLB). */
   load(url: string, format: ModelFormat): Promise<readonly GroupEntityMap[]>;
+  /** Replaces the boxes group: unit-cube instances (16 floats transform, RGBA color each). */
+  setBoxes(transforms: Float32Array, colors: Float32Array): void;
+  /** Removes the boxes group, if any. */
+  clearBoxes(): void;
   requestRender(): void;
   dispose(): void;
 }
@@ -62,6 +67,7 @@ export const defaultView3DDeps: View3DDeps = {
     picks.attach(canvas as unknown as PickElement);
 
     let maps: readonly GroupEntityMap[] = [];
+    let boxes: InstancedGroup | null = null;
     selection.changed.on((s) => {
       const entity = s
         ? maps.find((m) => m.group === s.group)?.entities[s.instanceIndex]
@@ -80,6 +86,19 @@ export const defaultView3DDeps: View3DDeps = {
         }
         viewer.requestRender();
         return maps;
+      },
+      setBoxes(transforms, colors) {
+        if (boxes) viewer.scene.removeGroup(boxes);
+        boxes = new InstancedGroup(UNIT_CUBE);
+        boxes.append(transforms, colors);
+        viewer.scene.addGroup(boxes);
+        viewer.requestRender();
+      },
+      clearBoxes() {
+        if (!boxes) return;
+        viewer.scene.removeGroup(boxes);
+        boxes = null;
+        viewer.requestRender();
       },
       requestRender: () => viewer.requestRender(),
       dispose() {

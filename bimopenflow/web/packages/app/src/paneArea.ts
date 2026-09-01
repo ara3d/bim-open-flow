@@ -121,7 +121,8 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
       if (activeKind === "view3d") {
         // TODO: push a { kind: "model" } input once the host serves geometry
         // (scheme: resolveAsset("model:{id}") -> /api/models/{id}/bos, served by the host).
-        pane.update({ kind: "instances", data });
+        if (port.name === "boxes") pane.update({ kind: "boxes", data });
+        else pane.update({ kind: "instances", data });
       } else {
         pane.update({ kind: "table", data });
       }

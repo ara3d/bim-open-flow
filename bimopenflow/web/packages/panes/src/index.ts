@@ -23,6 +23,7 @@ export { createViewPane3D, inferFormat, type ViewPane3DOptions } from "./viewPan
 export {
   entityForPick,
   groupColorPlan,
+  groupTransformPlan,
   instanceKeyColumn,
   planFromSlice,
   type ColorableGroup,
@@ -30,4 +31,5 @@ export {
   type InstancePlan,
   type Rgba,
 } from "./instanceTable";
+export { parseBoxTable, UNIT_CUBE, type BoxPlan } from "./boxTable";
 export { defaultView3DDeps, type View3DDeps, type ViewerRig } from "./viewerDeps";

@@ -50,7 +50,9 @@ export type PaneInput =
   /** A model to load into the 3D pane; format inferred from the URL when omitted. */
   | { kind: "model"; url: string; format?: ModelFormat }
   /** A 3D instance table: per-instance colors and isolation (3D pane). */
-  | { kind: "instances"; data: TableSlice };
+  | { kind: "instances"; data: TableSlice }
+  /** A boxes table: axis-aligned boxes rendered as instanced unit cubes (3D pane). */
+  | { kind: "boxes"; data: TableSlice };
 
 /** Events a pane emits. Serializable; the host decides what they mean. */
 export type PaneEvent =

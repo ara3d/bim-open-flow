@@ -1,7 +1,13 @@
 import type { TableSlice } from "@bimopenflow/contracts";
 import type { ModelFormat, Pane } from "./pane";
 import { definePane } from "./base";
-import { groupColorPlan, planFromSlice, type GroupEntityMap } from "./instanceTable";
+import {
+  groupColorPlan,
+  groupTransformPlan,
+  planFromSlice,
+  type GroupEntityMap,
+} from "./instanceTable";
+import { parseBoxTable } from "./boxTable";
 import { defaultView3DDeps, type View3DDeps } from "./viewerDeps";
 
 export interface ViewPane3DOptions {
@@ -18,9 +24,12 @@ export const inferFormat = (url: string): ModelFormat =>
  *
  * Inputs: "model" loads a model via ctx.resolveAsset (format from the URL
  * unless given); "instances" applies an instance table — rows define the
- * visible (isolated) set, r/g/b/a columns recolor, absent instances get
- * alpha 0. An instances input arriving before the model finishes loading is
- * applied afterwards. Emits "selection" (ids = [entityId]) on pick where the
+ * visible (isolated) set, r/g/b/a columns recolor, an `a` column alone fades
+ * (0 hides), offsetX/Y/Z columns translate instances on top of the loaded
+ * transforms, and absent instances get alpha 0. "boxes" renders a boxes
+ * table as instanced unit cubes, replacing any previous boxes group. An
+ * instances input arriving before the model finishes loading is applied
+ * afterwards. Emits "selection" (ids = [entityId]) on pick where the
  * loader provided a group→entity mapping, and "action" modelLoaded/loadError.
  */
 export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
@@ -40,15 +49,24 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
 
     let maps: readonly GroupEntityMap[] = [];
     let baseColors: Float32Array[] = [];
+    let baseTransforms: (Float32Array | null)[] = [];
+    let offsetsApplied = false;
     let pending: TableSlice | null = null;
     let loadToken = 0;
 
     const applyInstances = (slice: TableSlice): void => {
       const plan = planFromSlice(slice);
+      const applyOffsets = plan.offsets !== null || offsetsApplied;
       maps.forEach((m, i) => {
         const colors = groupColorPlan(m.entities, baseColors[i], plan);
         if (colors) m.group.setColors(0, colors);
+        const base = baseTransforms[i];
+        if (!applyOffsets || !base || !m.group.setTransform) return;
+        const transforms = groupTransformPlan(m.entities, base, plan) ?? base;
+        for (let j = 0; j < m.entities.length; j++)
+          m.group.setTransform(j, transforms.subarray(j * 16, (j + 1) * 16));
       });
+      offsetsApplied = plan.offsets !== null;
       rig.requestRender();
     };
 
@@ -62,6 +80,8 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
               if (token !== loadToken) return;
               maps = loaded;
               baseColors = loaded.map((m) => m.group.colors.slice());
+              baseTransforms = loaded.map((m) => m.group.transforms?.slice() ?? null);
+              offsetsApplied = false;
               if (pending) {
                 const slice = pending;
                 pending = null;
@@ -83,6 +103,11 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
         } else if (input.kind === "instances") {
           if (maps.length === 0) pending = input.data;
           else applyInstances(input.data);
+        } else if (input.kind === "boxes") {
+          const boxes = parseBoxTable(input.data);
+          if (boxes.count === 0) rig.clearBoxes();
+          else rig.setBoxes(boxes.transforms, boxes.colors);
+          rig.requestRender();
         }
       },
       destroy: () => rig.dispose(),

@@ -35,7 +35,9 @@ function isVerdictKind(kind: string): boolean {
 function isView3DKind(desc: NodeDescriptor): boolean {
   return (
     desc.kind.startsWith("view3d") ||
-    desc.outputs.some((p) => p.name === "instances" && p.type === "Table")
+    desc.outputs.some(
+      (p) => (p.name === "instances" || p.name === "boxes") && p.type === "Table",
+    )
   );
 }
 

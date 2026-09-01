@@ -62,6 +62,10 @@ html, body { margin: 0; height: 100%; }
 .bof-app-item:hover { background: var(--bof-app-hover); }
 .bof-app-item.bof-app-item-active { border-color: var(--bof-app-accent); }
 .bof-app-item small { display: block; color: var(--bof-app-dim); }
+.bof-app-catalog-group {
+  margin: 8px 0 2px; font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--bof-app-dim); flex: none;
+}
 .bof-app-canvas-host { position: relative; min-width: 0; }
 .bof-app-canvas-host canvas { display: block; width: 100%; height: 100%; }
 .bof-app-splitter {

@@ -51,6 +51,7 @@ export type CanvasIntent =
   | { kind: "move"; id: string; x: number; y: number } // transient, during drag
   | { kind: "moveEnd"; id: string } // commits the dragged position to the store
   | { kind: "connect"; a: string; b: string } // two anchor ids, either order
+  | { kind: "setParam"; nodeId: string; name: string; value: string } // inline control commit
   | { kind: "selectNode"; id: string }
   | { kind: "selectEdge"; id: string | null } // transient wire selection
   | { kind: "clearSelection" }
@@ -98,6 +99,15 @@ export function makeCanvasUpdate(
         dispatch({ type: "connect", from: from.endpoint, to: to.endpoint });
         return doc;
       }
+
+      case "setParam":
+        dispatch({
+          type: "setParam",
+          nodeId: intent.nodeId,
+          name: intent.name,
+          value: intent.value,
+        });
+        return doc;
 
       case "selectNode":
         dispatch({ type: "select", ids: [intent.id] });

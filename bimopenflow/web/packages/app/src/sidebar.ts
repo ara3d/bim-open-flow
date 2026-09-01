@@ -42,18 +42,32 @@ export function createSidebar(
 
   let catalog: NodeDescriptor[] = [];
 
+  // Grouped by the kind's dotted prefix ("table.limit" -> "table") so a large
+  // catalog stays scannable; groups and kinds render alphabetically.
   const renderCatalog = () => {
     catalogList.textContent = "";
-    for (const desc of filterCatalog(catalog, search.value)) {
-      const item = doc.createElement("div");
-      item.className = "bof-app-item";
-      item.textContent = desc.kind;
-      item.title = desc.description;
-      const detail = doc.createElement("small");
-      detail.textContent = desc.description;
-      item.appendChild(detail);
-      item.addEventListener("click", () => onAddNode(desc));
-      catalogList.appendChild(item);
+    const matches = filterCatalog(catalog, search.value);
+    const groups = new Map<string, NodeDescriptor[]>();
+    for (const desc of matches) {
+      const key = desc.kind.split(".")[0]!;
+      (groups.get(key) ?? groups.set(key, []).get(key)!).push(desc);
+    }
+    for (const [group, descs] of [...groups.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+      const header = doc.createElement("h4");
+      header.className = "bof-app-catalog-group";
+      header.textContent = group;
+      catalogList.appendChild(header);
+      for (const desc of [...descs].sort((a, b) => a.kind.localeCompare(b.kind))) {
+        const item = doc.createElement("div");
+        item.className = "bof-app-item";
+        item.textContent = desc.kind;
+        item.title = desc.description;
+        const detail = doc.createElement("small");
+        detail.textContent = desc.description;
+        item.appendChild(detail);
+        item.addEventListener("click", () => onAddNode(desc));
+        catalogList.appendChild(item);
+      }
     }
   };
   search.addEventListener("input", renderCatalog);

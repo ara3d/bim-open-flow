@@ -35,6 +35,22 @@ describe("sidebar catalog", () => {
     expect(opened).toEqual([]);
   });
 
+  it("groups entries by kind prefix, groups and kinds alphabetical", () => {
+    const { root, sidebar } = setup();
+    sidebar.setCatalog([
+      desc("table.select"),
+      desc("csv.read"),
+      desc("table.filter"),
+      desc("date.parse"),
+    ]);
+    const headers = [...root.querySelectorAll(".bof-app-catalog-group")].map((h) => h.textContent);
+    expect(headers).toEqual(["csv", "date", "table"]);
+    const kinds = [...root.querySelectorAll(".bof-app-catalog .bof-app-item")].map(
+      (i) => i.firstChild?.textContent,
+    );
+    expect(kinds).toEqual(["csv.read", "date.parse", "table.filter", "table.select"]);
+  });
+
   it("clicking an analysis entry opens it", () => {
     const { root, opened, added, sidebar } = setup();
     sidebar.setAnalyses(

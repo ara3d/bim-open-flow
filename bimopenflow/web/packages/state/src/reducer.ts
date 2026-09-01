@@ -105,7 +105,9 @@ function setParam(doc: GraphDocument, nodeId: string, name: string, value: strin
 
 function setLayout(doc: GraphDocument, nodeId: string, layout: NodeLayout): GraphDocument {
   requireNode(doc, nodeId);
-  return { ...doc, layout: { ...doc.layout, [nodeId]: layout } };
+  // Merge over any existing entry: a position-only write (node drag) must not
+  // silently drop a stored width/height.
+  return { ...doc, layout: { ...doc.layout, [nodeId]: { ...doc.layout[nodeId], ...layout } } };
 }
 
 export function reduce(state: State, action: Action): State {

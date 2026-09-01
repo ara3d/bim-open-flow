@@ -3,6 +3,7 @@
 
 import type { NodeDescriptor, NodeStatus, PortType } from "@bimopenflow/contracts";
 import type { State } from "@bimopenflow/state";
+import { inlineParams, placeSlots, type CanvasParam } from "./canvasSlots.js";
 
 export interface CanvasPort {
   readonly name: string;
@@ -18,6 +19,8 @@ export interface CanvasNode {
   readonly h: number;
   readonly inputs: readonly CanvasPort[];
   readonly outputs: readonly CanvasPort[];
+  /** Inline-editable params (catalog order, document values applied). */
+  readonly params: readonly CanvasParam[];
   readonly status?: NodeStatus;
   readonly selected: boolean;
 }
@@ -35,12 +38,24 @@ export interface CanvasModel {
 }
 
 export const NODE_WIDTH = 184;
+/** Nodes with inline param slots get extra width so field values stay legible. */
+export const WIDE_NODE_WIDTH = 240;
 export const PORT_SPACING = 20;
 export const NODE_HEADER = 36;
 
-/** Node height grows with its densest port side. */
-export function nodeHeight(inputCount: number, outputCount: number): number {
-  return NODE_HEADER + Math.max(inputCount, outputCount, 1) * PORT_SPACING;
+export function nodeWidth(params: readonly CanvasParam[]): number {
+  return params.length > 0 ? WIDE_NODE_WIDTH : NODE_WIDTH;
+}
+
+/** Node height grows with its densest port side, then with its param slots —
+ *  each slot contributes the height its control kind needs. */
+export function nodeHeight(
+  inputCount: number,
+  outputCount: number,
+  params: readonly CanvasParam[] = [],
+): number {
+  const portsBottom = NODE_HEADER + Math.max(inputCount, outputCount, 1) * PORT_SPACING;
+  return placeSlots(params, portsBottom).bottom;
 }
 
 /** Deterministic grid position for the n-th node without saved layout. */
@@ -64,6 +79,7 @@ export function buildCanvasModel(
     const desc = catalog.get(n.kind);
     const inputs = desc?.inputs ?? [];
     const outputs = desc?.outputs ?? [];
+    const params = inlineParams(desc?.params ?? [], state.document.values[n.id] ?? {});
     const layout = state.document.layout[n.id];
     const pos = layout ?? defaultPosition(unplaced++);
     return {
@@ -71,10 +87,11 @@ export function buildCanvasModel(
       kind: n.kind,
       x: pos.x,
       y: pos.y,
-      w: layout?.w ?? NODE_WIDTH,
-      h: layout?.h ?? nodeHeight(inputs.length, outputs.length),
+      w: layout?.w ?? nodeWidth(params),
+      h: layout?.h ?? nodeHeight(inputs.length, outputs.length, params),
       inputs: inputs.map((p) => ({ name: p.name, type: p.type })),
       outputs: outputs.map((p) => ({ name: p.name, type: p.type })),
+      params,
       status: state.evalState[n.id]?.status,
       selected: selected.has(n.id),
     };

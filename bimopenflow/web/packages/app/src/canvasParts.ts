@@ -16,6 +16,7 @@ import {
   Pan,
   part,
   Press,
+  rect,
   Stack,
   v,
   Vec,
@@ -25,6 +26,8 @@ import {
 import type { PortType } from "@bimopenflow/contracts";
 import type { CanvasEdge, CanvasModel, CanvasNode } from "./viewModel.js";
 import { NODE_HEADER, PORT_SPACING } from "./viewModel.js";
+import { placeSlots, SLOT_X_PAD } from "./canvasSlots.js";
+import { slotElement } from "./canvasControls.js";
 import { canvasColors } from "./canvasTheme.js";
 import { anchorId, canConnect, parseAnchorId, type CanvasIntent } from "./canvasIntents.js";
 
@@ -86,6 +89,10 @@ interface NodeStyle {
 const portY = (top: number, index: number): number =>
   top + NODE_HEADER + (index + 0.5) * PORT_SPACING;
 
+/** Bottom of the port rows, relative to the node top. */
+const portsBottom = (p: { inputs: readonly unknown[]; outputs: readonly unknown[] }): number =>
+  NODE_HEADER + Math.max(p.inputs.length, p.outputs.length, 1) * PORT_SPACING;
+
 interface AnchorMeta {
   dir: "in" | "out";
   nodeId: string;
@@ -123,6 +130,16 @@ const GraphNodePart = part<NodeProps, NodeStyle>("bof-node", {
   size: (p) => v(p.w, p.h),
   anchors: portAnchors,
 
+  // Children are the inline param slots, stacked below the port rows; each
+  // slot's height comes from its control kind (canvasSlots.placeSlots).
+  arrange(props, r, kids) {
+    const placements = placeSlots(props.params, portsBottom(props)).slots;
+    return kids.map((_kid, i) => {
+      const p = placements[i]!;
+      return rect(r.x + SLOT_X_PAD, r.y + p.y, r.w - 2 * SLOT_X_PAD, p.h);
+    });
+  },
+
   style: (t, channels) => ({
     fill: t.mix(t.surface, t.surfaceHi, 0.4 * channels.hover + 0.6 * channels.drag),
     edge: t.mix(t.muted, t.accent, (channels.sel || 0) + 0.5 * channels.hover),
@@ -158,6 +175,11 @@ const GraphNodePart = part<NodeProps, NodeStyle>("bof-node", {
       painter.dot(v(r.right, y), SOCKET_RADIUS, style.socket);
       painter.label(port.name, v(r.right - 11, y), style.dim, { align: "right", size: PORT_SIZE });
     });
+    // A quiet separator between the port rows and the inline param slots.
+    if (p.params.length > 0) {
+      const y = r.y + portsBottom(p) + 3;
+      painter.line(v(r.x + 10, y), v(r.right - 10, y), calpha(style.dim, 0.35), 1);
+    }
   },
 
   on: [
@@ -295,7 +317,11 @@ export function canvasView(model: CanvasModel): Element {
         });
       }),
       ...model.nodes.map((n) =>
-        GraphNodePart(n.id, { ...n, pos: v(n.x, n.y), states: { sel: n.selected } })),
+        GraphNodePart(
+          n.id,
+          { ...n, pos: v(n.x, n.y), states: { sel: n.selected } },
+          n.params.map((param) => slotElement(n.id, param, n.w - 2 * SLOT_X_PAD)),
+        )),
     ]),
     onScreenLayer(
       Stack("hud", { pad: 10 }, [

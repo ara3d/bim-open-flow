@@ -5,6 +5,12 @@
 
 import type { ParamDescriptor } from "@bimopenflow/contracts";
 import type { Pane, PaneEvent, PaneInput } from "@bimopenflow/panes";
+import {
+  fromDatetimeLocal,
+  normalizeInteger,
+  normalizeNumber,
+  toDatetimeLocal,
+} from "./paramText.js";
 
 function editorFor(
   doc: Document,
@@ -31,9 +37,26 @@ function editorFor(
     box.addEventListener("change", () => onChange(box.checked ? "true" : "false"));
     return box;
   }
+  if (param.kind === "DateTime") {
+    const input = doc.createElement("input");
+    input.type = "datetime-local";
+    input.value = toDatetimeLocal(value);
+    input.addEventListener("change", () => onChange(fromDatetimeLocal(input.value)));
+    return input;
+  }
   const input = doc.createElement("input");
   input.type = "text";
   input.value = value;
+  if (param.kind === "Integer" || param.kind === "Number") {
+    input.inputMode = "decimal";
+    input.addEventListener("change", () => {
+      const normalize = param.kind === "Integer" ? normalizeInteger : normalizeNumber;
+      const canonical = input.value.trim() === "" ? "" : normalize(input.value);
+      if (canonical === null) input.value = value; // invalid: revert
+      else onChange(canonical);
+    });
+    return input;
+  }
   input.addEventListener("change", () => onChange(input.value));
   return input;
 }

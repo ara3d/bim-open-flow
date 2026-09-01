@@ -9,6 +9,12 @@ import type { NodeDescriptor } from "@bimopenflow/contracts";
 import type { Store } from "@bimopenflow/state";
 import { makeCanvasUpdate, type CanvasIntent } from "./canvasIntents.js";
 import { canvasView } from "./canvasParts.js";
+import {
+  disposeInlineControls,
+  islandKey,
+  pruneInlineControls,
+  setInlineControlDispatch,
+} from "./canvasControls.js";
 import { buildCanvasModel, type CanvasModel } from "./viewModel.js";
 
 export interface CanvasEditor {
@@ -33,6 +39,9 @@ export function createCanvasEditor(
     update: makeCanvasUpdate(store, onError),
     view: canvasView,
   });
+  // Island inputs (inline Text/FilePath/DateTime/number controls) live in the
+  // DOM, outside gratify's intent flow; their commits come back through here.
+  setInlineControlDispatch((intent) => runtime.dispatch(intent));
 
   // Store dispatches can originate inside a gratify update (a gesture intent);
   // syncing re-entrantly would be overwritten by the outer update's return
@@ -44,7 +53,11 @@ export function createCanvasEditor(
     queued = true;
     queueMicrotask(() => {
       queued = false;
-      runtime.dispatch({ kind: "sync", model: model() });
+      const next = model();
+      pruneInlineControls(new Set(
+        next.nodes.flatMap((n) => n.params.map((p) => islandKey(n.id, p.name))),
+      ));
+      runtime.dispatch({ kind: "sync", model: next });
     });
   };
   const unsubscribe = store.subscribe(sync);
@@ -59,6 +72,7 @@ export function createCanvasEditor(
     },
     dispose: () => {
       unsubscribe();
+      disposeInlineControls();
       runtime.stop();
     },
   };

@@ -59,6 +59,49 @@ public static class NodeNotes
             "The ids table is matched on its column with the same name as `joinColumn`, or its "
             + "first column when no such column exists.",
 
+        ["view3d.hide"] =
+            "The exact inverse of `view3d.isolate`: rows whose join key appears in the ids "
+            + "table are removed; rows with a null join key are kept. Same ids-column lookup "
+            + "(same name as `joinColumn`, else the first column).",
+
+        ["view3d.opacity"] =
+            "Writes only the `a` column (added with default 1 when absent); existing colors are "
+            + "untouched, and the 3D pane honors `a` even without r/g/b — 0 hides, fractions "
+            + "fade. The ids input is optional: without it every row gets the alpha; with it, "
+            + "scope `matched` fades the matching rows and `others` fades everything else, while "
+            + "unassigned rows keep their current alpha.",
+
+        ["view3d.spacing"] =
+            "Explode-by-column: groups are the sorted distinct values of `groupColumn` and group "
+            + "i moves i x spacing along the axis. Offsets accumulate onto existing offsetX/Y/Z "
+            + "columns so spacing nodes chain, and the bounds columns are shifted to match. "
+            + "Null-group rows stay in place.",
+
+        ["view3d.arrange"] =
+            "Parts-catalog layout: each group gets a cell in a square XY grid sized by the "
+            + "largest group footprint plus the gap, moved so its bounds minimum lands at the "
+            + "cell origin; Z is unchanged. Offset/bounds column handling matches "
+            + "`view3d.spacing`.",
+
+        ["view3d.decimate"] =
+            "Instance thinning, not mesh simplification: drops rows with a bounds diagonal "
+            + "under `minDiagonal`, then keeps the top `keepFraction` of the remainder by bounds "
+            + "volume (ties to the earlier row), preserving row order. An out-of-range fraction "
+            + "warns and clamps.",
+
+        ["view3d.boundingBoxes"] =
+            "Emits a boxes table (see the Geometry README): one box per row, or with "
+            + "`groupColumn`, one union box per sorted distinct group value with null-group rows "
+            + "under \"(none)\". Labels fall back globalId, then instanceIndex, then row number; "
+            + "r/g/b/a carry through when all four columns exist (group mode: first row's "
+            + "color).",
+
+        ["view3d.voxelize"] =
+            "AABB rasterization, not triangle-accurate: every voxel overlapped by an instance "
+            + "bounding box is emitted with a `count` of overlapping instances and a `voxelId` "
+            + "join key for coloring. The grid spans the union bounds; a size that would exceed "
+            + "2,000,000 voxels is doubled until it fits, with a warning.",
+
         ["check.rule"] =
             "Per row: `expr` true is Pass; false is Fail, unless `reviewExpr` is also true, "
             + "which makes it NeedsReview; a null result (missing data) is InfoNotAvailable. "

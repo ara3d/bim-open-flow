@@ -31,5 +31,5 @@ export {
   type InstancePlan,
   type Rgba,
 } from "./instanceTable";
-export { parseBoxTable, UNIT_CUBE, type BoxPlan } from "./boxTable";
+export { isBoxTable, parseBoxTable, UNIT_CUBE, type BoxPlan } from "./boxTable";
 export { defaultView3DDeps, type View3DDeps, type ViewerRig } from "./viewerDeps";

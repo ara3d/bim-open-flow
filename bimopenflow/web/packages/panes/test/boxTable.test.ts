@@ -1,6 +1,6 @@
 // Headless tests for boxes-table parsing and the unit-cube buffers.
 import { describe, expect, it } from "vitest";
-import { parseBoxTable, UNIT_CUBE } from "../src/boxTable";
+import { isBoxTable, parseBoxTable, UNIT_CUBE } from "../src/boxTable";
 import { makeSlice } from "./helpers";
 
 const BOUNDS: Array<[string, "Number"]> = [
@@ -11,6 +11,25 @@ const BOUNDS: Array<[string, "Number"]> = [
   ["maxY", "Number"],
   ["maxZ", "Number"],
 ];
+
+describe("isBoxTable", () => {
+  it("is true for bounds-only tables (colored or not)", () => {
+    expect(isBoxTable(makeSlice(BOUNDS, []).columns)).toBe(true);
+    expect(
+      isBoxTable(makeSlice([...BOUNDS, ["r", "Number"], ["count", "Integer"]], []).columns),
+    ).toBe(true);
+  });
+
+  it("is false for instance tables (key columns) and non-bounds tables", () => {
+    expect(
+      isBoxTable(makeSlice([...BOUNDS, ["entityId", "Integer"]], []).columns),
+    ).toBe(false);
+    expect(
+      isBoxTable(makeSlice([...BOUNDS, ["instanceIndex", "Integer"]], []).columns),
+    ).toBe(false);
+    expect(isBoxTable(makeSlice([["minX", "Number"]], []).columns)).toBe(false);
+  });
+});
 
 describe("parseBoxTable", () => {
   it("scales the unit cube to the extent and translates to the center", () => {

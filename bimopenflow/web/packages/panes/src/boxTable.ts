@@ -19,6 +19,17 @@ export interface BoxPlan {
 }
 
 /**
+ * A boxes table by shape: all six bounds columns, and none of the instance key
+ * columns. Distinguishes derived boxes tables (which keep flowing through
+ * generic table nodes like view3d.color, so the port name alone is not enough)
+ * from instance tables, which also carry bounds.
+ */
+export const isBoxTable = (columns: TableSlice["columns"]): boolean =>
+  BOUNDS_COLUMNS.every((name) => columnIndex(columns, name) >= 0) &&
+  columnIndex(columns, "entityId") < 0 &&
+  columnIndex(columns, "instanceIndex") < 0;
+
+/**
  * Parses a boxes table: requires minX..maxZ (throws with the missing names
  * otherwise). Each row becomes a transform that scales the unit cube (edge 1,
  * centered at origin) to the box extent and moves it to the box center.

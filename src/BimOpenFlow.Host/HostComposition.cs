@@ -3,10 +3,13 @@ using BimOpenFlow.Host.Api;
 using BimOpenFlow.Host.Catalog;
 using BimOpenFlow.Host.Store;
 using BimOpenFlow.Nodes.Bos;
+using BimOpenFlow.Nodes.Cleaning;
 using BimOpenFlow.Nodes.Compliance;
+using BimOpenFlow.Nodes.Dates;
 using BimOpenFlow.Nodes.DuckDb;
 using BimOpenFlow.Nodes.Effects;
 using BimOpenFlow.Nodes.Geometry;
+using BimOpenFlow.Nodes.TableOps;
 using BimOpenFlow.Nodes.Tables;
 
 namespace BimOpenFlow.Host;
@@ -25,10 +28,12 @@ public static class HostComposition
     public static NodeRegistry AllPacks()
         => NodeRegistry.Combine(BosNodes.All, GeometryNodes.All, ComplianceNodes.All, EffectNodes.All);
 
-    /// <summary>The "tables" profile registry: the DuckDB and Tables packs plus the
-    /// four BIM-free table.* nodes cherry-picked from the Bos pack.</summary>
+    /// <summary>The "tables" profile registry: the DuckDB, Tables, TableOps,
+    /// Cleaning, and Dates packs, plus the four BIM-free table.* nodes
+    /// cherry-picked from the Bos pack.</summary>
     public static NodeRegistry TablePacks()
         => NodeRegistry.Combine(DuckDbNodes.All, TableNodes.All,
+            TableOpsNodes.All, CleaningNodes.All, DatesNodes.All,
             [new TableFilterNode(), new TableDeriveNode(), new TableAggregateNode(), new TableSortNode()]);
 
     public static HostServices BuildServices(HostConfig config)

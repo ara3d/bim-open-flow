@@ -1,9 +1,12 @@
 using BimOpenFlow.NodeDocs;
 using BimOpenFlow.Nodes.Bos;
+using BimOpenFlow.Nodes.Cleaning;
 using BimOpenFlow.Nodes.Compliance;
+using BimOpenFlow.Nodes.Dates;
 using BimOpenFlow.Nodes.DuckDb;
 using BimOpenFlow.Nodes.Effects;
 using BimOpenFlow.Nodes.Geometry;
+using BimOpenFlow.Nodes.TableOps;
 using BimOpenFlow.Nodes.Tables;
 
 var packs = new Pack[]
@@ -26,6 +29,15 @@ var packs = new Pack[]
     new("Tables — `BimOpenFlow.Nodes.Tables`",
         "XLSX and SQLite readers plus table combinators: join, set operations, and projection. BIM-free, DuckDB-free.",
         TableNodes.All),
+    new("TableOps — `BimOpenFlow.Nodes.TableOps`",
+        "Rows, columns, reshape, and window transforms — each a typed facade over one generated DuckDB clause.",
+        TableOpsNodes.All),
+    new("Cleaning — `BimOpenFlow.Nodes.Cleaning`",
+        "Nulls, duplicates, text noise, and value replacement: the messy-data fixes that run before shaping.",
+        CleaningNodes.All),
+    new("Dates — `BimOpenFlow.Nodes.Dates`",
+        "Parsing text columns into dates, extracting parts, truncating, arithmetic, and range filtering.",
+        DatesNodes.All),
 };
 
 var outputPath = args.Length > 0 ? args[0] : Path.Combine(FindRepoRoot(), "docs", "nodes.md");

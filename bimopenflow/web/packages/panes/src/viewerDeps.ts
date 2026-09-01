@@ -77,6 +77,8 @@ export const defaultView3DDeps: View3DDeps = {
 
     return {
       async load(url, format) {
+        // TODO: frame the camera to the loaded model's bounds; the default
+        // pose only happens to show models near the origin.
         if (format === "bos") {
           const result = await loadBos(url, viewer.scene);
           maps = result.groupEntities;

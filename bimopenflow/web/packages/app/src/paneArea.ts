@@ -120,6 +120,8 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
     if (e.kind === "selection") deps.onSelect(e.event.ids);
     else if (e.action === "setParam" && shown && e.payload)
       deps.onSetParam(shown.nodeId, e.payload.name!, e.payload.value ?? "");
+    else if (e.action === "loadError")
+      deps.onError(`3D model load failed: ${e.payload?.message ?? "unknown error"}`);
   };
 
   // Loads the shown node's model into the 3D pane once per model: resolves the
@@ -133,7 +135,9 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
     const url = id ? `model:${id}` : null;
     if (!url || url === loadedModelUrl) return;
     loadedModelUrl = url;
-    pane.update({ kind: "model", url });
+    // The model-bytes endpoint always serves BOS; the id in the url may keep
+    // a source extension (.ifc), so the format cannot be inferred from it.
+    pane.update({ kind: "model", url, format: "bos" });
   };
 
   const feedData = async () => {

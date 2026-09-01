@@ -100,7 +100,7 @@ describe("createPaneArea 3D model wiring", () => {
     area.showNode(shownWith("data/duplex.ifc"));
     await settle();
     expect(updates).toEqual([
-      { kind: "model", url: "model:duplex.ifc" },
+      { kind: "model", url: "model:duplex.ifc", format: "bos" },
       { kind: "instances", data: slice },
     ]);
 

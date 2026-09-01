@@ -21,9 +21,9 @@ public sealed class TableJoinNode : IFlowNode
         [
             new ParamSpec("aKey", ParamKind.Text),
             new ParamSpec("bKey", ParamKind.Text, ""),
-            new ParamSpec("mode", ParamKind.Enum, "left", ["left", "inner"]),
+            new ParamSpec("mode", ParamKind.Enum, "left", ["left", "inner", "full", "semi", "anti"]),
         ],
-        "Joins b's columns onto a by key (bKey defaults to aKey); left keeps all a rows, inner keeps matches.");
+        "Joins b's columns onto a by key (bKey defaults to aKey). left keeps all a rows; inner keeps matches; full also appends unmatched b rows; semi/anti keep only a rows with/without a match and attach no b columns.");
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {
@@ -32,18 +32,30 @@ public sealed class TableJoinNode : IFlowNode
         var aKey = parameters.RequiredText("aKey", Kind);
         var bKeyText = parameters.GetText("bKey");
         var bKey = string.IsNullOrWhiteSpace(bKeyText) ? aKey : bKeyText;
-        var mode = parameters.RequiredEnum("mode", Kind, "left", "left", "inner");
+        var mode = parameters.RequiredEnum("mode", Kind, "left", "left", "inner", "full", "semi", "anti");
         var aKeyCol = a.RequireColumn(aKey, Kind);
         var bKeyCol = b.RequireColumn(bKey, Kind);
 
         var lookup = BuildLookup(context, b, bKeyCol);
-        var (aRows, bRows, unmatched) = MatchRows(a, aKeyCol, lookup, keepUnmatched: mode == "left");
+        if (mode is "semi" or "anti")
+            return [new TableValue(SemiAnti(context, a, aKeyCol, lookup, keepMatched: mode == "semi"))];
+
+        var (aRows, bRows, unmatched) = MatchRows(a, aKeyCol, lookup, keepUnmatched: mode != "inner");
         if (unmatched > 0)
             context.Warn($"{Kind}: {unmatched} of {a.RowCount()} rows unmatched");
+        if (mode == "full")
+            AppendUnmatchedB(b, bKeyCol, lookup, aRows, bRows);
 
         var builder = new DataTableBuilder(a.Name);
         foreach (var c in a.Columns)
-            builder.AddColumn(Select(a, c.ColumnIndex, aRows), c.Descriptor.Name, c.Descriptor.Type);
+        {
+            var values = Select(a, c.ColumnIndex, aRows);
+            if (c.ColumnIndex == aKeyCol)
+                for (var i = 0; i < values.Length; i++)
+                    if (aRows[i] < 0)
+                        values[i] = b[bKeyCol, bRows[i]];
+            builder.AddColumn(values, c.Descriptor.Name, c.Descriptor.Type);
+        }
         var aNames = a.Columns.Select(c => c.Descriptor.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var c in b.Columns)
         {
@@ -53,6 +65,40 @@ public sealed class TableJoinNode : IFlowNode
             builder.AddColumn(Select(b, c.ColumnIndex, bRows), name, c.Descriptor.Type);
         }
         return [new TableValue(builder.Build())];
+    }
+
+    /// <summary>Only a's columns: rows with a match (semi) or without one (anti).</summary>
+    private static IDataTable SemiAnti(IEvalContext context, IDataTable a, int keyCol,
+        Dictionary<string, int> lookup, bool keepMatched)
+    {
+        var rows = new List<int>();
+        var unmatched = 0;
+        for (var row = 0; row < a.RowCount(); row++)
+        {
+            var matched = TableOps.CanonicalText(a[keyCol, row]) is { } key && lookup.ContainsKey(key);
+            if (!matched)
+                unmatched++;
+            if (matched == keepMatched)
+                rows.Add(row);
+        }
+        if (unmatched > 0)
+            context.Warn($"{Kind}: {unmatched} of {a.RowCount()} rows unmatched");
+        return a.SelectRows(rows, a.Name);
+    }
+
+    /// <summary>Full mode: appends each b row whose key no a row matched (a side lands null).</summary>
+    private static void AppendUnmatchedB(IDataTable b, int keyCol, Dictionary<string, int> lookup,
+        List<int> aRows, List<int> bRows)
+    {
+        var matched = bRows.Where(r => r >= 0).ToHashSet();
+        for (var row = 0; row < b.RowCount(); row++)
+        {
+            var key = TableOps.CanonicalText(b[keyCol, row]);
+            if (key != null && lookup.TryGetValue(key, out var first) && matched.Contains(first))
+                continue;
+            aRows.Add(-1);
+            bRows.Add(row);
+        }
     }
 
     /// <summary>Key text to first b row with that key; warns when b has duplicates.</summary>

@@ -44,6 +44,82 @@ public sealed class TableCombinatorTests
     }
 
     [Test]
+    public void Join_Semi_KeepsMatchingARows_NoBColumns_AndWarns()
+    {
+        var ctx = new FakeEvalContext();
+        var result = new TableJoinNode().EvalTable(ctx,
+            [NodeTestHelpers.Orders(), NodeTestHelpers.Customers()],
+            ("aKey", "CustomerId"), ("mode", "semi"));
+        Assert.That(result.ColumnNames(), Is.EqualTo(new[] { "Id", "CustomerId" }));
+        Assert.That(result.Rows, Has.Count.EqualTo(2));
+        Assert.That(result.Cell("Id", 0), Is.EqualTo(1L));
+        Assert.That(result.Cell("Id", 1), Is.EqualTo(2L));
+        Assert.That(ctx.Warnings, Has.One.Contains("2 of 4 rows unmatched"));
+    }
+
+    [Test]
+    public void Join_Anti_KeepsNonMatchingARows_NullKeyCountsAsUnmatched()
+    {
+        var ctx = new FakeEvalContext();
+        var result = new TableJoinNode().EvalTable(ctx,
+            [NodeTestHelpers.Orders(), NodeTestHelpers.Customers()],
+            ("aKey", "CustomerId"), ("mode", "anti"));
+        Assert.That(result.ColumnNames(), Is.EqualTo(new[] { "Id", "CustomerId" }));
+        Assert.That(result.Rows, Has.Count.EqualTo(2));
+        Assert.That(result.Cell("CustomerId", 0), Is.Null);
+        Assert.That(result.Cell("CustomerId", 1), Is.EqualTo("C9"));
+        Assert.That(ctx.Warnings, Has.One.Contains("2 of 4 rows unmatched"));
+    }
+
+    [Test]
+    public void Join_Full_AppendsUnmatchedBRows_WithBKeyInAKeyColumn()
+    {
+        var ctx = new FakeEvalContext();
+        var result = new TableJoinNode().EvalTable(ctx,
+            [NodeTestHelpers.Orders(), NodeTestHelpers.Customers()],
+            ("aKey", "CustomerId"), ("mode", "full"));
+        Assert.That(result.ColumnNames(), Is.EqualTo(new[] { "Id", "CustomerId", "Name" }));
+        Assert.That(result.Rows, Has.Count.EqualTo(5), "4 a rows plus unmatched customer C3");
+        Assert.That(result.Cell("Name", 0), Is.EqualTo("Alice"));
+        Assert.That(result.Cell("Id", 4), Is.Null);
+        Assert.That(result.Cell("CustomerId", 4), Is.EqualTo("C3"));
+        Assert.That(result.Cell("Name", 4), Is.EqualTo("Carol"));
+        Assert.That(ctx.Warnings, Has.One.Contains("2 of 4 rows unmatched"));
+    }
+
+    [Test]
+    public void Join_Full_AllMatched_AppendsNothing()
+    {
+        var b = new DataTableBuilder("b");
+        b.AddColumn(new object?[] { "C1", "C2", "C9" }, "CustomerId", typeof(string));
+        b.AddColumn(new object?[] { "x", "y", "z" }, "Tag", typeof(string));
+        var ctx = new FakeEvalContext();
+        var result = new TableJoinNode().EvalTable(ctx,
+            [NodeTestHelpers.Customers(), b.Build()], ("aKey", "CustomerId"), ("mode", "full"));
+        Assert.That(result.Rows, Has.Count.EqualTo(4), "3 a rows plus unmatched C9");
+        Assert.That(result.Cell("CustomerId", 3), Is.EqualTo("C9"));
+    }
+
+    [Test]
+    public void Join_Semi_DuplicateBKeys_StillWarn()
+    {
+        var b = new DataTableBuilder("b");
+        b.AddColumn(new object?[] { "C1", "C1" }, "CustomerId", typeof(string));
+        var ctx = new FakeEvalContext();
+        var result = new TableJoinNode().EvalTable(ctx,
+            [NodeTestHelpers.Orders(), b.Build()], ("aKey", "CustomerId"), ("mode", "semi"));
+        Assert.That(result.Rows, Has.Count.EqualTo(1));
+        Assert.That(ctx.Warnings, Has.One.Contains("duplicate keys in b"));
+    }
+
+    [Test]
+    public void Join_UnknownMode_Throws()
+        => Assert.That(() => new TableJoinNode().EvalTable(
+                [NodeTestHelpers.Orders(), NodeTestHelpers.Customers()],
+                ("aKey", "CustomerId"), ("mode", "sideways")),
+            Throws.ArgumentException.With.Message.StartsWith("table.join: ").And.Message.Contains("mode"));
+
+    [Test]
     public void Join_BKeyDefaultsToAKey_AndDifferentBKeyWorks()
     {
         var b = new DataTableBuilder("b");

@@ -1,6 +1,6 @@
 // Generated from contracts/contracts.json v0.1.0 by contracts/generate.mjs.
 // Do not edit by hand.
-import type { ModelSummary, AnalysisSummary, AnalysisVersion, NodeCatalog, EvalUpdate, TableSlice, RunSummary } from "@bimopenflow/contracts";
+import type { ModelSummary, AnalysisSummary, AnalysisVersion, NodeCatalog, EvalUpdate, TableSlice, SuggestionList, RunSummary } from "@bimopenflow/contracts";
 
 export interface ApiClientOptions {
   baseUrl?: string;
@@ -66,6 +66,11 @@ export class ApiClient {
   async getResult(id: string, nodeId: string, port: string, skip?: number, take?: number): Promise<TableSlice> {
     const res = await this.request("GET", `/api/analyses/${encodeURIComponent(id)}/results/${encodeURIComponent(nodeId)}/${encodeURIComponent(port)}`, { skip, take }, undefined);
     return res.json() as Promise<TableSlice>;
+  }
+
+  async getSuggestions(id: string, nodeId: string, param: string): Promise<SuggestionList> {
+    const res = await this.request("GET", `/api/analyses/${encodeURIComponent(id)}/suggestions/${encodeURIComponent(nodeId)}/${encodeURIComponent(param)}`, undefined, undefined);
+    return res.json() as Promise<SuggestionList>;
   }
 
   async listRuns(id: string): Promise<RunSummary[]> {

@@ -45,7 +45,8 @@ public static class HostComposition
     public static HostApp Build(HostConfig config)
     {
         var services = BuildServices(config);
-        var app = ApiServer.Create(services.Catalog, services.Store, services.Registry);
+        var app = ApiServer.Create(services.Catalog, services.Store, services.Registry,
+            DuckDbTableProbe.Tables);
         app.MapModelBytes(services.Catalog);
         app.Urls.Add($"http://127.0.0.1:{config.Port}");
         return new(config, services, app);

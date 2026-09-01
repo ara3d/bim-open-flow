@@ -53,7 +53,13 @@ public static class ApiMapping
         => new(port.Name, port.Type.ByName<PortType>(), port.Optional);
 
     public static ParamDescriptor ToDescriptor(this ParamSpec param)
-        => new(param.Name, param.Kind.ByName<ParamKind>(), param.Default, param.EnumValues);
+        => new(param.Name, param.Kind.ByName<ParamKind>(), param.Default, param.EnumValues,
+            param.Suggest.ToDescriptor());
+
+    public static SuggestDescriptor? ToDescriptor(this SuggestSource? suggest)
+        => suggest is null
+            ? null
+            : new(suggest.Kind.ByName<Contracts.SuggestKind>(), suggest.Source);
 
     /// <summary>Pages a node output into a TableSlice; a non-table output becomes
     /// a one-row, one-column slice named after the port.</summary>

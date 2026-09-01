@@ -8,7 +8,9 @@
     "NodeCapability": ["Pure", "Effect"],
     "Verdict": ["Pass", "Fail", "NeedsReview", "InfoNotAvailable"],
     "ModelKind": ["Ifc", "Bos"],
-    "NodeStatus": ["Ok", "Unready", "EffectPending", "Unavailable", "Error"]
+    "NodeStatus": ["Ok", "Unready", "EffectPending", "Unavailable", "Error"],
+    "SuggestKind": ["ColumnsOfInput", "TablesInFile"],
+    "SuggestStatus": ["Ok", "Unready", "Unavailable"]
   },
   "types": {
     "ColumnSchema": {
@@ -28,7 +30,21 @@
       "name": "string",
       "kind": "ParamKind",
       "default": "string",
-      "enumValues": "string[]?"
+      "enumValues": "string[]?",
+      "suggest": "SuggestDescriptor?"
+    },
+    "SuggestDescriptor": {
+      "kind": "SuggestKind",
+      "source": "string"
+    },
+    "Suggestion": {
+      "value": "string",
+      "detail": "string?"
+    },
+    "SuggestionList": {
+      "status": "SuggestStatus",
+      "values": "Suggestion[]",
+      "reason": "string?"
     },
     "NodeDescriptor": {
       "kind": "string",
@@ -95,6 +111,7 @@
     { "name": "getNodeCatalog", "method": "GET", "path": "/api/catalog/nodes", "response": "NodeCatalog" },
     { "name": "getAnalysisState", "method": "GET", "path": "/api/analyses/{id}/state", "response": "EvalUpdate" },
     { "name": "getResult", "method": "GET", "path": "/api/analyses/{id}/results/{nodeId}/{port}", "query": { "skip": "int?", "take": "int?" }, "response": "TableSlice" },
+    { "name": "getSuggestions", "method": "GET", "path": "/api/analyses/{id}/suggestions/{nodeId}/{param}", "response": "SuggestionList" },
     { "name": "listRuns", "method": "GET", "path": "/api/analyses/{id}/runs", "response": "RunSummary[]" },
     { "name": "createRun", "method": "POST", "path": "/api/analyses/{id}/runs", "response": "RunSummary" },
     { "name": "getRun", "method": "GET", "path": "/api/analyses/{id}/runs/{fileName}", "response": "text" },

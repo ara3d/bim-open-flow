@@ -48,6 +48,15 @@ export type NodeStatus =
   | "Unavailable"
   | "Error";
 
+export type SuggestKind =
+  | "ColumnsOfInput"
+  | "TablesInFile";
+
+export type SuggestStatus =
+  | "Ok"
+  | "Unready"
+  | "Unavailable";
+
 export interface ColumnSchema {
   name: string;
   type: ColumnType;
@@ -69,6 +78,23 @@ export interface ParamDescriptor {
   kind: ParamKind;
   default: string;
   enumValues?: string[] | undefined;
+  suggest?: SuggestDescriptor | undefined;
+}
+
+export interface SuggestDescriptor {
+  kind: SuggestKind;
+  source: string;
+}
+
+export interface Suggestion {
+  value: string;
+  detail?: string | undefined;
+}
+
+export interface SuggestionList {
+  status: SuggestStatus;
+  values: Suggestion[];
+  reason?: string | undefined;
 }
 
 export interface NodeDescriptor {

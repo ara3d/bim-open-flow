@@ -68,6 +68,19 @@ public enum NodeStatus
     Error,
 }
 
+public enum SuggestKind
+{
+    ColumnsOfInput,
+    TablesInFile,
+}
+
+public enum SuggestStatus
+{
+    Ok,
+    Unready,
+    Unavailable,
+}
+
 public sealed record ColumnSchema(
     string Name,
     ColumnType Type);
@@ -85,7 +98,21 @@ public sealed record ParamDescriptor(
     string Name,
     ParamKind Kind,
     string Default,
-    IReadOnlyList<string>? EnumValues);
+    IReadOnlyList<string>? EnumValues,
+    SuggestDescriptor? Suggest);
+
+public sealed record SuggestDescriptor(
+    SuggestKind Kind,
+    string Source);
+
+public sealed record Suggestion(
+    string Value,
+    string? Detail);
+
+public sealed record SuggestionList(
+    SuggestStatus Status,
+    IReadOnlyList<Suggestion> Values,
+    string? Reason);
 
 public sealed record NodeDescriptor(
     string Kind,
@@ -152,6 +179,7 @@ public static class ApiRoutes
     public const string GetNodeCatalog = "/api/catalog/nodes";
     public const string GetAnalysisState = "/api/analyses/{id}/state";
     public const string GetResult = "/api/analyses/{id}/results/{nodeId}/{port}";
+    public const string GetSuggestions = "/api/analyses/{id}/suggestions/{nodeId}/{param}";
     public const string ListRuns = "/api/analyses/{id}/runs";
     public const string CreateRun = "/api/analyses/{id}/runs";
     public const string GetRun = "/api/analyses/{id}/runs/{fileName}";

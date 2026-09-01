@@ -31,7 +31,7 @@ public static class RunInputs
                 {
                     ParamKind.ModelRef => (models ??= catalog.Scan())
                         .FirstOrDefault(m => m.Id == value)?.ContentHash,
-                    ParamKind.FilePath => File.Exists(value) ? ModelCatalog.HashFile(value) : null,
+                    ParamKind.FilePath => File.Exists(value) ? ModelCatalog.HashFile(value) : null, // TODO: glob paths (data/*.csv) are skipped, so runs omit provenance for glob-read files
                     _ => null,
                 };
                 if (hash is not null)

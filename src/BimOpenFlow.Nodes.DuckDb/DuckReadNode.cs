@@ -57,7 +57,7 @@ public sealed class DuckReadNode : IFlowNode
     {
         using var conn = BosDuckDb.OpenInMemory();
         return conn.Query($"SELECT * FROM {reader}('{path.ToSqlLiteral()}')", Path.GetFileNameWithoutExtension(path))
-            .NormalizeDates();
+            .NormalizeDatesToText();
     }
 
     private static string ContentHash(string path)

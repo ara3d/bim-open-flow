@@ -1,7 +1,7 @@
 {
   "formatVersion": "0.1.0",
   "layout": {
-    "slim": { "x": 320, "y": 40 },
+    "slim": { "x": 370, "y": 40 },
     "warehouse": { "x": 40, "y": 40 }
   },
   "structure": {

@@ -5,6 +5,9 @@ namespace BimOpenFlow.Nodes.Tables;
 
 /// <summary>Joins table b's columns onto table a by key column. Unmatched and
 /// duplicate-key counts surface as warnings, never silently.</summary>
+// TODO: full-mode appended b rows write b's key value into a's key column; when the
+// two columns' CLR types differ the column carries mixed types downstream. Coerce
+// to a's type or widen to text explicitly.
 public sealed class TableJoinNode : IFlowNode
 {
     public const string Kind = "table.join";

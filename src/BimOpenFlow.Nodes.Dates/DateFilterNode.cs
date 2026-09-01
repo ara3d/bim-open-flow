@@ -48,7 +48,7 @@ public sealed class DateFilterNode : IFlowNode
         if (to != null)
             bounds.Add($"{ts} < {Literal(to.Value)}");
         var where = $"WHERE {string.Join(" AND ", bounds)}";
-        return [new TableValue(DateSql.RunOrdered(table, "", where))];
+        return [new TableValue(DateSql.RunOrdered(table, "", where, Kind))];
     }
 
     private static DateTime? ParseBound(string text, string paramName)

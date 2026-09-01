@@ -30,6 +30,6 @@ public sealed class TableLimitNode : IFlowNode
             throw new ArgumentException($"{Kind}: parameter 'count' must be a non-negative integer.");
         if (offset < 0)
             throw new ArgumentException($"{Kind}: parameter 'offset' must be a non-negative integer.");
-        return [new TableValue(DuckTableSql.Run(table, $"SELECT * FROM t LIMIT {count} OFFSET {offset}"))];
+        return [new TableValue(TableColumns.RunSql(Kind, table, $"SELECT * FROM t LIMIT {count} OFFSET {offset}"))];
     }
 }

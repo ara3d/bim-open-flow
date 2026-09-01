@@ -1,9 +1,9 @@
 {
   "formatVersion": "0.1.0",
   "layout": {
-    "common": { "x": 320, "y": 100 },
+    "common": { "x": 370, "y": 40 },
     "csvOrders": { "x": 40, "y": 40 },
-    "dbOrders": { "x": 40, "y": 160 }
+    "dbOrders": { "x": 40, "y": 224 }
   },
   "structure": {
     "edges": [

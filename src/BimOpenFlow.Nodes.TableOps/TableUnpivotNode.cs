@@ -36,6 +36,16 @@ public sealed class TableUnpivotNode : IFlowNode
             : table.Names().Where(n => !keep.Contains(n, StringComparer.OrdinalIgnoreCase)).ToList();
         if (columns.Count == 0)
             throw new ArgumentException($"{Kind}: no columns to unpivot.");
+        // Absence is reported, never silent: an explicit columns list drops
+        // everything neither kept nor unpivoted — say so.
+        if (named.Count > 0)
+        {
+            var dropped = table.Names()
+                .Where(n => !keep.Contains(n, StringComparer.OrdinalIgnoreCase)
+                    && !columns.Contains(n, StringComparer.OrdinalIgnoreCase)).ToList();
+            if (dropped.Count > 0)
+                context.Warn($"{Kind}: columns not kept or unpivoted are dropped: {string.Join(", ", dropped)}.");
+        }
         var nameColumn = parameters.GetText("nameColumn", "name");
         var valueColumn = parameters.GetText("valueColumn", "value");
         foreach (var output in new[] { nameColumn, valueColumn })
@@ -65,6 +75,6 @@ public sealed class TableUnpivotNode : IFlowNode
               INTO NAME {nameColumn.Ident()} VALUE {valueColumn.Ident()})
             ORDER BY {ord.Ident()}, {position}
             """;
-        return [new TableValue(DuckTableSql.Run(table.WithOrdinal(ord), sql))];
+        return [new TableValue(TableColumns.RunSql(Kind, table.WithOrdinal(ord), sql))];
     }
 }

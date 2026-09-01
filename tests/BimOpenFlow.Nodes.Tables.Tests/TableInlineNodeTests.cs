@@ -47,8 +47,16 @@ public sealed class TableInlineNodeTests
     {
         Assert.That(() => new TableInlineNode().EvalTable([], ("rows", """[{"x":1},{"x":"a"}]""")),
             Throws.ArgumentException.With.Message.StartsWith("table.inline: ").And.Message.Contains("'x'"));
-        Assert.That(() => new TableInlineNode().EvalTable([], ("rows", """[{"x":1},{"x":1.5}]""")),
-            Throws.ArgumentException.With.Message.Contains("'x'"), "integer + number is an error, not a widening");
+    }
+
+    [Test]
+    public void Inline_IntegerAndNumber_WidenToNumber()
+    {
+        // JSON has one number type: "120" next to "120.5" is the same column.
+        var table = new TableInlineNode().EvalTable([], ("rows", """[{"x":1},{"x":1.5}]"""));
+        Assert.That(table.Columns[0].Descriptor.Type, Is.EqualTo(typeof(double)));
+        Assert.That(table.Cell("x", 0), Is.EqualTo(1.0));
+        Assert.That(table.Cell("x", 1), Is.EqualTo(1.5));
     }
 
     [Test]

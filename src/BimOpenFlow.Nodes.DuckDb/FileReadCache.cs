@@ -38,9 +38,12 @@ internal static class FileReadCache
             : throw new FileNotFoundException($"{kind}: glob '{path}' matched no files.");
     }
 
-    /// <summary>The cache key: kind + per-file content hashes + parameter values.</summary>
+    /// <summary>The cache key: kind + per-file (path, content hash) pairs +
+    /// parameter values. Paths are part of the key because outputs embed
+    /// path-derived data (the glob `filename` column, the table name), so
+    /// identical bytes at a different location must not hit the cache.</summary>
     public static string CacheKey(string kind, IReadOnlyList<string> files, string parameters)
-        => $"{kind}:{string.Join("|", files.Select(HashFile))}:{parameters}";
+        => $"{kind}:{string.Join("|", files.Select(f => $"{f}={HashFile(f)}"))}:{parameters}";
 
     public static IDataTable GetOrLoad(string key, Func<IDataTable> load)
         => Cache.GetOrAdd(key, _ => load());

@@ -48,7 +48,7 @@ public sealed class JsonReadNode : IFlowNode
         using var conn = BosDuckDb.OpenInMemory();
         conn.Execute($"CREATE VIEW src AS SELECT * FROM read_json('{path.ToSqlLiteral()}', format='{format}')");
         var sql = flatten ? $"SELECT {string.Join(", ", FlattenedColumns(conn))} FROM src" : "SELECT * FROM src";
-        return conn.Query(sql, name).NormalizeDates();
+        return conn.Query(sql, name).NormalizeDatesToText();
     }
 
     /// <summary>One projection term per output column: struct columns expand one

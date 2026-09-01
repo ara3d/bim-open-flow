@@ -34,6 +34,6 @@ public sealed class DuckTableNode : IFlowNode
         if (known.Rows.Count == 0)
             throw new ArgumentException($"{Kind}: table '{tableName}' not found in {path}.");
         return [new TableValue(
-            conn.Query($"SELECT * FROM {DuckTableSql.QuoteIdent(tableName)}", tableName).NormalizeDates())];
+            conn.Query($"SELECT * FROM {DuckTableSql.QuoteIdent(tableName)}", tableName).NormalizeDatesToText())];
     }
 }

@@ -34,6 +34,24 @@ internal static class TableColumns
     public static string Ident(this string name)
         => DuckTableSql.QuoteIdent(name);
 
+    /// <summary>Runs generated SQL, rethrowing engine failures with the node
+    /// kind prefixed so every error a user sees names its node.</summary>
+    public static IDataTable RunSql(string kind, IDataTable table, string sql)
+        => RunSql(kind, [("t", table)], sql);
+
+    public static IDataTable RunSql(
+        string kind, IReadOnlyList<(string Name, IDataTable Table)> tables, string sql)
+    {
+        try
+        {
+            return DuckTableSql.Run(tables, sql);
+        }
+        catch (Exception e) when (e is not ArgumentException and not OperationCanceledException)
+        {
+            throw new ArgumentException($"{kind}: {e.Message}", e);
+        }
+    }
+
     public static string Literal(this string text)
         => DuckTableSql.QuoteLiteral(text);
 

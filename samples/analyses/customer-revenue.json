@@ -1,12 +1,12 @@
 {
   "formatVersion": "0.1.0",
   "layout": {
-    "customers": { "x": 40, "y": 280 },
-    "joined": { "x": 320, "y": 160 },
+    "customers": { "x": 40, "y": 408 },
+    "joined": { "x": 370, "y": 40 },
     "orders": { "x": 40, "y": 40 },
-    "products": { "x": 40, "y": 160 },
-    "revenue": { "x": 600, "y": 160 },
-    "top": { "x": 880, "y": 160 }
+    "products": { "x": 40, "y": 224 },
+    "revenue": { "x": 700, "y": 40 },
+    "top": { "x": 1030, "y": 40 }
   },
   "structure": {
     "edges": [

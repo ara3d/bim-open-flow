@@ -256,7 +256,7 @@ interface IslandEntry {
 
 const islands = new Map<string, IslandEntry>();
 
-export const islandKey = (nodeId: string, name: string): string => `${nodeId} ${name}`;
+export const islandKey = (nodeId: string, name: string): string => `${nodeId}::${name}`;
 
 /** Drops island elements for (node, param) keys no longer on the canvas. */
 export function pruneInlineControls(liveKeys: ReadonlySet<string>): void {
@@ -422,13 +422,13 @@ const PanelPart = part<{ gap?: number; pad?: number; states?: Record<string, boo
   measure: (props, avail, m) => stackMeasure(props, avail, m),
   arrange: (props, r, kids) => stackArrange(props, r, kids),
   style: (t) => ({
-    fill: t.mix(t.bg, t.surface, 0.72),
-    edge: calpha(t.accent, 0.45),
-    shadow: calpha(t.bg, 0.7),
+    fill: t.surface,
+    edge: calpha(t.accent, 0.55),
+    shadow: calpha(t.textBright, 0.25),
   }),
   render(node, painter, style) {
     painter.push();
-    painter.alpha(0.35 + 0.65 * node.ch.enter);
+    painter.alpha(0.5 + 0.5 * node.ch.enter);
     painter.glow(style.shadow, 14, () => painter.box(node.rect, 7, style.fill, style.edge, 1));
     painter.pop();
   },

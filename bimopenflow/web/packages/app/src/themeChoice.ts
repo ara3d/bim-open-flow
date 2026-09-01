@@ -12,7 +12,9 @@ export const THEME_PREF_KEY = "bof-app-canvas-theme";
 
 export function loadThemeChoice(): CanvasThemeName {
   const value = readPref(THEME_PREF_KEY);
-  return value !== null && isCanvasThemeName(value) ? value : defaultCanvasTheme;
+  // "platoflow-light" was renamed to "light"; migrate stored choices.
+  const migrated = value === "platoflow-light" ? "light" : value;
+  return migrated !== null && isCanvasThemeName(migrated) ? migrated : defaultCanvasTheme;
 }
 
 export function saveThemeChoice(name: CanvasThemeName): void {

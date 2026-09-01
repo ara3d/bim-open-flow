@@ -10,11 +10,11 @@
 import { calpha, rgb, setTheme as setGratifyTheme, themes, type Color, type Tokens } from "gratify";
 import type { NodeStatus } from "@bimopenflow/contracts";
 
-export const canvasThemeNames = ["dark", "platoflow-light"] as const;
+export const canvasThemeNames = ["light", "dark"] as const;
 
 export type CanvasThemeName = (typeof canvasThemeNames)[number];
 
-export const defaultCanvasTheme: CanvasThemeName = "dark";
+export const defaultCanvasTheme: CanvasThemeName = "light";
 
 export const isCanvasThemeName = (value: string): value is CanvasThemeName =>
   (canvasThemeNames as readonly string[]).includes(value);
@@ -56,8 +56,8 @@ const darkPalette: Palette = {
   danger: rgb(255, 92, 108),
 };
 
-// "platoflow-light" = platoflow/web/src/theme.ts cream palette, token for token.
-const platoflowLightPalette: Palette = {
+// "light" = platoflow/web/src/theme.ts cream palette, token for token.
+const lightPalette: Palette = {
   bg: rgb(239, 237, 232),
   surface: rgb(255, 255, 255),
   surfaceHi: rgb(243, 241, 236),
@@ -71,6 +71,24 @@ const platoflowLightPalette: Palette = {
 };
 
 export const canvasThemes: Record<CanvasThemeName, CanvasTheme> = {
+  light: {
+    palette: lightPalette,
+    extras: {
+      status: {
+        Ok: rgb(46, 140, 74),
+        Unready: rgb(138, 136, 128),
+        EffectPending: rgb(184, 122, 20),
+        Unavailable: rgb(96, 116, 146),
+        Error: rgb(192, 57, 43),
+      },
+      // platoflow contracts.ts "hue whisper" grays: scene #7A98A8 as the base.
+      wire: rgb(122, 152, 168),
+      wireSelected: rgb(191, 131, 26),
+      wireShadow: calpha(rgb(0, 0, 0), 0.1),
+      rubberSnap: rgb(34, 160, 80),
+      gridDot: calpha(rgb(190, 186, 178), 0.9),
+    },
+  },
   dark: {
     palette: darkPalette,
     extras: {
@@ -86,24 +104,6 @@ export const canvasThemes: Record<CanvasThemeName, CanvasTheme> = {
       wireShadow: calpha(rgb(0, 0, 0), 0.25),
       rubberSnap: rgb(90, 220, 130),
       gridDot: calpha(darkPalette.muted, 0.3),
-    },
-  },
-  "platoflow-light": {
-    palette: platoflowLightPalette,
-    extras: {
-      status: {
-        Ok: rgb(46, 140, 74),
-        Unready: rgb(138, 136, 128),
-        EffectPending: rgb(184, 122, 20),
-        Unavailable: rgb(96, 116, 146),
-        Error: rgb(192, 57, 43),
-      },
-      // platoflow contracts.ts "hue whisper" grays: scene #7A98A8 as the base.
-      wire: rgb(122, 152, 168),
-      wireSelected: rgb(191, 131, 26),
-      wireShadow: calpha(rgb(0, 0, 0), 0.1),
-      rubberSnap: rgb(34, 160, 80),
-      gridDot: calpha(rgb(190, 186, 178), 0.9),
     },
   },
 };

@@ -7,6 +7,8 @@ namespace BimOpenFlow.Nodes.TableOps;
 /// <summary>Casts one column to a new type, in place or as a new column.
 /// onError 'null' uses TRY_CAST and warns with the count of rows that became null.
 /// Date and datetime casts accept ISO-8601 text only and come back as ISO text.</summary>
+// TODO: CountNulledRows aligns input/output rows by index, relying on DuckDB's
+// preserve_insertion_order default; count via SQL instead to remove the assumption.
 public sealed class TableCastNode : IFlowNode
 {
     public const string Kind = "table.cast";
@@ -51,7 +53,7 @@ public sealed class TableCastNode : IFlowNode
         var sql = name.Length == 0
             ? $"SELECT * REPLACE ({expr} AS {column.Ident()}) FROM t"
             : $"SELECT *, {expr} AS {name.Ident()} FROM t";
-        var result = DuckTableSql.Run(table, sql);
+        var result = TableColumns.RunSql(Kind, table, sql);
 
         if (onError == "null")
         {

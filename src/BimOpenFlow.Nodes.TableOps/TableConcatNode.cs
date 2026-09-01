@@ -53,6 +53,6 @@ public sealed class TableConcatNode : IFlowNode
             ("a", a.WithOrdinal(ord)),
             ("b", b.WithOrdinal(ord)),
         };
-        return [new TableValue(DuckTableSql.Run(tables, sql))];
+        return [new TableValue(TableColumns.RunSql(Kind, tables, sql))];
     }
 }

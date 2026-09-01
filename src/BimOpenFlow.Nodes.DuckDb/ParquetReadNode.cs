@@ -31,6 +31,6 @@ public sealed class ParquetReadNode : IFlowNode
     {
         using var conn = BosDuckDb.OpenInMemory();
         return conn.Query($"SELECT * FROM read_parquet('{path.ToSqlLiteral()}')",
-            Path.GetFileNameWithoutExtension(path)).NormalizeDates();
+            Path.GetFileNameWithoutExtension(path)).NormalizeDatesToText();
     }
 }

@@ -57,16 +57,44 @@ internal static class DateSql
     }
 
     /// <summary>Runs a projection over the table with the input row order
-    /// preserved via a temporary ordinal column excluded from the output.
+    /// preserved via a temporary ordinal column excluded from the output. The
+    /// ordinal is materialized in C# (never row_number() over an unordered
+    /// scan, whose order DuckDB does not guarantee under parallel execution).
     /// 'projection' follows "SELECT * EXCLUDE (ord)" (e.g. " REPLACE (...)" or
-    /// ", expr AS name"); 'where' is a full WHERE clause or empty.</summary>
-    public static IDataTable RunOrdered(IDataTable table, string projection, string where = "")
+    /// ", expr AS name"); 'where' is a full WHERE clause or empty. Engine
+    /// failures are rethrown with the node kind prefixed.</summary>
+    public static IDataTable RunOrdered(IDataTable table, string projection, string where, string kind)
     {
-        var ord = DuckTableSql.QuoteIdent(table.OrdinalName());
-        return DuckTableSql.Run(table,
-            $"SELECT * EXCLUDE ({ord}){projection}"
-            + $" FROM (SELECT *, row_number() OVER () AS {ord} FROM t)"
-            + $" {where} ORDER BY {ord}");
+        var ordName = table.OrdinalName();
+        var ord = DuckTableSql.QuoteIdent(ordName);
+        try
+        {
+            return DuckTableSql.Run(table.WithOrdinal(ordName),
+                $"SELECT * EXCLUDE ({ord}){projection} FROM t {where} ORDER BY {ord}");
+        }
+        catch (Exception e) when (e is not ArgumentException and not OperationCanceledException)
+        {
+            throw new ArgumentException($"{kind}: {e.Message}", e);
+        }
+    }
+
+    /// <summary>A copy of the table with an extra 0-based Integer ordinal column.</summary>
+    private static IDataTable WithOrdinal(this IDataTable table, string ordinal)
+    {
+        var rows = table.Columns.Count == 0 ? 0 : table.Columns[0].Count;
+        var builder = new DataTableBuilder(table.Name);
+        foreach (var c in table.Columns)
+        {
+            var cells = new object?[rows];
+            for (var row = 0; row < rows; row++)
+                cells[row] = table[c.ColumnIndex, row];
+            builder.AddColumn(cells, c.Descriptor.Name, c.Descriptor.Type);
+        }
+        var ordinals = new object?[rows];
+        for (var row = 0; row < rows; row++)
+            ordinals[row] = (long)row;
+        builder.AddColumn(ordinals, ordinal, typeof(long));
+        return builder.Build();
     }
 
     /// <summary>The in-place-unless-named convention: empty name replaces
@@ -76,8 +104,8 @@ internal static class DateSql
         string expr, string kind)
     {
         if (string.IsNullOrEmpty(name))
-            return RunOrdered(table, $" REPLACE (({expr}) AS {DuckTableSql.QuoteIdent(column)})");
+            return RunOrdered(table, $" REPLACE (({expr}) AS {DuckTableSql.QuoteIdent(column)})", "", kind);
         table.RequireNewColumn(name, kind);
-        return RunOrdered(table, $", ({expr}) AS {DuckTableSql.QuoteIdent(name)}");
+        return RunOrdered(table, $", ({expr}) AS {DuckTableSql.QuoteIdent(name)}", "", kind);
     }
 }

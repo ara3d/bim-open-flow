@@ -48,6 +48,6 @@ public sealed class TableSplitColumnNode : IFlowNode
             $"THEN split_part({column.Ident()}, {sep}, {i + 1}) END AS {name.Ident()}");
         var source = keep ? "*" : $"* EXCLUDE ({column.Ident()})";
         var sql = $"SELECT {source}, {string.Join(", ", parts)} FROM t";
-        return [new TableValue(DuckTableSql.Run(table, sql))];
+        return [new TableValue(TableColumns.RunSql(Kind, table, sql))];
     }
 }

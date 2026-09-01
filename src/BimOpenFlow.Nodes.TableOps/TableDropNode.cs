@@ -33,6 +33,6 @@ public sealed class TableDropNode : IFlowNode
         if (dropped.Count == 0)
             return [new TableValue(table)];
         var sql = $"SELECT * EXCLUDE ({string.Join(", ", dropped.Select(TableColumns.Ident))}) FROM t";
-        return [new TableValue(DuckTableSql.Run(table, sql))];
+        return [new TableValue(TableColumns.RunSql(Kind, table, sql))];
     }
 }

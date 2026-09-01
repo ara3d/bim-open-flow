@@ -32,6 +32,6 @@ public sealed class TableDistinctNode : IFlowNode
               FROM t)
             WHERE {rn.Ident()} = 1 ORDER BY {ord.Ident()}
             """;
-        return [new TableValue(DuckTableSql.Run(table.WithOrdinal(ord), sql))];
+        return [new TableValue(TableColumns.RunSql(Kind, table.WithOrdinal(ord), sql))];
     }
 }

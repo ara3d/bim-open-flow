@@ -63,7 +63,13 @@ public sealed class TableInlineNode : IFlowNode
 
         var builder = new DataTableBuilder("inline");
         foreach (var name in names)
-            builder.AddColumn(columns[name].ToArray(), name, ColumnType(columns[name], name));
+        {
+            var type = ColumnType(columns[name], name);
+            var cells = type == typeof(double)
+                ? columns[name].Select(c => c is long l ? (object?)(double)l : c).ToArray()
+                : columns[name].ToArray();
+            builder.AddColumn(cells, name, type);
+        }
         return builder.Build();
     }
 
@@ -79,7 +85,10 @@ public sealed class TableInlineNode : IFlowNode
                 $"{Kind}: column '{column}' has a nested {value.ValueKind}; values must be scalars."),
         };
 
-    /// <summary>One value type per column, or an error — never a silent widening.</summary>
+    /// <summary>One value type per column, or an error — with a single numeric
+    /// exception: integers and numbers in one column widen to number, because
+    /// JSON has one number type and "120" next to "120.5" is the same column
+    /// (the rate-card shape). Everything else mixing is an error.</summary>
     private static Type ColumnType(IReadOnlyList<object?> cells, string name)
     {
         var types = cells.Where(c => c != null).Select(c => c!.GetType()).Distinct().ToList();
@@ -87,6 +96,7 @@ public sealed class TableInlineNode : IFlowNode
         {
             0 => typeof(string),
             1 => types[0],
+            2 when types.Contains(typeof(long)) && types.Contains(typeof(double)) => typeof(double),
             _ => throw new ArgumentException(
                 $"{Kind}: column '{name}' mixes value types ({string.Join(", ", types.Select(TypeName))})."),
         };

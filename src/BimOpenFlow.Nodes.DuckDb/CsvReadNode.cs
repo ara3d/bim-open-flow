@@ -67,7 +67,7 @@ public sealed class CsvReadNode : IFlowNode
     {
         using var conn = BosDuckDb.OpenInMemory();
         var table = conn.Query($"SELECT * FROM read_csv('{path.ToSqlLiteral()}'{options})",
-            Path.GetFileNameWithoutExtension(path)).NormalizeDates();
+            Path.GetFileNameWithoutExtension(path)).NormalizeDatesToText();
         return header ? table : table.RenameColumns(DefaultColumnName);
     }
 

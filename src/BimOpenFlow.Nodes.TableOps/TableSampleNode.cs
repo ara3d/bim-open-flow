@@ -52,6 +52,6 @@ public sealed class TableSampleNode : IFlowNode
               SELECT * FROM t USING SAMPLE {sample} REPEATABLE ({seed}))
             ORDER BY {ord.Ident()}
             """;
-        return [new TableValue(DuckTableSql.Run(table.WithOrdinal(ord), sql))];
+        return [new TableValue(TableColumns.RunSql(Kind, table.WithOrdinal(ord), sql))];
     }
 }

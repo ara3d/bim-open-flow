@@ -19,7 +19,8 @@ import { createTopbar } from "./topbar.js";
 import { createPaneArea } from "./paneArea.js";
 import { makePaneContext } from "./paneContext.js";
 import { createCanvasEditor } from "./canvasEditor.js";
-import { defaultPosition } from "./viewModel.js";
+import { inlineParams } from "./canvasSlots.js";
+import { buildCanvasModel, freePosition, nodeHeight, nodeWidth } from "./viewModel.js";
 import { freshNodeId, freshUntitledId } from "./ids.js";
 import { loadThemeChoice, saveThemeChoice } from "./themeChoice.js";
 import { showToast } from "./toast.js";
@@ -191,14 +192,18 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
     if (!currentId) return fail("Open a flow first");
     const state = store.getState();
     const id = freshNodeId(desc.kind, state.document.structure.nodes.map((n) => n.id));
+    // Size-aware placement: the first grid spot where this node's real
+    // width/height (inline param slots included) overlaps nothing.
+    const params = inlineParams(desc.params, {});
+    const position = freePosition(
+      buildCanvasModel(state, catalog).nodes,
+      nodeWidth(params),
+      nodeHeight(desc.inputs.length, desc.outputs.length, params),
+    );
     // TODO: fold add+place into one undo step once the state package offers a
     // compound action.
     dispatch({ type: "addNode", id, kind: desc.kind, version: desc.version });
-    dispatch({
-      type: "setLayout",
-      nodeId: id,
-      layout: defaultPosition(state.document.structure.nodes.length),
-    });
+    dispatch({ type: "setLayout", nodeId: id, layout: position });
     dispatch({ type: "select", ids: [id] });
   }
 

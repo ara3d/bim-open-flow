@@ -59,10 +59,15 @@ describe("canvas theme table", () => {
 
 describe("applyCanvasTheme", () => {
   it("switches the extras canvasParts reads", () => {
-    applyCanvasTheme("platoflow-light");
-    expect(currentCanvasTheme()).toBe("platoflow-light");
-    expect(canvasColors()).toBe(canvasThemes["platoflow-light"].extras);
     applyCanvasTheme("dark");
+    expect(currentCanvasTheme()).toBe("dark");
     expect(canvasColors()).toBe(canvasThemes.dark.extras);
+    applyCanvasTheme("light");
+    expect(canvasColors()).toBe(canvasThemes.light.extras);
+  });
+
+  it("light is the default", () => {
+    expect(defaultCanvasTheme).toBe("light");
+    expect(canvasThemeNames[0]).toBe("light");
   });
 });

@@ -9,9 +9,26 @@ public sealed class HostProfileTests
 {
     private static readonly string[] ExpectedTableKinds =
     [
+        // DuckDb pack
         "duck.read", "duck.query", "sql.query",
-        "xlsx.read", "sqlite.query",
+        "csv.read", "parquet.read", "json.read", "duck.table", "duck.tables",
+        // Tables pack
+        "xlsx.read", "xlsx.sheets", "sqlite.query", "sqlite.table", "sqlite.tables",
         "table.join", "table.setOp", "table.project",
+        "table.inline", "table.range", "table.calendar",
+        // TableOps pack
+        "table.cast", "table.concat", "table.distinct", "table.drop", "table.limit",
+        "table.pivot", "table.profile", "table.rename", "table.sample", "table.schema",
+        "table.splitColumn", "table.transpose", "table.unpivot", "table.window",
+        // Cleaning pack
+        "table.fillNulls", "table.dropNulls", "table.dedupe", "table.replace",
+        "text.transform", "text.extract",
+        // Dates pack
+        "date.parse", "date.part", "date.truncate", "date.diff", "date.offset", "date.filter",
+        // Table sinks from the Effects pack
+        "sink.exportCsv", "sink.exportParquet", "sink.exportJson",
+        "sink.exportXlsx", "sink.exportSqlite", "sink.exportDuckDb",
+        // Cherry-picked from the Bos pack
         "table.filter", "table.derive", "table.aggregate", "table.sort",
     ];
 
@@ -26,7 +43,8 @@ public sealed class HostProfileTests
         => Assert.That(
             HostComposition.TablePacks().Nodes.Select(n => n.Spec.Kind),
             Has.None.Matches<string>(k =>
-                k.StartsWith("bos.") || k.StartsWith("view3d.") || k.StartsWith("check.") || k.StartsWith("sink.")));
+                k.StartsWith("bos.") || k.StartsWith("view3d.") || k.StartsWith("check.")
+                || k == "sink.writePsets" || k == "sink.report"));
 
     [Test]
     public void DefaultProfile_IsBim()

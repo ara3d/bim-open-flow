@@ -29,11 +29,11 @@ public static class HostComposition
         => NodeRegistry.Combine(BosNodes.All, GeometryNodes.All, ComplianceNodes.All, EffectNodes.All);
 
     /// <summary>The "tables" profile registry: the DuckDB, Tables, TableOps,
-    /// Cleaning, and Dates packs, plus the four BIM-free table.* nodes
-    /// cherry-picked from the Bos pack.</summary>
+    /// Cleaning, and Dates packs, the table writers from the Effects pack, plus
+    /// the four BIM-free table.* nodes cherry-picked from the Bos pack.</summary>
     public static NodeRegistry TablePacks()
         => NodeRegistry.Combine(DuckDbNodes.All, TableNodes.All,
-            TableOpsNodes.All, CleaningNodes.All, DatesNodes.All,
+            TableOpsNodes.All, CleaningNodes.All, DatesNodes.All, EffectNodes.TableSinks,
             [new TableFilterNode(), new TableDeriveNode(), new TableAggregateNode(), new TableSortNode()]);
 
     public static HostServices BuildServices(HostConfig config)

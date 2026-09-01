@@ -71,7 +71,7 @@ public sealed class TableWindowNode : IFlowNode
         };
         var cols = string.Join(", ", table.Names().Select(TableColumns.Ident));
         var sql = $"SELECT {cols}, {expr} AS {name.Ident()} FROM t ORDER BY {ord.Ident()}";
-        return [new TableValue(DuckTableSql.Run(table.WithOrdinal(ord), sql))];
+        return [new TableValue(TableColumns.RunSql(Kind, table.WithOrdinal(ord), sql))];
     }
 
     private static string WrapInteger(Ara3D.DataTable.IDataTable table, string column, string expr)

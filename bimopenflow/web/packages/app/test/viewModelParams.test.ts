@@ -3,6 +3,7 @@ import type { NodeDescriptor } from "@bimopenflow/contracts";
 import { createStore } from "@bimopenflow/state";
 import {
   buildCanvasModel,
+  freePosition,
   NODE_WIDTH,
   nodeHeight,
   WIDE_NODE_WIDTH,
@@ -51,5 +52,33 @@ describe("view model with inline params", () => {
     expect(a.h).toBeGreaterThan(b.h);
     expect(a.h).toBe(nodeHeight(0, 1, a.params));
     expect(b.h).toBe(nodeHeight(0, 1));
+  });
+});
+
+describe("freePosition", () => {
+  const noOverlap = (
+    a: { x: number; y: number },
+    w: number,
+    h: number,
+    r: { x: number; y: number; w: number; h: number },
+  ) => a.x + w <= r.x || r.x + r.w <= a.x || a.y + h <= r.y || r.y + r.h <= a.y;
+
+  it("places the first node at the grid origin", () => {
+    expect(freePosition([], 184, 76)).toEqual({ x: 80, y: 80 });
+  });
+
+  it("avoids a tall node instead of assuming a fixed row height", () => {
+    const tall = { x: 80, y: 80, w: 240, h: 300 };
+    const p = freePosition([tall], 240, 300);
+    expect(noOverlap(p, 240, 300, tall)).toBe(true);
+  });
+
+  it("fills gaps between differently sized nodes without overlap", () => {
+    const placed: { x: number; y: number; w: number; h: number }[] = [];
+    for (const [w, h] of [[184, 76], [240, 320], [240, 180], [184, 56], [240, 260]] as const) {
+      const p = freePosition(placed, w, h);
+      for (const r of placed) expect(noOverlap(p, w, h, r)).toBe(true);
+      placed.push({ ...p, w, h });
+    }
   });
 });

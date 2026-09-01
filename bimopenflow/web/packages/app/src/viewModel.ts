@@ -64,6 +64,43 @@ export function defaultPosition(index: number): { x: number; y: number } {
   return { x: 80 + (index % cols) * (NODE_WIDTH + 60), y: 80 + Math.floor(index / cols) * 130 };
 }
 
+export interface NodeBounds {
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+}
+
+/**
+ * The first free spot for a new node of the given size: scans a coarse grid
+ * left-to-right, top-to-bottom and returns the first position where the node
+ * (plus a margin) overlaps nothing. Size-aware, so tall inline-param nodes
+ * never land on top of their neighbors.
+ */
+export function freePosition(
+  existing: readonly NodeBounds[],
+  w: number,
+  h: number,
+): { x: number; y: number } {
+  const MARGIN = 24;
+  const STEP = 40;
+  const X0 = 80;
+  const Y0 = 80;
+  const COLS = 26; // keep the layout roughly viewport-shaped before wrapping
+  const collides = (x: number, y: number) =>
+    existing.some(
+      (r) =>
+        x < r.x + r.w + MARGIN &&
+        r.x < x + w + MARGIN &&
+        y < r.y + r.h + MARGIN &&
+        r.y < y + h + MARGIN,
+    );
+  for (let y = Y0; y < Y0 + 400 * STEP; y += STEP)
+    for (let x = X0; x <= X0 + COLS * STEP; x += STEP)
+      if (!collides(x, y)) return { x, y };
+  return defaultPosition(existing.length);
+}
+
 export function edgeId(from: string, to: string): string {
   return `${from}->${to}`;
 }

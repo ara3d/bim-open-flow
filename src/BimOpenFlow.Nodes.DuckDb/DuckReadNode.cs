@@ -56,7 +56,8 @@ public sealed class DuckReadNode : IFlowNode
     private static IDataTable Load(string path, string reader)
     {
         using var conn = BosDuckDb.OpenInMemory();
-        return conn.Query($"SELECT * FROM {reader}('{path.ToSqlLiteral()}')", Path.GetFileNameWithoutExtension(path));
+        return conn.Query($"SELECT * FROM {reader}('{path.ToSqlLiteral()}')", Path.GetFileNameWithoutExtension(path))
+            .NormalizeDates();
     }
 
     private static string ContentHash(string path)

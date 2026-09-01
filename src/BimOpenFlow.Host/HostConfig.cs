@@ -14,7 +14,7 @@ public sealed record HostConfig(
     string CacheDir,
     string StoreDir,
     int Port,
-    string Profile)
+    string Profile = HostConfig.BimProfile)
 {
     public const int DefaultPort = 5210;
     public const string SettingsFileName = "appsettings.json";

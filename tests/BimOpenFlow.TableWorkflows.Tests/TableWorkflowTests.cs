@@ -12,7 +12,7 @@ public sealed class TableWorkflowTests
 {
     /// <summary>orders x products joined in SQL, revenue summed per product.
     /// By hand: P-10 (120+300+90)*3.85=1963.5, P-11 (40+60)*12.5=1250,
-    /// P-12 (15+22)*240=8880, P-13 75*45.75=3432.25.</summary>
+    /// P-12 (15+22)*240=8880, P-13 75*45.75=3431.25.</summary>
     [Test]
     public void CsvJoinAggregate_ComputesRevenuePerProduct()
     {
@@ -32,7 +32,7 @@ public sealed class TableWorkflowTests
 
         var revenue = session.Table("revenue");
         Assert.That(revenue.Column("ProductId"), Is.EqualTo(new[] { "P-10", "P-11", "P-12", "P-13" }));
-        Assert.That(revenue.Column("TotalRevenue"), Is.EqualTo(new[] { 1963.5, 1250.0, 8880.0, 3432.25 }));
+        Assert.That(revenue.Column("TotalRevenue"), Is.EqualTo(new[] { 1963.5, 1250.0, 8880.0, 3431.25 }));
     }
 
     /// <summary>sql.query with only t1 connected: the t alias works.</summary>

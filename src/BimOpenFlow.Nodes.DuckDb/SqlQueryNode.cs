@@ -37,6 +37,6 @@ public sealed class SqlQueryNode : IFlowNode
             conn.WriteTable(t.Table, $"t{i + 1}");
         }
         conn.Execute("CREATE VIEW t AS SELECT * FROM t1");
-        return [new TableValue(conn.Query(validated, "query"))];
+        return [new TableValue(conn.Query(validated, "query").NormalizeDates())];
     }
 }

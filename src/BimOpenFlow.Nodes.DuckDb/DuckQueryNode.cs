@@ -27,6 +27,6 @@ public sealed class DuckQueryNode : IFlowNode
             throw new FileNotFoundException($"{Kind}: file not found: {path}", path);
         var validated = parameters.ReadOnlySql(Kind);
         using var conn = DuckDbOps.OpenReadOnly(path);
-        return [new TableValue(conn.Query(validated, "query"))];
+        return [new TableValue(conn.Query(validated, "query").NormalizeDates())];
     }
 }

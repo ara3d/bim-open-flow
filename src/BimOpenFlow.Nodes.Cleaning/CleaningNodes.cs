@@ -11,5 +11,6 @@ public static class CleaningNodes
         new TableFillNullsNode(),
         new TableDropNullsNode(),
         new TableDedupeNode(),
+        new TableReplaceNode(),
     ];
 }

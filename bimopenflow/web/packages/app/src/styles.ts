@@ -14,6 +14,7 @@ export const appCss = `
   --bof-app-red: #c0392b;
   --bof-app-hover: #ecebe4;
   --bof-app-font: Inter, "Segoe UI", system-ui, sans-serif;
+  --bof-app-left: 240px;
   --bof-app-right: 420px;
 }
 html, body { margin: 0; height: 100%; }
@@ -27,7 +28,7 @@ html, body { margin: 0; height: 100%; }
 }
 .bof-app-main {
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr) 6px var(--bof-app-right);
+  grid-template-columns: var(--bof-app-left) 6px minmax(0, 1fr) 6px var(--bof-app-right);
   min-height: 0;
 }
 .bof-app-topbar {
@@ -46,13 +47,15 @@ html, body { margin: 0; height: 100%; }
 .bof-app-conn.bof-app-conn-ok { color: var(--bof-app-green); }
 .bof-app-conn.bof-app-conn-bad { color: var(--bof-app-red); }
 .bof-app-sidebar {
-  display: flex; flex-direction: column; min-height: 0; overflow: auto;
+  display: flex; flex-direction: column; min-height: 0; overflow: hidden;
   background: var(--bof-app-surface); border-right: 1px solid var(--bof-app-border);
   padding: 8px; gap: 8px;
 }
-.bof-app-sidebar h3 { margin: 4px 0; font-size: 11px; text-transform: uppercase; color: var(--bof-app-dim); }
-.bof-app-sidebar input { width: 100%; box-sizing: border-box; }
+.bof-app-sidebar h3 { margin: 4px 0; font-size: 11px; text-transform: uppercase; color: var(--bof-app-dim); flex: none; }
+.bof-app-sidebar input { width: 100%; box-sizing: border-box; flex: none; }
 .bof-app-list { display: flex; flex-direction: column; gap: 2px; }
+.bof-app-analyses { flex: 0 1 auto; max-height: 35%; overflow-y: auto; }
+.bof-app-catalog { flex: 1 1 0; min-height: 0; overflow-y: auto; }
 .bof-app-item {
   padding: 4px 6px; border-radius: 4px; cursor: pointer; border: 1px solid transparent;
 }
@@ -66,6 +69,10 @@ html, body { margin: 0; height: 100%; }
   border-left: 1px solid var(--bof-app-border); border-right: 1px solid var(--bof-app-border);
 }
 .bof-app-splitter:hover { background: var(--bof-app-hover); }
+.bof-app-split-ghost {
+  position: fixed; top: 0; bottom: 0; width: 2px;
+  background: var(--bof-app-accent); z-index: 50; pointer-events: none;
+}
 .bof-app-panearea {
   display: flex; flex-direction: column; min-height: 0; min-width: 0;
   background: var(--bof-app-surface);

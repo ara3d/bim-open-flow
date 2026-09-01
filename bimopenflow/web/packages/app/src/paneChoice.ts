@@ -2,7 +2,7 @@
 // descriptor, ordered most-specific first (the first entry becomes the
 // default tab).
 
-import type { NodeDescriptor, PortDescriptor } from "@bimopenflow/contracts";
+import type { NodeDescriptor, NodeState, PortDescriptor } from "@bimopenflow/contracts";
 
 export type PaneKind =
   | "verdict"
@@ -16,6 +16,15 @@ export function firstTableOutput(
   desc: NodeDescriptor | undefined,
 ): PortDescriptor | undefined {
   return desc?.outputs.find((p) => p.type === "Table");
+}
+
+/**
+ * Result tables exist on the host only for nodes that evaluated to Ok; asking
+ * for anything else (a just-added node, an unready or failed one) is a
+ * guaranteed 404, so data panes must not fetch.
+ */
+export function hasResults(state: NodeState | undefined): boolean {
+  return state?.status === "Ok";
 }
 
 function isVerdictKind(kind: string): boolean {

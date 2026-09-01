@@ -16,17 +16,19 @@ export function createSidebar(
   const doc = root.ownerDocument;
   root.classList.add("bof-app-sidebar");
 
-  const section = (title: string): HTMLElement => {
+  // Each list scrolls on its own (bof-app-analyses / bof-app-catalog) so the
+  // headers and the filter box stay visible when content overflows.
+  const section = (title: string, listClass: string): HTMLElement => {
     const h = doc.createElement("h3");
     h.textContent = title;
     root.appendChild(h);
     const list = doc.createElement("div");
-    list.className = "bof-app-list";
+    list.className = `bof-app-list ${listClass}`;
     root.appendChild(list);
     return list;
   };
 
-  const analysisList = section("Analyses");
+  const analysisList = section("Analyses", "bof-app-analyses");
 
   const catalogHeader = doc.createElement("h3");
   catalogHeader.textContent = "Node catalog";
@@ -35,7 +37,7 @@ export function createSidebar(
   search.placeholder = "Filter nodes…";
   root.appendChild(search);
   const catalogList = doc.createElement("div");
-  catalogList.className = "bof-app-list";
+  catalogList.className = "bof-app-list bof-app-catalog";
   root.appendChild(catalogList);
 
   let catalog: NodeDescriptor[] = [];

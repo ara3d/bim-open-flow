@@ -20,7 +20,8 @@ import { createPaneArea } from "./paneArea.js";
 import { makePaneContext } from "./paneContext.js";
 import { createCanvasEditor } from "./canvasEditor.js";
 import { defaultPosition } from "./viewModel.js";
-import { freshNodeId } from "./ids.js";
+import { freshNodeId, freshUntitledId } from "./ids.js";
+import { loadThemeChoice, saveThemeChoice } from "./themeChoice.js";
 import { showToast } from "./toast.js";
 
 export interface App {
@@ -84,7 +85,14 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
     onNewAnalysis: () => void newAnalysis(),
     onSave: () => void save(),
     onRun: () => void run(),
+    onThemeChange: (name) => {
+      saveThemeChoice(name);
+      canvasEditor.setTheme(name);
+    },
   });
+  const initialTheme = loadThemeChoice();
+  topbar.setTheme(initialTheme);
+  canvasEditor.setTheme(initialTheme);
 
   const sidebar = createSidebar(
     shell.sidebarEl,
@@ -148,9 +156,10 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
     }
   }
 
+  // No prompt: embedded browsers throw on window.prompt. The id is the next
+  // free untitled-N; the sidebar rename flow is the way to name it.
   async function newAnalysis(): Promise<void> {
-    const id = window.prompt("New analysis id:");
-    if (!id) return;
+    const id = freshUntitledId(analyses.map((a) => a.id));
     try {
       await api.putAnalysis(id, serializeDocument(emptyDocument));
       await refreshAnalyses();
@@ -218,7 +227,9 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
       sidebar.setCatalog(cat.nodes);
       canvasEditor.refresh();
       topbar.setConnection("connected");
+      // Always land in an open analysis so no click can fail for lack of one.
       if (analyses.length > 0) await openAnalysis(analyses[0]!.id);
+      else await newAnalysis();
     } catch {
       topbar.setConnection("offline");
       showToast("Host not reachable — start it and reload (see README).", "error");

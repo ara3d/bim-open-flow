@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { NodeDescriptor } from "@bimopenflow/contracts";
 import { filterCatalog } from "../src/catalogFilter.js";
-import { freshNodeId } from "../src/ids.js";
+import { freshNodeId, freshUntitledId } from "../src/ids.js";
 
 const desc = (kind: string, description = ""): NodeDescriptor => ({
   kind,
@@ -50,5 +50,16 @@ describe("freshNodeId", () => {
 
   it("never emits a dot", () => {
     expect(freshNodeId("a.b.c", []).includes(".")).toBe(false);
+  });
+});
+
+describe("freshUntitledId", () => {
+  it("starts at untitled-1", () => {
+    expect(freshUntitledId([])).toBe("untitled-1");
+  });
+
+  it("skips taken names, ignoring gaps in other ids", () => {
+    expect(freshUntitledId(["untitled-1", "untitled-2", "renamed"])).toBe("untitled-3");
+    expect(freshUntitledId(["untitled-2"])).toBe("untitled-1");
   });
 });

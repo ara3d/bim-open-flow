@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { NodeDescriptor, PortDescriptor } from "@bimopenflow/contracts";
-import { choosePanes, firstTableOutput } from "../src/paneChoice.js";
+import { choosePanes, firstTableOutput, hasResults } from "../src/paneChoice.js";
 
 const desc = (kind: string, outputs: PortDescriptor[]): NodeDescriptor => ({
   kind,
@@ -45,6 +45,15 @@ describe("choosePanes", () => {
       .toBe("view3d");
     expect(choosePanes(desc("geometry.color", [{ name: "instances", type: "Table", optional: false }]))[0])
       .toBe("view3d");
+  });
+});
+
+describe("hasResults", () => {
+  it("is true only for an Ok node state", () => {
+    expect(hasResults({ nodeId: "n", status: "Ok", warnings: [] })).toBe(true);
+    for (const status of ["Unready", "EffectPending", "Unavailable", "Error"] as const)
+      expect(hasResults({ nodeId: "n", status, warnings: [] })).toBe(false);
+    expect(hasResults(undefined)).toBe(false);
   });
 });
 

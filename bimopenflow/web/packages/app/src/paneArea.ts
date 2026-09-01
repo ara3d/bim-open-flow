@@ -15,7 +15,7 @@ import {
   type PaneContext,
   type PaneEvent,
 } from "@bimopenflow/panes";
-import { choosePanes, firstTableOutput, type PaneKind } from "./paneChoice.js";
+import { choosePanes, firstTableOutput, hasResults, type PaneKind } from "./paneChoice.js";
 import { createParamsPane } from "./paramsPane.js";
 
 const PANE_LABELS: Record<PaneKind, string> = {
@@ -107,6 +107,7 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
       }
       const port = firstTableOutput(desc);
       if (!port) return;
+      if (!hasResults(state)) return; // no result on the host yet; pane stays empty
       const token = ++fetchToken;
       const data = await deps.ctx.requestTable(nodeId, port.name);
       if (token !== fetchToken || pane !== activePane) return; // stale

@@ -1,7 +1,12 @@
-// Top bar: analysis picker + new, save (with dirty indicator), run, and
-// connection status.
+// Top bar: analysis picker + new, save (with dirty indicator), run, canvas
+// theme picker, and connection status.
 
 import type { AnalysisSummary } from "@bimopenflow/contracts";
+import {
+  canvasThemeNames,
+  isCanvasThemeName,
+  type CanvasThemeName,
+} from "./canvasTheme.js";
 
 export type ConnectionStatus = "connected" | "offline" | "connecting";
 
@@ -10,12 +15,14 @@ export interface TopbarHandlers {
   onNewAnalysis(): void;
   onSave(): void;
   onRun(): void;
+  onThemeChange(name: CanvasThemeName): void;
 }
 
 export interface Topbar {
   setAnalyses(list: AnalysisSummary[], activeId: string | null): void;
   setDirty(dirty: boolean): void;
   setConnection(status: ConnectionStatus): void;
+  setTheme(name: CanvasThemeName): void;
 }
 
 export function createTopbar(root: HTMLElement, handlers: TopbarHandlers): Topbar {
@@ -45,11 +52,24 @@ export function createTopbar(root: HTMLElement, handlers: TopbarHandlers): Topba
   runBtn.textContent = "Run";
   runBtn.addEventListener("click", handlers.onRun);
 
+  const themePicker = doc.createElement("select");
+  themePicker.title = "Canvas theme";
+  for (const name of canvasThemeNames) {
+    const opt = doc.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    themePicker.appendChild(opt);
+  }
+  themePicker.addEventListener("change", () => {
+    if (isCanvasThemeName(themePicker.value))
+      handlers.onThemeChange(themePicker.value);
+  });
+
   const conn = doc.createElement("span");
   conn.className = "bof-app-conn";
   conn.textContent = "connecting…";
 
-  root.append(title, picker, newBtn, saveBtn, dirtyMark, runBtn, conn);
+  root.append(title, picker, newBtn, saveBtn, dirtyMark, runBtn, themePicker, conn);
 
   return {
     setAnalyses(list, activeId) {
@@ -69,6 +89,9 @@ export function createTopbar(root: HTMLElement, handlers: TopbarHandlers): Topba
     setDirty(dirty) {
       dirtyMark.textContent = dirty ? "● unsaved" : "";
       saveBtn.disabled = !dirty;
+    },
+    setTheme(name) {
+      themePicker.value = name;
     },
     setConnection(status) {
       conn.textContent = status;

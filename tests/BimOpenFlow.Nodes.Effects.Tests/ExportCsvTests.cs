@@ -37,6 +37,49 @@ public sealed class ExportCsvTests
     }
 
     [Test]
+    public void SemicolonDelimiterQuotesAccordingly()
+    {
+        var path = Path.Combine(_dir, "out.csv");
+        new ExportCsvNode().Eval(FakeContext.Run, TableInput(FixtureTable()),
+            Params(("path", path), ("delimiter", ";")));
+
+        var lines = File.ReadAllText(path).Split("\r\n");
+        Assert.That(lines[0], Is.EqualTo("name;count;ratio;flag"));
+        Assert.That(lines[1], Is.EqualTo("plain;1;0.5;true"));
+        Assert.That(lines[2], Is.EqualTo("with, comma;;2.25;false"), "comma no longer forces quoting");
+    }
+
+    [Test]
+    public void DelimiterInsideCellIsQuoted()
+    {
+        var path = Path.Combine(_dir, "out.csv");
+        var table = new MemoryTable("t", new[]
+        {
+            new MemoryColumn("a", typeof(string), new object?[] { "x;y" }, 0),
+        });
+        new ExportCsvNode().Eval(FakeContext.Run, TableInput(table),
+            Params(("path", path), ("delimiter", ";")));
+        Assert.That(File.ReadAllText(path), Is.EqualTo("a\r\n\"x;y\"\r\n"));
+    }
+
+    [Test]
+    public void HeaderFalseOmitsHeaderRow()
+    {
+        var path = Path.Combine(_dir, "out.csv");
+        new ExportCsvNode().Eval(FakeContext.Run, TableInput(FixtureTable()),
+            Params(("path", path), ("header", "false")));
+        Assert.That(File.ReadAllText(path), Does.StartWith("plain,1,0.5,true\r\n"));
+    }
+
+    [Test]
+    public void EmptyDelimiterThrowsWithKindPrefix()
+        => Assert.That(
+            Assert.Throws<ArgumentException>(() =>
+                new ExportCsvNode().Eval(FakeContext.Run, TableInput(FixtureTable()),
+                    Params(("path", Path.Combine(_dir, "x.csv")), ("delimiter", ""))))!.Message,
+            Does.StartWith("sink.exportCsv: "));
+
+    [Test]
     public void EmptyPathThrows()
         => Assert.Throws<ArgumentException>(() =>
             new ExportCsvNode().Eval(FakeContext.Run, TableInput(FixtureTable()), ParamValues.Empty));

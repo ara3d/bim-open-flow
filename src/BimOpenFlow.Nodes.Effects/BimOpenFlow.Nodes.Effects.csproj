@@ -9,11 +9,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Ara3D.BimOpenSchema.DuckDb\Ara3D.BimOpenSchema.DuckDb.csproj" />
     <ProjectReference Include="..\Ara3D.DataFlowEngine.Abstractions\Ara3D.DataFlowEngine.Abstractions.csproj" />
     <ProjectReference Include="..\Ara3D.DataFlowEngine.Runs\Ara3D.DataFlowEngine.Runs.csproj" />
     <ProjectReference Include="..\Ara3D.Ifc.Editing\Ara3D.Ifc.Editing.csproj" />
     <PackageReference Include="Ara3D.DataTable" Version="$(Ara3DSdkVersion)" />
     <PackageReference Include="Ara3D.Utils" Version="$(Ara3DSdkVersion)" />
+    <PackageReference Include="ClosedXML" Version="$(Ara3DClosedXmlVersion)" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="$(Ara3DMicrosoftDataSqliteVersion)" />
   </ItemGroup>
 
   <ItemGroup>

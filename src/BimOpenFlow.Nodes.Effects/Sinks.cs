@@ -44,12 +44,51 @@ internal static class Sinks
         return new MemoryTable(name, columns);
     }
 
-    /// <summary>Writes text to a path, creating the parent directory when needed.</summary>
-    public static void WriteAllText(string path, string text)
+    public static string RequiredText(this ParamValues parameters, string name, string kind)
+        => parameters.GetText(name) is { Length: > 0 } value
+            ? value
+            : throw new ArgumentException($"{kind}: parameter '{name}' must be non-empty");
+
+    public static string GetEnum(this ParamValues parameters, string name, string kind, string @default, params string[] allowed)
     {
-        var dir = Path.GetDirectoryName(Path.GetFullPath(path));
+        var value = parameters.GetText(name, @default);
+        return Array.IndexOf(allowed, value) >= 0
+            ? value
+            : throw new ArgumentException($"{kind}: parameter '{name}' must be one of [{string.Join(", ", allowed)}], got '{value}'");
+    }
+
+    /// <summary>Creates the parent directory when needed; returns the full path.</summary>
+    public static string EnsureParentDir(string path)
+    {
+        var full = Path.GetFullPath(path);
+        var dir = Path.GetDirectoryName(full);
         if (!string.IsNullOrEmpty(dir))
             Directory.CreateDirectory(dir);
-        File.WriteAllText(path, text);
+        return full;
     }
+
+    /// <summary>Atomic replace: runs 'write' against a temp file in the target's
+    /// directory, then moves it over the target.</summary>
+    public static void ReplaceVia(string path, Action<string> write)
+    {
+        var full = EnsureParentDir(path);
+        // Keeps the target's extension so extension-checking writers (ClosedXML) accept the temp path.
+        var temp = Path.Combine(
+            Path.GetDirectoryName(full)!,
+            $".{Path.GetFileName(full)}.{Guid.NewGuid():N}.tmp{Path.GetExtension(full)}");
+        try
+        {
+            write(temp);
+            File.Move(temp, full, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(temp))
+                File.Delete(temp);
+        }
+    }
+
+    /// <summary>Writes text to a path atomically, creating the parent directory when needed.</summary>
+    public static void WriteAllText(string path, string text)
+        => ReplaceVia(path, temp => File.WriteAllText(temp, text));
 }

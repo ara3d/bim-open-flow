@@ -15,6 +15,7 @@ export interface ResultApi {
     nodeId: string,
     param: string,
   ): Promise<SuggestionList>;
+  getModelBosUrl(id: string): string;
 }
 
 export const DEFAULT_PAGE_SIZE = 200;
@@ -29,12 +30,11 @@ export function makePaneContext(api: ResultApi, analysisId: string): PaneContext
       api.getResult(analysisId, nodeId, port, skip, take),
     requestSuggestions: (nodeId, param) =>
       api.getSuggestions(analysisId, nodeId, param),
-    // TODO: real model-url scheme once the host serves geometry. Assumed:
-    // "model:{id}" resolves to /api/models/{id}/bos; anything else
-    // passes through unchanged.
+    // "model:{id}" resolves to the host's model-bytes endpoint; anything
+    // else passes through unchanged.
     resolveAsset: (url) =>
       url.startsWith("model:")
-        ? `/api/models/${encodeURIComponent(url.slice("model:".length))}/bos`
+        ? api.getModelBosUrl(url.slice("model:".length))
         : url,
   };
 }

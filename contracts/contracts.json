@@ -63,7 +63,8 @@
       "name": "string",
       "kind": "ModelKind",
       "sizeBytes": "long",
-      "lastWriteUtc": "string"
+      "lastWriteUtc": "string",
+      "sourcePath": "string"
     },
     "AnalysisSummary": {
       "id": "string",
@@ -104,6 +105,7 @@
   },
   "endpoints": [
     { "name": "listModels", "method": "GET", "path": "/api/models", "response": "ModelSummary[]" },
+    { "name": "getModelBos", "method": "GET", "path": "/api/models/{id}/bos", "response": "bytes" },
     { "name": "listAnalyses", "method": "GET", "path": "/api/analyses", "response": "AnalysisSummary[]" },
     { "name": "getAnalysis", "method": "GET", "path": "/api/analyses/{id}", "response": "text" },
     { "name": "putAnalysis", "method": "PUT", "path": "/api/analyses/{id}", "body": "text", "response": "AnalysisSummary" },

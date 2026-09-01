@@ -52,6 +52,74 @@ const makeArea = () => {
   return { root, area };
 };
 
+describe("createPaneArea 3D model wiring", () => {
+  const view3dDesc: NodeDescriptor = {
+    kind: "view3d.instances",
+    version: 1,
+    capability: "Pure",
+    inputs: [],
+    outputs: [{ name: "instances", type: "Table", optional: false }],
+    params: [],
+    description: "",
+  };
+
+  const makeView3dArea = (resolved: Record<string, string>) => {
+    const root = document.createElement("div");
+    document.body.appendChild(root);
+    const updates: unknown[] = [];
+    const area = createPaneArea(root, {
+      ctx: { requestTable: async () => slice, resolveAsset: (url) => url },
+      onSelect: () => {},
+      onSetParam: () => {},
+      onError: (m) => {
+        throw new Error(m);
+      },
+      resolveModelId: async (path) => resolved[path] ?? null,
+      paneFactory: () => ({
+        mount: () => {},
+        update: (input: unknown) => {
+          updates.push(input);
+        },
+        onEvent: () => {},
+        destroy: () => {},
+      }),
+    });
+    return { area, updates };
+  };
+
+  const shownWith = (modelPath?: string) => ({
+    nodeId: "n1",
+    desc: view3dDesc,
+    values: {},
+    state: okState,
+    modelPath,
+  });
+
+  it("pushes the model before the instances table, once per model", async () => {
+    const { area, updates } = makeView3dArea({ "data/duplex.ifc": "duplex.ifc" });
+    area.showNode(shownWith("data/duplex.ifc"));
+    await settle();
+    expect(updates).toEqual([
+      { kind: "model", url: "model:duplex.ifc" },
+      { kind: "instances", data: slice },
+    ]);
+
+    // a data refresh re-feeds the table but does not reload the model
+    area.showNode(shownWith("data/duplex.ifc"));
+    await settle();
+    expect(updates.filter((u) => (u as { kind: string }).kind === "model")).toHaveLength(1);
+    area.dispose();
+  });
+
+  it("feeds only the table when the model path is missing or unresolved", async () => {
+    const { area, updates } = makeView3dArea({});
+    area.showNode(shownWith("unknown.ifc"));
+    await settle();
+    expect(updates).toEqual([{ kind: "instances", data: slice }]);
+    area.dispose();
+  });
+});
+
 describe("createPaneArea chart wiring", () => {
   it("defaults chart.bar nodes to a bar chart built from its params", async () => {
     const { root, area } = makeArea();

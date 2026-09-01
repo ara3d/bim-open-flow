@@ -2,7 +2,7 @@
 // and pane area together around one ApiClient. Every graph mutation flows
 // through store.dispatch; this module owns no graph logic.
 
-import type { AnalysisSummary, NodeDescriptor } from "@bimopenflow/contracts";
+import type { AnalysisSummary, ModelSummary, NodeDescriptor } from "@bimopenflow/contracts";
 import type { ApiClient } from "@bimopenflow/api-client";
 import {
   connectAnalysis,
@@ -18,6 +18,7 @@ import { createSidebar } from "./sidebar.js";
 import { createTopbar } from "./topbar.js";
 import { createPaneArea } from "./paneArea.js";
 import { makePaneContext } from "./paneContext.js";
+import { matchModelId, modelPathFor } from "./modelRef.js";
 import { createCanvasEditor } from "./canvasEditor.js";
 import { inlineParams } from "./canvasSlots.js";
 import { setSuggestionProvider } from "./canvasControls.js";
@@ -67,6 +68,7 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
   const resultApi = {
     getResult: api.getResult.bind(api),
     getSuggestions: api.getSuggestions.bind(api),
+    getModelBosUrl: api.getModelBosUrl.bind(api),
   };
   const boundCtx = {
     requestTable: (nodeId: string, port: string, skip?: number, take?: number) => {
@@ -81,12 +83,26 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
   };
   setSuggestionProvider(boundCtx.requestSuggestions);
 
+  // Model list for path -> catalog id resolution, fetched lazily and
+  // re-fetched once on a miss (a model may have appeared since).
+  let models: ModelSummary[] | null = null;
+  const resolveModelId = async (path: string): Promise<string | null> => {
+    models ??= await api.listModels();
+    let id = matchModelId(models, path);
+    if (!id) {
+      models = await api.listModels();
+      id = matchModelId(models, path);
+    }
+    return id ?? null;
+  };
+
   const paneArea = createPaneArea(shell.paneEl, {
     ctx: boundCtx,
     onSelect: (ids) => dispatch({ type: "select", ids }),
     onSetParam: (nodeId, name, value) =>
       dispatch({ type: "setParam", nodeId, name, value }),
     onError: fail,
+    resolveModelId,
   });
 
   // ── canvas ─────────────────────────────────────────────────────────────────
@@ -123,6 +139,7 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
     ),
     values: { ...state.document.values[nodeId] },
     state: state.evalState[nodeId],
+    modelPath: modelPathFor(state.document, nodeId),
   });
 
   const unsubscribe = store.subscribe(() => {

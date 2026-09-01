@@ -29,6 +29,15 @@ public static class BimSampleSeeding
         ]);
     }
 
+    /// <summary>The directories the seeded analyses' model paths point at
+    /// (samples/bim and the repo data dir), so the host can add them to the
+    /// model catalog roots and serve those models' bytes over
+    /// /api/models/{id}/bos. Empty outside a repo checkout.</summary>
+    public static IReadOnlyList<string> SeededModelRoots(string startDir)
+        => SampleSeeding.FindRepoRoot(startDir) is { } root
+            ? [Path.Combine(root, "samples", "bim"), Path.Combine(root, "data")]
+            : [];
+
     public static string EnsureSampleModel(string samplesDir)
     {
         var path = Path.Combine(samplesDir, SampleFileName);

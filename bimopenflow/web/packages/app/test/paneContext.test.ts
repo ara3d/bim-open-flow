@@ -22,6 +22,7 @@ function fakeApi(): { api: ResultApi; calls: unknown[][] } {
         calls.push(["suggest", analysisId, nodeId, param]);
         return Promise.resolve({ status: "Ok" as const, values: [{ value: "name" }] });
       },
+      getModelBosUrl: (id) => `/api/models/${encodeURIComponent(id)}/bos`,
     },
   };
 }
@@ -48,7 +49,7 @@ describe("makePaneContext.requestTable", () => {
 });
 
 describe("makePaneContext.resolveAsset", () => {
-  it("maps the model: scheme to the assumed host geometry endpoint", () => {
+  it("maps the model: scheme to the host model-bytes endpoint", () => {
     const ctx = makePaneContext(fakeApi().api, "an1");
     expect(ctx.resolveAsset("model:abc")).toBe("/api/models/abc/bos");
   });

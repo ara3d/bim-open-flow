@@ -51,6 +51,9 @@ interface ShownNode {
   desc: NodeDescriptor | undefined;
   values: Record<string, string>;
   state: NodeState | undefined;
+  /** Model file path feeding this node (see modelRef.modelPathFor); lets the
+   * 3D pane load the model behind the instance/box tables. */
+  modelPath?: string;
 }
 
 export interface PaneAreaDeps {
@@ -58,6 +61,10 @@ export interface PaneAreaDeps {
   onSelect(ids: string[]): void;
   onSetParam(nodeId: string, name: string, value: string): void;
   onError(message: string): void;
+  /** Catalog model id for a node's model file path; null when unknown. */
+  resolveModelId?(path: string): Promise<string | null>;
+  /** Pane construction override for tests. */
+  paneFactory?(kind: PaneKind, chartOptions: ChartPaneOptions): Pane;
 }
 
 export interface PaneArea {
@@ -84,6 +91,7 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
   let activePane: Pane | null = null;
   let activeChartOptions: ChartPaneOptions | null = null;
   let fetchToken = 0;
+  let loadedModelUrl: string | null = null;
 
   const currentChartOptions = (): ChartPaneOptions =>
     chartPaneOptions(shown?.desc?.kind, shown?.values ?? {});
@@ -96,6 +104,7 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
   const destroyPane = () => {
     activePane?.destroy();
     activePane = null;
+    loadedModelUrl = null;
     body.textContent = "";
   };
 
@@ -113,6 +122,20 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
       deps.onSetParam(shown.nodeId, e.payload.name!, e.payload.value ?? "");
   };
 
+  // Loads the shown node's model into the 3D pane once per model: resolves the
+  // node's model path to a catalog id and pushes { kind: "model" } before any
+  // instance/box data, skipping when the same model is already loaded.
+  const feedModel = async (pane: Pane, token: number) => {
+    const path = shown?.modelPath;
+    if (!path || !deps.resolveModelId) return;
+    const id = await deps.resolveModelId(path);
+    if (token !== fetchToken || pane !== activePane) return; // stale
+    const url = id ? `model:${id}` : null;
+    if (!url || url === loadedModelUrl) return;
+    loadedModelUrl = url;
+    pane.update({ kind: "model", url });
+  };
+
   const feedData = async () => {
     if (!shown || !activePane || !activeKind) return;
     const pane = activePane;
@@ -126,11 +149,12 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
       if (!port) return;
       if (!hasResults(state)) return; // no result on the host yet; pane stays empty
       const token = ++fetchToken;
+      if (activeKind === "view3d") await feedModel(pane, token);
       const data = await deps.ctx.requestTable(nodeId, port.name);
       if (token !== fetchToken || pane !== activePane) return; // stale
       if (activeKind === "view3d") {
-        // TODO: push a { kind: "model" } input once the host serves geometry
-        // (scheme: resolveAsset("model:{id}") -> /api/models/{id}/bos, served by the host).
+        // The pane queues an instances slice that arrives before the model
+        // finishes loading, so pushing the table right after is safe.
         if (port.name === "boxes" || isBoxTable(data.columns))
           pane.update({ kind: "boxes", data });
         else pane.update({ kind: "instances", data });
@@ -148,7 +172,7 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
     for (const el of tabs.children)
       el.classList.toggle("bof-app-tab-active", (el as HTMLElement).dataset.kind === kind);
     activeChartOptions = currentChartOptions();
-    const pane = paneFactory(kind, activeChartOptions);
+    const pane = (deps.paneFactory ?? paneFactory)(kind, activeChartOptions);
     pane.onEvent(onPaneEvent);
     const host = root.ownerDocument.createElement("div");
     body.appendChild(host);

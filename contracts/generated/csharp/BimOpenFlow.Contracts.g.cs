@@ -131,7 +131,8 @@ public sealed record ModelSummary(
     string Name,
     ModelKind Kind,
     long SizeBytes,
-    string LastWriteUtc);
+    string LastWriteUtc,
+    string SourcePath);
 
 public sealed record AnalysisSummary(
     string Id,
@@ -172,6 +173,7 @@ public sealed record ApiError(
 public static class ApiRoutes
 {
     public const string ListModels = "/api/models";
+    public const string GetModelBos = "/api/models/{id}/bos";
     public const string ListAnalyses = "/api/analyses";
     public const string GetAnalysis = "/api/analyses/{id}";
     public const string PutAnalysis = "/api/analyses/{id}";

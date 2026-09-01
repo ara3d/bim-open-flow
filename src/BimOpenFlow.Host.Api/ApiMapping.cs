@@ -24,7 +24,7 @@ public static class ApiMapping
 
     public static ModelSummary ToSummary(this ModelEntry entry)
         => new(entry.Id, entry.Name, entry.Kind.ByName<ModelKind>(),
-            entry.SizeBytes, entry.LastWriteUtc.ToUtcString());
+            entry.SizeBytes, entry.LastWriteUtc.ToUtcString(), entry.SourcePath);
 
     public static EvalUpdate ToEvalUpdate(this EvalSnapshot snapshot, string analysisId)
         => new(analysisId, snapshot.Results.Values

@@ -128,6 +128,17 @@ for (const e of endpoints) {
 `;
     continue;
   }
+  if (e.response === "bytes") {
+    // Raw-bytes endpoints generate a URL builder: consumers (e.g. the 3D
+    // viewer) stream the bytes themselves rather than buffering via fetch here.
+    tsEp += `  /** URL of the raw bytes served by ${e.method} ${e.path}. */
+  ${e.name}Url(${args.join(", ")}): string {
+    return this.baseUrl + ${pathExpr};
+  }
+
+`;
+    continue;
+  }
   const bodyArg = e.body === "text" ? "body" : "undefined";
   const retType = e.response === "text" ? "string" : tsType(e.response);
   const parse = e.response === "text" ? "res.text()" : `res.json() as Promise<${retType}>`;
@@ -142,7 +153,7 @@ tsEp += `}\n`;
 
 const tsClient = `// Generated from contracts/contracts.json v${idl.version} by contracts/generate.mjs.
 // Do not edit by hand.
-import type { ${[...new Set(endpoints.flatMap((e) => [e.response, e.sse].filter((t) => t && t !== "text").map((t) => parseType(t).core)))].join(", ")} } from "@bimopenflow/contracts";
+import type { ${[...new Set(endpoints.flatMap((e) => [e.response, e.sse].filter((t) => t && t !== "text" && t !== "bytes").map((t) => parseType(t).core)))].join(", ")} } from "@bimopenflow/contracts";
 
 ${tsEp}`;
 

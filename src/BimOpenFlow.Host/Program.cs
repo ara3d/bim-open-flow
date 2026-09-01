@@ -1,6 +1,17 @@
 using BimOpenFlow.Host;
 
 var config = HostConfig.Resolve(args, Environment.CurrentDirectory);
+if (config.Profile == HostConfig.BimProfile)
+{
+    var known = config.ModelRoots
+        .Select(Path.GetFullPath)
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    var seededRoots = BimSampleSeeding.SeededModelRoots(AppContext.BaseDirectory)
+        .Where(r => !known.Contains(Path.GetFullPath(r)))
+        .ToList();
+    if (seededRoots.Count > 0)
+        config = config with { ModelRoots = [.. config.ModelRoots, .. seededRoots] };
+}
 var host = HostComposition.Build(config);
 
 var seeded = config.Profile == HostConfig.TablesProfile

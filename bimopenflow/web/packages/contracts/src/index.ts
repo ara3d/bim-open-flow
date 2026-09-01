@@ -117,6 +117,7 @@ export interface ModelSummary {
   kind: ModelKind;
   sizeBytes: number;
   lastWriteUtc: string;
+  sourcePath: string;
 }
 
 export interface AnalysisSummary {

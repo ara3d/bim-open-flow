@@ -33,6 +33,11 @@ export class ApiClient {
     return res.json() as Promise<ModelSummary[]>;
   }
 
+  /** URL of the raw bytes served by GET /api/models/{id}/bos. */
+  getModelBosUrl(id: string): string {
+    return this.baseUrl + `/api/models/${encodeURIComponent(id)}/bos`;
+  }
+
   async listAnalyses(): Promise<AnalysisSummary[]> {
     const res = await this.request("GET", `/api/analyses`, undefined, undefined);
     return res.json() as Promise<AnalysisSummary[]>;

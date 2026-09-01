@@ -78,6 +78,79 @@ describe("BarChart", () => {
     expect(container.children).toHaveLength(0);
   });
 
+  it("renders a title when given", () => {
+    const { container } = mountChart(data, { title: "My Chart" });
+    const title = container.querySelector("text.bof-viz-title");
+    expect(title?.textContent).toBe("My Chart");
+  });
+
+  it("renders no title element by default", () => {
+    const { container } = mountChart();
+    expect(container.querySelector("text.bof-viz-title")).toBeNull();
+  });
+
+  it("renders grouped bars for multiple series columns", () => {
+    const multi: TableData = {
+      columns: [
+        { name: "Category", type: "Text"},
+        { name: "a", type: "Number"},
+        { name: "b", type: "Number"},
+      ],
+      rows: [
+        ["A", 1, 2],
+        ["B", 3, 4],
+      ],
+    };
+    const { container } = mountChart(multi, { seriesColumns: ["a", "b"] });
+    const bars = [...container.querySelectorAll("rect.bof-viz-bar")];
+    expect(bars).toHaveLength(4);
+    expect(bars.map((b) => b.getAttribute("data-series"))).toEqual([
+      "a", "b", "a", "b",
+    ]);
+    // per-series colors from the palette
+    expect(bars[0].getAttribute("style")).toContain("--bof-viz-series-0");
+    expect(bars[1].getAttribute("style")).toContain("--bof-viz-series-1");
+  });
+
+  it("defaults to all numeric columns except the category column", () => {
+    const multi: TableData = {
+      columns: [
+        { name: "Category", type: "Text"},
+        { name: "a", type: "Number"},
+        { name: "b", type: "Integer"},
+      ],
+      rows: [["A", 1, 2]],
+    };
+    const { container } = mountChart(multi);
+    expect(container.querySelectorAll("rect.bof-viz-bar")).toHaveLength(2);
+  });
+
+  it("skips unknown series names and keeps known ones", () => {
+    const multi: TableData = {
+      columns: [
+        { name: "Category", type: "Text"},
+        { name: "a", type: "Number"},
+        { name: "b", type: "Number"},
+      ],
+      rows: [["A", 1, 2]],
+    };
+    const { container } = mountChart(multi, { seriesColumns: ["nope", "b"] });
+    const bars = [...container.querySelectorAll("rect.bof-viz-bar")];
+    expect(bars).toHaveLength(1);
+    expect(bars[0].getAttribute("data-value")).toBe("2");
+  });
+
+  it("single resolved series renders identically to the classic bar chart", () => {
+    const { container } = mountChart(data, { seriesColumns: ["Value"] });
+    const bars = [...container.querySelectorAll("rect.bof-viz-bar")];
+    expect(bars).toHaveLength(3);
+    expect(bars[0].getAttribute("data-series")).toBeNull();
+    expect(bars[0].getAttribute("style")).toBeNull();
+    expect(
+      container.querySelectorAll("text.bof-viz-value-label"),
+    ).toHaveLength(3);
+  });
+
   it("respects explicit column options", () => {
     const swapped: TableData = {
       columns: [

@@ -89,4 +89,44 @@ describe("LineChart", () => {
     handle.destroy();
     expect(container.children).toHaveLength(0);
   });
+
+  it("renders a title when given", () => {
+    const { container } = mountChart(data, { title: "Trend" });
+    expect(container.querySelector("text.bof-viz-title")?.textContent).toBe(
+      "Trend",
+    );
+  });
+
+  it("falls back to row-index x for a non-numeric x column", () => {
+    const textX: TableData = {
+      columns: [
+        { name: "label", type: "Text"},
+        { name: "y", type: "Number"},
+      ],
+      rows: [
+        ["a", 1],
+        ["b", 3],
+        ["c", 2],
+      ],
+    };
+    const { container } = mountChart(textX, { xColumn: "label" });
+    const d = container
+      .querySelector("path.bof-viz-line")
+      ?.getAttribute("d") as string;
+    expect(d.match(/[ML]/g)).toHaveLength(3); // all rows plotted, no NaN gaps
+  });
+
+  it("falls back to row-index x for a missing x column without throwing", () => {
+    const { container } = mountChart(data, { xColumn: "missing" });
+    expect(container.querySelectorAll("path.bof-viz-line")).toHaveLength(3);
+  });
+
+  it("skips unknown series names", () => {
+    const { container } = mountChart(data, {
+      xColumn: "t",
+      seriesColumns: ["nope", "a"],
+    });
+    const paths = [...container.querySelectorAll("path.bof-viz-line")];
+    expect(paths.map((p) => p.getAttribute("data-series"))).toEqual(["a"]);
+  });
 });

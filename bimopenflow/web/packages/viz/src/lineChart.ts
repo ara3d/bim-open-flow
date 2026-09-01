@@ -1,6 +1,6 @@
 import type { TableData } from "@bimopenflow/contracts";
 import { defineComponent } from "./component";
-import { formatNumber, numberOf } from "./format";
+import { formatNumber, isNumericType, numberOf } from "./format";
 import { columnIndexByName, numericColumnIndices } from "./columns";
 import { linearScale, niceTicks, paddedDomain } from "./scale";
 import { svgEl } from "./svg";
@@ -8,21 +8,29 @@ import { svgEl } from "./svg";
 export interface LineChartOptions {
   width?: number;
   height?: number;
-  /** Numeric column for x values. Default: row index. */
+  /** Chart title, rendered above the plot. */
+  title?: string;
+  /**
+   * Numeric column for x values. A missing or non-numeric column falls back
+   * to the row index (rows arrive pre-sorted). Default: row index.
+   */
   xColumn?: string;
-  /** Numeric columns to plot. Default: every numeric column except xColumn. */
+  /**
+   * Numeric columns to plot. Unknown names are skipped. Default: every
+   * numeric column except xColumn.
+   */
   seriesColumns?: string[];
 }
 
 const MARGIN = { top: 16, right: 12, bottom: 28, left: 48 };
+const TITLE_H = 20;
 
 const seriesIndices = (data: TableData, options: LineChartOptions | undefined, xIdx: number): number[] => {
   if (options?.seriesColumns) {
-    return options.seriesColumns.map((name) => {
-      const i = columnIndexByName(data, name);
-      if (i < 0) throw new Error(`bof-viz: series column "${name}" not found`);
-      return i;
-    });
+    const named = options.seriesColumns
+      .map((name) => columnIndexByName(data, name))
+      .filter((i) => i >= 0 && i !== xIdx);
+    if (named.length > 0) return named;
   }
   return numericColumnIndices(data).filter((i) => i !== xIdx);
 };
@@ -59,18 +67,18 @@ export const LineChart = defineComponent<TableData, LineChartOptions>(
         options?.xColumn !== undefined
           ? columnIndexByName(data, options.xColumn)
           : -1;
-      if (options?.xColumn !== undefined && xIdx < 0)
-        throw new Error(`bof-viz: x column "${options.xColumn}" not found`);
+      const xNumeric = xIdx >= 0 && isNumericType(data.columns[xIdx].type);
       const series = seriesIndices(data, options, xIdx);
-      const xs = data.rows.map((r, i) => (xIdx >= 0 ? numberOf(r[xIdx]) : i));
+      const xs = data.rows.map((r, i) => (xNumeric ? numberOf(r[xIdx]) : i));
       const allYs = series.flatMap((s) => data.rows.map((r) => numberOf(r[s])));
 
+      const plotTop = MARGIN.top + (options?.title ? TITLE_H : 0);
       const plotW = width - MARGIN.left - MARGIN.right;
-      const plotH = height - MARGIN.top - MARGIN.bottom;
+      const plotH = height - plotTop - MARGIN.bottom;
       const [x0, x1] = paddedDomain(xs);
       const [y0, y1] = paddedDomain(allYs);
       const x = linearScale(x0, x1, MARGIN.left, MARGIN.left + plotW);
-      const y = linearScale(y0, y1, MARGIN.top + plotH, MARGIN.top);
+      const y = linearScale(y0, y1, plotTop + plotH, plotTop);
 
       const svg = svgEl(doc, "svg", {
         width,
@@ -79,6 +87,24 @@ export const LineChart = defineComponent<TableData, LineChartOptions>(
         role: "img",
         class: "bof-viz-line-chart",
       });
+
+      if (options?.title)
+        svg.appendChild(
+          svgEl(
+            doc,
+            "text",
+            {
+              class: "bof-viz-title",
+              x: width / 2,
+              y: MARGIN.top,
+              "text-anchor": "middle",
+              fill: "var(--bof-viz-fg)",
+              "font-size": 13,
+              "font-weight": 600,
+            },
+            options.title,
+          ),
+        );
 
       for (const t of niceTicks(y0, y1)) {
         svg.appendChild(
@@ -105,8 +131,8 @@ export const LineChart = defineComponent<TableData, LineChartOptions>(
             class: "bof-viz-tick",
             x1: x(t),
             x2: x(t),
-            y1: MARGIN.top + plotH,
-            y2: MARGIN.top + plotH + 4,
+            y1: plotTop + plotH,
+            y2: plotTop + plotH + 4,
           }),
         );
         svg.appendChild(
@@ -116,7 +142,7 @@ export const LineChart = defineComponent<TableData, LineChartOptions>(
             {
               class: "bof-viz-tick-label",
               x: x(t),
-              y: MARGIN.top + plotH + 14,
+              y: plotTop + plotH + 14,
               "text-anchor": "middle",
             },
             formatNumber(t),
@@ -128,8 +154,8 @@ export const LineChart = defineComponent<TableData, LineChartOptions>(
           class: "bof-viz-axis-line",
           x1: MARGIN.left,
           x2: MARGIN.left,
-          y1: MARGIN.top,
-          y2: MARGIN.top + plotH,
+          y1: plotTop,
+          y2: plotTop + plotH,
         }),
       );
       svg.appendChild(
@@ -137,8 +163,8 @@ export const LineChart = defineComponent<TableData, LineChartOptions>(
           class: "bof-viz-axis-line",
           x1: MARGIN.left,
           x2: MARGIN.left + plotW,
-          y1: MARGIN.top + plotH,
-          y2: MARGIN.top + plotH,
+          y1: plotTop + plotH,
+          y2: plotTop + plotH,
         }),
       );
 

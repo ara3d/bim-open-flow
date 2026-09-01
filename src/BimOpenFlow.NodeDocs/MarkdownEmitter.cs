@@ -76,14 +76,23 @@ public static class MarkdownEmitter
             sb.Append(": none\n");
             return;
         }
-        sb.Append("\n\n| Name | Kind | Default | Allowed values |\n|---|---|---|---|\n");
+        sb.Append("\n\n| Name | Kind | Default | Allowed values | Suggestions |\n|---|---|---|---|---|\n");
         foreach (var p in parameters)
         {
             var @default = p.Default.Length == 0 ? "—" : $"`{p.Default}`";
             var allowed = p.EnumValues is { Count: > 0 } values
                 ? string.Join(", ", values.Select(v => $"`{v}`"))
                 : "—";
-            sb.Append($"| `{p.Name}` | {p.Kind} | {@default} | {allowed} |\n");
+            sb.Append($"| `{p.Name}` | {p.Kind} | {@default} | {allowed} | {Suggestion(p.Suggest)} |\n");
         }
     }
+
+    private static string Suggestion(SuggestSource? suggest)
+        => suggest switch
+        {
+            null => "—",
+            { Kind: SuggestKind.ColumnsOfInput } => $"columns of input `{suggest.Source}`",
+            { Kind: SuggestKind.TablesInFile } => $"tables in the file at `{suggest.Source}`",
+            _ => suggest.ToString()!,
+        };
 }

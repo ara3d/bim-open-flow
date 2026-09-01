@@ -34,7 +34,11 @@ public static class Preamble
         declares a kind (Boolean, Integer, Number, Text, Enum, FilePath, ModelRef,
         Expression, Json) that says how the string is interpreted and edited. Enum
         parameters list their allowed values; an empty default means the parameter
-        starts blank.
+        starts blank. A parameter may also declare a suggestion source (the
+        columns of a table input, or the tables in the file another parameter
+        names): editors offer those values as a live pull-down, but they are
+        advisory only — any string is accepted, and validation stays an
+        evaluation-time concern (see docs/proposals/live-param-suggestions.md).
 
         **File-reading nodes and caching.** Nodes that read files (`bos.load`,
         `duck.read`, `xlsx.read`, `view3d.instances`) are pure despite touching

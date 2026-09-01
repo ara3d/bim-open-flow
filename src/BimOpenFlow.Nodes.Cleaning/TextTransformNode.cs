@@ -39,8 +39,8 @@ public sealed class TextTransformNode : IFlowNode
                 ? $"{Transformed(name)} AS {name}"
                 : name;
         }));
-        return [new TableValue(table.WithOrdinal(ordinal).RunSql(
-            $"SELECT {select} FROM t ORDER BY {DuckTableSql.QuoteIdent(ordinal)}", Kind))];
+        return [new TableValue(DuckTableSql.Run(Kind, table.WithOrdinal(ordinal),
+            $"SELECT {select} FROM t ORDER BY {DuckTableSql.QuoteIdent(ordinal)}"))];
 
         string Transformed(string c)
             => op switch

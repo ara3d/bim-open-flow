@@ -46,12 +46,12 @@ public sealed class TableSampleNode : IFlowNode
             sample = $"bernoulli({percent}%)";
         }
         var ord = TableColumns.FreeName("__row__", table);
-        var cols = string.Join(", ", table.Names().Select(TableColumns.Ident));
+        var cols = string.Join(", ", table.Names().Select(DuckTableSql.QuoteIdent));
         var sql = $"""
             SELECT {cols} FROM (
               SELECT * FROM t USING SAMPLE {sample} REPEATABLE ({seed}))
             ORDER BY {ord.Ident()}
             """;
-        return [new TableValue(TableColumns.RunSql(Kind, table.WithOrdinal(ord), sql))];
+        return [new TableValue(DuckTableSql.Run(Kind, table.WithOrdinal(ord), sql))];
     }
 }

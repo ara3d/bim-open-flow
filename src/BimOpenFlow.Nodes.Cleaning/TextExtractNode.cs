@@ -41,8 +41,8 @@ public sealed class TextExtractNode : IFlowNode
         var ordinal = table.OrdinalName();
         var select = string.Join(", ",
             table.Columns.Select(col => DuckTableSql.QuoteIdent(col.Descriptor.Name)));
-        return [new TableValue(table.WithOrdinal(ordinal).RunSql(
+        return [new TableValue(DuckTableSql.Run(Kind, table.WithOrdinal(ordinal),
             $"SELECT {select}, {extracted} AS {DuckTableSql.QuoteIdent(name)} FROM t " +
-            $"ORDER BY {DuckTableSql.QuoteIdent(ordinal)}", Kind))];
+            $"ORDER BY {DuckTableSql.QuoteIdent(ordinal)}"))];
     }
 }

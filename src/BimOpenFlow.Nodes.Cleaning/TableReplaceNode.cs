@@ -56,8 +56,8 @@ public sealed class TableReplaceNode : IFlowNode
             col.Descriptor.Name == column.Descriptor.Name
                 ? $"{replaced} AS {c}"
                 : DuckTableSql.QuoteIdent(col.Descriptor.Name)));
-        return [new TableValue(table.WithOrdinal(ordinal).RunSql(
-            $"SELECT {select} FROM t ORDER BY {DuckTableSql.QuoteIdent(ordinal)}", Kind))];
+        return [new TableValue(DuckTableSql.Run(Kind, table.WithOrdinal(ordinal),
+            $"SELECT {select} FROM t ORDER BY {DuckTableSql.QuoteIdent(ordinal)}"))];
     }
 
     private static string EscapeRegex(string text)

@@ -53,7 +53,7 @@ public sealed class TableCastNode : IFlowNode
         var sql = name.Length == 0
             ? $"SELECT * REPLACE ({expr} AS {column.Ident()}) FROM t"
             : $"SELECT *, {expr} AS {name.Ident()} FROM t";
-        var result = TableColumns.RunSql(Kind, table, sql);
+        var result = DuckTableSql.Run(Kind, table, sql);
 
         if (onError == "null")
         {

@@ -69,9 +69,9 @@ public sealed class TableWindowNode : IFlowNode
                            $"ROWS BETWEEN {windowSize - 1} PRECEDING AND CURRENT ROW)",
             _ => $"CAST({column.Ident()} AS DOUBLE) / sum({column.Ident()}) OVER ({partition.TrimEnd()})",
         };
-        var cols = string.Join(", ", table.Names().Select(TableColumns.Ident));
+        var cols = string.Join(", ", table.Names().Select(DuckTableSql.QuoteIdent));
         var sql = $"SELECT {cols}, {expr} AS {name.Ident()} FROM t ORDER BY {ord.Ident()}";
-        return [new TableValue(TableColumns.RunSql(Kind, table.WithOrdinal(ord), sql))];
+        return [new TableValue(DuckTableSql.Run(Kind, table.WithOrdinal(ord), sql))];
     }
 
     private static string WrapInteger(Ara3D.DataTable.IDataTable table, string column, string expr)

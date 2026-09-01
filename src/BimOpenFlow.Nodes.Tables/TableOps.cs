@@ -1,29 +1,13 @@
 using System.Globalization;
-using System.Security.Cryptography;
 using Ara3D.DataTable;
 
 namespace BimOpenFlow.Nodes.Tables;
 
-/// <summary>Small table helpers shared by the pack: column lookup, canonical
-/// cell text for key comparison, and row selection into a fresh table.</summary>
+/// <summary>Pack-specific table helpers: canonical cell text for key
+/// comparison and row selection; the shared column/ordinal machinery lives
+/// in BimOpenFlow.Nodes.Support.TableColumns.</summary>
 internal static class TableOps
 {
-    public static int ColumnIndex(this IDataTable table, string name)
-    {
-        for (var i = 0; i < table.Columns.Count; i++)
-            if (string.Equals(table.Columns[i].Descriptor.Name, name, StringComparison.OrdinalIgnoreCase))
-                return i;
-        return -1;
-    }
-
-    public static int RequireColumn(this IDataTable table, string name, string kind)
-        => table.ColumnIndex(name) is var i && i >= 0
-            ? i
-            : throw new ArgumentException($"{kind}: no column named '{name}'.");
-
-    public static int RowCount(this IDataTable table)
-        => table.Columns.Count == 0 ? 0 : table.Columns[0].Count;
-
     /// <summary>Canonical trimmed invariant text of a cell for key comparison;
     /// null for absent values (null keys never match).</summary>
     public static string? CanonicalText(object? value)
@@ -47,12 +31,6 @@ internal static class TableOps
             if (CanonicalText(table[column, row]) is { } key)
                 keys.Add(key);
         return keys;
-    }
-
-    public static string ContentHash(string path)
-    {
-        using var stream = File.OpenRead(path);
-        return Convert.ToHexString(SHA256.HashData(stream));
     }
 
     public static IDataTable SelectRows(this IDataTable table, IReadOnlyList<int> rows, string name)

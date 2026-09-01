@@ -26,7 +26,7 @@ public sealed class XlsxSheetsNode : IFlowNode
         var path = parameters.RequiredText("path", Kind);
         if (!File.Exists(path))
             throw new FileNotFoundException($"{Kind}: file not found: {path}", path);
-        var table = Cache.GetOrAdd(TableOps.ContentHash(path), _ => Load(path));
+        var table = Cache.GetOrAdd(FileHashes.HashFile(path), _ => Load(path));
         return [new TableValue(table)];
     }
 

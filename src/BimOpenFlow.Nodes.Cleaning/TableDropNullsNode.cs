@@ -35,8 +35,8 @@ public sealed class TableDropNullsNode : IFlowNode
         var ordinal = table.OrdinalName();
         var select = string.Join(", ",
             table.Columns.Select(c => DuckTableSql.QuoteIdent(c.Descriptor.Name)));
-        var result = table.WithOrdinal(ordinal).RunSql(
-            $"SELECT {select} FROM t WHERE {keep} ORDER BY {DuckTableSql.QuoteIdent(ordinal)}", Kind);
+        var result = DuckTableSql.Run(Kind, table.WithOrdinal(ordinal),
+            $"SELECT {select} FROM t WHERE {keep} ORDER BY {DuckTableSql.QuoteIdent(ordinal)}");
         var dropped = table.Rows.Count - result.Rows.Count;
         if (dropped > 0)
             context.Warn($"{Kind}: dropped {dropped} row(s) with nulls.");

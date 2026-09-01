@@ -44,6 +44,6 @@ public sealed class TableRenameNode : IFlowNode
 
         var terms = table.Names().Zip(finalNames,
             (old, final) => old == final ? old.Ident() : $"{old.Ident()} AS {final.Ident()}");
-        return [new TableValue(TableColumns.RunSql(Kind, table, $"SELECT {string.Join(", ", terms)} FROM t"))];
+        return [new TableValue(DuckTableSql.Run(Kind, table, $"SELECT {string.Join(", ", terms)} FROM t"))];
     }
 }

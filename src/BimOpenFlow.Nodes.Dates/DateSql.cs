@@ -9,12 +9,7 @@ internal static class DateSql
 {
     /// <summary>An ordinal column name not colliding with any input column.</summary>
     public static string OrdinalName(this IDataTable table)
-    {
-        var name = "__ord";
-        while (table.Columns.Any(c => c.Descriptor.Name == name))
-            name += "_";
-        return name;
-    }
+        => TableColumns.FreeName("__ord", table);
 
     public static void RequireColumn(this IDataTable table, string column, string kind)
     {
@@ -67,34 +62,8 @@ internal static class DateSql
     {
         var ordName = table.OrdinalName();
         var ord = DuckTableSql.QuoteIdent(ordName);
-        try
-        {
-            return DuckTableSql.Run(table.WithOrdinal(ordName),
-                $"SELECT * EXCLUDE ({ord}){projection} FROM t {where} ORDER BY {ord}");
-        }
-        catch (Exception e) when (e is not ArgumentException and not OperationCanceledException)
-        {
-            throw new ArgumentException($"{kind}: {e.Message}", e);
-        }
-    }
-
-    /// <summary>A copy of the table with an extra 0-based Integer ordinal column.</summary>
-    private static IDataTable WithOrdinal(this IDataTable table, string ordinal)
-    {
-        var rows = table.Columns.Count == 0 ? 0 : table.Columns[0].Count;
-        var builder = new DataTableBuilder(table.Name);
-        foreach (var c in table.Columns)
-        {
-            var cells = new object?[rows];
-            for (var row = 0; row < rows; row++)
-                cells[row] = table[c.ColumnIndex, row];
-            builder.AddColumn(cells, c.Descriptor.Name, c.Descriptor.Type);
-        }
-        var ordinals = new object?[rows];
-        for (var row = 0; row < rows; row++)
-            ordinals[row] = (long)row;
-        builder.AddColumn(ordinals, ordinal, typeof(long));
-        return builder.Build();
+        return DuckTableSql.Run(kind, table.WithOrdinal(ordName),
+            $"SELECT * EXCLUDE ({ord}){projection} FROM t {where} ORDER BY {ord}");
     }
 
     /// <summary>The in-place-unless-named convention: empty name replaces

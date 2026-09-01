@@ -60,7 +60,7 @@ public sealed class TableUnpivotNode : IFlowNode
             context.Warn($"{Kind}: columns have mixed types; values widened to text.");
 
         var ord = TableColumns.FreeName("__row__", table);
-        var keepCols = keep.Select(TableColumns.Ident).ToList();
+        var keepCols = keep.Select(DuckTableSql.QuoteIdent).ToList();
         var sourceCols = columns.Select(n =>
             widen ? $"CAST({n.Ident()} AS VARCHAR) AS {n.Ident()}" : n.Ident());
         var inner = string.Join(", ", keepCols.Append(ord.Ident()).Concat(sourceCols));
@@ -71,10 +71,10 @@ public sealed class TableUnpivotNode : IFlowNode
         var sql = $"""
             SELECT {outCols} FROM (
               UNPIVOT (SELECT {inner} FROM t)
-              ON {string.Join(", ", columns.Select(TableColumns.Ident))}
+              ON {string.Join(", ", columns.Select(DuckTableSql.QuoteIdent))}
               INTO NAME {nameColumn.Ident()} VALUE {valueColumn.Ident()})
             ORDER BY {ord.Ident()}, {position}
             """;
-        return [new TableValue(TableColumns.RunSql(Kind, table.WithOrdinal(ord), sql))];
+        return [new TableValue(DuckTableSql.Run(Kind, table.WithOrdinal(ord), sql))];
     }
 }

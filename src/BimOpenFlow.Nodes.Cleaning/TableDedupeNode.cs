@@ -35,9 +35,9 @@ public sealed class TableDedupeNode : IFlowNode
         terms.Add($"{DuckTableSql.QuoteIdent(ordinal)} {(reverse ? "DESC" : "ASC")}");
         var select = string.Join(", ",
             table.Columns.Select(c => DuckTableSql.QuoteIdent(c.Descriptor.Name)));
-        var result = table.WithOrdinal(ordinal).RunSql(
+        var result = DuckTableSql.Run(Kind, table.WithOrdinal(ordinal),
             $"SELECT {select} FROM t QUALIFY row_number() OVER (PARTITION BY {string.Join(", ", keys)} " +
-            $"ORDER BY {string.Join(", ", terms)}) = 1 ORDER BY {DuckTableSql.QuoteIdent(ordinal)}", Kind);
+            $"ORDER BY {string.Join(", ", terms)}) = 1 ORDER BY {DuckTableSql.QuoteIdent(ordinal)}");
         var duplicates = table.Rows.Count - result.Rows.Count;
         if (duplicates > 0)
             context.Warn($"{Kind}: removed {duplicates} duplicate row(s).");

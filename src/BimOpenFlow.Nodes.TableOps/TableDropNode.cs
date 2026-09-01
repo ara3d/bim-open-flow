@@ -32,7 +32,7 @@ public sealed class TableDropNode : IFlowNode
             throw new ArgumentException($"{Kind}: dropping every column leaves an empty table.");
         if (dropped.Count == 0)
             return [new TableValue(table)];
-        var sql = $"SELECT * EXCLUDE ({string.Join(", ", dropped.Select(TableColumns.Ident))}) FROM t";
-        return [new TableValue(TableColumns.RunSql(Kind, table, sql))];
+        var sql = $"SELECT * EXCLUDE ({string.Join(", ", dropped.Select(DuckTableSql.QuoteIdent))}) FROM t";
+        return [new TableValue(DuckTableSql.Run(Kind, table, sql))];
     }
 }

@@ -22,16 +22,16 @@ public sealed class TableDistinctNode : IFlowNode
         var table = inputs.TableInput(0, Kind);
         var keys = parameters.GetText("columns").SplitNames()
             .Select(n => table.CanonicalName(n, Kind)).ToList();
-        var partition = (keys.Count > 0 ? keys : table.Names()).Select(TableColumns.Ident);
+        var partition = (keys.Count > 0 ? keys : table.Names()).Select(DuckTableSql.QuoteIdent);
         var ord = TableColumns.FreeName("__row__", table);
         var rn = TableColumns.FreeName("__rn__", table);
-        var cols = string.Join(", ", table.Names().Select(TableColumns.Ident));
+        var cols = string.Join(", ", table.Names().Select(DuckTableSql.QuoteIdent));
         var sql = $"""
             SELECT {cols} FROM (
               SELECT *, row_number() OVER (PARTITION BY {string.Join(", ", partition)} ORDER BY {ord.Ident()}) AS {rn.Ident()}
               FROM t)
             WHERE {rn.Ident()} = 1 ORDER BY {ord.Ident()}
             """;
-        return [new TableValue(TableColumns.RunSql(Kind, table.WithOrdinal(ord), sql))];
+        return [new TableValue(DuckTableSql.Run(Kind, table.WithOrdinal(ord), sql))];
     }
 }

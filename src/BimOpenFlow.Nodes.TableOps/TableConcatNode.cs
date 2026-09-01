@@ -42,7 +42,7 @@ public sealed class TableConcatNode : IFlowNode
             ? aNames
             : aNames.Concat(bNames.Where(n => a.ColumnIndex(n) < 0)).ToList();
         var sql = $"""
-            SELECT {string.Join(", ", outNames.Select(TableColumns.Ident))} FROM (
+            SELECT {string.Join(", ", outNames.Select(DuckTableSql.QuoteIdent))} FROM (
               SELECT *, 0 AS {src.Ident()} FROM a
               {union}
               SELECT *, 1 AS {src.Ident()} FROM b)
@@ -53,6 +53,6 @@ public sealed class TableConcatNode : IFlowNode
             ("a", a.WithOrdinal(ord)),
             ("b", b.WithOrdinal(ord)),
         };
-        return [new TableValue(TableColumns.RunSql(Kind, tables, sql))];
+        return [new TableValue(DuckTableSql.Run(Kind, tables, sql))];
     }
 }

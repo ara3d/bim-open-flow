@@ -11,14 +11,6 @@ namespace BimOpenFlow.Nodes.DuckDb;
 /// from the Bos pack because node packs do not reference each other.</summary>
 public static class DuckDbOps
 {
-    public static string RequiredText(this ParamValues parameters, string name, string kind)
-    {
-        var text = parameters.GetText(name);
-        return !string.IsNullOrWhiteSpace(text)
-            ? text
-            : throw new ArgumentException($"{kind}: parameter '{name}' is required.");
-    }
-
     /// <summary>Validates the 'sql' parameter as a single SELECT/WITH statement,
     /// prefixing any rejection with the node kind.</summary>
     public static string ReadOnlySql(this ParamValues parameters, string kind)

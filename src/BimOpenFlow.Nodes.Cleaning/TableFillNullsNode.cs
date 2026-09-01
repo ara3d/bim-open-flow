@@ -40,8 +40,8 @@ public sealed class TableFillNullsNode : IFlowNode
             targetNames.Contains(c.Descriptor.Name)
                 ? $"{Filled(c)} AS {DuckTableSql.QuoteIdent(c.Descriptor.Name)}"
                 : DuckTableSql.QuoteIdent(c.Descriptor.Name)));
-        return [new TableValue(table.WithOrdinal(ordinal).RunSql(
-            $"SELECT {select} FROM t ORDER BY {DuckTableSql.QuoteIdent(ordinal)}", Kind))];
+        return [new TableValue(DuckTableSql.Run(Kind, table.WithOrdinal(ordinal),
+            $"SELECT {select} FROM t ORDER BY {DuckTableSql.QuoteIdent(ordinal)}"))];
 
         string Filled(IDataColumn column)
         {

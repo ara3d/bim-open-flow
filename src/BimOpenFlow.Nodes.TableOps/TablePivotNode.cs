@@ -38,13 +38,13 @@ public sealed class TablePivotNode : IFlowNode
         var aggregate = parameters.RequiredEnum("aggregate", Kind, "first",
             "first", "sum", "count", "min", "max", "avg");
 
-        var groupCols = string.Join(", ", groupBy.Select(TableColumns.Ident));
-        var distinct = TableColumns.RunSql(Kind, table,
+        var groupCols = string.Join(", ", groupBy.Select(DuckTableSql.QuoteIdent));
+        var distinct = DuckTableSql.Run(Kind, table,
             $"SELECT DISTINCT {nameColumn.Ident()} FROM t WHERE {nameColumn.Ident()} IS NOT NULL ORDER BY 1");
         var values = Enumerable.Range(0, distinct.RowCount())
             .Select(row => distinct[0, row]).ToList();
         if (values.Count == 0)
-            return [new TableValue(TableColumns.RunSql(Kind, table,
+            return [new TableValue(DuckTableSql.Run(Kind, table,
                 $"SELECT DISTINCT {groupCols} FROM t ORDER BY {groupCols}"))];
 
         var ord = TableColumns.FreeName("__row__", table);
@@ -65,7 +65,7 @@ public sealed class TablePivotNode : IFlowNode
               PIVOT t ON {nameColumn.Ident()} IN ({literals}) USING {agg} GROUP BY {groupCols})
             ORDER BY {groupCols}
             """;
-        return [new TableValue(TableColumns.RunSql(Kind, table.WithOrdinal(ord), sql))];
+        return [new TableValue(DuckTableSql.Run(Kind, table.WithOrdinal(ord), sql))];
     }
 
     private static string ValueLiteral(object? value)

@@ -23,7 +23,7 @@ public sealed class TableProfileNode : IFlowNode
         IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {
         var table = inputs.TableInput(0, Kind);
-        var summary = TableColumns.RunSql(Kind, table, "SUMMARIZE t");
+        var summary = DuckTableSql.Run(Kind, table, "SUMMARIZE t");
         int Col(string name) => summary.RequireColumn(name, Kind);
         var (nameCol, typeCol) = (Col("column_name"), Col("column_type"));
         var (countCol, distinctCol) = (Col("count"), Col("approx_unique"));

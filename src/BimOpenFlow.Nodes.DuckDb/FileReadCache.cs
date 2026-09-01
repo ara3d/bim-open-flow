@@ -43,14 +43,8 @@ internal static class FileReadCache
     /// path-derived data (the glob `filename` column, the table name), so
     /// identical bytes at a different location must not hit the cache.</summary>
     public static string CacheKey(string kind, IReadOnlyList<string> files, string parameters)
-        => $"{kind}:{string.Join("|", files.Select(f => $"{f}={HashFile(f)}"))}:{parameters}";
+        => $"{kind}:{string.Join("|", files.Select(f => $"{f}={FileHashes.HashFile(f)}"))}:{parameters}";
 
     public static IDataTable GetOrLoad(string key, Func<IDataTable> load)
         => Cache.GetOrAdd(key, _ => load());
-
-    private static string HashFile(string path)
-    {
-        using var stream = File.OpenRead(path);
-        return Convert.ToHexString(SHA256.HashData(stream));
-    }
 }

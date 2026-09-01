@@ -38,7 +38,7 @@ public sealed class XlsxReadNode : IFlowNode
         if (headerRow < 1)
             throw new ArgumentException($"{Kind}: 'headerRow' must be 1 or greater.");
         var range = parameters.GetText("range").Trim();
-        var table = Cache.GetOrAdd($"{TableOps.ContentHash(path)}:{sheet}:{headerRow}:{range}",
+        var table = Cache.GetOrAdd($"{FileHashes.HashFile(path)}:{sheet}:{headerRow}:{range}",
             _ => Load(path, sheet, (int)headerRow, range));
         return [new TableValue(table)];
     }

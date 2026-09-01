@@ -10,6 +10,11 @@
   <ItemGroup>
     <ProjectReference Include="..\Ara3D.DataFlowEngine.Abstractions\Ara3D.DataFlowEngine.Abstractions.csproj" />
     <ProjectReference Include="..\Ara3D.BimOpenSchema.DuckDb\Ara3D.BimOpenSchema.DuckDb.csproj" />
+    <ProjectReference Include="..\BimOpenFlow.Nodes.Support\BimOpenFlow.Nodes.Support.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="BimOpenFlow.Nodes.Support" />
   </ItemGroup>
 
 </Project>

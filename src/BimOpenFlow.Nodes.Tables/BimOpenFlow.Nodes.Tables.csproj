@@ -9,8 +9,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Ara3D.DataFlowEngine.Abstractions\Ara3D.DataFlowEngine.Abstractions.csproj" />
+    <ProjectReference Include="..\BimOpenFlow.Nodes.Support\BimOpenFlow.Nodes.Support.csproj" />
     <PackageReference Include="ClosedXML" Version="$(Ara3DClosedXmlVersion)" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="$(Ara3DMicrosoftDataSqliteVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="BimOpenFlow.Nodes.Support" />
   </ItemGroup>
 
 </Project>

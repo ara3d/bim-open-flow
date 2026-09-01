@@ -17,41 +17,41 @@ public sealed class TableNodeTests
     [Test]
     public void Filter_KeepsMatchingRows_AndExcludesNulls()
     {
-        var result = new TableFilterNode().EvalTable(NodeTestHelpers.SampleTable(), ("expr", "Height > 2.2"));
+        var result = new TableFilterNode().EvalTable(BosTestHelpers.SampleTable(), ("expr", "Height > 2.2"));
         Assert.That(result.Rows, Has.Count.EqualTo(2));
         Assert.That(result.Cell("Height", 0), Is.EqualTo(2.5));
         Assert.That(result.Cell("Height", 1), Is.EqualTo(3.0));
-        Assert.That(result.ColumnNames(), Is.EqualTo(NodeTestHelpers.SampleTable().ColumnNames()));
+        Assert.That(result.ColumnNames(), Is.EqualTo(BosTestHelpers.SampleTable().ColumnNames()));
     }
 
     [Test]
     public void Filter_NullResult_ExcludesTheRow()
     {
-        var result = new TableFilterNode().EvalTable(NodeTestHelpers.SampleTable(), ("expr", "Height > 0"));
+        var result = new TableFilterNode().EvalTable(BosTestHelpers.SampleTable(), ("expr", "Height > 0"));
         Assert.That(result.Rows, Has.Count.EqualTo(3));
     }
 
     [Test]
     public void Filter_NonBooleanExpression_Throws()
         => Assert.That(
-            () => new TableFilterNode().EvalTable(NodeTestHelpers.SampleTable(), ("expr", "Height + 1")),
+            () => new TableFilterNode().EvalTable(BosTestHelpers.SampleTable(), ("expr", "Height + 1")),
             Throws.ArgumentException.With.Message.Contains("Boolean"));
 
     [Test]
     public void Filter_ParseAndTypeErrors_SurfaceWithOffsets()
     {
         Assert.That(
-            () => new TableFilterNode().EvalTable(NodeTestHelpers.SampleTable(), ("expr", "Height >")),
+            () => new TableFilterNode().EvalTable(BosTestHelpers.SampleTable(), ("expr", "Height >")),
             Throws.ArgumentException.With.Message.Contains("expr"));
         Assert.That(
-            () => new TableFilterNode().EvalTable(NodeTestHelpers.SampleTable(), ("expr", "NoSuchColumn > 1")),
+            () => new TableFilterNode().EvalTable(BosTestHelpers.SampleTable(), ("expr", "NoSuchColumn > 1")),
             Throws.ArgumentException.With.Message.Contains("NoSuchColumn"));
     }
 
     [Test]
     public void Derive_AddsComputedColumn_WithNullPropagation()
     {
-        var result = new TableDeriveNode().EvalTable(NodeTestHelpers.SampleTable(),
+        var result = new TableDeriveNode().EvalTable(BosTestHelpers.SampleTable(),
             ("name", "Doubled"), ("expr", "Height * 2"));
         Assert.That(result.ColumnNames(), Does.Contain("Doubled"));
         Assert.That(result.Rows, Has.Count.EqualTo(4));
@@ -65,7 +65,7 @@ public sealed class TableNodeTests
     [Test]
     public void Derive_TextConcat_PropagatesNullNames()
     {
-        var result = new TableDeriveNode().EvalTable(NodeTestHelpers.SampleTable(),
+        var result = new TableDeriveNode().EvalTable(BosTestHelpers.SampleTable(),
             ("name", "Label"), ("expr", "Name & \"!\""));
         Assert.That(result.Cell("Label", 0), Is.EqualTo("Wall-1!"));
         Assert.That(result.Cell("Label", 3), Is.Null);
@@ -74,21 +74,21 @@ public sealed class TableNodeTests
     [Test]
     public void Derive_DuplicateColumnName_Throws()
         => Assert.That(
-            () => new TableDeriveNode().EvalTable(NodeTestHelpers.SampleTable(),
+            () => new TableDeriveNode().EvalTable(BosTestHelpers.SampleTable(),
                 ("name", "Height"), ("expr", "1")),
             Throws.ArgumentException.With.Message.Contains("already exists"));
 
     [Test]
     public void Derive_TypeError_Throws()
         => Assert.That(
-            () => new TableDeriveNode().EvalTable(NodeTestHelpers.SampleTable(),
+            () => new TableDeriveNode().EvalTable(BosTestHelpers.SampleTable(),
                 ("name", "Bad"), ("expr", "Height and true")),
             Throws.ArgumentException.With.Message.Contains("expr"));
 
     [Test]
     public void Aggregate_GroupsAndComputes()
     {
-        var result = new TableAggregateNode().EvalTable(NodeTestHelpers.SampleTable(),
+        var result = new TableAggregateNode().EvalTable(BosTestHelpers.SampleTable(),
             ("groupBy", "Category"),
             ("aggregates", "count(*) as n, sum(Count) as total, avg(Count) as mean, max(Height) as tallest"));
         Assert.That(result.Rows, Has.Count.EqualTo(2));
@@ -104,7 +104,7 @@ public sealed class TableNodeTests
     [Test]
     public void Aggregate_EmptyGroupBy_YieldsOneRow()
     {
-        var result = new TableAggregateNode().EvalTable(NodeTestHelpers.SampleTable(),
+        var result = new TableAggregateNode().EvalTable(BosTestHelpers.SampleTable(),
             ("groupBy", ""), ("aggregates", "count(Height) as withHeight, min(Count) as first"));
         Assert.That(result.Rows, Has.Count.EqualTo(1));
         Assert.That(result.Cell("withHeight", 0), Is.EqualTo(3L));
@@ -115,16 +115,16 @@ public sealed class TableNodeTests
     public void Aggregate_RejectsBadSpecs()
     {
         var node = new TableAggregateNode();
-        Assert.That(() => node.EvalTable(NodeTestHelpers.SampleTable(),
+        Assert.That(() => node.EvalTable(BosTestHelpers.SampleTable(),
                 ("groupBy", ""), ("aggregates", "median(Count) as m")),
             Throws.ArgumentException.With.Message.Contains("median"));
-        Assert.That(() => node.EvalTable(NodeTestHelpers.SampleTable(),
+        Assert.That(() => node.EvalTable(BosTestHelpers.SampleTable(),
                 ("groupBy", ""), ("aggregates", "sum(NoSuchColumn) as s")),
             Throws.ArgumentException.With.Message.Contains("NoSuchColumn"));
-        Assert.That(() => node.EvalTable(NodeTestHelpers.SampleTable(),
+        Assert.That(() => node.EvalTable(BosTestHelpers.SampleTable(),
                 ("groupBy", ""), ("aggregates", "sum(*) as s")),
             Throws.ArgumentException);
-        Assert.That(() => node.EvalTable(NodeTestHelpers.SampleTable(),
+        Assert.That(() => node.EvalTable(BosTestHelpers.SampleTable(),
                 ("groupBy", "NoSuchColumn"), ("aggregates", "count(*) as n")),
             Throws.ArgumentException.With.Message.Contains("NoSuchColumn"));
     }
@@ -132,7 +132,7 @@ public sealed class TableNodeTests
     [Test]
     public void Sort_SupportsDescendingAndMultipleKeys()
     {
-        var result = new TableSortNode().EvalTable(NodeTestHelpers.SampleTable(),
+        var result = new TableSortNode().EvalTable(BosTestHelpers.SampleTable(),
             ("by", "Category, Count desc"));
         Assert.That(result.Cell("Count", 0), Is.EqualTo(4L));
         Assert.That(result.Cell("Count", 1), Is.EqualTo(3L));
@@ -143,16 +143,16 @@ public sealed class TableNodeTests
     [Test]
     public void Sort_RejectsUnknownColumnsAndBadTerms()
     {
-        Assert.That(() => new TableSortNode().EvalTable(NodeTestHelpers.SampleTable(), ("by", "NoSuchColumn")),
+        Assert.That(() => new TableSortNode().EvalTable(BosTestHelpers.SampleTable(), ("by", "NoSuchColumn")),
             Throws.ArgumentException.With.Message.Contains("NoSuchColumn"));
-        Assert.That(() => new TableSortNode().EvalTable(NodeTestHelpers.SampleTable(), ("by", "Count sideways")),
+        Assert.That(() => new TableSortNode().EvalTable(BosTestHelpers.SampleTable(), ("by", "Count sideways")),
             Throws.ArgumentException);
     }
 
     [Test]
     public void Query_RunsReadOnlySqlOverT()
     {
-        var result = new BosQueryNode().EvalTable(NodeTestHelpers.SampleTable(),
+        var result = new BosQueryNode().EvalTable(BosTestHelpers.SampleTable(),
             ("sql", "SELECT Name, Count FROM t WHERE Count >= 2 ORDER BY Count DESC"));
         Assert.That(result.Rows, Has.Count.EqualTo(3));
         Assert.That(result.Cell("Count", 0), Is.EqualTo(4L));
@@ -162,7 +162,7 @@ public sealed class TableNodeTests
     [Test]
     public void Query_RejectsNonSelectStatements()
         => Assert.That(
-            () => new BosQueryNode().EvalTable(NodeTestHelpers.SampleTable(), ("sql", "DELETE FROM t")),
+            () => new BosQueryNode().EvalTable(BosTestHelpers.SampleTable(), ("sql", "DELETE FROM t")),
             Throws.ArgumentException);
 
     [Test]

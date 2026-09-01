@@ -23,7 +23,7 @@ public sealed class TableCombinatorTests
     {
         var ctx = new FakeEvalContext();
         var result = new TableJoinNode().EvalTable(ctx,
-            [NodeTestHelpers.Orders(), NodeTestHelpers.Customers()], ("aKey", "CustomerId"));
+            [TablesTestHelpers.Orders(), TablesTestHelpers.Customers()], ("aKey", "CustomerId"));
         Assert.That(result.Rows, Has.Count.EqualTo(4));
         Assert.That(result.ColumnNames(), Is.EqualTo(new[] { "Id", "CustomerId", "Name" }));
         Assert.That(result.Cell("Name", 0), Is.EqualTo("Alice"));
@@ -38,7 +38,7 @@ public sealed class TableCombinatorTests
     {
         var ctx = new FakeEvalContext();
         var result = new TableJoinNode().EvalTable(ctx,
-            [NodeTestHelpers.Orders(), NodeTestHelpers.Customers()],
+            [TablesTestHelpers.Orders(), TablesTestHelpers.Customers()],
             ("aKey", "CustomerId"), ("mode", "inner"));
         Assert.That(result.Rows, Has.Count.EqualTo(2));
         Assert.That(result.Cell("Id", 0), Is.EqualTo(1L));
@@ -51,7 +51,7 @@ public sealed class TableCombinatorTests
     {
         var ctx = new FakeEvalContext();
         var result = new TableJoinNode().EvalTable(ctx,
-            [NodeTestHelpers.Orders(), NodeTestHelpers.Customers()],
+            [TablesTestHelpers.Orders(), TablesTestHelpers.Customers()],
             ("aKey", "CustomerId"), ("mode", "semi"));
         Assert.That(result.ColumnNames(), Is.EqualTo(new[] { "Id", "CustomerId" }));
         Assert.That(result.Rows, Has.Count.EqualTo(2));
@@ -65,7 +65,7 @@ public sealed class TableCombinatorTests
     {
         var ctx = new FakeEvalContext();
         var result = new TableJoinNode().EvalTable(ctx,
-            [NodeTestHelpers.Orders(), NodeTestHelpers.Customers()],
+            [TablesTestHelpers.Orders(), TablesTestHelpers.Customers()],
             ("aKey", "CustomerId"), ("mode", "anti"));
         Assert.That(result.ColumnNames(), Is.EqualTo(new[] { "Id", "CustomerId" }));
         Assert.That(result.Rows, Has.Count.EqualTo(2));
@@ -79,7 +79,7 @@ public sealed class TableCombinatorTests
     {
         var ctx = new FakeEvalContext();
         var result = new TableJoinNode().EvalTable(ctx,
-            [NodeTestHelpers.Orders(), NodeTestHelpers.Customers()],
+            [TablesTestHelpers.Orders(), TablesTestHelpers.Customers()],
             ("aKey", "CustomerId"), ("mode", "full"));
         Assert.That(result.ColumnNames(), Is.EqualTo(new[] { "Id", "CustomerId", "Name" }));
         Assert.That(result.Rows, Has.Count.EqualTo(5), "4 a rows plus unmatched customer C3");
@@ -98,7 +98,7 @@ public sealed class TableCombinatorTests
         b.AddColumn(new object?[] { "x", "y", "z" }, "Tag", typeof(string));
         var ctx = new FakeEvalContext();
         var result = new TableJoinNode().EvalTable(ctx,
-            [NodeTestHelpers.Customers(), b.Build()], ("aKey", "CustomerId"), ("mode", "full"));
+            [TablesTestHelpers.Customers(), b.Build()], ("aKey", "CustomerId"), ("mode", "full"));
         Assert.That(result.Rows, Has.Count.EqualTo(4), "3 a rows plus unmatched C9");
         Assert.That(result.Cell("CustomerId", 3), Is.EqualTo("C9"));
     }
@@ -110,7 +110,7 @@ public sealed class TableCombinatorTests
         b.AddColumn(new object?[] { "C1", "C1" }, "CustomerId", typeof(string));
         var ctx = new FakeEvalContext();
         var result = new TableJoinNode().EvalTable(ctx,
-            [NodeTestHelpers.Orders(), b.Build()], ("aKey", "CustomerId"), ("mode", "semi"));
+            [TablesTestHelpers.Orders(), b.Build()], ("aKey", "CustomerId"), ("mode", "semi"));
         Assert.That(result.Rows, Has.Count.EqualTo(1));
         Assert.That(ctx.Warnings, Has.One.Contains("duplicate keys in b"));
     }
@@ -118,7 +118,7 @@ public sealed class TableCombinatorTests
     [Test]
     public void Join_UnknownMode_Throws()
         => Assert.That(() => new TableJoinNode().EvalTable(
-                [NodeTestHelpers.Orders(), NodeTestHelpers.Customers()],
+                [TablesTestHelpers.Orders(), TablesTestHelpers.Customers()],
                 ("aKey", "CustomerId"), ("mode", "sideways")),
             Throws.ArgumentException.With.Message.StartsWith("table.join: ").And.Message.Contains("mode"));
 
@@ -129,7 +129,7 @@ public sealed class TableCombinatorTests
         b.AddColumn(new object?[] { "C1", "C2" }, "Code", typeof(string));
         b.AddColumn(new object?[] { "North", "South" }, "Region", typeof(string));
         var result = new TableJoinNode().EvalTable(
-            [NodeTestHelpers.Orders(), b.Build()],
+            [TablesTestHelpers.Orders(), b.Build()],
             ("aKey", "CustomerId"), ("bKey", "Code"), ("mode", "inner"));
         Assert.That(result.ColumnNames(), Is.EqualTo(new[] { "Id", "CustomerId", "Region" }));
         Assert.That(result.Cell("Region", 0), Is.EqualTo("North"));
@@ -143,7 +143,7 @@ public sealed class TableCombinatorTests
         b.AddColumn(new object?[] { "first", "second" }, "Tag", typeof(string));
         var ctx = new FakeEvalContext();
         var result = new TableJoinNode().EvalTable(ctx,
-            [NodeTestHelpers.Orders(), b.Build()], ("aKey", "CustomerId"), ("mode", "inner"));
+            [TablesTestHelpers.Orders(), b.Build()], ("aKey", "CustomerId"), ("mode", "inner"));
         Assert.That(result.Rows, Has.Count.EqualTo(1));
         Assert.That(result.Cell("Tag", 0), Is.EqualTo("first"));
         Assert.That(ctx.Warnings, Has.One.Contains("duplicate keys in b"));
@@ -156,7 +156,7 @@ public sealed class TableCombinatorTests
         b.AddColumn(new object?[] { "C1" }, "CustomerId", typeof(string));
         b.AddColumn(new object?[] { 99L }, "Id", typeof(long));
         var result = new TableJoinNode().EvalTable(
-            [NodeTestHelpers.Orders(), b.Build()], ("aKey", "CustomerId"), ("mode", "inner"));
+            [TablesTestHelpers.Orders(), b.Build()], ("aKey", "CustomerId"), ("mode", "inner"));
         Assert.That(result.ColumnNames(), Is.EqualTo(new[] { "Id", "CustomerId", "Id_b" }));
         Assert.That(result.Cell("Id_b", 0), Is.EqualTo(99L));
     }
@@ -178,10 +178,10 @@ public sealed class TableCombinatorTests
     public void Join_MissingRequirements_Throw()
     {
         Assert.That(() => new TableJoinNode().EvalTable(
-                [NodeTestHelpers.Orders(), NodeTestHelpers.Customers()]),
+                [TablesTestHelpers.Orders(), TablesTestHelpers.Customers()]),
             Throws.ArgumentException.With.Message.Contains("aKey"));
         Assert.That(() => new TableJoinNode().EvalTable(
-                [NodeTestHelpers.Orders(), NodeTestHelpers.Customers()], ("aKey", "NoSuchColumn")),
+                [TablesTestHelpers.Orders(), TablesTestHelpers.Customers()], ("aKey", "NoSuchColumn")),
             Throws.ArgumentException.With.Message.Contains("NoSuchColumn"));
         Assert.That(() => new TableJoinNode().Eval(new FakeEvalContext(), [],
                 NodeTestHelpers.Params(("aKey", "CustomerId"))),
@@ -192,7 +192,7 @@ public sealed class TableCombinatorTests
     public void SetOp_Intersect_KeepsARowsWithKeyInB_NullKeyDropped()
     {
         var result = new TableSetOpNode().EvalTable(
-            [NodeTestHelpers.Orders(), NodeTestHelpers.Customers()],
+            [TablesTestHelpers.Orders(), TablesTestHelpers.Customers()],
             ("op", "intersect"), ("key", "CustomerId"));
         Assert.That(result.Rows, Has.Count.EqualTo(2));
         Assert.That(result.Cell("Id", 0), Is.EqualTo(1L));
@@ -204,7 +204,7 @@ public sealed class TableCombinatorTests
     public void SetOp_Subtract_KeepsARowsWithKeyNotInB_NullKeyKept()
     {
         var result = new TableSetOpNode().EvalTable(
-            [NodeTestHelpers.Orders(), NodeTestHelpers.Customers()],
+            [TablesTestHelpers.Orders(), TablesTestHelpers.Customers()],
             ("op", "subtract"), ("key", "CustomerId"));
         Assert.That(result.Rows, Has.Count.EqualTo(2));
         Assert.That(result.Cell("CustomerId", 0), Is.Null);
@@ -218,7 +218,7 @@ public sealed class TableCombinatorTests
         b.AddColumn(new object?[] { 10L, 11L }, "Id", typeof(long));
         b.AddColumn(new object?[] { "C1", "C7" }, "CustomerId", typeof(string));
         var result = new TableSetOpNode().EvalTable(
-            [NodeTestHelpers.Orders(), b.Build()], ("op", "union"), ("key", "CustomerId"));
+            [TablesTestHelpers.Orders(), b.Build()], ("op", "union"), ("key", "CustomerId"));
         Assert.That(result.Rows, Has.Count.EqualTo(5), "C1 already present; only C7 appended");
         Assert.That(result.Cell("Id", 4), Is.EqualTo(11L));
         Assert.That(result.Cell("CustomerId", 4), Is.EqualTo("C7"));
@@ -227,7 +227,7 @@ public sealed class TableCombinatorTests
     [Test]
     public void SetOp_Union_ColumnMismatch_Throws()
         => Assert.That(() => new TableSetOpNode().EvalTable(
-                [NodeTestHelpers.Orders(), NodeTestHelpers.Customers()],
+                [TablesTestHelpers.Orders(), TablesTestHelpers.Customers()],
                 ("op", "union"), ("key", "CustomerId")),
             Throws.ArgumentException.With.Message.Contains("Id").And.Message.Contains("Name"));
 
@@ -235,11 +235,11 @@ public sealed class TableCombinatorTests
     public void SetOp_UnknownOpOrKey_Throws()
     {
         Assert.That(() => new TableSetOpNode().EvalTable(
-                [NodeTestHelpers.Orders(), NodeTestHelpers.Customers()],
+                [TablesTestHelpers.Orders(), TablesTestHelpers.Customers()],
                 ("op", "sideways"), ("key", "CustomerId")),
             Throws.ArgumentException.With.Message.Contains("op"));
         Assert.That(() => new TableSetOpNode().EvalTable(
-                [NodeTestHelpers.Orders(), NodeTestHelpers.Customers()],
+                [TablesTestHelpers.Orders(), TablesTestHelpers.Customers()],
                 ("op", "intersect"), ("key", "NoSuchColumn")),
             Throws.ArgumentException.With.Message.Contains("NoSuchColumn"));
     }
@@ -248,7 +248,7 @@ public sealed class TableCombinatorTests
     public void Project_KeepsColumnsInGivenOrder()
     {
         var result = new TableProjectNode().EvalTable(
-            [NodeTestHelpers.Customers()], ("columns", "Name, CustomerId"));
+            [TablesTestHelpers.Customers()], ("columns", "Name, CustomerId"));
         Assert.That(result.ColumnNames(), Is.EqualTo(new[] { "Name", "CustomerId" }));
         Assert.That(result.Rows, Has.Count.EqualTo(3));
         Assert.That(result.Cell("Name", 0), Is.EqualTo("Alice"));
@@ -259,7 +259,7 @@ public sealed class TableCombinatorTests
     {
         var ctx = new FakeEvalContext();
         var result = new TableProjectNode().EvalTable(ctx,
-            [NodeTestHelpers.Customers()], ("columns", "Name, NoSuchColumn"));
+            [TablesTestHelpers.Customers()], ("columns", "Name, NoSuchColumn"));
         Assert.That(result.ColumnNames(), Is.EqualTo(new[] { "Name" }));
         Assert.That(ctx.Warnings, Has.One.Contains("NoSuchColumn"));
     }
@@ -267,9 +267,9 @@ public sealed class TableCombinatorTests
     [Test]
     public void Project_EmptyColumns_Throws()
     {
-        Assert.That(() => new TableProjectNode().EvalTable([NodeTestHelpers.Customers()], ("columns", "")),
+        Assert.That(() => new TableProjectNode().EvalTable([TablesTestHelpers.Customers()], ("columns", "")),
             Throws.ArgumentException.With.Message.Contains("columns"));
-        Assert.That(() => new TableProjectNode().EvalTable([NodeTestHelpers.Customers()], ("columns", ",")),
+        Assert.That(() => new TableProjectNode().EvalTable([TablesTestHelpers.Customers()], ("columns", ",")),
             Throws.ArgumentException.With.Message.Contains("columns"));
     }
 }

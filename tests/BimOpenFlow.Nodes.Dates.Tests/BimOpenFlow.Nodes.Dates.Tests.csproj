@@ -19,10 +19,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\BimOpenFlow.Nodes.Dates\BimOpenFlow.Nodes.Dates.csproj" />
+    <ProjectReference Include="../../src/Ara3D.DataFlowEngine.TestKit/Ara3D.DataFlowEngine.TestKit.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="NUnit.Framework" />
+    <Using Include="Ara3D.DataFlowEngine.TestKit" />
   </ItemGroup>
 
 </Project>

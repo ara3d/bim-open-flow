@@ -27,5 +27,19 @@ public sealed class ChartBarNode : IFlowNode
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context,
         IReadOnlyList<FlowValue> inputs, ParamValues parameters)
-        => throw new NotImplementedException("Track PACK implements");
+    {
+        var table = inputs.TableInput(0, Kind);
+        var sort = parameters.RequiredEnum("sort", Kind, "none", Sorts);
+        var label = VizProjection.OptionalColumn(context, table,
+            parameters.GetText("labelColumn"), Kind);
+        if (label < 0)
+            label = VizProjection.FirstTextColumn(table);
+        var values = VizProjection.ValueColumns(context, table,
+            parameters.GetText("valueColumns"), label, Kind);
+        var columns = label >= 0 ? values.Prepend(label).ToList() : values;
+        var order = sort != "none" && values.Count > 0
+            ? VizProjection.SortedRows(table, values[0], sort == "asc")
+            : null;
+        return [new TableValue(VizProjection.Project(table, columns, order))];
+    }
 }

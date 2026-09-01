@@ -22,5 +22,12 @@ public sealed class ViewTableNode : IFlowNode
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context,
         IReadOnlyList<FlowValue> inputs, ParamValues parameters)
-        => throw new NotImplementedException("Track PACK implements");
+    {
+        var table = inputs.TableInput(0, Kind);
+        var names = parameters.GetText("columns").SplitNames();
+        return names.Count == 0
+            ? [new TableValue(table)]
+            : [new TableValue(VizProjection.Project(table,
+                VizProjection.ResolveColumns(context, table, names, Kind)))];
+    }
 }

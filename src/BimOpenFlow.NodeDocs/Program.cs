@@ -1,4 +1,5 @@
 using BimOpenFlow.NodeDocs;
+using BimOpenFlow.Nodes.BimAnalysis;
 using BimOpenFlow.Nodes.Bos;
 using BimOpenFlow.Nodes.Cleaning;
 using BimOpenFlow.Nodes.Compliance;
@@ -15,6 +16,11 @@ var packs = new Pack[]
     new("BOS — `BimOpenFlow.Nodes.Bos`",
         "Loading BIM Open Schema (.bos) files and the core table transforms: filter, derive, aggregate, sort.",
         BosNodes.All),
+    new("BIM analysis — `BimOpenFlow.Nodes.BimAnalysis`",
+        "The bim.* pack: grouping tables (elements, rooms, levels), typed parameter tables and "
+        + "coverage, bounding boxes with dimensions, spatial joins, discipline and room "
+        + "classification, and door navigation graphs.",
+        BimAnalysisNodes.All),
     new("Geometry — `BimOpenFlow.Nodes.Geometry`",
         "The view3d pack: the tables the 3D pane consumes — instances, colors, isolation, camera.",
         GeometryNodes.All),

@@ -19,6 +19,7 @@
     <ProjectReference Include="..\BimOpenFlow.Nodes.Cleaning\BimOpenFlow.Nodes.Cleaning.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Dates\BimOpenFlow.Nodes.Dates.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Viz\BimOpenFlow.Nodes.Viz.csproj" />
+    <ProjectReference Include="..\BimOpenFlow.Nodes.BimAnalysis\BimOpenFlow.Nodes.BimAnalysis.csproj" />
   </ItemGroup>
 
 </Project>

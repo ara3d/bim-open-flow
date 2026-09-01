@@ -3,9 +3,11 @@ using BimOpenFlow.Host;
 var config = HostConfig.Resolve(args, Environment.CurrentDirectory);
 var host = HostComposition.Build(config);
 
-if (config.Profile == HostConfig.TablesProfile)
-    foreach (var id in SampleSeeding.SeedIfEmpty(host.Services.Store, AppContext.BaseDirectory))
-        Console.WriteLine($"  seeded sample analysis: {id}");
+var seeded = config.Profile == HostConfig.TablesProfile
+    ? SampleSeeding.SeedIfEmpty(host.Services.Store, AppContext.BaseDirectory)
+    : BimSampleSeeding.SeedIfEmpty(host.Services.Store, AppContext.BaseDirectory);
+foreach (var id in seeded)
+    Console.WriteLine($"  seeded sample analysis: {id}");
 
 await host.App.StartAsync();
 

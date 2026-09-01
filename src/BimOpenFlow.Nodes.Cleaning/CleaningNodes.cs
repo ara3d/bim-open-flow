@@ -9,5 +9,6 @@ public static class CleaningNodes
     public static IReadOnlyList<IFlowNode> All { get; } =
     [
         new TableFillNullsNode(),
+        new TableDropNullsNode(),
     ];
 }

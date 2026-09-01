@@ -6,6 +6,9 @@ public static class SamplePaths
 {
     public static string TablesDir { get; } = FindTablesDir();
 
+    public static string AnalysesDir
+        => Path.Combine(Path.GetDirectoryName(TablesDir)!, "analyses");
+
     public static string Csv(string name)
         => Path.Combine(TablesDir, name + ".csv");
 

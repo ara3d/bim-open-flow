@@ -1,0 +1,32 @@
+{
+  "formatVersion": "0.1.0",
+  "layout": {
+    "big": { "x": 880, "y": 100 },
+    "enriched": { "x": 320, "y": 100 },
+    "orders": { "x": 40, "y": 40 },
+    "products": { "x": 40, "y": 160 },
+    "revenue": { "x": 600, "y": 100 }
+  },
+  "structure": {
+    "edges": [
+      { "from": "revenue.table", "to": "big.table" },
+      { "from": "orders.table", "to": "enriched.a" },
+      { "from": "products.table", "to": "enriched.b" },
+      { "from": "enriched.table", "to": "revenue.table" }
+    ],
+    "nodes": [
+      { "id": "big", "kind": "table.filter", "version": 1 },
+      { "id": "enriched", "kind": "table.join", "version": 1 },
+      { "id": "orders", "kind": "duck.read", "version": 1 },
+      { "id": "products", "kind": "xlsx.read", "version": 1 },
+      { "id": "revenue", "kind": "table.derive", "version": 1 }
+    ]
+  },
+  "values": {
+    "big": { "expr": "Revenue > 500" },
+    "enriched": { "aKey": "ProductId", "mode": "inner" },
+    "orders": { "path": "{SAMPLES}/orders.csv" },
+    "products": { "path": "{SAMPLES}/sample.xlsx", "sheet": "Products" },
+    "revenue": { "expr": "Quantity * UnitPrice", "name": "Revenue" }
+  }
+}

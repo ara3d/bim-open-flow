@@ -1,0 +1,36 @@
+{
+  "formatVersion": "0.1.0",
+  "layout": {
+    "customers": { "x": 40, "y": 280 },
+    "joined": { "x": 320, "y": 160 },
+    "orders": { "x": 40, "y": 40 },
+    "products": { "x": 40, "y": 160 },
+    "revenue": { "x": 600, "y": 160 },
+    "top": { "x": 880, "y": 160 }
+  },
+  "structure": {
+    "edges": [
+      { "from": "orders.table", "to": "joined.t1" },
+      { "from": "products.table", "to": "joined.t2" },
+      { "from": "customers.table", "to": "joined.t3" },
+      { "from": "joined.table", "to": "revenue.table" },
+      { "from": "revenue.table", "to": "top.table" }
+    ],
+    "nodes": [
+      { "id": "customers", "kind": "duck.read", "version": 1 },
+      { "id": "joined", "kind": "sql.query", "version": 1 },
+      { "id": "orders", "kind": "duck.read", "version": 1 },
+      { "id": "products", "kind": "duck.read", "version": 1 },
+      { "id": "revenue", "kind": "table.aggregate", "version": 1 },
+      { "id": "top", "kind": "table.sort", "version": 1 }
+    ]
+  },
+  "values": {
+    "customers": { "path": "{SAMPLES}/customers.csv" },
+    "joined": { "sql": "SELECT c.Name AS Customer, o.Quantity * p.UnitPrice AS Revenue FROM t1 o JOIN t2 p ON o.ProductId = p.ProductId JOIN t3 c ON o.CustomerId = c.CustomerId" },
+    "orders": { "path": "{SAMPLES}/orders.csv" },
+    "products": { "path": "{SAMPLES}/products.csv" },
+    "revenue": { "aggregates": "sum(Revenue) as TotalRevenue, count(Revenue) as Orders", "groupBy": "Customer" },
+    "top": { "by": "TotalRevenue desc" }
+  }
+}

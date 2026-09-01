@@ -1,0 +1,27 @@
+{
+  "formatVersion": "0.1.0",
+  "layout": {
+    "common": { "x": 320, "y": 100 },
+    "csvOrders": { "x": 40, "y": 40 },
+    "dbOrders": { "x": 40, "y": 160 }
+  },
+  "structure": {
+    "edges": [
+      { "from": "csvOrders.table", "to": "common.a" },
+      { "from": "dbOrders.table", "to": "common.b" }
+    ],
+    "nodes": [
+      { "id": "common", "kind": "table.setOp", "version": 1 },
+      { "id": "csvOrders", "kind": "duck.read", "version": 1 },
+      { "id": "dbOrders", "kind": "sqlite.query", "version": 1 }
+    ]
+  },
+  "values": {
+    "common": { "key": "OrderId", "op": "intersect" },
+    "csvOrders": { "path": "{SAMPLES}/orders.csv" },
+    "dbOrders": {
+      "path": "{SAMPLES}/sample.sqlite",
+      "sql": "SELECT OrderId, CustomerId, ProductId, Quantity FROM Orders"
+    }
+  }
+}

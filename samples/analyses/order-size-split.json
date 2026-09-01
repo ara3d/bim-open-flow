@@ -1,0 +1,33 @@
+{
+  "formatVersion": "0.1.0",
+  "layout": {
+    "all": { "x": 600, "y": 100 },
+    "large": { "x": 320, "y": 40 },
+    "orders": { "x": 40, "y": 100 },
+    "small": { "x": 320, "y": 160 },
+    "tidy": { "x": 880, "y": 100 }
+  },
+  "structure": {
+    "edges": [
+      { "from": "large.table", "to": "all.a" },
+      { "from": "small.table", "to": "all.b" },
+      { "from": "orders.table", "to": "large.table" },
+      { "from": "orders.table", "to": "small.table" },
+      { "from": "all.table", "to": "tidy.table" }
+    ],
+    "nodes": [
+      { "id": "all", "kind": "table.setOp", "version": 1 },
+      { "id": "large", "kind": "table.filter", "version": 1 },
+      { "id": "orders", "kind": "duck.read", "version": 1 },
+      { "id": "small", "kind": "table.filter", "version": 1 },
+      { "id": "tidy", "kind": "table.project", "version": 1 }
+    ]
+  },
+  "values": {
+    "all": { "key": "OrderId", "op": "union" },
+    "large": { "expr": "Quantity > 100" },
+    "orders": { "path": "{SAMPLES}/orders.csv" },
+    "small": { "expr": "Quantity <= 100" },
+    "tidy": { "columns": "OrderId, ProductId, Quantity" }
+  }
+}

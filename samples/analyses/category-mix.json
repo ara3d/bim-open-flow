@@ -1,0 +1,32 @@
+{
+  "formatVersion": "0.1.0",
+  "layout": {
+    "byCategory": { "x": 600, "y": 100 },
+    "mix": { "x": 320, "y": 100 },
+    "orders": { "x": 40, "y": 40 },
+    "products": { "x": 40, "y": 160 },
+    "ranked": { "x": 880, "y": 100 }
+  },
+  "structure": {
+    "edges": [
+      { "from": "mix.table", "to": "byCategory.table" },
+      { "from": "orders.table", "to": "mix.t1" },
+      { "from": "products.table", "to": "mix.t2" },
+      { "from": "byCategory.table", "to": "ranked.table" }
+    ],
+    "nodes": [
+      { "id": "byCategory", "kind": "table.aggregate", "version": 1 },
+      { "id": "mix", "kind": "sql.query", "version": 1 },
+      { "id": "orders", "kind": "duck.read", "version": 1 },
+      { "id": "products", "kind": "duck.read", "version": 1 },
+      { "id": "ranked", "kind": "table.sort", "version": 1 }
+    ]
+  },
+  "values": {
+    "byCategory": { "aggregates": "sum(Revenue) as TotalRevenue, count(Revenue) as Orders", "groupBy": "Category" },
+    "mix": { "sql": "SELECT p.Category AS Category, o.Quantity * p.UnitPrice AS Revenue FROM t1 o JOIN t2 p ON o.ProductId = p.ProductId" },
+    "orders": { "path": "{SAMPLES}/orders.csv" },
+    "products": { "path": "{SAMPLES}/products.csv" },
+    "ranked": { "by": "TotalRevenue desc" }
+  }
+}

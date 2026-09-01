@@ -28,6 +28,8 @@ public sealed class HostProfileTests
         // Table sinks from the Effects pack
         "sink.exportCsv", "sink.exportParquet", "sink.exportJson",
         "sink.exportXlsx", "sink.exportSqlite", "sink.exportDuckDb",
+        // Viz pack
+        "chart.bar", "chart.line", "view.table",
         // Cherry-picked from the Bos pack
         "table.filter", "table.derive", "table.aggregate", "table.sort",
     ];

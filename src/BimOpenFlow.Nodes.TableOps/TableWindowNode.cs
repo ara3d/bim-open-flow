@@ -19,9 +19,9 @@ public sealed class TableWindowNode : IFlowNode
         Params:
         [
             new ParamSpec("function", ParamKind.Enum, "", Functions),
-            new ParamSpec("column", ParamKind.Text),
-            new ParamSpec("partitionBy", ParamKind.Text),
-            new ParamSpec("orderBy", ParamKind.Text),
+            new ParamSpec("column", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
+            new ParamSpec("partitionBy", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
+            new ParamSpec("orderBy", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
             new ParamSpec("offset", ParamKind.Integer, "1"),
             new ParamSpec("windowSize", ParamKind.Integer, "3"),
             new ParamSpec("name", ParamKind.Text),

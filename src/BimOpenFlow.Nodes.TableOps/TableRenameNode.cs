@@ -13,7 +13,7 @@ public sealed class TableRenameNode : IFlowNode
         Kind, 1, NodeCapability.Pure,
         Inputs: [new PortSpec("table", PortType.Table)],
         Outputs: [new PortSpec("table", PortType.Table)],
-        Params: [new ParamSpec("renames", ParamKind.Text)],
+        Params: [new ParamSpec("renames", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table"))],
         "Renames columns using comma-separated 'old=new' pairs.");
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context,

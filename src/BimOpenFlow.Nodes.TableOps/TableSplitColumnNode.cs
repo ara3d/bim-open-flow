@@ -15,7 +15,7 @@ public sealed class TableSplitColumnNode : IFlowNode
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("column", ParamKind.Text),
+            new ParamSpec("column", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
             new ParamSpec("separator", ParamKind.Text, "-"),
             new ParamSpec("names", ParamKind.Text),
             new ParamSpec("keep", ParamKind.Boolean, "false"),

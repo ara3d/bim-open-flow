@@ -18,7 +18,7 @@ public sealed class DateFilterNode : IFlowNode
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("column", ParamKind.Text),
+            new ParamSpec("column", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
             new ParamSpec("from", ParamKind.DateTime),
             new ParamSpec("to", ParamKind.DateTime),
         ],

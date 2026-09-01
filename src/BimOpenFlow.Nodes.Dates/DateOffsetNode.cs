@@ -25,7 +25,7 @@ public sealed class DateOffsetNode : IFlowNode
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("column", ParamKind.Text),
+            new ParamSpec("column", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
             new ParamSpec("amount", ParamKind.Integer),
             new ParamSpec("unit", ParamKind.Enum, "days", Units.Keys.ToList()),
             new ParamSpec("name", ParamKind.Text),

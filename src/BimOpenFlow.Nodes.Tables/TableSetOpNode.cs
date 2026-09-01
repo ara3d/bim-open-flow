@@ -20,7 +20,7 @@ public sealed class TableSetOpNode : IFlowNode
         Params:
         [
             new ParamSpec("op", ParamKind.Enum, "intersect", ["union", "intersect", "subtract"]),
-            new ParamSpec("key", ParamKind.Text),
+            new ParamSpec("key", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("a")),
         ],
         "Keeps a's rows by key-set operation with b: union, intersect, or subtract.");
 

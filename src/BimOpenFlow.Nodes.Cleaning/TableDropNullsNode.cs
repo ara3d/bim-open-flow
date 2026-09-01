@@ -15,7 +15,7 @@ public sealed class TableDropNullsNode : IFlowNode
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("columns", ParamKind.Text),
+            new ParamSpec("columns", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
             new ParamSpec("mode", ParamKind.Enum, "any", ["any", "all"]),
         ],
         "Drops rows where any/all of 'columns' (empty = all columns) are null; warns with the dropped count.");

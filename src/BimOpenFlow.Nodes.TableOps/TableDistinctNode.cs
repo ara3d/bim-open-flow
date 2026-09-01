@@ -13,7 +13,7 @@ public sealed class TableDistinctNode : IFlowNode
         Kind, 1, NodeCapability.Pure,
         Inputs: [new PortSpec("table", PortType.Table)],
         Outputs: [new PortSpec("table", PortType.Table)],
-        Params: [new ParamSpec("columns", ParamKind.Text)],
+        Params: [new ParamSpec("columns", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table"))],
         "Removes duplicate rows; with key columns named, keeps the first row per key with all columns.");
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context,

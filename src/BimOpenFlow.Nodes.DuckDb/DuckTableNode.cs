@@ -17,7 +17,7 @@ public sealed class DuckTableNode : IFlowNode
         Params:
         [
             new ParamSpec("path", ParamKind.FilePath),
-            new ParamSpec("table", ParamKind.Text),
+            new ParamSpec("table", ParamKind.Text, Suggest: SuggestSource.TablesInFile("path")),
         ],
         "Reads one named table from a .duckdb database file, read-only.");
 

@@ -15,7 +15,7 @@ public sealed class TextExtractNode : IFlowNode
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("column", ParamKind.Text),
+            new ParamSpec("column", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
             new ParamSpec("pattern", ParamKind.Text),
             new ParamSpec("group", ParamKind.Integer, "1"),
             new ParamSpec("name", ParamKind.Text),

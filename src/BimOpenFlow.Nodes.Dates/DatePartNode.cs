@@ -29,7 +29,7 @@ public sealed class DatePartNode : IFlowNode
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("column", ParamKind.Text),
+            new ParamSpec("column", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
             new ParamSpec("part", ParamKind.Enum, "", Parts.Keys.ToList()),
             new ParamSpec("name", ParamKind.Text),
         ],

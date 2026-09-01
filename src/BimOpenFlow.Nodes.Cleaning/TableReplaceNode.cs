@@ -15,7 +15,7 @@ public sealed class TableReplaceNode : IFlowNode
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("column", ParamKind.Text),
+            new ParamSpec("column", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
             new ParamSpec("find", ParamKind.Text),
             new ParamSpec("replaceWith", ParamKind.Text),
             new ParamSpec("match", ParamKind.Enum, "exact", ["exact", "substring", "regex"]),

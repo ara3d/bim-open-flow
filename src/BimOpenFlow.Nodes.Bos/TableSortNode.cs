@@ -14,7 +14,7 @@ public sealed class TableSortNode : IFlowNode
         Kind, 1, NodeCapability.Pure,
         Inputs: [new PortSpec("table", PortType.Table)],
         Outputs: [new PortSpec("table", PortType.Table)],
-        Params: [new ParamSpec("by", ParamKind.Text)],
+        Params: [new ParamSpec("by", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table"))],
         "Sorts by comma-separated column names, each optionally suffixed with ' desc'.");
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)

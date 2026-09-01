@@ -17,7 +17,7 @@ public sealed class DateTruncateNode : IFlowNode
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("column", ParamKind.Text),
+            new ParamSpec("column", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
             new ParamSpec("period", ParamKind.Enum, "", Periods),
             new ParamSpec("name", ParamKind.Text),
         ],

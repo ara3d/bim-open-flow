@@ -16,7 +16,7 @@ public sealed class DateParseNode : IFlowNode
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("column", ParamKind.Text),
+            new ParamSpec("column", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
             new ParamSpec("format", ParamKind.Text),
             new ParamSpec("onError", ParamKind.Enum, "error", ["error", "null"]),
             new ParamSpec("name", ParamKind.Text),

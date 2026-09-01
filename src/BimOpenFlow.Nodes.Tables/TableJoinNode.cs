@@ -22,8 +22,8 @@ public sealed class TableJoinNode : IFlowNode
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("aKey", ParamKind.Text),
-            new ParamSpec("bKey", ParamKind.Text, ""),
+            new ParamSpec("aKey", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("a")),
+            new ParamSpec("bKey", ParamKind.Text, "", Suggest: SuggestSource.ColumnsOf("b")),
             new ParamSpec("mode", ParamKind.Enum, "left", ["left", "inner", "full", "semi", "anti"]),
         ],
         "Joins b's columns onto a by key (bKey defaults to aKey). left keeps all a rows; inner keeps matches; full also appends unmatched b rows; semi/anti keep only a rows with/without a match and attach no b columns.");

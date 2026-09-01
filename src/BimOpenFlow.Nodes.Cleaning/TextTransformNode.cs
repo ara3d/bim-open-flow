@@ -15,7 +15,7 @@ public sealed class TextTransformNode : IFlowNode
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("columns", ParamKind.Text),
+            new ParamSpec("columns", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
             new ParamSpec("op", ParamKind.Enum, "trim", ["trim", "upper", "lower", "normalizeSpace"]),
         ],
         "Applies trim/upper/lower/normalizeSpace to 'columns' (empty = every text column) in place.");

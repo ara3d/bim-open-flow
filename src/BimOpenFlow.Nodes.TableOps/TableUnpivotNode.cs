@@ -16,8 +16,8 @@ public sealed class TableUnpivotNode : IFlowNode
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("keep", ParamKind.Text),
-            new ParamSpec("columns", ParamKind.Text),
+            new ParamSpec("keep", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
+            new ParamSpec("columns", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
             new ParamSpec("nameColumn", ParamKind.Text, "name"),
             new ParamSpec("valueColumn", ParamKind.Text, "value"),
         ],

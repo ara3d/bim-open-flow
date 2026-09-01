@@ -19,7 +19,7 @@ public sealed class TableCastNode : IFlowNode
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("column", ParamKind.Text),
+            new ParamSpec("column", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
             new ParamSpec("type", ParamKind.Enum, "",
                 ["boolean", "integer", "number", "text", "date", "datetime"]),
             new ParamSpec("onError", ParamKind.Enum, "error", ["error", "null"]),

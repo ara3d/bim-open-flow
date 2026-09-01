@@ -16,9 +16,9 @@ public sealed class TableDedupeNode : IFlowNode
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("keys", ParamKind.Text),
+            new ParamSpec("keys", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
             new ParamSpec("keep", ParamKind.Enum, "first", ["first", "last"]),
-            new ParamSpec("orderBy", ParamKind.Text),
+            new ParamSpec("orderBy", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
         ],
         "Keeps the first/last row per 'keys' by 'orderBy' (empty = input row order); warns with the duplicate count.");
 

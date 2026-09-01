@@ -18,14 +18,14 @@ describe("choosePanes", () => {
   });
 
   it("offers only params + inspector for nodes without table outputs", () => {
-    expect(choosePanes(desc("math.add", [{ name: "sum", type: "Number" }]))).toEqual([
+    expect(choosePanes(desc("math.add", [{ name: "sum", type: "Number", optional: false }]))).toEqual([
       "params",
       "inspector",
     ]);
   });
 
   it("offers table + chart for table outputs", () => {
-    expect(choosePanes(desc("table.select", [{ name: "out", type: "Table" }]))).toEqual([
+    expect(choosePanes(desc("table.select", [{ name: "out", type: "Table", optional: false }]))).toEqual([
       "table",
       "chart",
       "params",
@@ -34,16 +34,16 @@ describe("choosePanes", () => {
   });
 
   it("puts verdict first for compliance kinds", () => {
-    expect(choosePanes(desc("compliance.check", [{ name: "verdicts", type: "Table" }]))[0])
+    expect(choosePanes(desc("compliance.check", [{ name: "verdicts", type: "Table", optional: false }]))[0])
       .toBe("verdict");
-    expect(choosePanes(desc("rollup.verdicts", [{ name: "out", type: "Table" }]))[0])
+    expect(choosePanes(desc("rollup.verdicts", [{ name: "out", type: "Table", optional: false }]))[0])
       .toBe("verdict");
   });
 
   it("puts view3d first for view3d kinds and instances outputs", () => {
-    expect(choosePanes(desc("view3d.instances", [{ name: "out", type: "Table" }]))[0])
+    expect(choosePanes(desc("view3d.instances", [{ name: "out", type: "Table", optional: false }]))[0])
       .toBe("view3d");
-    expect(choosePanes(desc("geometry.color", [{ name: "instances", type: "Table" }]))[0])
+    expect(choosePanes(desc("geometry.color", [{ name: "instances", type: "Table", optional: false }]))[0])
       .toBe("view3d");
   });
 });
@@ -51,8 +51,8 @@ describe("choosePanes", () => {
 describe("firstTableOutput", () => {
   it("finds the first Table port", () => {
     const d = desc("x", [
-      { name: "count", type: "Integer" },
-      { name: "rows", type: "Table" },
+      { name: "count", type: "Integer", optional: false },
+      { name: "rows", type: "Table", optional: false },
     ]);
     expect(firstTableOutput(d)?.name).toBe("rows");
     expect(firstTableOutput(undefined)).toBeUndefined();

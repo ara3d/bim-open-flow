@@ -12,8 +12,8 @@ const desc = (kind: string): NodeDescriptor => ({
   kind,
   version: 1,
   capability: "Pure",
-  inputs: [{ name: "in", type: "Table" }],
-  outputs: [{ name: "out", type: "Table" }],
+  inputs: [{ name: "in", type: "Table", optional: false }],
+  outputs: [{ name: "out", type: "Table", optional: false }],
   params: [],
   description: "",
 });
@@ -55,7 +55,7 @@ describe("buildCanvasModel", () => {
     store.dispatch({ type: "addNode", id: "a", kind: "k.a", version: 1 });
     store.dispatch({ type: "addNode", id: "x", kind: "unknown.kind", version: 1 });
     const model = buildCanvasModel(store.getState(), catalog);
-    expect(model.nodes[0]!.inputs).toEqual([{ name: "in", type: "Table" }]);
+    expect(model.nodes[0]!.inputs).toEqual([{ name: "in", type: "Table", optional: false }]);
     expect(model.nodes[1]!.inputs).toEqual([]);
     expect(model.nodes[1]!.h).toBe(nodeHeight(0, 0));
   });

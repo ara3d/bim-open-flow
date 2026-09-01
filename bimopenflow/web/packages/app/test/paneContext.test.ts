@@ -3,7 +3,7 @@ import type { TableSlice } from "@bimopenflow/contracts";
 import { DEFAULT_PAGE_SIZE, makePaneContext, type ResultApi } from "../src/paneContext.js";
 
 const slice = (skip: number, rows: number): TableSlice => ({
-  columns: [{ name: "id", type: "Integer" }],
+  columns: [{ name: "id", type: "Integer"}],
   rows: Array.from({ length: rows }, (_, i) => [skip + i]),
   totalRows: 500,
   skip,

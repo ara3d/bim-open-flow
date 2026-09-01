@@ -13,8 +13,8 @@ const desc: NodeDescriptor = {
   kind: "k.a",
   version: 1,
   capability: "Pure",
-  inputs: [{ name: "in", type: "Table" }],
-  outputs: [{ name: "out", type: "Table" }],
+  inputs: [{ name: "in", type: "Table", optional: false }],
+  outputs: [{ name: "out", type: "Table", optional: false }],
   params: [],
   description: "",
 };

@@ -59,8 +59,8 @@ describe("TablePane selection", () => {
   it("heuristic prefers globalId over entityId", () => {
     expect(
       idColumnIndex([
-        { name: "entityId", type: "Integer" },
-        { name: "globalId", type: "Text" },
+        { name: "entityId", type: "Integer"},
+        { name: "globalId", type: "Text"},
       ]),
     ).toBe(1);
   });

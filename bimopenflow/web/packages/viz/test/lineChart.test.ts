@@ -4,9 +4,9 @@ import { LineChart } from "../src/lineChart";
 
 const data: TableData = {
   columns: [
-    { name: "t", type: "Number" },
-    { name: "a", type: "Number" },
-    { name: "b", type: "Integer" },
+    { name: "t", type: "Number"},
+    { name: "a", type: "Number"},
+    { name: "b", type: "Integer"},
   ],
   rows: [
     [0, 1, 10],
@@ -50,7 +50,7 @@ describe("LineChart", () => {
 
   it("breaks the path at null values", () => {
     const gappy: TableData = {
-      columns: [{ name: "a", type: "Number" }],
+      columns: [{ name: "a", type: "Number"}],
       rows: [[1], [2], [null], [4], [5]],
     };
     const { container } = mountChart(gappy);
@@ -71,8 +71,8 @@ describe("LineChart", () => {
     const { container, handle } = mountChart(data, { xColumn: "t" });
     handle.update({
       columns: [
-        { name: "t", type: "Number" },
-        { name: "only", type: "Number" },
+        { name: "t", type: "Number"},
+        { name: "only", type: "Number"},
       ],
       rows: [
         [0, 1],

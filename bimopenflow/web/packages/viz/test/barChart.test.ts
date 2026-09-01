@@ -4,8 +4,8 @@ import { BarChart } from "../src/barChart";
 
 const data: TableData = {
   columns: [
-    { name: "Category", type: "Text" },
-    { name: "Value", type: "Number" },
+    { name: "Category", type: "Text"},
+    { name: "Value", type: "Number"},
   ],
   rows: [
     ["A", 5],
@@ -81,9 +81,9 @@ describe("BarChart", () => {
   it("respects explicit column options", () => {
     const swapped: TableData = {
       columns: [
-        { name: "x", type: "Number" },
-        { name: "label", type: "Text" },
-        { name: "y", type: "Number" },
+        { name: "x", type: "Number"},
+        { name: "label", type: "Text"},
+        { name: "y", type: "Number"},
       ],
       rows: [[1, "p", 10]],
     };

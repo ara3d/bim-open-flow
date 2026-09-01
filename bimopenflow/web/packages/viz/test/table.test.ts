@@ -4,9 +4,9 @@ import { DataTableView } from "../src/table";
 
 const data: TableData = {
   columns: [
-    { name: "Name", type: "Text" },
-    { name: "Count", type: "Integer" },
-    { name: "Ratio", type: "Number" },
+    { name: "Name", type: "Text"},
+    { name: "Count", type: "Integer"},
+    { name: "Ratio", type: "Number"},
   ],
   rows: [
     ["Wall", 3, 0.5],
@@ -61,7 +61,7 @@ describe("DataTableView", () => {
 
   it("caps rows and shows the footer", () => {
     const big: TableData = {
-      columns: [{ name: "n", type: "Integer" }],
+      columns: [{ name: "n", type: "Integer"}],
       rows: Array.from({ length: 12 }, (_, i) => [i]),
     };
     const { container } = mountTable(big, { maxRows: 5 });
@@ -79,7 +79,7 @@ describe("DataTableView", () => {
   it("update() re-renders with new data", () => {
     const { container, handle } = mountTable();
     handle.update({
-      columns: [{ name: "Only", type: "Text" }],
+      columns: [{ name: "Only", type: "Text"}],
       rows: [["x"], ["y"]],
     });
     expect(

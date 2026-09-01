@@ -8,8 +8,8 @@ const node: NodeDescriptor = {
   kind: "check.rule",
   version: 1,
   capability: "Pure",
-  inputs: [{ name: "in", type: "Table" }],
-  outputs: [{ name: "out", type: "Table" }],
+  inputs: [{ name: "in", type: "Table", optional: false }],
+  outputs: [{ name: "out", type: "Table", optional: false }],
   params: [
     { name: "checkId", kind: "Text", default: "" },
     { name: "expr", kind: "Expression", default: "true" },

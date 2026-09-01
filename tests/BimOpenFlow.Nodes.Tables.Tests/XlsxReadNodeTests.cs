@@ -33,6 +33,16 @@ public sealed class XlsxReadNodeTests
         mixed.Cell(1, 1).Value = "V";
         mixed.Cell(2, 1).Value = 1.5;
         mixed.Cell(3, 1).Value = "text";
+
+        var junk = workbook.AddWorksheet("Junk");
+        junk.Cell(1, 1).Value = "Quarterly Report";
+        junk.Cell(2, 1).Value = "Printed 2024";
+        junk.Cell(3, 1).Value = "Item";
+        junk.Cell(3, 2).Value = "Count";
+        junk.Cell(4, 1).Value = "bolt";
+        junk.Cell(4, 2).Value = 10.0;
+        junk.Cell(5, 1).Value = "nut";
+        junk.Cell(5, 2).Value = 20.0;
         workbook.SaveAs(_path);
     }
 
@@ -65,6 +75,48 @@ public sealed class XlsxReadNodeTests
         Assert.That(table.Columns[0].Descriptor.Type, Is.EqualTo(typeof(string)));
         Assert.That(table.Cell("V", 0), Is.EqualTo("1.5"));
         Assert.That(table.Cell("V", 1), Is.EqualTo("text"));
+    }
+
+    [Test]
+    public void Read_HeaderRow_SkipsJunkRowsAboveTheHeader()
+    {
+        var table = new XlsxReadNode().EvalTable([], ("path", _path), ("sheet", "Junk"), ("headerRow", "3"));
+        Assert.That(table.ColumnNames(), Is.EqualTo(new[] { "Item", "Count" }));
+        Assert.That(table.Rows, Has.Count.EqualTo(2));
+        Assert.That(table.Cell("Item", 0), Is.EqualTo("bolt"));
+        Assert.That(table.Cell("Count", 1), Is.EqualTo(20.0));
+    }
+
+    [Test]
+    public void Read_Range_ReadsOnlyTheRectangle()
+    {
+        var table = new XlsxReadNode().EvalTable([], ("path", _path), ("sheet", "Junk"), ("range", "A3:B4"));
+        Assert.That(table.ColumnNames(), Is.EqualTo(new[] { "Item", "Count" }));
+        Assert.That(table.Rows, Has.Count.EqualTo(1));
+        Assert.That(table.Cell("Item", 0), Is.EqualTo("bolt"));
+    }
+
+    [Test]
+    public void Read_RangeWithHeaderRow_Compose()
+    {
+        var table = new XlsxReadNode().EvalTable([],
+            ("path", _path), ("sheet", "Junk"), ("range", "A2:B5"), ("headerRow", "2"));
+        Assert.That(table.ColumnNames(), Is.EqualTo(new[] { "Item", "Count" }));
+        Assert.That(table.Rows, Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public void Read_InvalidRange_Throws()
+        => Assert.That(() => new XlsxReadNode().EvalTable([], ("path", _path), ("range", "not a range")),
+            Throws.ArgumentException.With.Message.StartsWith("xlsx.read: ").And.Message.Contains("not a range"));
+
+    [Test]
+    public void Read_HeaderRowOutOfBounds_Throws()
+    {
+        Assert.That(() => new XlsxReadNode().EvalTable([], ("path", _path), ("headerRow", "0")),
+            Throws.ArgumentException.With.Message.StartsWith("xlsx.read: "));
+        Assert.That(() => new XlsxReadNode().EvalTable([], ("path", _path), ("headerRow", "99")),
+            Throws.ArgumentException.With.Message.Contains("past the last row"));
     }
 
     [Test]

@@ -24,8 +24,10 @@ public sealed class XlsxReadNode : IFlowNode
         [
             new ParamSpec("path", ParamKind.FilePath),
             new ParamSpec("sheet", ParamKind.Text, ""),
+            new ParamSpec("headerRow", ParamKind.Integer, "1"),
+            new ParamSpec("range", ParamKind.Text, ""),
         ],
-        "Reads a worksheet (named, or the first) from an .xlsx file; row 1 is the header.");
+        "Reads a worksheet (named, or the first) from an .xlsx file. headerRow is the header's row within the range (rows above are skipped); range is an A1-style rectangle like B3:F100 (empty = used range).");
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {
@@ -33,23 +35,26 @@ public sealed class XlsxReadNode : IFlowNode
         if (!File.Exists(path))
             throw new FileNotFoundException($"{Kind}: file not found: {path}", path);
         var sheet = parameters.GetText("sheet");
-        var table = Cache.GetOrAdd($"{ContentHash(path)}:{sheet}", _ => Load(path, sheet));
+        var headerRow = parameters.GetInteger("headerRow", 1);
+        if (headerRow < 1)
+            throw new ArgumentException($"{Kind}: 'headerRow' must be 1 or greater.");
+        var range = parameters.GetText("range").Trim();
+        var table = Cache.GetOrAdd($"{ContentHash(path)}:{sheet}:{headerRow}:{range}",
+            _ => Load(path, sheet, (int)headerRow, range));
         return [new TableValue(table)];
     }
 
-    private static IDataTable Load(string path, string sheet)
+    private static IDataTable Load(string path, string sheet, int headerRow, string range)
     {
         using var workbook = new XLWorkbook(path);
         var worksheet = FindSheet(workbook, sheet);
-        var used = worksheet.RangeUsed();
         var builder = new DataTableBuilder(worksheet.Name);
-        if (used == null)
+        if (Region(worksheet, range) is not var (firstRow, lastRow, firstCol, lastCol))
             return builder.Build();
 
-        var firstRow = used.RangeAddress.FirstAddress.RowNumber;
-        var lastRow = used.RangeAddress.LastAddress.RowNumber;
-        var firstCol = used.RangeAddress.FirstAddress.ColumnNumber;
-        var lastCol = used.RangeAddress.LastAddress.ColumnNumber;
+        firstRow += headerRow - 1;
+        if (firstRow > lastRow)
+            throw new ArgumentException($"{Kind}: 'headerRow' {headerRow} is past the last row of the range.");
 
         for (var col = firstCol; col <= lastCol; col++)
         {
@@ -66,6 +71,32 @@ public sealed class XlsxReadNode : IFlowNode
         }
         return builder.Build();
     }
+
+    /// <summary>The rectangle to read: the parsed A1-style range, or the used
+    /// range (null when the sheet is empty and no range was given).</summary>
+    private static (int FirstRow, int LastRow, int FirstCol, int LastCol)? Region(IXLWorksheet worksheet, string range)
+    {
+        if (range.Length == 0)
+        {
+            var used = worksheet.RangeUsed();
+            return used == null ? null : Corners(used.RangeAddress);
+        }
+        try
+        {
+            var address = worksheet.Range(range).RangeAddress;
+            return address.IsValid
+                ? Corners(address)
+                : throw new FormatException();
+        }
+        catch (Exception e)
+        {
+            throw new ArgumentException($"{Kind}: invalid range '{range}'; expected an A1-style rectangle like B3:F100.", e);
+        }
+    }
+
+    private static (int, int, int, int) Corners(IXLRangeAddress address)
+        => (address.FirstAddress.RowNumber, address.LastAddress.RowNumber,
+            address.FirstAddress.ColumnNumber, address.LastAddress.ColumnNumber);
 
     private static IXLWorksheet FindSheet(XLWorkbook workbook, string sheet)
         => sheet.Length == 0

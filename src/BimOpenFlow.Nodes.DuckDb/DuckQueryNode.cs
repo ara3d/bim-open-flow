@@ -1,3 +1,4 @@
+using Ara3D.BimOpenSchema.DuckDb;
 using Ara3D.DataFlowEngine.Abstractions;
 
 namespace BimOpenFlow.Nodes.DuckDb;
@@ -20,5 +21,12 @@ public sealed class DuckQueryNode : IFlowNode
         "Runs one read-only SQL query against a .duckdb database file.");
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
-        => throw new NotImplementedException("track A");
+    {
+        var path = parameters.RequiredText("path", Kind);
+        if (!File.Exists(path))
+            throw new FileNotFoundException($"{Kind}: file not found: {path}", path);
+        var validated = parameters.ReadOnlySql(Kind);
+        using var conn = DuckDbOps.OpenReadOnly(path);
+        return [new TableValue(conn.Query(validated, "query"))];
+    }
 }

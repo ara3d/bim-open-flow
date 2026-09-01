@@ -1,3 +1,5 @@
+using Ara3D.BimOpenSchema.DuckDb;
+using Ara3D.BimOpenSchema.IO;
 using Ara3D.DataFlowEngine.Abstractions;
 
 namespace BimOpenFlow.Nodes.DuckDb;
@@ -23,5 +25,18 @@ public sealed class SqlQueryNode : IFlowNode
         "Runs one read-only SQL query over the connected input tables t1..t4 (t = t1).");
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
-        => throw new NotImplementedException("track A");
+    {
+        var validated = parameters.ReadOnlySql(Kind);
+        using var conn = BosDuckDb.OpenInMemory();
+        for (var i = 0; i < inputs.Count; i++)
+        {
+            if (i > 0 && inputs[i] is MissingValue)
+                continue;
+            if (inputs[i] is not TableValue t)
+                throw new ArgumentException($"{Kind}: input t{i + 1} must be a Table.");
+            conn.WriteTable(t.Table, $"t{i + 1}");
+        }
+        conn.Execute("CREATE VIEW t AS SELECT * FROM t1");
+        return [new TableValue(conn.Query(validated, "query"))];
+    }
 }

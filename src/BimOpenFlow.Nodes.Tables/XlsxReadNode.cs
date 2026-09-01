@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Globalization;
-using System.Security.Cryptography;
 using Ara3D.DataFlowEngine.Abstractions;
 using Ara3D.DataTable;
 using ClosedXML.Excel;
@@ -39,7 +38,7 @@ public sealed class XlsxReadNode : IFlowNode
         if (headerRow < 1)
             throw new ArgumentException($"{Kind}: 'headerRow' must be 1 or greater.");
         var range = parameters.GetText("range").Trim();
-        var table = Cache.GetOrAdd($"{ContentHash(path)}:{sheet}:{headerRow}:{range}",
+        var table = Cache.GetOrAdd($"{TableOps.ContentHash(path)}:{sheet}:{headerRow}:{range}",
             _ => Load(path, sheet, (int)headerRow, range));
         return [new TableValue(table)];
     }
@@ -133,11 +132,5 @@ public sealed class XlsxReadNode : IFlowNode
                 return typeof(string);
         }
         return found ?? typeof(string);
-    }
-
-    private static string ContentHash(string path)
-    {
-        using var stream = File.OpenRead(path);
-        return Convert.ToHexString(SHA256.HashData(stream));
     }
 }

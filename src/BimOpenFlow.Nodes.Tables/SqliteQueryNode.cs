@@ -52,52 +52,7 @@ public sealed class SqliteQueryNode : IFlowNode
 
     private static IDataTable Query(string path, string sql)
     {
-        var connectionString = new SqliteConnectionStringBuilder
-        {
-            DataSource = path,
-            Mode = SqliteOpenMode.ReadOnly,
-        }.ToString();
-        using var connection = new SqliteConnection(connectionString);
-        connection.Open();
-        using var command = connection.CreateCommand();
-        command.CommandText = sql;
-        using var reader = command.ExecuteReader();
-
-        var names = new string[reader.FieldCount];
-        var cells = new List<object?>[reader.FieldCount];
-        for (var i = 0; i < reader.FieldCount; i++)
-        {
-            names[i] = reader.GetName(i);
-            cells[i] = [];
-        }
-        while (reader.Read())
-            for (var i = 0; i < reader.FieldCount; i++)
-                cells[i].Add(reader.IsDBNull(i) ? null : reader.GetValue(i));
-
-        var builder = new DataTableBuilder("query");
-        for (var i = 0; i < names.Length; i++)
-            builder.AddColumn(Unify(cells[i], out var type), names[i], type);
-        return builder.Build();
-    }
-
-    /// <summary>SQLite columns are dynamically typed per row: one non-null CLR type wins,
-    /// long+double widens to double, anything else lands as canonical text.</summary>
-    private static object?[] Unify(List<object?> cells, out Type type)
-    {
-        var types = cells.Where(c => c != null).Select(c => c!.GetType()).Distinct().ToList();
-        type = types switch
-        {
-            { Count: 0 } => typeof(string),
-            { Count: 1 } => types[0],
-            _ when types.All(t => t == typeof(long) || t == typeof(double)) => typeof(double),
-            _ => typeof(string),
-        };
-        var target = type;
-        return type switch
-        {
-            _ when types.Count <= 1 => cells.ToArray(),
-            _ when target == typeof(double) => cells.Select(c => c == null ? null : (object?)Convert.ToDouble(c)).ToArray(),
-            _ => cells.Select(c => (object?)TableOps.CanonicalText(c)).ToArray(),
-        };
+        using var connection = SqliteOps.OpenReadOnly(path);
+        return SqliteOps.QueryTable(connection, sql, "query");
     }
 }

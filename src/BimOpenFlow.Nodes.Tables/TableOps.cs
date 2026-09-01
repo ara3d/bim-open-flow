@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Cryptography;
 using Ara3D.DataTable;
 
 namespace BimOpenFlow.Nodes.Tables;
@@ -46,6 +47,12 @@ internal static class TableOps
             if (CanonicalText(table[column, row]) is { } key)
                 keys.Add(key);
         return keys;
+    }
+
+    public static string ContentHash(string path)
+    {
+        using var stream = File.OpenRead(path);
+        return Convert.ToHexString(SHA256.HashData(stream));
     }
 
     public static IDataTable SelectRows(this IDataTable table, IReadOnlyList<int> rows, string name)

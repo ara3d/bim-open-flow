@@ -9,10 +9,12 @@ namespace BimOpenFlow.Nodes.Tables.Tests;
 public sealed class TableCombinatorTests
 {
     [Test]
-    public void Pack_ExposesAllFiveNodes()
+    public void Pack_ExposesAllNodes()
         => Assert.That(TableNodes.All.Select(n => n.Spec.Kind), Is.EquivalentTo(new[]
         {
-            "xlsx.read", "sqlite.query", "table.join", "table.setOp", "table.project",
+            "xlsx.read", "xlsx.sheets",
+            "sqlite.query", "sqlite.table", "sqlite.tables",
+            "table.join", "table.setOp", "table.project",
         }));
 
     [Test]

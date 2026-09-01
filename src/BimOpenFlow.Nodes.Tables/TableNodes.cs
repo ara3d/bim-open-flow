@@ -9,7 +9,10 @@ public static class TableNodes
     public static IReadOnlyList<IFlowNode> All { get; } =
     [
         new XlsxReadNode(),
+        new XlsxSheetsNode(),
         new SqliteQueryNode(),
+        new SqliteTableNode(),
+        new SqliteTablesNode(),
         new TableJoinNode(),
         new TableSetOpNode(),
         new TableProjectNode(),

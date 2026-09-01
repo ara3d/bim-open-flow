@@ -89,6 +89,32 @@ describe("createPaneArea chart wiring", () => {
     area.dispose();
   });
 
+  it("rebuilds the open chart pane when a param edit changes its options", async () => {
+    const { root, area } = makeArea();
+    const show = (values: Record<string, string>) =>
+      area.showNode({ nodeId: "n1", desc: desc("chart.bar"), values, state: okState });
+    show({ labelColumn: "name", valueColumns: "area", title: "Before" });
+    await settle();
+    expect(root.querySelector("text.bof-viz-title")?.textContent).toBe("Before");
+
+    // title edit re-renders in place
+    show({ labelColumn: "name", valueColumns: "area", title: "After" });
+    await settle();
+    expect(root.querySelector("text.bof-viz-title")?.textContent).toBe("After");
+
+    // column edit swaps the plotted series instead of throwing on stale options
+    show({ labelColumn: "name", valueColumns: "count", title: "After" });
+    await settle();
+    const bars = [...root.querySelectorAll("rect.bof-viz-bar")];
+    expect(bars.map((b) => b.getAttribute("data-value"))).toEqual(["2", "4"]);
+
+    // an unchanged re-show keeps the pane (still one chart svg, data refreshed)
+    show({ labelColumn: "name", valueColumns: "count", title: "After" });
+    await settle();
+    expect(root.querySelectorAll("svg.bof-viz-bar-chart")).toHaveLength(1);
+    area.dispose();
+  });
+
   it("keeps the plain bar default for other table nodes", async () => {
     const { root, area } = makeArea();
     area.showNode({

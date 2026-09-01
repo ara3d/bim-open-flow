@@ -81,7 +81,16 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
   let shown: ShownNode | null = null;
   let activeKind: PaneKind | null = null;
   let activePane: Pane | null = null;
+  let activeChartOptions: ChartPaneOptions | null = null;
   let fetchToken = 0;
+
+  const currentChartOptions = (): ChartPaneOptions =>
+    chartPaneOptions(shown?.desc?.kind, shown?.values ?? {});
+
+  // Chart options are small flat objects; JSON compare is enough (undefined
+  // fields drop out on both sides).
+  const sameChartOptions = (a: ChartPaneOptions, b: ChartPaneOptions): boolean =>
+    JSON.stringify(a) === JSON.stringify(b);
 
   const destroyPane = () => {
     activePane?.destroy();
@@ -136,10 +145,8 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
     destroyPane();
     for (const el of tabs.children)
       el.classList.toggle("bof-app-tab-active", (el as HTMLElement).dataset.kind === kind);
-    const pane = paneFactory(
-      kind,
-      chartPaneOptions(shown?.desc?.kind, shown?.values ?? {}),
-    );
+    activeChartOptions = currentChartOptions();
+    const pane = paneFactory(kind, activeChartOptions);
     pane.onEvent(onPaneEvent);
     const host = root.ownerDocument.createElement("div");
     body.appendChild(host);
@@ -172,6 +179,16 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
       }
       const kinds = choosePanes(next.desc);
       if (sameNode && activeKind && kinds.includes(activeKind)) {
+        // Chart options are baked in at pane creation; a param edit that
+        // changes them needs a fresh pane, not just fresh data.
+        if (
+          activeKind === "chart" &&
+          activeChartOptions &&
+          !sameChartOptions(currentChartOptions(), activeChartOptions)
+        ) {
+          activate("chart");
+          return;
+        }
         void feedData();
         return;
       }

@@ -1,7 +1,7 @@
 import type { TableData } from "@bimopenflow/contracts";
 import { defineComponent } from "./component";
 import { formatNumber, isNumericType, numberOf } from "./format";
-import { columnIndexByName, numericColumnIndices } from "./columns";
+import { columnIndexByName, seriesColumnIndices } from "./columns";
 import { linearScale, niceTicks, paddedDomain } from "./scale";
 import { svgEl } from "./svg";
 
@@ -24,16 +24,6 @@ export interface LineChartOptions {
 
 const MARGIN = { top: 16, right: 12, bottom: 28, left: 48 };
 const TITLE_H = 20;
-
-const seriesIndices = (data: TableData, options: LineChartOptions | undefined, xIdx: number): number[] => {
-  if (options?.seriesColumns) {
-    const named = options.seriesColumns
-      .map((name) => columnIndexByName(data, name))
-      .filter((i) => i >= 0 && i !== xIdx);
-    if (named.length > 0) return named;
-  }
-  return numericColumnIndices(data).filter((i) => i !== xIdx);
-};
 
 /** Path with a break (new moveto) at every non-finite point. */
 const pathFor = (
@@ -68,7 +58,7 @@ export const LineChart = defineComponent<TableData, LineChartOptions>(
           ? columnIndexByName(data, options.xColumn)
           : -1;
       const xNumeric = xIdx >= 0 && isNumericType(data.columns[xIdx].type);
-      const series = seriesIndices(data, options, xIdx);
+      const series = seriesColumnIndices(data, options?.seriesColumns, xIdx);
       const xs = data.rows.map((r, i) => (xNumeric ? numberOf(r[xIdx]) : i));
       const allYs = series.flatMap((s) => data.rows.map((r) => numberOf(r[s])));
 

@@ -3,10 +3,8 @@ import { defineComponent } from "./component";
 import { formatNumber, formatValue, numberOf } from "./format";
 import {
   columnIndexByName,
-  firstNumericColumn,
   firstTextColumn,
-  numericColumnIndices,
-  resolveColumn,
+  seriesColumnIndices,
 } from "./columns";
 import { linearScale, niceTicks } from "./scale";
 import { svgEl } from "./svg";
@@ -16,7 +14,11 @@ export interface BarChartOptions {
   height?: number;
   /** Chart title, rendered above the plot. */
   title?: string;
-  /** Text column supplying categories. Default: first Text column. */
+  /**
+   * Text column supplying categories. Unknown names fall back to the first
+   * Text column; without one, bars are labeled by row index. Default: first
+   * Text column.
+   */
   categoryColumn?: string;
   /** Single numeric value column; ignored when seriesColumns is set. */
   valueColumn?: string;
@@ -36,18 +38,20 @@ const seriesIndices = (
   options: BarChartOptions | undefined,
   catIdx: number,
 ): number[] => {
-  if (options?.seriesColumns) {
-    const named = options.seriesColumns
-      .map((name) => columnIndexByName(data, name))
-      .filter((i) => i >= 0 && i !== catIdx);
-    if (named.length > 0) return named;
-  } else if (options?.valueColumn !== undefined) {
-    return [resolveColumn(data, options.valueColumn, firstNumericColumn, "value")];
+  if (!options?.seriesColumns && options?.valueColumn !== undefined) {
+    const i = columnIndexByName(data, options.valueColumn);
+    if (i >= 0) return [i];
   }
-  const numeric = numericColumnIndices(data).filter((i) => i !== catIdx);
-  if (numeric.length === 0)
-    throw new Error("bof-viz: no suitable value column in table");
-  return numeric;
+  return seriesColumnIndices(data, options?.seriesColumns, catIdx);
+};
+
+/** Named category, else first Text column; -1 means "use row-index labels". */
+const categoryIndex = (data: TableData, name: string | undefined): number => {
+  if (name !== undefined) {
+    const i = columnIndexByName(data, name);
+    if (i >= 0) return i;
+  }
+  return firstTextColumn(data);
 };
 
 export const BarChart = defineComponent<TableData, BarChartOptions>(
@@ -58,11 +62,13 @@ export const BarChart = defineComponent<TableData, BarChartOptions>(
     return (data) => {
       const doc = root.ownerDocument;
       root.textContent = "";
-      const catIdx = resolveColumn(data, options?.categoryColumn, firstTextColumn, "category");
+      const catIdx = categoryIndex(data, options?.categoryColumn);
       const series = seriesIndices(data, options, catIdx);
       const single = series.length === 1;
-      const catType = data.columns[catIdx].type;
-      const labels = data.rows.map((r) => formatValue(r[catIdx], catType));
+      const labels =
+        catIdx >= 0
+          ? data.rows.map((r) => formatValue(r[catIdx], data.columns[catIdx].type))
+          : data.rows.map((_, i) => String(i + 1));
 
       const plotTop = MARGIN.top + (options?.title ? TITLE_H : 0);
       const plotW = width - MARGIN.left - MARGIN.right;
@@ -83,6 +89,8 @@ export const BarChart = defineComponent<TableData, BarChartOptions>(
         class: "bof-viz-bar-chart",
       });
 
+      // TODO: hoist this title block (duplicated in lineChart.ts) once svg.ts
+      // is open for edits; it is frozen this wave.
       if (options?.title)
         svg.appendChild(
           svgEl(

@@ -151,6 +151,49 @@ describe("BarChart", () => {
     ).toHaveLength(3);
   });
 
+  it("falls back to the first text column for an unknown category name", () => {
+    const { container } = mountChart(data, { categoryColumn: "nope" });
+    const labels = [
+      ...container.querySelectorAll("text.bof-viz-axis-label"),
+    ].map((t) => t.textContent);
+    expect(labels).toEqual(["A", "B", "C"]);
+  });
+
+  it("labels bars by row index when the table has no text column", () => {
+    const numbersOnly: TableData = {
+      columns: [{ name: "v", type: "Number"}],
+      rows: [[5], [7]],
+    };
+    const { container } = mountChart(numbersOnly);
+    const labels = [
+      ...container.querySelectorAll("text.bof-viz-axis-label"),
+    ].map((t) => t.textContent);
+    expect(labels).toEqual(["1", "2"]);
+    expect(container.querySelectorAll("rect.bof-viz-bar")).toHaveLength(2);
+  });
+
+  it("renders an empty frame, not a throw, when no value column resolves", () => {
+    const textOnly: TableData = {
+      columns: [{ name: "name", type: "Text"}],
+      rows: [["a"], ["b"]],
+    };
+    const { container } = mountChart(textOnly, { title: "Empty" });
+    expect(container.querySelector("svg.bof-viz-bar-chart")).not.toBeNull();
+    expect(container.querySelectorAll("line.bof-viz-axis-line")).toHaveLength(2);
+    expect(container.querySelector("text.bof-viz-title")?.textContent).toBe("Empty");
+    expect(container.querySelectorAll("rect.bof-viz-bar")).toHaveLength(0);
+  });
+
+  it("resolves column names case-insensitively", () => {
+    const { container } = mountChart(data, {
+      categoryColumn: "CATEGORY",
+      seriesColumns: ["value"],
+    });
+    const bars = [...container.querySelectorAll("rect.bof-viz-bar")];
+    expect(bars).toHaveLength(3);
+    expect(bars[0].getAttribute("data-value")).toBe("5");
+  });
+
   it("respects explicit column options", () => {
     const swapped: TableData = {
       columns: [

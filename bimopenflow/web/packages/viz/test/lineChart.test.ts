@@ -121,6 +121,15 @@ describe("LineChart", () => {
     expect(container.querySelectorAll("path.bof-viz-line")).toHaveLength(3);
   });
 
+  it("resolves x and series column names case-insensitively", () => {
+    const { container } = mountChart(data, {
+      xColumn: "T",
+      seriesColumns: ["A"],
+    });
+    const paths = [...container.querySelectorAll("path.bof-viz-line")];
+    expect(paths.map((p) => p.getAttribute("data-series"))).toEqual(["a"]);
+  });
+
   it("skips unknown series names", () => {
     const { container } = mountChart(data, {
       xColumn: "t",

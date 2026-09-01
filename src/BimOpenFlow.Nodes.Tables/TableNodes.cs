@@ -2,8 +2,9 @@ using Ara3D.DataFlowEngine.Abstractions;
 
 namespace BimOpenFlow.Nodes.Tables;
 
-/// <summary>The table-file and table-combinator pack: XLSX and SQLite readers,
-/// join, set operations, and projection. BIM-free, DuckDB-free.</summary>
+/// <summary>The table-file and table-combinator pack: XLSX and SQLite readers
+/// and catalogs, join, set operations, projection, and generators (inline,
+/// range, calendar). BIM-free, DuckDB-free.</summary>
 public static class TableNodes
 {
     public static IReadOnlyList<IFlowNode> All { get; } =
@@ -16,5 +17,8 @@ public static class TableNodes
         new TableJoinNode(),
         new TableSetOpNode(),
         new TableProjectNode(),
+        new TableInlineNode(),
+        new TableRangeNode(),
+        new TableCalendarNode(),
     ];
 }

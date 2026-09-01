@@ -15,6 +15,7 @@ public sealed class TableCombinatorTests
             "xlsx.read", "xlsx.sheets",
             "sqlite.query", "sqlite.table", "sqlite.tables",
             "table.join", "table.setOp", "table.project",
+            "table.inline", "table.range", "table.calendar",
         }));
 
     [Test]

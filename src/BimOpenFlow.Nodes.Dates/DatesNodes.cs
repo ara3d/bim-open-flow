@@ -6,5 +6,13 @@ namespace BimOpenFlow.Nodes.Dates;
 /// filtering over ISO-8601 date columns, backed by DuckDB date functions.</summary>
 public static class DatesNodes
 {
-    public static IReadOnlyList<IFlowNode> All { get; } = [];
+    public static IReadOnlyList<IFlowNode> All { get; } =
+    [
+        new DateParseNode(),
+        new DatePartNode(),
+        new DateTruncateNode(),
+        new DateDiffNode(),
+        new DateOffsetNode(),
+        new DateFilterNode(),
+    ];
 }

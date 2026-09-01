@@ -43,7 +43,7 @@ public sealed class HostProfileTests
         => Assert.That(
             HostComposition.TablePacks().Nodes.Select(n => n.Spec.Kind),
             Has.None.Matches<string>(k =>
-                k.StartsWith("bos.") || k.StartsWith("view3d.") || k.StartsWith("check.")
+                k.StartsWith("bos.") || k.StartsWith("bim.") || k.StartsWith("view3d.") || k.StartsWith("check.")
                 || k == "sink.writePsets" || k == "sink.report"));
 
     [Test]

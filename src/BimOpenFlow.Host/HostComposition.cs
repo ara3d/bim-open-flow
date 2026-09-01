@@ -2,6 +2,7 @@ using Ara3D.DataFlowEngine.Abstractions;
 using BimOpenFlow.Host.Api;
 using BimOpenFlow.Host.Catalog;
 using BimOpenFlow.Host.Store;
+using BimOpenFlow.Nodes.BimAnalysis;
 using BimOpenFlow.Nodes.Bos;
 using BimOpenFlow.Nodes.Cleaning;
 using BimOpenFlow.Nodes.Compliance;
@@ -24,9 +25,10 @@ public sealed record HostApp(HostConfig Config, HostServices Services, WebApplic
 /// <summary>The composition root. Wiring only; any logic belongs in the modules.</summary>
 public static class HostComposition
 {
-    /// <summary>The "bim" profile registry: all four BIM packs combined.</summary>
+    /// <summary>The "bim" profile registry: all five BIM packs combined.</summary>
     public static NodeRegistry AllPacks()
-        => NodeRegistry.Combine(BosNodes.All, GeometryNodes.All, ComplianceNodes.All, EffectNodes.All);
+        => NodeRegistry.Combine(BosNodes.All, BimAnalysisNodes.All, GeometryNodes.All,
+            ComplianceNodes.All, EffectNodes.All);
 
     /// <summary>The "tables" profile registry: the DuckDB, Tables, TableOps,
     /// Cleaning, and Dates packs, the table writers from the Effects pack, plus

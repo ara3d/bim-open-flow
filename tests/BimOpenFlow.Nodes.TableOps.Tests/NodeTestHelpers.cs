@@ -22,6 +22,30 @@ internal static class NodeTestHelpers
         params (string Name, string Value)[] ps)
         => ((TableValue)node.Eval(Ctx, inputs, Params(ps))[0]).Table;
 
+    /// <summary>Builds an in-memory table named "t" from (name, type, cells) columns.</summary>
+    public static TableValue Table(params (string Name, Type Type, object?[] Cells)[] columns)
+    {
+        var builder = new DataTableBuilder("t");
+        foreach (var (name, type, cells) in columns)
+            builder.AddColumn(cells, name, type);
+        return new TableValue(builder.Build());
+    }
+
+    /// <summary>Evaluates with a fresh context so warnings can be asserted.</summary>
+    public static (IDataTable Table, IReadOnlyList<string> Warnings) EvalWithWarnings(
+        this IFlowNode node, IReadOnlyList<FlowValue> inputs, params (string Name, string Value)[] ps)
+    {
+        var ctx = new FakeEvalContext();
+        var table = ((TableValue)node.Eval(ctx, inputs, Params(ps))[0]).Table;
+        return (table, ctx.Warnings);
+    }
+
+    public static IReadOnlyList<object?> ColumnCells(this IDataTable table, string column)
+    {
+        var c = table.Columns.Single(c => c.Descriptor.Name == column);
+        return Enumerable.Range(0, table.Rows.Count).Select(r => table[c.ColumnIndex, r]).ToList();
+    }
+
     public static object? Cell(this IDataTable table, string column, int row)
         => table[table.Columns.Single(c => c.Descriptor.Name == column).ColumnIndex, row];
 

@@ -11,5 +11,10 @@ public static class DuckDbNodes
         new DuckReadNode(),
         new DuckQueryNode(),
         new SqlQueryNode(),
+        new CsvReadNode(),
+        new ParquetReadNode(),
+        new JsonReadNode(),
+        new DuckTableNode(),
+        new DuckTablesNode(),
     ];
 }

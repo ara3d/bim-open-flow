@@ -13,5 +13,6 @@ public static class CleaningNodes
         new TableDedupeNode(),
         new TableReplaceNode(),
         new TextTransformNode(),
+        new TextExtractNode(),
     ];
 }

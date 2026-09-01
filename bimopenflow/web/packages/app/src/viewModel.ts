@@ -34,9 +34,9 @@ export interface CanvasModel {
   readonly selectedEdgeId: string | null;
 }
 
-export const NODE_WIDTH = 172;
-export const PORT_SPACING = 18;
-export const NODE_HEADER = 30;
+export const NODE_WIDTH = 184;
+export const PORT_SPACING = 20;
+export const NODE_HEADER = 36;
 
 /** Node height grows with its densest port side. */
 export function nodeHeight(inputCount: number, outputCount: number): number {

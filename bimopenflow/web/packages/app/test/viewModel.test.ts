@@ -5,7 +5,9 @@ import {
   buildCanvasModel,
   defaultPosition,
   edgeId,
+  NODE_HEADER,
   nodeHeight,
+  PORT_SPACING,
 } from "../src/viewModel.js";
 
 const desc = (kind: string): NodeDescriptor => ({
@@ -19,6 +21,19 @@ const desc = (kind: string): NodeDescriptor => ({
 });
 
 const catalog = new Map([["k.a", desc("k.a")], ["k.b", desc("k.b")]]);
+
+describe("nodeHeight", () => {
+  it("is header plus one port row per densest side, min one row", () => {
+    expect(nodeHeight(0, 0)).toBe(NODE_HEADER + PORT_SPACING);
+    expect(nodeHeight(3, 1)).toBe(NODE_HEADER + 3 * PORT_SPACING);
+    expect(nodeHeight(1, 2)).toBe(NODE_HEADER + 2 * PORT_SPACING);
+  });
+
+  it("header fits the 13px id and 10px kind lines stacked", () => {
+    expect(NODE_HEADER).toBeGreaterThanOrEqual(32);
+    expect(PORT_SPACING).toBeGreaterThanOrEqual(16);
+  });
+});
 
 describe("buildCanvasModel", () => {
   it("reads positions from the layout layer, written through actions", () => {

@@ -4,7 +4,7 @@
 // intent rebuilding the canvas doc from the store.
 
 import { mount, type Runtime } from "gratify";
-import { type CanvasThemeName } from "./canvasTheme.js";
+import { applyCanvasTheme, defaultCanvasTheme, type CanvasThemeName } from "./canvasTheme.js";
 import type { NodeDescriptor } from "@bimopenflow/contracts";
 import type { Store } from "@bimopenflow/state";
 import { makeCanvasUpdate, type CanvasIntent } from "./canvasIntents.js";
@@ -25,6 +25,7 @@ export function createCanvasEditor(
   getCatalog: () => ReadonlyMap<string, NodeDescriptor>,
   onError: (message: string) => void,
 ): CanvasEditor {
+  applyCanvasTheme(defaultCanvasTheme);
   const model = (): CanvasModel => buildCanvasModel(store.getState(), getCatalog());
   const runtime: Runtime<CanvasModel, CanvasIntent> = mount(canvas, {
     init: model(),
@@ -49,8 +50,12 @@ export function createCanvasEditor(
 
   return {
     refresh: sync,
-    // TODO(track-b): apply the named theme to the gratify runtime.
-    setTheme: () => {},
+    // Live swap: gratify retargets its tokens and cross-fades; the sync wakes
+    // the runtime's frame loop so the fade actually runs. Pan/zoom untouched.
+    setTheme: (theme) => {
+      applyCanvasTheme(theme);
+      sync();
+    },
     dispose: () => {
       unsubscribe();
       runtime.stop();

@@ -16,28 +16,26 @@ import {
   Pan,
   part,
   Press,
-  rgb,
   Stack,
   v,
   Vec,
   vdist,
   wireDist,
 } from "gratify";
-import type { NodeStatus, PortType } from "@bimopenflow/contracts";
+import type { PortType } from "@bimopenflow/contracts";
 import type { CanvasEdge, CanvasModel, CanvasNode } from "./viewModel.js";
 import { NODE_HEADER, PORT_SPACING } from "./viewModel.js";
+import { canvasColors } from "./canvasTheme.js";
 import { anchorId, canConnect, parseAnchorId, type CanvasIntent } from "./canvasIntents.js";
 
 const SOCKET_RADIUS = 4.5;
 const SOCKET_GRAB_RADIUS = 12;
 
-const STATUS_COLORS: Record<NodeStatus, Color> = {
-  Ok: rgb(59, 165, 93),
-  Unready: rgb(150, 148, 140),
-  EffectPending: rgb(217, 154, 43),
-  Unavailable: rgb(120, 140, 170),
-  Error: rgb(192, 57, 43),
-};
+// Type sizes: id must read at a glance, kind and port labels stay secondary
+// but never below 10px.
+const ID_SIZE = 13;
+const KIND_SIZE = 10;
+const PORT_SIZE = 10;
 
 // ── Surface ──────────────────────────────────────────────────────────────────
 
@@ -46,7 +44,7 @@ interface SurfaceProps {
 }
 
 const Surface = part<SurfaceProps, { gridDot: Color }>("bof-surface", {
-  style: (t) => ({ gridDot: calpha(t.muted, 0.3) }),
+  style: () => ({ gridDot: canvasColors().gridDot }),
   measure: (_p, avail) => avail,
   hit: () => true,
 
@@ -128,8 +126,8 @@ const GraphNodePart = part<NodeProps, NodeStyle>("bof-node", {
   style: (t, channels) => ({
     fill: t.mix(t.surface, t.surfaceHi, 0.4 * channels.hover + 0.6 * channels.drag),
     edge: t.mix(t.muted, t.accent, (channels.sel || 0) + 0.5 * channels.hover),
-    text: t.mix(t.text, t.textBright, channels.hover),
-    dim: t.muted,
+    text: t.mix(t.text, t.textBright, 0.4 + 0.6 * channels.hover),
+    dim: t.textDim,
     lift: 3 * channels.drag,
     socket: t.accent,
   }),
@@ -138,26 +136,27 @@ const GraphNodePart = part<NodeProps, NodeStyle>("bof-node", {
     const r = node.rect.raise(style.lift);
     const p = node.props;
     painter.box(r, 8, style.fill, style.edge, 1.2 + (node.ch.sel || 0) * 1.2);
-    painter.label(p.id, v(r.x + 10, r.y + NODE_HEADER / 2), style.text, {
+    // Header (NODE_HEADER tall) holds id + kind; port rows start below it.
+    painter.label(p.id, v(r.x + 12, r.y + 13), style.text, {
       align: "left",
       weight: 600,
-      size: 12,
+      size: ID_SIZE,
     });
-    painter.label(p.kind, v(r.x + 10, r.y + NODE_HEADER + 2), style.dim, {
+    painter.label(p.kind, v(r.x + 12, r.y + NODE_HEADER - 9), style.dim, {
       align: "left",
-      size: 9,
+      size: KIND_SIZE,
     });
     if (p.status)
-      painter.dot(v(r.right - 10, r.y + NODE_HEADER / 2), 4, STATUS_COLORS[p.status]);
+      painter.dot(v(r.right - 12, r.y + 13), 4, canvasColors().status[p.status]);
     p.inputs.forEach((port, i) => {
       const y = portY(r.y, i);
       painter.dot(v(r.x, y), SOCKET_RADIUS, style.socket);
-      painter.label(port.name, v(r.x + 8, y), style.dim, { align: "left", size: 9 });
+      painter.label(port.name, v(r.x + 11, y), style.dim, { align: "left", size: PORT_SIZE });
     });
     p.outputs.forEach((port, i) => {
       const y = portY(r.y, i);
       painter.dot(v(r.right, y), SOCKET_RADIUS, style.socket);
-      painter.label(port.name, v(r.right - 8, y), style.dim, { align: "right", size: 9 });
+      painter.label(port.name, v(r.right - 11, y), style.dim, { align: "right", size: PORT_SIZE });
     });
   },
 
@@ -232,8 +231,9 @@ interface WireProps {
 const Wire = part<WireProps, { color: Color; selected: number }>("bof-wire", {
   style: (t, channels) => {
     const selected = channels.sel || 0;
+    const c = canvasColors();
     return {
-      color: selected > 0.02 ? t.mix(t.accent, rgb(255, 200, 80), selected) : t.accent,
+      color: selected > 0.02 ? t.mix(c.wire, c.wireSelected, selected) : c.wire,
       selected,
     };
   },
@@ -248,7 +248,7 @@ const Wire = part<WireProps, { color: Color; selected: number }>("bof-wire", {
     const a = node.anchor?.(node.props.from);
     const b = node.anchor?.(node.props.to);
     if (!a || !b) return;
-    painter.wire(a, b, calpha(rgb(0, 0, 0), 0.25), 4);
+    painter.wire(a, b, canvasColors().wireShadow, 4);
     painter.wire(a, b, calpha(style.color, 0.9), 2 + 1.4 * style.selected + 0.8 * node.ch.hover);
   },
 
@@ -265,9 +265,9 @@ interface RubberWireProps {
 }
 
 const RubberWire = part<RubberWireProps, { color: Color }>("bof-rubber-wire", {
-  style: (t) => ({ color: t.accent }),
+  style: () => ({ color: canvasColors().wire }),
   render(node, painter, style) {
-    const color = node.props.snapped ? rgb(90, 220, 130) : calpha(style.color, 0.8);
+    const color = node.props.snapped ? canvasColors().rubberSnap : calpha(style.color, 0.8);
     painter.wire(node.props.a, node.props.b, color, node.props.snapped ? 2.6 : 2);
     painter.dot(node.props.b, 4, color);
   },

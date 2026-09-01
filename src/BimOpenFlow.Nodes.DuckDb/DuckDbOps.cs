@@ -72,6 +72,21 @@ public static class DuckDbOps
         return builder.Build();
     }
 
+    /// <summary>Returns a copy of the table with each column name mapped through
+    /// <paramref name="rename"/>; names the function leaves unchanged pass through.</summary>
+    public static IDataTable RenameColumns(this IDataTable table, Func<string, string> rename)
+    {
+        var builder = new DataTableBuilder(table.Name);
+        foreach (var column in table.Columns)
+        {
+            var cells = new object?[table.Rows.Count];
+            for (var row = 0; row < cells.Length; row++)
+                cells[row] = table[column.ColumnIndex, row];
+            builder.AddColumn(cells, rename(column.Descriptor.Name), column.Descriptor.Type);
+        }
+        return builder.Build();
+    }
+
     private static bool IsDateLike(Type type)
         => type == typeof(DateOnly) || type == typeof(DateTime)
            || type == typeof(TimeOnly) || type == typeof(DateTimeOffset);

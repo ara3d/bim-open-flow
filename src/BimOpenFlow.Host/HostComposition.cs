@@ -12,6 +12,7 @@ using BimOpenFlow.Nodes.Effects;
 using BimOpenFlow.Nodes.Geometry;
 using BimOpenFlow.Nodes.TableOps;
 using BimOpenFlow.Nodes.Tables;
+using BimOpenFlow.Nodes.Viz;
 
 namespace BimOpenFlow.Host;
 
@@ -25,17 +26,17 @@ public sealed record HostApp(HostConfig Config, HostServices Services, WebApplic
 /// <summary>The composition root. Wiring only; any logic belongs in the modules.</summary>
 public static class HostComposition
 {
-    /// <summary>The "bim" profile registry: all five BIM packs combined.</summary>
+    /// <summary>The "bim" profile registry: all five BIM packs plus the Viz pack.</summary>
     public static NodeRegistry AllPacks()
         => NodeRegistry.Combine(BosNodes.All, BimAnalysisNodes.All, GeometryNodes.All,
-            ComplianceNodes.All, EffectNodes.All);
+            ComplianceNodes.All, EffectNodes.All, VizNodes.All);
 
     /// <summary>The "tables" profile registry: the DuckDB, Tables, TableOps,
-    /// Cleaning, and Dates packs, the table writers from the Effects pack, plus
-    /// the four BIM-free table.* nodes cherry-picked from the Bos pack.</summary>
+    /// Cleaning, Dates, and Viz packs, the table writers from the Effects pack,
+    /// plus the four BIM-free table.* nodes cherry-picked from the Bos pack.</summary>
     public static NodeRegistry TablePacks()
         => NodeRegistry.Combine(DuckDbNodes.All, TableNodes.All,
-            TableOpsNodes.All, CleaningNodes.All, DatesNodes.All, EffectNodes.TableSinks,
+            TableOpsNodes.All, CleaningNodes.All, DatesNodes.All, VizNodes.All, EffectNodes.TableSinks,
             [new TableFilterNode(), new TableDeriveNode(), new TableAggregateNode(), new TableSortNode()]);
 
     public static HostServices BuildServices(HostConfig config)

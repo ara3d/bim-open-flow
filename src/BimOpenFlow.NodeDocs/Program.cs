@@ -8,6 +8,7 @@ using BimOpenFlow.Nodes.Effects;
 using BimOpenFlow.Nodes.Geometry;
 using BimOpenFlow.Nodes.TableOps;
 using BimOpenFlow.Nodes.Tables;
+using BimOpenFlow.Nodes.Viz;
 
 var packs = new Pack[]
 {
@@ -38,6 +39,9 @@ var packs = new Pack[]
     new("Dates — `BimOpenFlow.Nodes.Dates`",
         "Parsing text columns into dates, extracting parts, truncating, arithmetic, and range filtering.",
         DatesNodes.All),
+    new("Viz — `BimOpenFlow.Nodes.Viz`",
+        "Chart and table-view nodes that validate and project table data for the web panes; rendering stays client-side.",
+        VizNodes.All),
 };
 
 var outputPath = args.Length > 0 ? args[0] : Path.Combine(FindRepoRoot(), "docs", "nodes.md");

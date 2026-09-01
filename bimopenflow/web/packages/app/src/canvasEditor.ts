@@ -4,6 +4,7 @@
 // intent rebuilding the canvas doc from the store.
 
 import { mount, type Runtime } from "gratify";
+import { type CanvasThemeName } from "./canvasTheme.js";
 import type { NodeDescriptor } from "@bimopenflow/contracts";
 import type { Store } from "@bimopenflow/state";
 import { makeCanvasUpdate, type CanvasIntent } from "./canvasIntents.js";
@@ -48,6 +49,8 @@ export function createCanvasEditor(
 
   return {
     refresh: sync,
+    // TODO(track-b): apply the named theme to the gratify runtime.
+    setTheme: () => {},
     dispose: () => {
       unsubscribe();
       runtime.stop();

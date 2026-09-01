@@ -10,7 +10,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="$(Ara3DClosedXmlVersion)" />
     <PackageReference Include="coverlet.collector" Version="$(Ara3DCoverletCollectorVersion)" />
+    <PackageReference Include="DuckDB.NET.Data.Full" Version="$(Ara3DDuckDbNetDataFullVersion)" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="$(Ara3DMicrosoftDataSqliteVersion)" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(Ara3DMicrosoftNetTestSdkVersion)" />
     <PackageReference Include="NUnit" Version="$(Ara3DNUnitVersion)" />
     <PackageReference Include="NUnit.Analyzers" Version="$(Ara3DNUnitAnalyzersVersion)" />

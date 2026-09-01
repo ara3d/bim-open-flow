@@ -30,6 +30,9 @@ export interface App {
   dispose(): void;
 }
 
+/** Debounce for auto-saving document edits (which also re-evaluates server-side). */
+export const AUTOSAVE_MS = 400;
+
 /** The last selected id that is an actual graph node (panes follow it). */
 export function primaryNodeId(state: State): string | null {
   const nodeIds = new Set(state.document.structure.nodes.map((n) => n.id));
@@ -144,7 +147,10 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
     connection?.dispose();
     connection = null;
     try {
-      connection = await connectAnalysis(store, api, id);
+      connection = await connectAnalysis(store, api, id, {
+        autosaveMs: AUTOSAVE_MS,
+        onSaveError: (e) => fail(`Autosave failed: ${e instanceof Error ? e.message : e}`),
+      });
       currentId = id;
       topbar.setConnection("connected");
       sidebar.setAnalyses(analyses, id);

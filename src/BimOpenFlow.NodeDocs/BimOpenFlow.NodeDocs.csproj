@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ara3D.DataFlowEngine.Abstractions\Ara3D.DataFlowEngine.Abstractions.csproj" />
+    <ProjectReference Include="..\BimOpenFlow.Nodes.Bos\BimOpenFlow.Nodes.Bos.csproj" />
+    <ProjectReference Include="..\BimOpenFlow.Nodes.Geometry\BimOpenFlow.Nodes.Geometry.csproj" />
+    <ProjectReference Include="..\BimOpenFlow.Nodes.Compliance\BimOpenFlow.Nodes.Compliance.csproj" />
+    <ProjectReference Include="..\BimOpenFlow.Nodes.Effects\BimOpenFlow.Nodes.Effects.csproj" />
+    <ProjectReference Include="..\BimOpenFlow.Nodes.DuckDb\BimOpenFlow.Nodes.DuckDb.csproj" />
+    <ProjectReference Include="..\BimOpenFlow.Nodes.Tables\BimOpenFlow.Nodes.Tables.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -7,7 +7,7 @@
 // wire colors, selection/snap highlights). gratify's setTheme retargets the
 // live tokens and cross-fades; the extras switch instantly via canvasColors().
 
-import { calpha, rgb, setTheme as setGratifyTheme, themes, type Color, type Tokens } from "gratify";
+import { calpha, rgb, setTheme as setGratifyTheme, themes, tokens, type Color, type Tokens } from "gratify";
 import type { NodeStatus } from "@bimopenflow/contracts";
 
 export const canvasThemeNames = ["light", "dark"] as const;
@@ -120,8 +120,17 @@ export const canvasColors = (): CanvasExtraColors => canvasThemes[current].extra
 
 export const currentCanvasTheme = (): CanvasThemeName => current;
 
-/** Retarget gratify's live tokens (cross-fade) and swap the extras. */
-export function applyCanvasTheme(name: CanvasThemeName): void {
+/** Retarget gratify's live tokens (cross-fade) and swap the extras. With
+ *  `instant`, the live tokens snap to the palette immediately — used at boot,
+ *  where fading in from gratify's builtin dark would paint the first frames a
+ *  washed mid-fade gray (and a throttled background tab could sit on that
+ *  frame indefinitely). User-initiated switches keep the cross-fade. */
+export function applyCanvasTheme(name: CanvasThemeName, instant = false): void {
   current = name;
   setGratifyTheme(gratifyThemeName(name));
+  if (instant) {
+    const palette = canvasThemes[name].palette;
+    for (const key of Object.keys(palette) as (keyof Palette)[])
+      Object.assign(tokens[key], palette[key]);
+  }
 }

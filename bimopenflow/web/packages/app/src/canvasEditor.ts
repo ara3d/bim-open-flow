@@ -32,12 +32,25 @@ export function createCanvasEditor(
   onError: (message: string) => void,
   initialTheme: CanvasThemeName = defaultCanvasTheme,
 ): CanvasEditor {
-  applyCanvasTheme(initialTheme);
+  applyCanvasTheme(initialTheme, /* instant: */ true);
   const model = (): CanvasModel => buildCanvasModel(store.getState(), getCatalog());
+  // The runtime's rest detector can doze off mid entrance-animation right
+  // after a doc swap (boot, flow open), freezing the canvas on ghost-faint
+  // nodes until the next interaction. `ambient` holds the loop awake briefly
+  // after every sync so entrances and theme fades always run to completion.
+  let awakeUntil = 0;
+  let holdRequested = true; // cover the very first frames after mount
   const runtime: Runtime<CanvasModel, CanvasIntent> = mount(canvas, {
     init: model(),
     update: makeCanvasUpdate(store, onError),
     view: canvasView,
+    ambient: (_doc, time) => {
+      if (holdRequested) {
+        holdRequested = false;
+        awakeUntil = time + 1.5;
+      }
+      return time < awakeUntil;
+    },
   });
   // Island inputs (inline Text/FilePath/DateTime/number controls) live in the
   // DOM, outside gratify's intent flow; their commits come back through here.
@@ -57,6 +70,7 @@ export function createCanvasEditor(
       pruneInlineControls(new Set(
         next.nodes.flatMap((n) => n.params.map((p) => islandKey(n.id, p.name))),
       ));
+      holdRequested = true;
       runtime.dispatch({ kind: "sync", model: next });
     });
   };

@@ -70,4 +70,11 @@ describe("applyCanvasTheme", () => {
     expect(defaultCanvasTheme).toBe("light");
     expect(canvasThemeNames[0]).toBe("light");
   });
+
+  it("instant apply snaps the live tokens without a fade", () => {
+    applyCanvasTheme("dark", true);
+    applyCanvasTheme("light", true);
+    expect(tokens.bg).toMatchObject(canvasThemes.light.palette.bg);
+    expect(tokens.accent).toMatchObject(canvasThemes.light.palette.accent);
+  });
 });

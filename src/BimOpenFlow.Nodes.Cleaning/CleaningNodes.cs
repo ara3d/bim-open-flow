@@ -6,5 +6,8 @@ namespace BimOpenFlow.Nodes.Cleaning;
 /// replacement, each a typed facade over one generated DuckDB clause.</summary>
 public static class CleaningNodes
 {
-    public static IReadOnlyList<IFlowNode> All { get; } = [];
+    public static IReadOnlyList<IFlowNode> All { get; } =
+    [
+        new TableFillNullsNode(),
+    ];
 }

@@ -4,8 +4,10 @@ using BimOpenFlow.Host.Catalog;
 using BimOpenFlow.Host.Store;
 using BimOpenFlow.Nodes.Bos;
 using BimOpenFlow.Nodes.Compliance;
+using BimOpenFlow.Nodes.DuckDb;
 using BimOpenFlow.Nodes.Effects;
 using BimOpenFlow.Nodes.Geometry;
+using BimOpenFlow.Nodes.Tables;
 
 namespace BimOpenFlow.Host;
 
@@ -19,15 +21,21 @@ public sealed record HostApp(HostConfig Config, HostServices Services, WebApplic
 /// <summary>The composition root. Wiring only; any logic belongs in the modules.</summary>
 public static class HostComposition
 {
-    /// <summary>The one real node registry: all four packs combined.</summary>
+    /// <summary>The "bim" profile registry: all four BIM packs combined.</summary>
     public static NodeRegistry AllPacks()
         => NodeRegistry.Combine(BosNodes.All, GeometryNodes.All, ComplianceNodes.All, EffectNodes.All);
+
+    /// <summary>The "tables" profile registry: the DuckDB and Tables packs plus the
+    /// four BIM-free table.* nodes cherry-picked from the Bos pack.</summary>
+    public static NodeRegistry TablePacks()
+        => NodeRegistry.Combine(DuckDbNodes.All, TableNodes.All,
+            [new TableFilterNode(), new TableDeriveNode(), new TableAggregateNode(), new TableSortNode()]);
 
     public static HostServices BuildServices(HostConfig config)
         => new(
             new ModelCatalog(config.ModelRoots, config.CacheDir),
             new AnalysisStore(config.StoreDir),
-            AllPacks());
+            config.Profile == HostConfig.TablesProfile ? TablePacks() : AllPacks());
 
     public static HostApp Build(HostConfig config)
     {

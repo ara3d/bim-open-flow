@@ -16,6 +16,8 @@
     <ProjectReference Include="..\BimOpenFlow.Host.Catalog\BimOpenFlow.Host.Catalog.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Host.Store\BimOpenFlow.Host.Store.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Bos\BimOpenFlow.Nodes.Bos.csproj" />
+    <ProjectReference Include="..\BimOpenFlow.Nodes.DuckDb\BimOpenFlow.Nodes.DuckDb.csproj" />
+    <ProjectReference Include="..\BimOpenFlow.Nodes.Tables\BimOpenFlow.Nodes.Tables.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Geometry\BimOpenFlow.Nodes.Geometry.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Compliance\BimOpenFlow.Nodes.Compliance.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Effects\BimOpenFlow.Nodes.Effects.csproj" />

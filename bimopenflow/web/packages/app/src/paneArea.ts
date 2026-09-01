@@ -11,11 +11,18 @@ import {
   createVerdictPane,
   createViewPane3D,
   ensurePaneStyles,
+  type ChartPaneOptions,
   type Pane,
   type PaneContext,
   type PaneEvent,
 } from "@bimopenflow/panes";
-import { choosePanes, firstTableOutput, hasResults, type PaneKind } from "./paneChoice.js";
+import {
+  chartPaneOptions,
+  choosePanes,
+  firstTableOutput,
+  hasResults,
+  type PaneKind,
+} from "./paneChoice.js";
 import { createParamsPane } from "./paramsPane.js";
 
 const PANE_LABELS: Record<PaneKind, string> = {
@@ -27,10 +34,10 @@ const PANE_LABELS: Record<PaneKind, string> = {
   inspector: "Inspector",
 };
 
-const paneFactory = (kind: PaneKind): Pane => {
+const paneFactory = (kind: PaneKind, chartOptions: ChartPaneOptions): Pane => {
   switch (kind) {
     case "table": return createTablePane();
-    case "chart": return createChartPane({ chart: "bar" });
+    case "chart": return createChartPane(chartOptions);
     case "verdict": return createVerdictPane();
     case "view3d": return createViewPane3D();
     case "params": return createParamsPane();
@@ -128,7 +135,10 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
     destroyPane();
     for (const el of tabs.children)
       el.classList.toggle("bof-app-tab-active", (el as HTMLElement).dataset.kind === kind);
-    const pane = paneFactory(kind);
+    const pane = paneFactory(
+      kind,
+      chartPaneOptions(shown?.desc?.kind, shown?.values ?? {}),
+    );
     pane.onEvent(onPaneEvent);
     const host = root.ownerDocument.createElement("div");
     body.appendChild(host);

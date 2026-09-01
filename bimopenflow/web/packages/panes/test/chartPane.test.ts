@@ -29,6 +29,42 @@ describe("ChartPane", () => {
     pane.destroy();
   });
 
+  it("passes title and seriesColumns through to the bar chart", () => {
+    const host = document.createElement("div");
+    const pane = createChartPane({
+      chart: "bar",
+      title: "Areas",
+      categoryColumn: "name",
+      seriesColumns: ["area", "count"],
+    });
+    pane.mount(host, fakeCtx());
+    pane.update({
+      kind: "table",
+      data: makeSlice(
+        [["name", "Text"], ["area", "Number"], ["count", "Integer"]],
+        [["a", 1, 2], ["b", 3, 4]],
+      ),
+    });
+    expect(host.querySelector("text.bof-viz-title")?.textContent).toBe("Areas");
+    const bars = [...host.querySelectorAll("rect.bof-viz-bar")];
+    expect(bars.map((b) => b.getAttribute("data-series"))).toEqual([
+      "area", "count", "area", "count",
+    ]);
+    pane.destroy();
+  });
+
+  it("passes title through to the line chart", () => {
+    const host = document.createElement("div");
+    const pane = createChartPane({ chart: "line", title: "Trend" });
+    pane.mount(host, fakeCtx());
+    pane.update({
+      kind: "table",
+      data: makeSlice([["y", "Number"]], [[1], [2]]),
+    });
+    expect(host.querySelector("text.bof-viz-title")?.textContent).toBe("Trend");
+    pane.destroy();
+  });
+
   it("renders a line chart and updates in place", () => {
     const host = document.createElement("div");
     const pane = createChartPane({ chart: "line" });

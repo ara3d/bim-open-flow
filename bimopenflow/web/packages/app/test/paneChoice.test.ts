@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { NodeDescriptor, PortDescriptor } from "@bimopenflow/contracts";
-import { choosePanes, firstTableOutput, hasResults } from "../src/paneChoice.js";
+import {
+  chartPaneOptions,
+  choosePanes,
+  firstTableOutput,
+  hasResults,
+} from "../src/paneChoice.js";
 
 const desc = (kind: string, outputs: PortDescriptor[]): NodeDescriptor => ({
   kind,
@@ -40,11 +45,84 @@ describe("choosePanes", () => {
       .toBe("verdict");
   });
 
+  it("puts chart first for chart.* kinds", () => {
+    const out: PortDescriptor[] = [{ name: "out", type: "Table", optional: false }];
+    expect(choosePanes(desc("chart.bar", out))).toEqual([
+      "chart",
+      "table",
+      "params",
+      "inspector",
+    ]);
+    expect(choosePanes(desc("chart.line", out))[0]).toBe("chart");
+  });
+
+  it("keeps table first for view.table and does not treat it as view3d", () => {
+    const out: PortDescriptor[] = [{ name: "out", type: "Table", optional: false }];
+    expect(choosePanes(desc("view.table", out))).toEqual([
+      "table",
+      "chart",
+      "params",
+      "inspector",
+    ]);
+  });
+
   it("puts view3d first for view3d kinds and instances outputs", () => {
     expect(choosePanes(desc("view3d.instances", [{ name: "out", type: "Table", optional: false }]))[0])
       .toBe("view3d");
     expect(choosePanes(desc("geometry.color", [{ name: "instances", type: "Table", optional: false }]))[0])
       .toBe("view3d");
+  });
+});
+
+describe("chartPaneOptions", () => {
+  it("maps chart.line params onto line chart options", () => {
+    expect(
+      chartPaneOptions("chart.line", {
+        xColumn: "t",
+        yColumns: " a, b ,,",
+        title: "Trend",
+      }),
+    ).toEqual({
+      chart: "line",
+      xColumn: "t",
+      seriesColumns: ["a", "b"],
+      title: "Trend",
+    });
+  });
+
+  it("maps chart.bar params onto bar chart options", () => {
+    expect(
+      chartPaneOptions("chart.bar", {
+        labelColumn: "name",
+        valueColumns: "area,count",
+        title: "Areas",
+      }),
+    ).toEqual({
+      chart: "bar",
+      categoryColumn: "name",
+      seriesColumns: ["area", "count"],
+      title: "Areas",
+    });
+  });
+
+  it("leaves unset params undefined so viz defaults apply", () => {
+    expect(chartPaneOptions("chart.bar", {})).toEqual({
+      chart: "bar",
+      categoryColumn: undefined,
+      seriesColumns: undefined,
+      title: undefined,
+    });
+    expect(chartPaneOptions("chart.line", { yColumns: " , " })).toEqual({
+      chart: "line",
+      xColumn: undefined,
+      seriesColumns: undefined,
+      title: undefined,
+    });
+  });
+
+  it("defaults any other kind to a plain bar chart", () => {
+    expect(chartPaneOptions("table.select", { title: "x" })).toEqual({ chart: "bar" });
+    expect(chartPaneOptions(undefined, {})).toEqual({ chart: "bar" });
   });
 });
 

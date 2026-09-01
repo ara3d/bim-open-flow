@@ -3,6 +3,7 @@
 // default tab).
 
 import type { NodeDescriptor, NodeState, PortDescriptor } from "@bimopenflow/contracts";
+import type { ChartPaneOptions } from "@bimopenflow/panes";
 
 export type PaneKind =
   | "verdict"
@@ -49,7 +50,42 @@ export function choosePanes(desc: NodeDescriptor | undefined): PaneKind[] {
   const table = firstTableOutput(desc);
   if (table && isVerdictKind(desc.kind)) panes.push("verdict");
   if (table && isView3DKind(desc)) panes.push("view3d");
-  if (table) panes.push("table", "chart");
+  if (table && desc.kind.startsWith("chart.")) panes.push("chart", "table");
+  else if (table) panes.push("table", "chart");
   panes.push("params", "inspector");
   return panes;
+}
+
+/** Comma list -> trimmed non-empty names; undefined when nothing remains. */
+function splitColumns(list: string | undefined): string[] | undefined {
+  const parts = (list ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+  return parts.length > 0 ? parts : undefined;
+}
+
+/**
+ * Chart pane options from a node's kind + param values. chart.* nodes map
+ * their params onto the viz options; anything else gets the bar default.
+ */
+export function chartPaneOptions(
+  kind: string | undefined,
+  values: Record<string, string>,
+): ChartPaneOptions {
+  if (kind === "chart.line")
+    return {
+      chart: "line",
+      xColumn: values.xColumn || undefined,
+      seriesColumns: splitColumns(values.yColumns),
+      title: values.title || undefined,
+    };
+  if (kind === "chart.bar")
+    return {
+      chart: "bar",
+      categoryColumn: values.labelColumn || undefined,
+      seriesColumns: splitColumns(values.valueColumns),
+      title: values.title || undefined,
+    };
+  return { chart: "bar" };
 }

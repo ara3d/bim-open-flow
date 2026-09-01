@@ -13,6 +13,8 @@ import { buildCanvasModel, type CanvasModel } from "./viewModel.js";
 export interface CanvasEditor {
   /** Re-derives the canvas doc from the store (e.g. after the catalog loads). */
   refresh(): void;
+  /** Switches the canvas theme (see canvasTheme.ts for the names). */
+  setTheme(theme: CanvasThemeName): void;
   dispose(): void;
 }
 

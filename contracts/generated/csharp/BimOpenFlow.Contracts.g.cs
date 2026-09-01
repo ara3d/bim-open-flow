@@ -77,7 +77,8 @@ public sealed record TableData(
 
 public sealed record PortDescriptor(
     string Name,
-    PortType Type);
+    PortType Type,
+    bool Optional);
 
 public sealed record ParamDescriptor(
     string Name,

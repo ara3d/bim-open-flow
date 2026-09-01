@@ -50,7 +50,7 @@ public static class ApiMapping
             spec.Description);
 
     public static PortDescriptor ToDescriptor(this PortSpec port)
-        => new(port.Name, port.Type.ByName<PortType>());
+        => new(port.Name, port.Type.ByName<PortType>(), port.Optional);
 
     public static ParamDescriptor ToDescriptor(this ParamSpec param)
         => new(param.Name, param.Kind.ByName<ParamKind>(), param.Default, param.EnumValues);

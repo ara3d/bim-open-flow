@@ -1,0 +1,5 @@
+ProductId,ProductName,UnitPrice,Category
+P-10,Stud 2x4,3.85,Lumber
+P-11,Drywall Sheet,12.50,Interior
+P-12,Steel Beam,240.00,Structural
+P-13,Insulation Roll,45.75,Interior

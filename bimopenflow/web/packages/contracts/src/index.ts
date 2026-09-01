@@ -60,6 +60,7 @@ export interface TableData {
 export interface PortDescriptor {
   name: string;
   type: PortType;
+  optional: boolean;
 }
 
 export interface ParamDescriptor {

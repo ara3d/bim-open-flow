@@ -1,0 +1,6 @@
+CustomerId,Name,City,Segment
+C001,Acme Construction,Toronto,Contractor
+C002,Beaver Builds,Vancouver,Contractor
+C003,Cedar Design,Montreal,Architect
+C004,Dovetail Eng,Toronto,Engineer
+C005,Evergreen Dev,Calgary,Developer

@@ -21,7 +21,8 @@
     },
     "PortDescriptor": {
       "name": "string",
-      "type": "PortType"
+      "type": "PortType",
+      "optional": "bool"
     },
     "ParamDescriptor": {
       "name": "string",

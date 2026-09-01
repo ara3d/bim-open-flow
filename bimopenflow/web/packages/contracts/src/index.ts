@@ -10,7 +10,8 @@ export type ParamKind =
   | "FilePath"
   | "ModelRef"
   | "Expression"
-  | "Json";
+  | "Json"
+  | "DateTime";
 
 export type PortType =
   | "Boolean"

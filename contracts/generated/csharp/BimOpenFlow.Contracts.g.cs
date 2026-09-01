@@ -18,6 +18,7 @@ public enum ParamKind
     ModelRef,
     Expression,
     Json,
+    DateTime,
 }
 
 public enum PortType

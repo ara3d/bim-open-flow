@@ -1,7 +1,7 @@
 // The thin, real wiring between the 3D pane and the viewer workspace
 // (@ara3d/viewer-core/-loaders/-controls). Everything testable lives in
 // instanceTable.ts; this module is deliberately minimal glue.
-import { InstancedGroup, Viewer } from "@ara3d/viewer-core";
+import { InstancedGroup, Viewer, sceneBounds } from "@ara3d/viewer-core";
 import { loadBos, loadGlb } from "@ara3d/viewer-loaders";
 import {
   OrbitControls,
@@ -68,6 +68,14 @@ export const defaultView3DDeps: View3DDeps = {
 
     let maps: readonly GroupEntityMap[] = [];
     let boxes: InstancedGroup | null = null;
+    let framed = false;
+    const frameScene = () => {
+      const bounds = sceneBounds(viewer.scene);
+      if (!bounds) return;
+      orbit.model.frame(bounds, (viewer.camera.fov * Math.PI) / 180);
+      orbit.update();
+      framed = true;
+    };
     selection.changed.on((s) => {
       const entity = s
         ? maps.find((m) => m.group === s.group)?.entities[s.instanceIndex]
@@ -77,8 +85,6 @@ export const defaultView3DDeps: View3DDeps = {
 
     return {
       async load(url, format) {
-        // TODO: frame the camera to the loaded model's bounds; the default
-        // pose only happens to show models near the origin.
         if (format === "bos") {
           const result = await loadBos(url, viewer.scene);
           maps = result.groupEntities;
@@ -86,6 +92,7 @@ export const defaultView3DDeps: View3DDeps = {
           await loadGlb(url, viewer.scene);
           maps = []; // GLB carries no entity mapping: picks emit nothing
         }
+        frameScene();
         viewer.requestRender();
         return maps;
       },
@@ -94,6 +101,9 @@ export const defaultView3DDeps: View3DDeps = {
         boxes = new InstancedGroup(UNIT_CUBE);
         boxes.append(transforms, colors);
         viewer.scene.addGroup(boxes);
+        // Frame only until the first framing: later box swaps (recolors,
+        // filters) must not yank the camera the user has positioned.
+        if (!framed) frameScene();
         viewer.requestRender();
       },
       clearBoxes() {

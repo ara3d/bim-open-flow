@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "BimOpenFlow.Host": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:65033;http://localhost:65034"
+    }
+  }
+}

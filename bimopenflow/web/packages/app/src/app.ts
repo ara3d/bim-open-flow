@@ -2,7 +2,7 @@
 // and pane area together around one ApiClient. Every graph mutation flows
 // through store.dispatch; this module owns no graph logic.
 
-import type { AnalysisSummary, ModelSummary, NodeDescriptor } from "@bimopenflow/contracts";
+import type { AnalysisSummary, NodeDescriptor } from "@bimopenflow/contracts";
 import type { ApiClient } from "@bimopenflow/api-client";
 import {
   connectAnalysis,
@@ -18,7 +18,8 @@ import { createSidebar } from "./sidebar.js";
 import { createTopbar } from "./topbar.js";
 import { createPaneArea } from "./paneArea.js";
 import { makePaneContext } from "./paneContext.js";
-import { matchModelId, modelPathFor } from "./modelRef.js";
+import { modelPathFor } from "./modelRef.js";
+import { modelCatalog } from "./modelCatalog.js";
 import { createCanvasEditor } from "./canvasEditor.js";
 import { inlineParams } from "./canvasSlots.js";
 import { setSuggestionProvider } from "./canvasControls.js";
@@ -94,16 +95,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
 
   // Model list for path -> catalog id resolution, fetched lazily and
   // re-fetched once on a miss (a model may have appeared since).
-  let models: ModelSummary[] | null = null;
-  const resolveModelId = async (path: string): Promise<string | null> => {
-    models ??= await api.listModels();
-    let id = matchModelId(models, path);
-    if (!id) {
-      models = await api.listModels();
-      id = matchModelId(models, path);
-    }
-    return id ?? null;
-  };
+  const resolveModelId = modelCatalog(() => api.listModels());
 
   const paneArea = createPaneArea(shell.paneEl, {
     ctx: boundCtx,
@@ -320,8 +312,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   // ── boot ───────────────────────────────────────────────────────────────────
   void (async () => {
     try {
-      await refreshAnalyses();
-      const cat = await api.getNodeCatalog();
+      const [, cat] = await Promise.all([refreshAnalyses(), api.getNodeCatalog()]);
       for (const n of cat.nodes) catalog.set(n.kind, n);
       if (options.graphDemo && catalog.get("view3d.section")?.params.find(p => p.name === "fraction")?.control?.kind !== "slider")
         fail("The 3D backend is out of date. Rebuild and restart BimOpenFlow.Host, then reload this page to enable the node controls.");

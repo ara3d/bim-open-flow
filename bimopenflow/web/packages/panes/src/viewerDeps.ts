@@ -78,7 +78,8 @@ export const defaultView3DDeps: View3DDeps = {
         abort?.abort();
         abort = new AbortController();
         // Load without binding. A cancelled or superseded request cannot enter the scene.
-        const loaded = visibleSource(requireResult(await loadModel(url, { format, signal: abort.signal })));
+        // BOS endpoints may serve verified prepared BFAST; detect their byte signature.
+        const loaded = visibleSource(requireResult(await loadModel(url, { format: format === "bos" ? undefined : format, signal: abort.signal })));
         if (disposed || token !== generation) throw new Error("Model load superseded.");
         recipe?.dispose();
         recipe = undefined;

@@ -211,6 +211,9 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
     showNode(next) {
       fetchToken++;
       const sameNode = shown?.nodeId === next?.nodeId;
+      const sameRecipeModel = shown?.modelPath === next?.modelPath &&
+        shown?.desc?.outputs.some(p => p.name === "view") &&
+        next?.desc?.outputs.some(p => p.name === "view");
       shown = next;
       if (!next) {
         activeKind = null;
@@ -219,6 +222,14 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
         return;
       }
       const kinds = choosePanes(next.desc);
+      // Recipe branches share the loaded model and renderer. Reapply their
+      // complete recipe without reloading Snowdon on every node click.
+      if (!sameNode && sameRecipeModel && activeKind === "view3d" && kinds.includes("view3d")) {
+        rebuildTabs(kinds);
+        tabs.querySelector('[data-kind="view3d"]')?.classList.add("bof-app-tab-active");
+        void feedData();
+        return;
+      }
       if (sameNode && activeKind && kinds.includes(activeKind)) {
         // Chart options are baked in at pane creation; a param edit that
         // changes them needs a fresh pane, not just fresh data.

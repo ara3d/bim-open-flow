@@ -118,6 +118,24 @@ describe("createPaneArea 3D model wiring", () => {
     expect(errors[0]).toContain("not in the host catalog");
     area.dispose();
   });
+
+  it("keeps one loaded viewer across recipe branches and reloads for a different model", async () => {
+    const { area, updates } = makeView3dArea({ snowdon: "snowdon", duplex: "duplex" });
+    const recipe = { ...view3dDesc, outputs: [{ name: "view", type: "Table" as const, optional: false }] };
+    const show = (nodeId: string, modelPath: string) => area.showNode({
+      nodeId, modelPath, desc: recipe, values: {}, state: { ...okState, nodeId },
+    });
+    show("categories", "snowdon");
+    await settle();
+    show("cutaway", "snowdon");
+    await settle();
+    expect(updates.filter((u) => (u as { kind: string }).kind === "model")).toHaveLength(1);
+    expect(updates.filter((u) => (u as { kind: string }).kind === "view")).toHaveLength(2);
+    show("other", "duplex");
+    await settle();
+    expect(updates.filter((u) => (u as { kind: string }).kind === "model")).toHaveLength(2);
+    area.dispose();
+  });
 });
 
 describe("createPaneArea chart wiring", () => {

@@ -13,7 +13,7 @@ const host = process.env.BOF_HOST ?? "http://127.0.0.1:5214";
 
 export default defineConfig({
   plugins: [snowdonFixture()],
-  build: { rollupOptions: { input: { app: resolve(__dirname, "index.html"), showcase: resolve(__dirname, "3d.html") } } },
+  build: { rollupOptions: { input: { app: resolve(__dirname, "index.html"), graphDemo: resolve(__dirname, "3d.html"), showcase: resolve(__dirname, "showcase.html") } } },
   resolve: { alias: [toolkitAlias, { find: "gratify", replacement: gratify }], dedupe: ["three"] },
   server: {
     port: 5300,

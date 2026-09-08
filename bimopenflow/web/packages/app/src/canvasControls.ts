@@ -319,6 +319,7 @@ function islandFor(props: IslandSlotProps): IslandEntry {
   let entry = islands.get(key);
   if (!entry) {
     const el = document.createElement("input");
+    el.setAttribute("aria-label", `${props.nodeId} ${props.name}`);
     el.type = props.paramKind === "DateTime" ? "datetime-local" : "text";
     if (props.paramKind === "Integer" || props.paramKind === "Number")
       el.inputMode = "decimal";

@@ -14,6 +14,8 @@ export interface Shell {
   sidebarEl: HTMLElement;
   canvas: HTMLCanvasElement;
   paneEl: HTMLElement;
+  graphToolbar: HTMLElement;
+  dispose(): void;
 }
 
 interface SplitterConfig {
@@ -56,10 +58,18 @@ const RIGHT: SplitterConfig = {
   fallback: 420,
 };
 
-export function buildShell(root: HTMLElement): Shell {
+export function buildShell(root: HTMLElement, graphDemo = false): Shell {
   ensureAppStyles(root.ownerDocument);
   const doc = root.ownerDocument;
   root.classList.add("bof-app-root");
+  root.classList.toggle("bof-app-graph-demo", graphDemo);
+  const right = graphDemo ? {
+    ...RIGHT,
+    storageKey: "bof-demo-right-width",
+    fallback: Math.round(window.innerWidth * 0.5),
+    max: () => Math.max(240, window.innerWidth - 6 - MIN_CANVAS),
+  } : RIGHT;
+  if (graphDemo) root.style.setProperty("--bof-app-right", `${right.fallback}px`);
 
   const topbarEl = doc.createElement("div");
   const main = doc.createElement("div");
@@ -69,29 +79,37 @@ export function buildShell(root: HTMLElement): Shell {
 
   const leftSplitter = doc.createElement("div");
   leftSplitter.className = "bof-app-splitter";
+  leftSplitter.hidden = graphDemo;
   installSplitter(leftSplitter, root, LEFT);
 
   const canvasHost = doc.createElement("div");
   canvasHost.className = "bof-app-canvas-host";
+  const graphToolbar = doc.createElement("div");
+  graphToolbar.className = "bof-app-graph-toolbar";
+  graphToolbar.hidden = !graphDemo;
+  canvasHost.appendChild(graphToolbar);
   const canvas = doc.createElement("canvas");
   canvasHost.appendChild(canvas);
 
   const rightSplitter = doc.createElement("div");
   rightSplitter.className = "bof-app-splitter";
-  installSplitter(rightSplitter, root, RIGHT);
+  installSplitter(rightSplitter, root, right);
 
   const paneEl = doc.createElement("div");
 
   main.append(sidebarEl, leftSplitter, canvasHost, rightSplitter, paneEl);
   root.append(topbarEl, main);
-  restoreWidth(root, LEFT);
-  restoreWidth(root, RIGHT);
+  if (!graphDemo) restoreWidth(root, LEFT);
+  restoreWidth(root, right);
   // Re-clamp on window resize so the canvas column never collapses to zero.
-  root.ownerDocument.defaultView?.addEventListener("resize", () => {
-    restoreWidth(root, LEFT);
-    restoreWidth(root, RIGHT);
-  });
-  return { topbarEl, sidebarEl, canvas, paneEl };
+  const resize = () => {
+    if (!graphDemo) restoreWidth(root, LEFT);
+    restoreWidth(root, right);
+  };
+  root.ownerDocument.defaultView?.addEventListener("resize", resize);
+  return { topbarEl, sidebarEl, canvas, paneEl, graphToolbar,
+    dispose: () => root.ownerDocument.defaultView?.removeEventListener("resize", resize),
+  };
 }
 
 function restoreWidth(root: HTMLElement, cfg: SplitterConfig): void {

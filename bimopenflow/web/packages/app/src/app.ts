@@ -43,9 +43,14 @@ export function primaryNodeId(state: State): string | null {
   return null;
 }
 
-export function createApp(root: HTMLElement, api: ApiClient): App {
+export interface AppOptions {
+  graphDemo?: boolean;
+  initialAnalysis?: string;
+}
+
+export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions = {}): App {
   const store = createStore();
-  const shell = buildShell(root);
+  const shell = buildShell(root, options.graphDemo);
   const catalog = new Map<string, NodeDescriptor>();
 
   let analyses: AnalysisSummary[] = [];
@@ -109,6 +114,23 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
 
   // ── canvas ─────────────────────────────────────────────────────────────────
   const canvasEditor = createCanvasEditor(shell.canvas, store, () => catalog, fail, loadThemeChoice());
+  const preview = root.ownerDocument.createElement("select");
+  preview.setAttribute("aria-label", "Preview node");
+  preview.addEventListener("change", () => dispatch({ type: "select", ids: [preview.value] }));
+  if (options.graphDemo) {
+    const nodes = root.ownerDocument.createElement("button");
+    nodes.textContent = "Nodes";
+    nodes.setAttribute("aria-expanded", "false");
+    nodes.addEventListener("click", () => {
+      nodes.setAttribute("aria-expanded", String(root.classList.toggle("bof-app-catalog-open")));
+    });
+    const fit = root.ownerDocument.createElement("button");
+    fit.textContent = "Fit graph";
+    fit.addEventListener("click", () => canvasEditor.fit());
+    const label = root.ownerDocument.createElement("label");
+    label.append("Preview ", preview);
+    shell.graphToolbar.append(nodes, fit, label);
+  }
 
   // ── chrome ─────────────────────────────────────────────────────────────────
   const topbar = createTopbar(shell.topbarEl, {
@@ -147,8 +169,19 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
   const unsubscribe = store.subscribe(() => {
     const state = store.getState();
     topbar.setDirty(state.dirty);
-    const primary = primaryNodeId(state);
+    // Keep the last preview visible while panning or clearing graph selection.
+    const primary = primaryNodeId(state) ?? (options.graphDemo &&
+      state.document.structure.nodes.some(n => n.id === lastPrimary) ? lastPrimary : null);
     const dataChanged = state.document !== lastDoc || state.evalState !== lastEval;
+    if (options.graphDemo && state.document !== lastDoc) {
+      preview.replaceChildren(...state.document.structure.nodes.map(n => {
+        const option = root.ownerDocument.createElement("option");
+        option.value = n.id;
+        option.textContent = n.id;
+        return option;
+      }));
+    }
+    preview.value = primary ?? "";
     if (primary === null) {
       if (lastPrimary !== null) paneArea.showNode(null);
     } else if (primary !== lastPrimary || dataChanged) {
@@ -172,6 +205,8 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
 
   async function openAnalysis(id: string): Promise<void> {
     resultSelection = [];
+    lastPrimary = null;
+    paneArea.showNode(null);
     topbar.setConnection("connecting");
     connection?.dispose();
     connection = null;
@@ -184,6 +219,13 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
       topbar.setConnection("connected");
       sidebar.setAnalyses(analyses, id);
       topbar.setAnalyses(analyses, id);
+      if (options.graphDemo) {
+        const nodes = store.getState().document.structure.nodes;
+        const initial = nodes.find(n => n.kind === "view3d.categoryStyle") ??
+          nodes.find(n => n.kind.startsWith("view3d.")) ?? nodes[0];
+        if (initial) dispatch({ type: "select", ids: [initial.id] });
+        canvasEditor.fit();
+      }
     } catch (e) {
       topbar.setConnection("offline");
       fail(`Could not open flow '${id}': ${e instanceof Error ? e.message : e}`);
@@ -240,6 +282,8 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
     dispatch({ type: "addNode", id, kind: desc.kind, version: desc.version });
     dispatch({ type: "setLayout", nodeId: id, layout: position });
     dispatch({ type: "select", ids: [id] });
+    root.classList.remove("bof-app-catalog-open");
+    shell.graphToolbar.querySelector("button")?.setAttribute("aria-expanded", "false");
   }
 
   // Undo/redo shortcuts (skipped while typing in a field).
@@ -267,7 +311,13 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
       topbar.setConnection("connected");
       // Always land in an open analysis so no click can fail for lack of one;
       // if the stored analysis fails to open, fall back to a fresh one.
-      if (analyses.length > 0) await openAnalysis(analyses[0]!.id);
+      if (options.initialAnalysis) {
+        if (!analyses.some(a => a.id === options.initialAnalysis)) {
+          fail(`Snowdon graph is missing. Start the BIM-profile host with a Snowdon model and an empty store, or import snowdon-toolkit.json (see docs/bim-flow-3d.md).`);
+          return;
+        }
+        await openAnalysis(options.initialAnalysis);
+      } else if (analyses.length > 0) await openAnalysis(analyses[0]!.id);
       if (currentId === null) await newAnalysis();
     } catch {
       topbar.setConnection("offline");
@@ -283,6 +333,7 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
       connection?.dispose();
       canvasEditor.dispose();
       paneArea.dispose();
+      shell.dispose();
       root.ownerDocument.removeEventListener("keydown", onKeyDown);
     },
   };

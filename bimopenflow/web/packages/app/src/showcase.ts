@@ -5,7 +5,7 @@ import "./showcase.css";
 import graphUrl from "../../../../../samples/snowdon-analyses/snowdon-toolkit.json?url";
 
 const root = document.querySelector<HTMLDivElement>("#lab")!;
-root.innerHTML = `<header><a href="/">BIM FLOW</a><span>VISUALIZATION TOOLKIT / 3D LAB</span><label class="file">Open local BOS / BFAST<input type="file" accept=".bos,.bfast" aria-label="Open local model"></label></header>
+root.innerHTML = `<header><a href="/3d.html">BIM FLOW · EDIT GRAPHS</a><span>VISUALIZATION TOOLKIT / 3D LAB</span><label class="file">Open local BOS / BFAST<input type="file" accept=".bos,.bfast" aria-label="Open local model"></label></header>
 <aside><p class="eyebrow">SNOWDON TOWERS</p><h1>A building.<br>Seven ways in.</h1><p class="intro">Explore a model through composable 3D nodes. Each view uses the same pane as the graph editor.</p><nav aria-label="3D examples"></nav><div class="adjust"><label for="amount">Section position <output id="amountLabel">50%</output></label><input id="amount" type="range" min="1" max="99" value="50"></div><p class="note">Source categories drive colors. Sections are uncapped. Exploded positions are presentation offsets, not changes to the building.</p><a class="graph" href="/snowdon-toolkit.json" download>Download the example graph ↗</a></aside>
 <main><div class="view-heading"><div><p class="eyebrow" id="node"></p><h2 id="title"></h2></div><span id="picked">Click geometry to inspect its entity ID</span></div><div id="viewer"></div><footer id="description"></footer></main>`;
 

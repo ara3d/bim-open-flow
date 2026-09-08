@@ -3,7 +3,7 @@
 // store dispatches (in canvasIntents.ts) -> store subscription -> "sync"
 // intent rebuilding the canvas doc from the store.
 
-import { mount, type Runtime } from "gratify";
+import { mount, v, type Runtime } from "gratify";
 import { applyCanvasTheme, defaultCanvasTheme, type CanvasThemeName } from "./canvasTheme.js";
 import type { NodeDescriptor } from "@bimopenflow/contracts";
 import type { Store } from "@bimopenflow/state";
@@ -20,6 +20,7 @@ import { buildCanvasModel, type CanvasModel } from "./viewModel.js";
 export interface CanvasEditor {
   /** Re-derives the canvas doc from the store (e.g. after the catalog loads). */
   refresh(): void;
+  fit(): void;
   /** Switches the canvas theme (see canvasTheme.ts for the names). */
   setTheme(theme: CanvasThemeName): void;
   dispose(): void;
@@ -78,6 +79,18 @@ export function createCanvasEditor(
 
   return {
     refresh: sync,
+    fit() {
+      const nodes = model().nodes;
+      if (!nodes.length) return;
+      const left = Math.min(...nodes.map(n => n.x));
+      const top = Math.min(...nodes.map(n => n.y));
+      const width = Math.max(...nodes.map(n => n.x + n.w)) - left;
+      const height = Math.max(...nodes.map(n => n.y + n.h)) - top;
+      const zoom = Math.max(0.1, Math.min(1, (canvas.clientWidth - 48) / width, (canvas.clientHeight - 72) / height));
+      runtime.viewport = { zoom, pan: v((canvas.clientWidth - width * zoom) / 2 - left * zoom,
+        (canvas.clientHeight - height * zoom) / 2 - top * zoom + 12) };
+      sync();
+    },
     // Live swap: gratify retargets its tokens and cross-fades; the sync wakes
     // the runtime's frame loop so the fade actually runs. Pan/zoom untouched.
     setTheme: (theme) => {

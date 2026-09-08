@@ -68,6 +68,20 @@ html, body { margin: 0; height: 100%; }
 }
 .bof-app-canvas-host { position: relative; min-width: 0; }
 .bof-app-canvas-host canvas { display: block; width: 100%; height: 100%; }
+.bof-app-graph-demo .bof-app-main { grid-template-columns: minmax(0, 1fr) 6px var(--bof-app-right); position: relative; }
+.bof-app-graph-demo .bof-app-sidebar { display: none; }
+.bof-app-graph-demo.bof-app-catalog-open .bof-app-sidebar {
+  display: flex; position: absolute; z-index: 20; top: 42px; left: 8px; bottom: 8px; width: 260px;
+  border: 1px solid var(--bof-app-border); box-shadow: 0 8px 24px #0002;
+}
+.bof-app-graph-demo .bof-app-canvas-host { display: grid; grid-template-rows: 40px minmax(0, 1fr); min-height: 0; overflow: hidden; }
+.bof-app-graph-demo .bof-app-canvas-host canvas { min-height: 0; }
+.bof-app-graph-toolbar { display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-bottom: 1px solid var(--bof-app-border); }
+.bof-app-graph-toolbar[hidden], .bof-app-splitter[hidden] { display: none; }
+.bof-app-graph-toolbar button, .bof-app-graph-toolbar select { font: inherit; padding: 4px 6px; border: 1px solid var(--bof-app-border); border-radius: 4px; background: var(--bof-app-surface); }
+.bof-app-graph-toolbar select { min-width: 0; max-width: 180px; }
+.bof-app-graph-toolbar label { color: var(--bof-app-dim); }
+.bof-app-graph-demo .bof-app-topbar { overflow-x: auto; white-space: nowrap; }
 .bof-app-splitter {
   cursor: col-resize; background: var(--bof-app-bg);
   border-left: 1px solid var(--bof-app-border); border-right: 1px solid var(--bof-app-border);

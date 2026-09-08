@@ -33,10 +33,11 @@ export function createTopbar(root: HTMLElement, handlers: TopbarHandlers): Topba
   title.textContent = "BimOpenFlow";
   const lab = doc.createElement("a");
   lab.href = "/3d.html";
-  lab.textContent = "Snowdon 3D lab";
+  lab.textContent = "Snowdon 3D graphs";
   title.append(" · ", lab);
 
   const picker = doc.createElement("select");
+  picker.setAttribute("aria-label", "Open flow");
   picker.addEventListener("change", () => {
     if (picker.value) handlers.onOpenAnalysis(picker.value);
   });

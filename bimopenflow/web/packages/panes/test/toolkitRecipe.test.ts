@@ -35,6 +35,19 @@ function setup() {
 }
 
 describe("recipe branch isolation with a real viewer binding", () => {
+  it("changes category colors and legend together while retaining opacity", () => {
+    const { recipe, table } = setup();
+    recipe.apply([scene, { operation: "categoryStyle", input: { opacity: .4, palette: "classic" } }]);
+    const original = table.groups.map(group => Array.from(group.colors));
+    const legend = recipe.legend();
+    recipe.apply([scene, { operation: "categoryStyle", input: { opacity: .4, palette: "pastel" } }]);
+    expect(table.groups.map(group => Array.from(group.colors))).not.toEqual(original);
+    expect(recipe.legend().map(entry => entry.color)).not.toEqual(legend.map(entry => entry.color));
+    expect(recipe.legend().map(entry => [entry.name,entry.count])).toEqual(legend.map(entry => [entry.name,entry.count]));
+    expect(Array.from(table.opacity).every(alpha => Math.abs(alpha - .4) < .00001)).toBe(true);
+    recipe.apply([scene, { operation: "categoryStyle", input: { opacity: .4, palette: "classic" } }]);
+    expect(table.groups.map(group => Array.from(group.colors))).toEqual(original);
+  });
   it("restores category opacity after previewing a separate ghost branch", () => {
     const { recipe, table } = setup();
     recipe.apply([scene, categories]);

@@ -4,6 +4,7 @@ import { defaultEnvironment, dirtySets, publishDirty, noClipping, type InstanceT
 import { setProjectionKind } from "@bim-open-toolkit/interact";
 import type { Viewer } from "@bim-open-toolkit/viewer";
 import { sectionElevation, type ViewStep } from "./viewRecipe";
+import { categoryPalettes, type CategoryPaletteName } from "./categoryPalette";
 
 export const recipeFeatures = [clippingFeature, environmentFeature, layoutsFeature];
 export type LegendEntry = { name: string; color: Vec3; count: number };
@@ -13,8 +14,8 @@ export function requireResult<T>(result: Result<T>): T {
   return result.value;
 }
 
-const palette: readonly Vec3[] = [[.18,.55,.83],[.94,.55,.22],[.24,.7,.55],[.65,.4,.78],[.85,.36,.45],[.63,.63,.24]];
-export function categoryRules(model: ModelData, opacity: number): readonly StyleRule[] {
+export function categoryRules(model: ModelData, opacity: number, paletteName: CategoryPaletteName = "classic"): readonly StyleRule[] {
+  const palette = categoryPalettes[paletteName];
   const groups = new Map<string, string[]>();
   for (const record of model.objects) {
     const category = record.category ?? "Unknown category";
@@ -126,7 +127,7 @@ export function mountRecipe(viewer: Viewer, model: ModelData, table: InstanceTab
             viewer.setEnvironment(viewer.session.read(environmentSlice).settings);
             break;
           case "categoryStyle": {
-            const rules = categoryRules(model, step.input.opacity);
+            const rules = categoryRules(model, step.input.opacity, step.input.palette);
             requireResult(viewer.apply(...rules));
             legend = rules.map(rule => ({ name: rule.name, color: rule.change.color ?? [.5,.5,.5], count: rule.targets.length }));
             break;

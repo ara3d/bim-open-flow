@@ -1,5 +1,6 @@
 import type { TableSlice } from "@bimopenflow/contracts";
-import { boolean, literal, number, object, string, tuple, union, type Bounds, type Schema } from "@bim-open-toolkit/model";
+import { boolean, literal, number, object, optional, string, tuple, union, type Bounds, type Schema } from "@bim-open-toolkit/model";
+import { categoryPaletteNames, type CategoryPaletteName } from "./categoryPalette";
 
 export type ViewStep =
   | { operation: "scene"; input: { path: string } }
@@ -10,7 +11,7 @@ export type ViewStep =
   | { operation: "explode"; input: { by: "category"; strength: number } }
   | { operation: "projection"; input: { mode: "perspective" | "orthographic" | "plan" } }
   | { operation: "environment"; input: { theme: "light" | "dark"; grid: boolean } }
-  | { operation: "categoryStyle"; input: { opacity: number } };
+  | { operation: "categoryStyle"; input: { opacity: number; palette?: CategoryPaletteName } };
 
 const stepSchema: Schema<ViewStep> = union<ViewStep>(
   object({ operation: literal("scene"), input: object({ path: string() }) }),
@@ -21,7 +22,7 @@ const stepSchema: Schema<ViewStep> = union<ViewStep>(
   object({ operation: literal("explode"), input: object({ by: literal("category"), strength: number() }) }),
   object({ operation: literal("projection"), input: object({ mode: union(literal("perspective"), literal("orthographic"), literal("plan")) }) }),
   object({ operation: literal("environment"), input: object({ theme: union(literal("light"), literal("dark")), grid: boolean() }) }),
-  object({ operation: literal("categoryStyle"), input: object({ opacity: number() }) }),
+  object({ operation: literal("categoryStyle"), input: object({ opacity: number(), palette: optional(union(...categoryPaletteNames.map(name => literal(name)))) }) }),
 );
 
 /** Validate the complete recipe before changing the view. No arbitrary command dispatch. */

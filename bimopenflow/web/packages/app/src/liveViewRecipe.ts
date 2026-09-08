@@ -45,7 +45,7 @@ export function buildLiveViewRecipe(document: GraphDocument, nodeId: string, cat
         case "sectionBox": input = { fraction: numeric("fraction") }; break;
         case "explode": input = { by: "category", strength: numeric("strength") }; break;
         case "projection": input = { mode: read("mode") }; break;
-        case "categoryStyle": input = { opacity: numeric("opacity") }; break;
+        case "categoryStyle": input = { palette: document.values[current]?.palette ?? descriptor.params.find(p => p.name === "palette")?.default ?? "classic", opacity: numeric("opacity") }; break;
         case "tint": input = { color: read("color"), opacity: numeric("opacityPercent") / 100 }; break;
         case "sectionRange": input = { axis: read("axis"), range: JSON.parse(read("range")) }; break;
         case "environment": {

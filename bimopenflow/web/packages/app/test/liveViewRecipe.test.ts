@@ -7,7 +7,7 @@ const defaults: Record<string, Record<string, string>> = {
   scene: { path: "Snowdon.bos" }, section: { axis: "z", fraction: "0.5" },
   sectionBox: { fraction: "0.5" }, explode: { strength: "0.5" },
   projection: { mode: "orthographic" }, environment: { theme: "light", grid: "true" },
-  categoryStyle: { opacity: "1" }, tint: { color: "#2b8bd6", opacityPercent: "100" },
+  categoryStyle: { palette: "classic", opacity: "1" }, tint: { color: "#2b8bd6", opacityPercent: "100" },
   sectionRange: { axis: "z", range: "[0.3,0.7]" },
 };
 const catalog = new Map<string, NodeDescriptor>(Object.entries(defaults).map(([operation, parameters]) => {
@@ -33,6 +33,11 @@ function steps(document: GraphDocument, nodeId = document.structure.nodes[docume
 }
 
 describe("live view recipes", () => {
+  it("includes the selected palette and rejects unknown palettes", () => {
+    const doc = graph("scene", "categoryStyle");
+    expect(steps({...doc,values:{n1:{palette:"pastel"}}})[1].input.palette).toBe("pastel");
+    expect(buildLiveViewRecipe({...doc,values:{n1:{palette:"invalid"}}},"n1",catalog).kind).toBe("invalid");
+  });
   it("uses current explode slider values immediately and leaves the graph unchanged", () => {
     const original = graph("scene", "explode");
     const changed = { ...original, values: { n1: { strength: "2.35" } } };
@@ -52,7 +57,7 @@ describe("live view recipes", () => {
   it("converts Percent to Fraction once and leaves normalized Fraction values unchanged", () => {
     const doc = graph("scene", "categoryStyle", "tint", "section");
     const result = steps({ ...doc, values: { n1: { opacity: ".25" }, n2: { opacityPercent: "35" }, n3: { fraction: ".8" } } });
-    expect(result[1].input).toEqual({ opacity: .25 });
+    expect(result[1].input).toEqual({ palette: "classic", opacity: .25 });
     expect(result[2].input).toEqual({ color: "#2b8bd6", opacity: .35 });
     expect(result[3].input).toEqual({ axis: "z", fraction: .8 });
   });

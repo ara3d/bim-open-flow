@@ -1,10 +1,12 @@
 import type { TableSlice } from "@bimopenflow/contracts";
-import { boolean, literal, number, object, string, union, type Bounds, type Schema } from "@bim-open-toolkit/model";
+import { boolean, literal, number, object, string, tuple, union, type Bounds, type Schema } from "@bim-open-toolkit/model";
 
 export type ViewStep =
   | { operation: "scene"; input: { path: string } }
   | { operation: "section"; input: { axis: "x" | "y" | "z"; fraction: number } }
   | { operation: "sectionBox"; input: { fraction: number } }
+  | { operation: "sectionRange"; input: { axis: "x" | "y" | "z"; range: readonly [number, number] } }
+  | { operation: "tint"; input: { color: string; opacity: number } }
   | { operation: "explode"; input: { by: "category"; strength: number } }
   | { operation: "projection"; input: { mode: "perspective" | "orthographic" | "plan" } }
   | { operation: "environment"; input: { theme: "light" | "dark"; grid: boolean } }
@@ -14,6 +16,8 @@ const stepSchema: Schema<ViewStep> = union<ViewStep>(
   object({ operation: literal("scene"), input: object({ path: string() }) }),
   object({ operation: literal("section"), input: object({ axis: union(literal("x"), literal("y"), literal("z")), fraction: number() }) }),
   object({ operation: literal("sectionBox"), input: object({ fraction: number() }) }),
+  object({ operation: literal("sectionRange"), input: object({ axis: union(literal("x"), literal("y"), literal("z")), range: tuple(number(), number()) }) }),
+  object({ operation: literal("tint"), input: object({ color: string(), opacity: number() }) }),
   object({ operation: literal("explode"), input: object({ by: literal("category"), strength: number() }) }),
   object({ operation: literal("projection"), input: object({ mode: union(literal("perspective"), literal("orthographic"), literal("plan")) }) }),
   object({ operation: literal("environment"), input: object({ theme: union(literal("light"), literal("dark")), grid: boolean() }) }),
@@ -37,7 +41,9 @@ export function parseViewRecipe(table: TableSlice): readonly ViewStep[] {
       if (step.input.fraction < min || step.input.fraction > 1) throw new Error("Section fraction is out of range.");
     }
     if (step.operation === "explode" && (step.input.strength < 0 || step.input.strength > 5)) throw new Error("Explode strength is out of range.");
-    if (step.operation === "categoryStyle" && (step.input.opacity < 0 || step.input.opacity > 1)) throw new Error("Opacity is out of range.");
+    if ((step.operation === "categoryStyle" || step.operation === "tint") && (step.input.opacity < 0 || step.input.opacity > 1)) throw new Error("Opacity is out of range.");
+    if (step.operation === "tint" && !/^#[0-9a-f]{6}$/i.test(step.input.color)) throw new Error("Color must be #RRGGBB.");
+    if (step.operation === "sectionRange" && (step.input.range[0] < 0 || step.input.range[1] > 1 || step.input.range[0] > step.input.range[1])) throw new Error("Section range must be ordered fractions between 0 and 1.");
     return step;
   });
 }

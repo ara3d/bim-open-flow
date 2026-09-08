@@ -11,7 +11,9 @@ export type ParamKind =
   | "ModelRef"
   | "Expression"
   | "Json"
-  | "DateTime";
+  | "DateTime"
+  | "Fraction"
+  | "Percent";
 
 export type PortType =
   | "Boolean"
@@ -79,6 +81,16 @@ export interface ParamDescriptor {
   default: string;
   enumValues?: string[] | undefined;
   suggest?: SuggestDescriptor | undefined;
+  control?: ControlDescriptor | undefined;
+}
+
+export interface ControlDescriptor {
+  kind: string;
+  min?: number | undefined;
+  max?: number | undefined;
+  step?: number | undefined;
+  unit?: string | undefined;
+  label?: string | undefined;
 }
 
 export interface SuggestDescriptor {

@@ -89,7 +89,7 @@ describe("buildCanvasModel", () => {
       },
     });
     const model = buildCanvasModel(store.getState(), catalog);
-    expect(model.edges).toEqual([{ id: edgeId("a.out", "b.in"), from: "a.out", to: "b.in" }]);
+    expect(model.edges).toEqual([{ id: edgeId("a.out", "b.in"), from: "a.out", to: "b.in", contributing: true }]);
     expect(model.nodes.find((n) => n.id === "a")!.status).toBe("Error");
     expect(model.nodes.find((n) => n.id === "b")!.selected).toBe(true);
     expect(model.nodes.find((n) => n.id === "a")!.selected).toBe(false);

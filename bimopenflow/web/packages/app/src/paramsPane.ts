@@ -7,11 +7,10 @@ import type { ParamDescriptor } from "@bimopenflow/contracts";
 import type { Pane, PaneContext, PaneEvent, PaneInput } from "@bimopenflow/panes";
 import {
   fromDatetimeLocal,
-  normalizeInteger,
-  normalizeNumber,
   toDatetimeLocal,
 } from "./paramText.js";
 import { attachSuggestions, type SuggestFetch } from "./suggestInput.js";
+import { displayScale, isNumericParam, numericDisplay, numericFromDisplay, numericLimits, numericValue, paramLabel } from "./numericParam";
 
 function editorFor(
   doc: Document,
@@ -20,6 +19,38 @@ function editorFor(
   onChange: (value: string) => void,
   suggest?: { fetch: SuggestFetch; listId: string; onDetach: (fn: () => void) => void },
 ): HTMLElement {
+  if (param.control?.kind === "range") {
+    const group = doc.createElement("div");
+    group.style.cssText = "display:flex;gap:8px;min-width:0";
+    const control = param.control;
+    let pair: number[];
+    try { pair = JSON.parse(value); } catch { pair = []; }
+    if (!Array.isArray(pair) || pair.length !== 2 || !pair.every(Number.isFinite)) pair = [control.min ?? 0, control.max ?? 1];
+    const fields = [0,1].map(index => {
+      const field = doc.createElement("input");
+      field.type = "number";
+      field.style.minWidth = "0";
+      field.setAttribute("aria-label", `${paramLabel(param.name,param.kind,control)} ${index === 0 ? "start" : "end"}`);
+      field.step = String((control.step ?? .01)*displayScale(control));
+      field.addEventListener("change", () => {
+        const next = numericValue("Fraction",numericFromDisplay(field.value,control),control);
+        if (next !== null) {
+          pair[index] = index === 0 ? Math.min(Number(next),pair[1]!) : Math.max(Number(next),pair[0]!);
+          onChange(JSON.stringify(pair));
+        }
+        sync();
+      });
+      group.append(field);
+      return field;
+    });
+    const sync = () => fields.forEach((field,index) => {
+      field.value = numericDisplay(String(pair[index]),control);
+      field.min = numericDisplay(String(index === 0 ? control.min ?? 0 : pair[0]),control);
+      field.max = numericDisplay(String(index === 1 ? control.max ?? 1 : pair[1]),control);
+    });
+    sync();
+    return group;
+  }
   if (param.kind === "Enum") {
     const select = doc.createElement("select");
     for (const option of param.enumValues ?? []) {
@@ -47,15 +78,21 @@ function editorFor(
     return input;
   }
   const input = doc.createElement("input");
-  input.type = "text";
+  input.type = param.control?.kind === "color" ? "color" : "text";
   input.value = value;
-  if (param.kind === "Integer" || param.kind === "Number") {
+  if (isNumericParam(param.kind)) {
+    input.type = "number";
+    const limits = numericLimits(param.kind,param.control);
+    const scale = displayScale(param.control);
+    input.value = numericDisplay(value,param.control);
+    input.step = limits.step === undefined ? "any" : String(limits.step*scale);
+    if (limits.min !== undefined) input.min = String(limits.min*scale);
+    if (limits.max !== undefined) input.max = String(limits.max*scale);
     input.inputMode = "decimal";
     input.addEventListener("change", () => {
-      const normalize = param.kind === "Integer" ? normalizeInteger : normalizeNumber;
-      const canonical = input.value.trim() === "" ? "" : normalize(input.value);
-      if (canonical === null) input.value = value; // invalid: revert
-      else onChange(canonical);
+      const canonical = numericValue(param.kind,numericFromDisplay(input.value,param.control),param.control);
+      if (canonical === null) input.value = numericDisplay(value,param.control);
+      else { input.value = numericDisplay(canonical,param.control); onChange(canonical); }
     });
     return input;
   }
@@ -103,7 +140,7 @@ export function createParamsPane(): Pane {
     grid.className = "bof-app-params";
     for (const param of input.node.params) {
       const label = doc.createElement("label");
-      label.textContent = param.name;
+      label.textContent = paramLabel(param.name,param.kind,param.control);
       grid.appendChild(label);
       grid.appendChild(
         editorFor(doc, param, input.values[param.name] ?? param.default, (value) =>

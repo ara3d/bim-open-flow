@@ -63,7 +63,7 @@ const lightPalette: Palette = {
   surfaceHi: rgb(243, 241, 236),
   muted: rgb(213, 210, 203),
   text: rgb(45, 44, 40),
-  textDim: rgb(138, 136, 128),
+  textDim: rgb(72, 71, 66),
   textBright: rgb(26, 26, 24),
   accent: rgb(26, 26, 24),
   accent2: rgb(138, 136, 128),

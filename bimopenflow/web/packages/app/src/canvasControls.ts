@@ -31,7 +31,9 @@ import {
   Tokens,
   v,
 } from "gratify";
-import type { ParamKind, SuggestDescriptor, SuggestionList } from "@bimopenflow/contracts";
+import type { ControlDescriptor, ParamKind, SuggestDescriptor, SuggestionList } from "@bimopenflow/contracts";
+import { rangeSlot, sliderSlot } from "./graphWidgets";
+import { displayScale, isNumericParam, numericDisplay, numericFromDisplay, numericLimits, numericValue, paramLabel } from "./numericParam";
 import { attachSuggestions } from "./suggestInput.js";
 import type { CanvasParam } from "./canvasSlots.js";
 import { COMPACT_SLOT_H, FIELD_SLOT_H } from "./canvasSlots.js";
@@ -44,8 +46,8 @@ import {
   toDatetimeLocal,
 } from "./paramText.js";
 
-const LABEL_SIZE = 10;
-const VALUE_SIZE = 11;
+const LABEL_SIZE = 14;
+const VALUE_SIZE = 14;
 
 // ── Boolean: a toggle switch ─────────────────────────────────────────────────
 
@@ -115,6 +117,10 @@ type EnumIntent =
   | { kind: "close" }
   | { kind: "pick"; value: string };
 
+// Native fields sit above canvas paint. While a canvas dropdown is modal,
+// detach those fields so they cannot cover or intercept its option list.
+const openDropdowns = new Set<string>();
+
 interface OptionRowProps {
   text: string;
   selected: boolean;
@@ -156,6 +162,9 @@ const EnumSlot = part<EnumSlotProps, { label: Color; field: Color; edge: Color; 
     size: (p) => v(p.w, COMPACT_SLOT_H),
     localInit: { open: false } as EnumLocal,
     reduce(local: EnumLocal, intent: EnumIntent, node: GNode<EnumSlotProps>) {
+      const key = `${node.props.nodeId}::${node.props.name}`;
+      if (intent.kind === "toggle" && !local.open) openDropdowns.add(key);
+      else openDropdowns.delete(key);
       switch (intent.kind) {
         case "toggle":
           return [{ open: !local.open }] as const;
@@ -237,6 +246,7 @@ interface IslandSlotProps {
   value: string;
   w: number;
   suggest?: SuggestDescriptor;
+  control?: ControlDescriptor;
   states?: Record<string, boolean>;
 }
 
@@ -261,6 +271,7 @@ export function setSuggestionProvider(fn: SuggestionProvider | null): void {
 interface IslandEntry {
   el: HTMLInputElement;
   themeV: number;
+  descriptor: string;
   /** Canonical value last pushed into the element (revert target). */
   canonical: string;
   paramKind: ParamKind;
@@ -273,6 +284,7 @@ export const islandKey = (nodeId: string, name: string): string => `${nodeId}::$
 
 /** Drops island elements for (node, param) keys no longer on the canvas. */
 export function pruneInlineControls(liveKeys: ReadonlySet<string>): void {
+  for (const key of openDropdowns) if (!liveKeys.has(key)) openDropdowns.delete(key);
   for (const [key, entry] of islands) {
     if (!liveKeys.has(key)) {
       entry.detachSuggest?.();
@@ -306,7 +318,7 @@ function toCanonical(kind: ParamKind, text: string): string | null {
 function styleIsland(el: HTMLInputElement, palette: Omit<Tokens, "mix">): void {
   el.style.cssText =
     "box-sizing:border-box;width:100%;height:100%;border-radius:5px;" +
-    "padding:0 7px;font:11px system-ui,'Segoe UI',sans-serif;outline:none;" +
+    "padding:0 7px;font:14px system-ui,'Segoe UI',sans-serif;outline:none;" +
     `border:1px solid ${css(palette.muted)};` +
     `background:${css(palette.bg)};color:${css(palette.text)};`;
   el.style.colorScheme = currentCanvasTheme().includes("light") ? "light" : "dark";
@@ -316,22 +328,41 @@ function styleIsland(el: HTMLInputElement, palette: Omit<Tokens, "mix">): void {
 
 function islandFor(props: IslandSlotProps): IslandEntry {
   const key = islandKey(props.nodeId, props.name);
+  const descriptor = JSON.stringify([props.paramKind, props.control, props.suggest]);
   let entry = islands.get(key);
+  // Node IDs can be reused in another flow, and the catalog can gain controls
+  // after refresh. Old DOM listeners must not retain the previous units/type.
+  if (entry && entry.descriptor !== descriptor) {
+    entry.detachSuggest?.();
+    entry.el.remove();
+    islands.delete(key);
+    entry = undefined;
+  }
   if (!entry) {
     const el = document.createElement("input");
     el.setAttribute("aria-label", `${props.nodeId} ${props.name}`);
-    el.type = props.paramKind === "DateTime" ? "datetime-local" : "text";
+    el.type = props.control?.kind === "color" ? "color" : props.paramKind === "DateTime" ? "datetime-local" :
+      isNumericParam(props.paramKind) ? "number" : "text";
+    if (el.type === "number") {
+      const limits = numericLimits(props.paramKind,props.control);
+      const scale = displayScale(props.control);
+      el.step = limits.step === undefined ? "any" : String(limits.step*scale);
+      if (limits.min !== undefined) el.min = String(limits.min*scale);
+      if (limits.max !== undefined) el.max = String(limits.max*scale);
+    }
     if (props.paramKind === "Integer" || props.paramKind === "Number")
       el.inputMode = "decimal";
     el.spellcheck = false;
-    el.value = toInputValue(props.paramKind, props.value);
-    entry = { el, themeV: -1, canonical: props.value, paramKind: props.paramKind };
+    const display = (value: string) => isNumericParam(props.paramKind) ? numericDisplay(value,props.control) : toInputValue(props.paramKind,value);
+    el.value = display(props.value);
+    entry = { el, themeV: -1, descriptor, canonical: props.value, paramKind: props.paramKind };
     const commit = () => {
-      const canonical = toCanonical(entry!.paramKind, el.value);
+      const canonical = isNumericParam(entry!.paramKind) ? numericValue(entry!.paramKind,numericFromDisplay(el.value,props.control),props.control) : toCanonical(entry!.paramKind, el.value);
       if (canonical === null || canonical === entry!.canonical) {
-        el.value = toInputValue(entry!.paramKind, entry!.canonical); // revert
+        el.value = display(entry!.canonical); // revert
         return;
       }
+      el.value = display(canonical);
       entry!.canonical = canonical;
       dispatchIntent({ kind: "setParam", nodeId: props.nodeId, name: props.name, value: canonical });
     };
@@ -344,7 +375,7 @@ function islandFor(props: IslandSlotProps): IslandEntry {
     el.addEventListener("keydown", (e) => {
       if (e.key === "Enter") el.blur();
       if (e.key === "Escape") {
-        el.value = toInputValue(entry!.paramKind, entry!.canonical);
+        el.value = display(entry!.canonical);
         el.blur();
         e.stopPropagation();
       }
@@ -354,7 +385,7 @@ function islandFor(props: IslandSlotProps): IslandEntry {
   // External changes (undo, another editor) flow in unless the user is typing.
   if (entry.el.ownerDocument.activeElement !== entry.el && entry.canonical !== props.value) {
     entry.canonical = props.value;
-    entry.el.value = toInputValue(props.paramKind, props.value);
+    entry.el.value = isNumericParam(props.paramKind) ? numericDisplay(props.value,props.control) : toInputValue(props.paramKind, props.value);
   }
   if (entry.themeV !== themeVersion) {
     entry.themeV = themeVersion;
@@ -371,18 +402,19 @@ const IslandSlot = part<IslandSlotProps, { label: Color }>("bof-slot-island", {
   render(node, painter, style) {
     const r = node.rect;
     if (layoutOf(node.props.paramKind) === "compact") {
-      painter.label(node.props.name, v(r.x, r.center.y), style.label, {
+      painter.label(paramLabel(node.props.name,node.props.paramKind,node.props.control), v(r.x, r.center.y), style.label, {
         align: "left",
         size: LABEL_SIZE,
       });
     } else {
-      painter.label(node.props.name, v(r.x, r.y + 6), style.label, {
+      painter.label(paramLabel(node.props.name,node.props.paramKind,node.props.control), v(r.x, r.y + 6), style.label, {
         align: "left",
         size: LABEL_SIZE,
       });
     }
   },
   island(node) {
+    if (openDropdowns.size) return null;
     const r = node.rect;
     const compact = layoutOf(node.props.paramKind) === "compact";
     const inputRect = compact
@@ -393,11 +425,20 @@ const IslandSlot = part<IslandSlotProps, { label: Color }>("bof-slot-island", {
 });
 
 const layoutOf = (kind: ParamKind): IslandLayout =>
-  kind === "Integer" || kind === "Number" ? "compact" : "field";
+  isNumericParam(kind) ? "compact" : "field";
 
 // ── Slot factory: one element per inline param, chosen by kind ───────────────
 
 export function slotElement(nodeId: string, param: CanvasParam, w: number): Element {
+  if (param.kind !== "Enum" || param.control?.kind === "range" || param.control?.kind === "slider")
+    openDropdowns.delete(islandKey(nodeId, param.name));
+  const field = () => IslandSlot("field", {
+    nodeId, name: param.name, paramKind: param.kind, value: param.value, w,
+    ...(param.suggest ? { suggest: param.suggest } : {}),
+    ...(param.control ? { control: param.control } : {}),
+  });
+  if (param.control?.kind === "range") return rangeSlot(nodeId,param,w);
+  if (param.control?.kind === "slider") return sliderSlot(nodeId,param,w,field());
   switch (param.kind) {
     case "Boolean":
       return BoolSlot(param.name, {
@@ -422,6 +463,7 @@ export function slotElement(nodeId: string, param: CanvasParam, w: number): Elem
         value: param.value,
         w,
         ...(param.suggest ? { suggest: param.suggest } : {}),
+        ...(param.control ? { control: param.control } : {}),
       });
   }
 }

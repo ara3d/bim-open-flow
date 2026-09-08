@@ -6,6 +6,7 @@
 import type { PortType } from "@bimopenflow/contracts";
 import type { Store } from "@bimopenflow/state";
 import type { CanvasModel } from "./viewModel.js";
+import { previewAfterEdit } from "./graphPreview";
 
 export type AnchorDir = "in" | "out";
 
@@ -65,6 +66,7 @@ export type CanvasIntent =
 export function makeCanvasUpdate(
   store: Store,
   onError: (message: string) => void,
+  getPreview: () => string | null = () => store.getState().selection.at(-1) ?? null,
 ): (doc: CanvasModel, intent: CanvasIntent) => CanvasModel {
   const dispatch = (action: Parameters<Store["dispatch"]>[0]): void => {
     try {
@@ -97,10 +99,12 @@ export function makeCanvasUpdate(
         const b = parseAnchorId(intent.b);
         const [from, to] = a.dir === "out" ? [a, b] : [b, a];
         dispatch({ type: "connect", from: from.endpoint, to: to.endpoint });
+        dispatch({ type: "select", ids: [previewAfterEdit(store.getState().document,to.nodeId,getPreview())] });
         return doc;
       }
 
       case "setParam":
+        dispatch({ type: "select", ids: [previewAfterEdit(store.getState().document,intent.nodeId,getPreview())] });
         dispatch({
           type: "setParam",
           nodeId: intent.nodeId,

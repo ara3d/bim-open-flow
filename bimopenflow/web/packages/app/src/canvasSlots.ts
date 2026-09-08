@@ -7,7 +7,7 @@
 // the label on the left; text-like kinds (Text, FilePath, DateTime) get a
 // caption line plus a full-width input, because values need the width.
 
-import type { ParamDescriptor, ParamKind, SuggestDescriptor } from "@bimopenflow/contracts";
+import type { ControlDescriptor, ParamDescriptor, ParamKind, SuggestDescriptor } from "@bimopenflow/contracts";
 
 export interface CanvasParam {
   readonly name: string;
@@ -15,20 +15,22 @@ export interface CanvasParam {
   readonly value: string;
   readonly enumValues?: readonly string[];
   readonly suggest?: SuggestDescriptor;
+  readonly control?: ControlDescriptor;
 }
 
 /** Kinds edited inline on the node. Json/Expression/ModelRef stay in the
  *  params pane: they need more room than a node slot can honestly give. */
 const INLINE: ReadonlySet<ParamKind> = new Set([
-  "Boolean", "Enum", "Integer", "Number", "Text", "FilePath", "DateTime",
+  "Boolean", "Enum", "Integer", "Number", "Fraction", "Percent", "Text", "FilePath", "DateTime",
 ]);
 
 export const isInlineKind = (kind: ParamKind): boolean => INLINE.has(kind);
 
 /** Single compact row: label left, control right. */
-export const COMPACT_SLOT_H = 24;
+export const COMPACT_SLOT_H = 32;
 /** Caption line + full-width input. */
-export const FIELD_SLOT_H = 42;
+export const FIELD_SLOT_H = 50;
+export const WIDGET_SLOT_H = 70;
 
 export const slotHeight = (kind: ParamKind): number => {
   switch (kind) {
@@ -36,6 +38,8 @@ export const slotHeight = (kind: ParamKind): number => {
     case "Enum":
     case "Integer":
     case "Number":
+    case "Fraction":
+    case "Percent":
       return COMPACT_SLOT_H;
     case "Text":
     case "FilePath":
@@ -71,6 +75,7 @@ export function inlineParams(
       value: values[p.name] ?? p.default,
       ...(p.enumValues ? { enumValues: p.enumValues } : {}),
       ...(p.suggest ? { suggest: p.suggest } : {}),
+      ...(p.control ? { control: p.control } : {}),
     }));
 }
 
@@ -82,7 +87,7 @@ export function placeSlots(
   if (params.length === 0) return { slots: [], bottom: topOffset };
   let y = topOffset + SLOTS_PAD_TOP;
   const slots = params.map((param) => {
-    const h = slotHeight(param.kind);
+    const h = param.control?.kind === "slider" || param.control?.kind === "range" ? WIDGET_SLOT_H : slotHeight(param.kind);
     const placed = { param, y, h };
     y += h + SLOT_GAP;
     return placed;

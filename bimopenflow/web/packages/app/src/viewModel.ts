@@ -4,6 +4,7 @@
 import type { NodeDescriptor, NodeStatus, PortType } from "@bimopenflow/contracts";
 import type { State } from "@bimopenflow/state";
 import { inlineParams, placeSlots, type CanvasParam } from "./canvasSlots.js";
+import { upstreamIds } from "./graphPreview";
 
 export interface CanvasPort {
   readonly name: string;
@@ -23,12 +24,14 @@ export interface CanvasNode {
   readonly params: readonly CanvasParam[];
   readonly status?: NodeStatus;
   readonly selected: boolean;
+  readonly contributing?: boolean;
 }
 
 export interface CanvasEdge {
   readonly id: string; // "from->to", stable across rebuilds
   readonly from: string; // "nodeId.port"
   readonly to: string;
+  readonly contributing?: boolean;
 }
 
 export interface CanvasModel {
@@ -39,9 +42,9 @@ export interface CanvasModel {
 
 export const NODE_WIDTH = 184;
 /** Nodes with inline param slots get extra width so field values stay legible. */
-export const WIDE_NODE_WIDTH = 240;
-export const PORT_SPACING = 20;
-export const NODE_HEADER = 36;
+export const WIDE_NODE_WIDTH = 260;
+export const PORT_SPACING = 24;
+export const NODE_HEADER = 46;
 
 export function nodeWidth(params: readonly CanvasParam[]): number {
   return params.length > 0 ? WIDE_NODE_WIDTH : NODE_WIDTH;
@@ -109,8 +112,10 @@ export function edgeId(from: string, to: string): string {
 export function buildCanvasModel(
   state: State,
   catalog: ReadonlyMap<string, NodeDescriptor>,
+  preview: string | null = state.selection.at(-1) ?? null,
 ): CanvasModel {
   const selected = new Set(state.selection);
+  const contributing = upstreamIds(state.document,preview);
   let unplaced = 0;
   const nodes = state.document.structure.nodes.map((n) => {
     const desc = catalog.get(n.kind);
@@ -131,12 +136,14 @@ export function buildCanvasModel(
       params,
       status: state.evalState[n.id]?.status,
       selected: selected.has(n.id),
+      contributing: contributing.has(n.id),
     };
   });
   const edges = state.document.structure.edges.map((e) => ({
     id: edgeId(e.from, e.to),
     from: e.from,
     to: e.to,
+    contributing: contributing.has(e.from.split(".")[0]!) && contributing.has(e.to.split(".")[0]!),
   }));
   return { nodes, edges, selectedEdgeId: null };
 }

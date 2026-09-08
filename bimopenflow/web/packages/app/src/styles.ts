@@ -95,6 +95,9 @@ html, body { margin: 0; height: 100%; }
   display: flex; flex-direction: column; min-height: 0; min-width: 0;
   background: var(--bof-app-surface);
 }
+.bof-app-preview-source { padding: 8px 12px; font-size: 14px; font-weight: 600; white-space: pre-line; line-height: 1.6; border-bottom: 1px solid var(--bof-app-border); }
+.bof-app-preview-source:empty { display: none; }
+.bof-app-preview-source[role="alert"] { color: #b91c1c; }
 .bof-app-tabs {
   display: flex; gap: 2px; padding: 4px 6px 0;
   border-bottom: 1px solid var(--bof-app-border); flex: none;

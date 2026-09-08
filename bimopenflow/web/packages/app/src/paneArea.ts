@@ -26,6 +26,8 @@ import {
 } from "./paneChoice.js";
 import { createParamsPane } from "./paramsPane.js";
 import { completeTable } from "./completeTable.js";
+import type { LiveViewRecipe } from "./liveViewRecipe";
+import { nodeTitle } from "./graphPreview";
 
 const PANE_LABELS: Record<PaneKind, string> = {
   verdict: "Verdicts",
@@ -41,7 +43,7 @@ const paneFactory = (kind: PaneKind, chartOptions: ChartPaneOptions): Pane => {
     case "table": return createTablePane();
     case "chart": return createChartPane(chartOptions);
     case "verdict": return createVerdictPane();
-    case "view3d": return createViewPane3D();
+    case "view3d": return createViewPane3D({ followGraph: true });
     case "params": return createParamsPane();
     case "inspector": return createInspectorPane();
   }
@@ -55,6 +57,9 @@ interface ShownNode {
   /** Model file path feeding this node (see modelRef.modelPathFor); lets the
    * 3D pane load the model behind the instance/box tables. */
   modelPath?: string;
+  pending?: boolean;
+  live?: LiveViewRecipe;
+  lineage?: string;
 }
 
 export interface PaneAreaDeps {
@@ -81,11 +86,14 @@ export interface PaneArea {
 export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea {
   ensurePaneStyles(root.ownerDocument);
   root.classList.add("bof-app-panearea");
+  const source = root.ownerDocument.createElement("div");
+  source.className = "bof-app-preview-source";
+  source.setAttribute("role", "status");
   const tabs = root.ownerDocument.createElement("div");
   tabs.className = "bof-app-tabs";
   const body = root.ownerDocument.createElement("div");
   body.className = "bof-app-panebody";
-  root.append(tabs, body);
+  root.append(source, tabs, body);
 
   let shown: ShownNode | null = null;
   let activeKind: PaneKind | null = null;
@@ -156,6 +164,15 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
       }
       const port = firstTableOutput(desc);
       if (!port) return;
+      if (activeKind === "view3d" && shown.live?.kind !== "unsupported" && shown.live) {
+        if (shown.live.kind === "invalid") return;
+        const token = ++fetchToken;
+        const data = shown.live.data;
+        await feedModel(pane,token);
+        if (token === fetchToken && pane === activePane) pane.update({kind:"view",data});
+        return;
+      }
+      if (shown.pending) return; // Wait for autosave/evaluation, not the previous result.
       if (!hasResults(state)) return; // no result on the host yet; pane stays empty
       const token = ++fetchToken;
       if (activeKind === "view3d") await feedModel(pane, token);
@@ -215,6 +232,11 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
         shown?.desc?.outputs.some(p => p.name === "view") &&
         next?.desc?.outputs.some(p => p.name === "view");
       shown = next;
+      const live = next?.live;
+      const error = live?.kind === "invalid" ? live.message : live?.kind === "ready" ? null : next?.state && !hasResults(next.state) ? next.state.error ?? next.state.status : null;
+      source.textContent = next ? `Preview: ${nodeTitle(next.desc?.kind ?? "")} (${next.nodeId}) · ${error ?? (next.pending ? "live · saving…" : "live graph output")}${next.lineage ? `\n${next.lineage}` : ""}` : "";
+      source.setAttribute("role", error ? "alert" : "status");
+      body.style.visibility = error ? "hidden" : "";
       if (!next) {
         activeKind = null;
         rebuildTabs([]);

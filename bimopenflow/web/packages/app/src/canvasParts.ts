@@ -22,6 +22,7 @@ import {
   Vec,
   vdist,
   wireDist,
+  withExt,
 } from "gratify";
 import type { PortType } from "@bimopenflow/contracts";
 import type { CanvasEdge, CanvasModel, CanvasNode } from "./viewModel.js";
@@ -29,6 +30,9 @@ import { NODE_HEADER, PORT_SPACING } from "./viewModel.js";
 import { placeSlots, SLOT_X_PAD } from "./canvasSlots.js";
 import { slotElement } from "./canvasControls.js";
 import { canvasColors } from "./canvasTheme.js";
+import { nodeTitle } from "./graphPreview";
+import { animateSelection, selectionBorder } from "./selectionBorder";
+const selectedBorder = selectionBorder(() => canvasColors().wireSelected, animateSelection);
 import { anchorId, canConnect, parseAnchorId, type CanvasIntent } from "./canvasIntents.js";
 
 const SOCKET_RADIUS = 4.5;
@@ -36,9 +40,9 @@ const SOCKET_GRAB_RADIUS = 12;
 
 // Type sizes: id must read at a glance, kind and port labels stay secondary
 // but never below 10px.
-const ID_SIZE = 13;
-const KIND_SIZE = 10;
-const PORT_SIZE = 10;
+const ID_SIZE = 17;
+const KIND_SIZE = 13;
+const PORT_SIZE = 13;
 
 // ── Surface ──────────────────────────────────────────────────────────────────
 
@@ -82,7 +86,6 @@ interface NodeStyle {
   edge: Color;
   text: Color;
   dim: Color;
-  lift: number;
   socket: Color;
 }
 
@@ -127,6 +130,7 @@ const portAnchors = (node: GNode<NodeProps>): PortAnchor[] => {
 const anchorEnd = (a: Anchor) => metaOf(a);
 
 const GraphNodePart = part<NodeProps, NodeStyle>("bof-node", {
+  channels: { enter: { target: () => 1, rate: 1000 } },
   size: (p) => v(p.w, p.h),
   anchors: portAnchors,
 
@@ -145,21 +149,20 @@ const GraphNodePart = part<NodeProps, NodeStyle>("bof-node", {
     edge: t.mix(t.muted, t.accent, (channels.sel || 0) + 0.5 * channels.hover),
     text: t.mix(t.text, t.textBright, 0.4 + 0.6 * channels.hover),
     dim: t.textDim,
-    lift: 3 * channels.drag,
     socket: t.accent,
   }),
 
   render(node, painter, style) {
-    const r = node.rect.raise(style.lift);
+    const r = node.rect;
     const p = node.props;
-    painter.box(r, 8, style.fill, style.edge, 1.2 + (node.ch.sel || 0) * 1.2);
+    painter.box(r, 8, style.fill, p.contributing ? canvasColors().wireSelected : style.edge, p.contributing ? 2 : 1.2);
     // Header (NODE_HEADER tall) holds id + kind; port rows start below it.
-    painter.label(p.id, v(r.x + 12, r.y + 13), style.text, {
+    painter.label(nodeTitle(p.kind), v(r.x + 12, r.y + 16), style.text, {
       align: "left",
       weight: 600,
       size: ID_SIZE,
     });
-    painter.label(p.kind, v(r.x + 12, r.y + NODE_HEADER - 9), style.dim, {
+    painter.label(p.id, v(r.x + 12, r.y + NODE_HEADER - 9), style.dim, {
       align: "left",
       size: KIND_SIZE,
     });
@@ -221,9 +224,10 @@ const GraphNodePart = part<NodeProps, NodeStyle>("bof-node", {
     }),
 
     // Node move: transient "move" intents while dragging, one "moveEnd" commit.
-    Gesture<NodeProps, { grabOffset: Vec }>({
+    Gesture<NodeProps, { grabOffset: Vec; start: Vec }>({
       begin: (node, pointer) => ({
         grabOffset: v(pointer.x - node.props.pos.x, pointer.y - node.props.pos.y),
+        start: node.props.pos,
       }),
       during: (state, node, pointer) =>
         ({
@@ -232,11 +236,9 @@ const GraphNodePart = part<NodeProps, NodeStyle>("bof-node", {
           x: pointer.x - state.grabOffset.x,
           y: pointer.y - state.grabOffset.y,
         }) satisfies CanvasIntent,
-      up: (_state, node) =>
-        [
-          { kind: "moveEnd", id: node.props.id },
-          { kind: "selectNode", id: node.props.id },
-        ] satisfies CanvasIntent[],
+      up: (state, node) => [vdist(state.start,node.props.pos) > 3
+        ? { kind: "moveEnd", id: node.props.id }
+        : { kind: "selectNode", id: node.props.id }] satisfies CanvasIntent[],
     }),
   ],
 });
@@ -248,6 +250,7 @@ interface WireProps {
   from: string; // anchor id
   to: string;
   states?: Record<string, boolean>;
+  contributing?: boolean;
 }
 
 const Wire = part<WireProps, { color: Color; selected: number }>("bof-wire", {
@@ -271,7 +274,7 @@ const Wire = part<WireProps, { color: Color; selected: number }>("bof-wire", {
     const b = node.anchor?.(node.props.to);
     if (!a || !b) return;
     painter.wire(a, b, canvasColors().wireShadow, 4);
-    painter.wire(a, b, calpha(style.color, 0.9), 2 + 1.4 * style.selected + 0.8 * node.ch.hover);
+    painter.wire(a, b, node.props.contributing ? canvasColors().wireSelected : calpha(style.color, 0.9), node.props.contributing ? 3 : 2 + 1.4 * style.selected + 0.8 * node.ch.hover);
   },
 
   on: [
@@ -313,15 +316,16 @@ export function canvasView(model: CanvasModel): Element {
           id: edge.id,
           from,
           to,
+          contributing: edge.contributing,
           states: { sel: model.selectedEdgeId === edge.id },
         });
       }),
       ...model.nodes.map((n) =>
-        GraphNodePart(
+        withExt(GraphNodePart(
           n.id,
           { ...n, pos: v(n.x, n.y), states: { sel: n.selected } },
           n.params.map((param) => slotElement(n.id, param, n.w - 2 * SLOT_X_PAD)),
-        )),
+        ), selectedBorder)),
     ]),
     onScreenLayer(
       Stack("hud", { pad: 10 }, [

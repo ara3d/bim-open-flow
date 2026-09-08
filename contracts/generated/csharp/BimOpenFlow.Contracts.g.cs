@@ -19,6 +19,8 @@ public enum ParamKind
     Expression,
     Json,
     DateTime,
+    Fraction,
+    Percent,
 }
 
 public enum PortType
@@ -99,7 +101,16 @@ public sealed record ParamDescriptor(
     ParamKind Kind,
     string Default,
     IReadOnlyList<string>? EnumValues,
-    SuggestDescriptor? Suggest);
+    SuggestDescriptor? Suggest,
+    ControlDescriptor? Control);
+
+public sealed record ControlDescriptor(
+    string Kind,
+    double? Min,
+    double? Max,
+    double? Step,
+    string? Unit,
+    string? Label);
 
 public sealed record SuggestDescriptor(
     SuggestKind Kind,

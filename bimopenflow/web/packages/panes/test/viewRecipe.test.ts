@@ -24,6 +24,9 @@ describe("view recipes", () => {
     [["scene",{path:"x"}],["section",{axis:"z",fraction:2}]],
     [["scene",{path:"x"}],["sectionBox",{fraction:0}]],
     [["scene",{path:"x"}],["projection",{mode:"invalid"}]],
+    [["scene",{path:"x"}],["tint",{color:"red",opacity:1}]],
+    [["scene",{path:"x"}],["sectionRange",{axis:"z",range:[.8,.2]}]],
+    [["scene",{path:"x"}],["sectionRange",{axis:"z",range:[.1,.2,.3]}]],
   ];
   it.each(invalidRecipes.map(steps => ({ steps })))("rejects unsupported commands and invalid recipes", ({ steps }) => {
     expect(() => parseViewRecipe(table(steps))).toThrow();

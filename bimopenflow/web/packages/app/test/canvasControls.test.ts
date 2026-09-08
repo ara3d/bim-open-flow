@@ -1,14 +1,26 @@
 // Headless interaction tests for the inline node controls: presses on the
 // canvas-drawn toggle and dropdown land in the store as setParam edits.
 
-import { describe, expect, it } from "vitest";
-import { Runtime, v } from "gratify";
+import { afterEach, describe, expect, it } from "vitest";
+import { Runtime, rect, v, type Element, type GNode } from "gratify";
 import type { NodeDescriptor } from "@bimopenflow/contracts";
 import { createStore } from "@bimopenflow/state";
 import { makeCanvasUpdate, type CanvasIntent } from "../src/canvasIntents.js";
 import { canvasView } from "../src/canvasParts.js";
 import { buildCanvasModel, NODE_HEADER, PORT_SPACING, type CanvasModel } from "../src/viewModel.js";
 import { COMPACT_SLOT_H, SLOT_GAP, SLOT_X_PAD, SLOTS_PAD_TOP } from "../src/canvasSlots.js";
+import { disposeInlineControls, setInlineControlDispatch, slotElement } from "../src/canvasControls.js";
+
+afterEach(() => disposeInlineControls());
+
+const slotNode = (element: Element): GNode<unknown> => ({
+  key: element.key, props: element.props, rect: rect(0, 0, 240, 32),
+  ch: {}, states: new Set(), local: element.part.localInit,
+});
+const inputFor = (element: Element): HTMLInputElement | null => {
+  if (element.part.island) return element.part.island(slotNode(element))?.el as HTMLInputElement | undefined ?? null;
+  return element.children?.map(inputFor).find(Boolean) ?? null;
+};
 
 const desc: NodeDescriptor = {
   kind: "csv.like",
@@ -54,6 +66,38 @@ const slotsTop = 100 + NODE_HEADER + PORT_SPACING + SLOTS_PAD_TOP;
 const node = () => ({ x: 100, y: 100 });
 
 describe("inline node controls (headless)", () => {
+  it("recreates a reused parameter input with refreshed bounds and percent conversion", () => {
+    const intents: CanvasIntent[] = [];
+    setInlineControlDispatch(intent => intents.push(intent));
+    const original = inputFor(slotElement("same", {name:"value",kind:"Number",value:"0.5"},240))!;
+    expect(original.value).toBe("0.5");
+    const current = inputFor(slotElement("same", {
+      name:"value",kind:"Fraction",value:"0.5",
+      control:{kind:"slider",min:0,max:1,step:.01,unit:"percent"},
+    },240))!;
+    expect(current).not.toBe(original);
+    expect([current.value,current.min,current.max,current.step]).toEqual(["50","0","100","1"]);
+    current.value = "150";
+    current.dispatchEvent(new Event("change"));
+    expect(intents.at(-1)).toEqual({kind:"setParam",nodeId:"same",name:"value",value:"1"});
+    expect(current.value).toBe("100");
+    const text = inputFor(slotElement("same", {name:"value",kind:"Text",value:"hello"},240))!;
+    expect(text.type).toBe("text");
+    expect(text.min).toBe("");
+    text.value = "world";
+    text.dispatchEvent(new Event("change"));
+    expect(intents.at(-1)).toMatchObject({value:"world"});
+  });
+
+  it("replacing an open enum under the same key restores native input islands", () => {
+    const dropdown = slotElement("same", {name:"value",kind:"Enum",value:"a",enumValues:["a","b"]},240);
+    dropdown.part.reduce!({open:false},{kind:"toggle"},slotNode(dropdown));
+    const other = slotElement("other", {name:"value",kind:"Text",value:"visible"},240);
+    expect(inputFor(other)).toBeNull();
+    slotElement("same", {name:"value",kind:"Text",value:"replacement"},240);
+    expect(inputFor(other)?.value).toBe("visible");
+  });
+
   it("clicking the toggle flips the Boolean param in the store", () => {
     const { store, runtime, errors } = setup();
     const model = runtime.doc;

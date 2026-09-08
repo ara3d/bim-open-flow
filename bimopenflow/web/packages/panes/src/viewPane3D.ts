@@ -10,8 +10,11 @@ import {
 import { parseBoxTable } from "./boxTable";
 import { defaultView3DDeps, type View3DDeps } from "./viewerDeps";
 import { parseViewRecipe } from "./viewRecipe";
+import type { LegendEntry } from "./toolkitRecipe";
 
 export interface ViewPane3DOptions {
+  /** The graph owns presentation; do not offer temporary overrides of it. */
+  followGraph?: boolean;
   /** Viewer wiring override, mainly for headless tests. */
   deps?: View3DDeps;
 }
@@ -54,9 +57,13 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
     legend.className = "bof-panes-legend";
     legend.setAttribute("aria-label", "Source category legend");
     root.append(legend);
+    let displayedLegend: readonly LegendEntry[] | undefined;
     const updateLegend = () => {
+      const entries = rig.legend?.() ?? [];
+      if (entries === displayedLegend) return;
+      displayedLegend = entries;
       legend.replaceChildren();
-      for (const entry of rig.legend?.() ?? []) {
+      for (const entry of entries) {
         const item = root.ownerDocument.createElement("span");
         const swatch = root.ownerDocument.createElement("i");
         swatch.style.background = `rgb(${entry.color.map(c => Math.round(c * 255)).join(",")})`;
@@ -95,6 +102,21 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
     let pendingBoxes: TableSlice | null = null;
     let lastModel: { url: string; format: ModelFormat } | null = null;
     let disposed = false;
+    let recipeFrame: number | null = null;
+    const scheduleRecipe = () => {
+      const win = root.ownerDocument.defaultView;
+      if (!options?.followGraph || !win?.requestAnimationFrame) {
+        if (pendingView) rig.applyRecipe?.(pendingView);
+        updateLegend();
+        return;
+      }
+      if (recipeFrame !== null) return;
+      recipeFrame = win.requestAnimationFrame(() => {
+        recipeFrame = null;
+        if (disposed || loading || !pendingView) return;
+        try { rig.applyRecipe?.(pendingView); updateLegend(); } catch (error) { reportError(error); }
+      });
+    };
     const button = (label: string, action: () => void | Promise<void>) => {
       const control = root.ownerDocument.createElement("button");
       control.type = "button";
@@ -105,12 +127,12 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
       toolbar.append(control);
     };
     if (rig.fit) button("Fit", () => rig.fit?.());
-    if (rig.reset) button("Reset view", () => {
+    if (rig.reset && !options?.followGraph) button("Reset view", () => {
       rig.reset?.();
       updateLegend();
       status.textContent = "Original view restored. Reapply to restore the graph presentation.";
     });
-    if (rig.applyRecipe) button("Reapply graph", () => {
+    if (rig.applyRecipe && !options?.followGraph) button("Reapply graph", () => {
       if (pending) applyInstances(pending);
       if (pendingBoxes) applyBoxes(pendingBoxes);
       if (pendingView) rig.applyRecipe?.(pendingView);
@@ -200,10 +222,14 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
           try {
             parseViewRecipe(input.data);
             pendingView = input.data;
-            if (!loading && maps.length > 0) { rig.applyRecipe?.(input.data); updateLegend(); }
+            if (!loading && maps.length > 0) scheduleRecipe();
           } catch (error) { reportError(error); }
         }
       },
-      destroy: () => { disposed = true; loadToken++; rig.dispose(); },
+      destroy: () => {
+        disposed = true; loadToken++;
+        if (recipeFrame !== null) root.ownerDocument.defaultView?.cancelAnimationFrame(recipeFrame);
+        rig.dispose();
+      },
     };
   });

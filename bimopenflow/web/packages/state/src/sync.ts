@@ -18,7 +18,7 @@ export interface AnalysisApi {
 }
 
 export interface AnalysisConnection {
-  /** Saves the current document via putAnalysis and clears the dirty flag. */
+  /** Saves through the shared PUT queue, including edits made while it is in flight. */
   save(): Promise<void>;
   /** Unsubscribes from the evaluation-update stream and stops autosave. */
   dispose(): void;
@@ -28,7 +28,7 @@ export interface ConnectOptions {
   /** When set, document edits are auto-saved this many ms after the last
    *  change (coalesced: one PUT in flight at a time, latest document wins). */
   autosaveMs?: number;
-  /** Called when an autosave PUT fails; autosave then waits for the next edit. */
+  /** Called when an autosave PUT fails. Only a newer edit is retried automatically. */
   onSaveError?: (err: unknown) => void;
 }
 
@@ -47,35 +47,57 @@ export async function connectAnalysis(
   const unsubscribe = api.analysisEvents(analysisId, (update) =>
     store.dispatch({ type: "applyServerState", update }));
 
-  // Saves the document as of call time; only clears dirty when no edit raced in.
-  const saveNow = async () => {
-    const doc = store.getState().document;
-    await api.putAnalysis(analysisId, serializeDocument(doc));
-    if (store.getState().document === doc) store.dispatch({ type: "markSaved" });
-  };
-
   let timer: ReturnType<typeof setTimeout> | null = null;
-  let inFlight = false;
+  let inFlight: Promise<void> | null = null;
+  let attemptedDoc = store.getState().document;
   let disposed = false;
 
-  const schedule = () => {
+  const clearTimer = () => {
     if (timer !== null) clearTimeout(timer);
+    timer = null;
+  };
+  const schedule = () => {
+    clearTimer();
     timer = setTimeout(() => {
       timer = null;
       void autosave();
     }, options.autosaveMs);
   };
 
+  // Manual and automatic saves share a single writer. Drain edits made during
+  // a PUT before resolving, so an older request can never overwrite a newer one.
+  const saveNow = (): Promise<void> => {
+    if (disposed) return Promise.resolve();
+    if (inFlight) return inFlight;
+    clearTimer();
+    inFlight = (async () => {
+      while (!disposed) {
+        const doc = store.getState().document;
+        attemptedDoc = doc;
+        await api.putAnalysis(analysisId, serializeDocument(doc));
+        if (disposed) return;
+        if (store.getState().document === doc) {
+          store.dispatch({ type: "markSaved" });
+          return;
+        }
+      }
+    })().finally(() => {
+      inFlight = null;
+      clearTimer();
+      // A failed PUT may have outlived a newer edit's debounce. Preserve that
+      // pending edit, but never repeatedly retry the unchanged failed value.
+      if (!disposed && options.autosaveMs !== undefined && store.getState().dirty && store.getState().document !== attemptedDoc)
+        schedule();
+    });
+    return inFlight;
+  };
+
   const autosave = async () => {
     if (inFlight || disposed) return;
-    inFlight = true;
     try {
       await saveNow();
-      if (!disposed && store.getState().dirty) schedule(); // edits raced the PUT
     } catch (e) {
-      options.onSaveError?.(e);
-    } finally {
-      inFlight = false;
+      if (!disposed) options.onSaveError?.(e);
     }
   };
 
@@ -95,7 +117,7 @@ export async function connectAnalysis(
     save: saveNow,
     dispose: () => {
       disposed = true;
-      if (timer !== null) clearTimeout(timer);
+      clearTimer();
       unsubscribeStore?.();
       unsubscribe();
     },

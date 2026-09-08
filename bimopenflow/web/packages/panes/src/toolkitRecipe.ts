@@ -40,6 +40,7 @@ export function layoutModel(model: ModelData, table: InstanceTable): ModelData {
 }
 
 export function mountRecipe(viewer: Viewer, model: ModelData, table: InstanceTable, restoreSource: () => void = () => {}) {
+  let previous: readonly ViewStep[] | null = null;
   let legend: readonly LegendEntry[] = [];
   const dirty = dirtySets(table);
   const hook = layoutsHook({ model: layoutModel(model, table), table, dirty, moved: () => {
@@ -51,6 +52,7 @@ export function mountRecipe(viewer: Viewer, model: ModelData, table: InstanceTab
   const initialCamera = viewer.views.all()[0]?.camera();
   const run = (name: string, input: unknown = {}) => requireResult(viewer.run(name, input));
   const reset = () => {
+    previous = null;
     legend = [];
     run("layouts.reset");
     run("appearance.clear");
@@ -66,8 +68,16 @@ export function mountRecipe(viewer: Viewer, model: ModelData, table: InstanceTab
     reset,
     dispose: () => hook.dispose(),
     apply(steps: readonly ViewStep[]) {
-      reset();
-      for (const step of steps) {
+      if (JSON.stringify(previous) === JSON.stringify(steps)) return;
+      // Scrubbing one spatial control preserves materials and camera. Layout
+      // commands derive absolute offsets from source placements, so no drift.
+      const last = steps.at(-1);
+      const incremental = !!last && !!previous && previous.length === steps.length &&
+        previous.at(-1)?.operation === last.operation &&
+        ["explode","section","sectionBox","sectionRange","environment"].includes(last.operation) &&
+        JSON.stringify(previous.slice(0,-1)) === JSON.stringify(steps.slice(0,-1));
+      if (!incremental) reset();
+      for (const step of incremental ? [last!] : steps) {
         switch (step.operation) {
           case "scene": break;
           case "section":
@@ -82,9 +92,26 @@ export function mountRecipe(viewer: Viewer, model: ModelData, table: InstanceTab
             viewer.setClipping(viewer.session.read(clippingSlice).region);
             break;
           }
+          case "sectionRange": {
+            const axis = step.input.axis === "x" ? 0 : step.input.axis === "y" ? 1 : 2;
+            const min: [number, number, number] = [...originalBounds.min];
+            const max: [number, number, number] = [...originalBounds.max];
+            min[axis] = sectionElevation(originalBounds, step.input.axis, step.input.range[0]);
+            max[axis] = sectionElevation(originalBounds, step.input.axis, step.input.range[1]);
+            run("clipping.setBox", { min, max });
+            viewer.setClipping(viewer.session.read(clippingSlice).region);
+            break;
+          }
+          case "tint": {
+            const channel = (at: number) => parseInt(step.input.color.slice(at,at+2),16)/255;
+            const color: Vec3 = [channel(1),channel(3),channel(5)];
+            requireResult(viewer.apply(styleRule("tint", "Model tint", model.objects.map(o => objectKey(o.ref)), { color, opacity: step.input.opacity })));
+            legend = [{ name: "Model tint", color, count: model.objects.length }];
+            break;
+          }
           case "explode":
             run("layouts.explode", step.input);
-            run("view.fit");
+            if (!incremental) run("view.fit");
             break;
           case "projection": {
             const view = viewer.views.all()[0];
@@ -106,6 +133,7 @@ export function mountRecipe(viewer: Viewer, model: ModelData, table: InstanceTab
           }
         }
       }
+      previous = steps;
     },
   };
 }

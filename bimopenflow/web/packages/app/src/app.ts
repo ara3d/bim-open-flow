@@ -26,6 +26,8 @@ import { buildCanvasModel, freePosition, nodeHeight, nodeWidth } from "./viewMod
 import { freshNodeId, freshUntitledId } from "./ids.js";
 import { loadThemeChoice, saveThemeChoice } from "./themeChoice.js";
 import { showToast } from "./toast.js";
+import { buildLiveViewRecipe } from "./liveViewRecipe";
+import { nodeTitle, upstreamIds } from "./graphPreview";
 
 export interface App {
   openAnalysis(id: string): Promise<void>;
@@ -57,6 +59,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   let currentId: string | null = null;
   let connection: AnalysisConnection | null = null;
   let resultSelection: string[] = [];
+  let lastPrimary: string | null = null;
 
   const fail = (message: string) => showToast(message, "error");
 
@@ -113,10 +116,13 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   });
 
   // ── canvas ─────────────────────────────────────────────────────────────────
-  const canvasEditor = createCanvasEditor(shell.canvas, store, () => catalog, fail, loadThemeChoice());
+  const canvasEditor = createCanvasEditor(shell.canvas, store, () => catalog, fail, loadThemeChoice(), () => primaryNodeId(store.getState()) ?? lastPrimary);
   const preview = root.ownerDocument.createElement("select");
   preview.setAttribute("aria-label", "Preview node");
-  preview.addEventListener("change", () => dispatch({ type: "select", ids: [preview.value] }));
+  preview.addEventListener("change", () => {
+    dispatch({ type: "select", ids: [preview.value] });
+    canvasEditor.focus(preview.value);
+  });
   if (options.graphDemo) {
     const nodes = root.ownerDocument.createElement("button");
     nodes.textContent = "Nodes";
@@ -129,7 +135,11 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     fit.addEventListener("click", () => canvasEditor.fit());
     const label = root.ownerDocument.createElement("label");
     label.append("Preview ", preview);
-    shell.graphToolbar.append(nodes, fit, label);
+    const readable = root.ownerDocument.createElement("button");
+    readable.textContent = "100%";
+    readable.title = "Readable size: focus the preview node";
+    readable.addEventListener("click", () => canvasEditor.focus(preview.value));
+    shell.graphToolbar.append(nodes, fit, readable, label);
   }
 
   // ── chrome ─────────────────────────────────────────────────────────────────
@@ -154,7 +164,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   // ── store -> UI ────────────────────────────────────────────────────────────
   let lastDoc = store.getState().document;
   let lastEval = store.getState().evalState;
-  let lastPrimary: string | null = null;
+  let lastDirty = false;
 
   const shownFor = (state: State, nodeId: string) => ({
     nodeId,
@@ -164,6 +174,12 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     values: { ...state.document.values[nodeId] },
     state: state.evalState[nodeId],
     modelPath: modelPathFor(state.document, nodeId),
+    pending: state.dirty,
+    live: buildLiveViewRecipe(state.document,nodeId,catalog),
+    lineage: [...upstreamIds(state.document,nodeId)].reverse().map(id => {
+      const node = state.document.structure.nodes.find(n=>n.id===id);
+      return node ? nodeTitle(node.kind) : id;
+    }).join(" → "),
   });
 
   const unsubscribe = store.subscribe(() => {
@@ -172,12 +188,12 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     // Keep the last preview visible while panning or clearing graph selection.
     const primary = primaryNodeId(state) ?? (options.graphDemo &&
       state.document.structure.nodes.some(n => n.id === lastPrimary) ? lastPrimary : null);
-    const dataChanged = state.document !== lastDoc || state.evalState !== lastEval;
+    const dataChanged = state.document !== lastDoc || state.evalState !== lastEval || state.dirty !== lastDirty;
     if (options.graphDemo && state.document !== lastDoc) {
       preview.replaceChildren(...state.document.structure.nodes.map(n => {
         const option = root.ownerDocument.createElement("option");
         option.value = n.id;
-        option.textContent = n.id;
+        option.textContent = `${nodeTitle(n.kind)} · ${n.id}`;
         return option;
       }));
     }
@@ -192,6 +208,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     lastDoc = state.document;
     lastEval = state.evalState;
     lastPrimary = primary;
+    lastDirty = state.dirty;
   });
 
   paneArea.showNode(null);
@@ -224,7 +241,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
         const initial = nodes.find(n => n.kind === "view3d.categoryStyle") ??
           nodes.find(n => n.kind.startsWith("view3d.")) ?? nodes[0];
         if (initial) dispatch({ type: "select", ids: [initial.id] });
-        canvasEditor.fit();
+        canvasEditor.focus(initial?.id);
       }
     } catch (e) {
       topbar.setConnection("offline");
@@ -306,6 +323,8 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       await refreshAnalyses();
       const cat = await api.getNodeCatalog();
       for (const n of cat.nodes) catalog.set(n.kind, n);
+      if (options.graphDemo && catalog.get("view3d.section")?.params.find(p => p.name === "fraction")?.control?.kind !== "slider")
+        fail("The 3D backend is out of date. Rebuild and restart BimOpenFlow.Host, then reload this page to enable the node controls.");
       sidebar.setCatalog(cat.nodes);
       canvasEditor.refresh();
       topbar.setConnection("connected");

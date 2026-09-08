@@ -1,7 +1,7 @@
 import { InstancedGroup, groupBounds } from "@ara3d/viewer-core";
 import { fitBounds } from "@bim-open-toolkit/interact";
 import { loadModel } from "@bim-open-toolkit/formats";
-import { createViewer, defaultFeatures } from "@bim-open-toolkit/viewer";
+import { createViewer, defaultFeatures, webglRenderer } from "@bim-open-toolkit/viewer";
 import type { TableSlice } from "@bimopenflow/contracts";
 import type { ModelFormat } from "./pane";
 import type { GroupEntityMap } from "./instanceTable";
@@ -9,6 +9,7 @@ import { UNIT_CUBE } from "./boxTable";
 import { mountRecipe, recipeFeatures, requireResult, type LegendEntry } from "./toolkitRecipe";
 import { parseViewRecipe } from "./viewRecipe";
 import { visibleSource, restoreSourceColors } from "./toolkitSource";
+import { startupTrace } from "./startupTrace";
 
 export interface ViewerRig {
   load(url: string, format: ModelFormat): Promise<readonly GroupEntityMap[]>;
@@ -29,7 +30,18 @@ export interface View3DDeps {
 /** Public V2 composition owns model binding, resize, camera, clipping, capture and disposal. */
 export const defaultView3DDeps: View3DDeps = {
   createRig(canvas, onPick) {
-    const viewer = createViewer({ canvas, features: [...defaultFeatures(), ...recipeFeatures], selectOnClick: false });
+    const trace = startupTrace();
+    let presented = false;
+    let recipeApplied = false;
+    const viewer = trace.span("viewer-create", () => createViewer({ canvas, features: [...defaultFeatures(), ...recipeFeatures], selectOnClick: false,
+      ...(trace.enabled ? { renderer: () => {
+        const renderer = webglRenderer(canvas);
+        return { ...renderer, renderFrame: () => {
+          trace.span("render-submit", () => renderer.renderFrame());
+          if (recipeApplied && !presented) { presented = true; performance.mark("bimflow:first-model-frame-submitted"); }
+        } };
+      } } : {}),
+    }));
     const startup = viewer.diagnostics().filter(d => d.severity === "error");
     if (startup.length) {
       viewer.dispose();
@@ -79,13 +91,20 @@ export const defaultView3DDeps: View3DDeps = {
         abort = new AbortController();
         // Load without binding. A cancelled or superseded request cannot enter the scene.
         // BOS endpoints may serve verified prepared BFAST; detect their byte signature.
-        const loaded = visibleSource(requireResult(await loadModel(url, { format: format === "bos" ? undefined : format, signal: abort.signal })));
+        let phase = "fetch", phaseStart = performance.now();
+        const decoded = requireResult(await loadModel(url, { format: format === "bos" ? undefined : format, signal: abort.signal,
+          ...(trace.enabled ? { onProgress: (progress: { phase: string }) => {
+            if (phase !== progress.phase) { trace.record(`load-${phase}`, phaseStart); phase = progress.phase; phaseStart = performance.now(); }
+          } } : {}),
+        }));
+        trace.record(`load-${phase}`, phaseStart);
+        const loaded = trace.span("visible-source", () => visibleSource(decoded));
         if (disposed || token !== generation) throw new Error("Model load superseded.");
         recipe?.dispose();
         recipe = undefined;
         clearBoxes();
         for (const model of viewer.models()) viewer.close(model.id);
-        const opened = requireResult(viewer.show(loaded));
+        const opened = trace.span("model-bind", () => requireResult(viewer.show(loaded)));
         const table = viewer.binding.tableOf(opened.ref.id);
         if (!table || table.rowCount === 0) throw new Error("The model contains no renderable geometry.");
         // Frame with the source coordinate convention, including z-up BOS.
@@ -94,12 +113,12 @@ export const defaultView3DDeps: View3DDeps = {
           const current = view.camera();
           view.setCamera({ ...current, coordinates: loaded.data.coordinates,
             camera: { ...current.camera, up: loaded.data.coordinates.up === "z" ? [0,0,1] : [0,1,0] } });
-          requireResult(viewer.run("view.fit"));
+          trace.span("initial-fit", () => requireResult(viewer.run("view.fit")));
         }
         const restore = () => restoreSourceColors(loaded, table);
-        restore();
-        recipe = mountRecipe(viewer, loaded.data, table, restore);
-        return table.groups.map((group, groupIndex) => {
+        trace.span("source-colors", restore);
+        recipe = trace.span("recipe-mount", () => mountRecipe(viewer, loaded.data, table, restore));
+        return trace.span("legacy-group-adapter", () => table.groups.map((group, groupIndex) => {
           const start = table.groupStart[groupIndex];
           const end = table.groupStart[groupIndex + 1];
           const entities: number[] = [];
@@ -121,12 +140,13 @@ export const defaultView3DDeps: View3DDeps = {
             },
             setTransform: (index: number, matrix: Float32Array) => group.setTransform(index, matrix),
           } };
-        });
+        }));
       },
       applyRecipe(table) {
         const steps = parseViewRecipe(table);
         if (!recipe) throw new Error("Open a model before applying a view recipe.");
-        recipe.apply(steps);
+        trace.span("recipe-apply", () => recipe!.apply(steps));
+        recipeApplied = true;
       },
       fit,
       reset: () => recipe?.reset(),

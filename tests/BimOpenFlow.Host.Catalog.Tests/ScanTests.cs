@@ -26,6 +26,30 @@ public sealed class ScanTests
         => new(roots.Length == 0 ? [_root] : roots, _cache, new StubConverter());
 
     [Test]
+    public void Scan_ReusesUnchangedHashWithoutReopeningFile()
+    {
+        var path = WriteFile(_root, "cached.bos", "original");
+        var catalog = Catalog();
+        var before = catalog.Scan().Single();
+        using var locked = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None);
+        Assert.That(catalog.Scan().Single().ContentHash, Is.EqualTo(before.ContentHash));
+    }
+
+    [Test]
+    public void Scan_RefreshesCachedHashAfterSameLengthEdit()
+    {
+        var path = WriteFile(_root, "cached.bos", "version1");
+        var catalog = Catalog();
+        var before = catalog.Scan().Single();
+        File.WriteAllText(path, "version2");
+        File.SetLastWriteTimeUtc(path, before.LastWriteUtc.AddSeconds(2));
+        var after = catalog.Scan().Single();
+        Assert.That(after.Id, Is.EqualTo(before.Id));
+        Assert.That(after.ContentHash, Is.EqualTo(ModelCatalog.HashFile(path)));
+        Assert.That(after.ContentHash, Is.Not.EqualTo(before.ContentHash));
+    }
+
+    [Test]
     public void Scan_FindsIfcAndBosRecursively_IgnoresOtherFiles()
     {
         WriteFile(_root, "a.ifc");

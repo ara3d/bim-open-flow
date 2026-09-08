@@ -33,7 +33,7 @@ export const defaultView3DDeps: View3DDeps = {
     const trace = startupTrace();
     let presented = false;
     let recipeApplied = false;
-    const viewer = trace.span("viewer-create", () => createViewer({ canvas, features: [...defaultFeatures(), ...recipeFeatures], selectOnClick: false,
+    const viewer = trace.span("viewer-create", () => createViewer({ canvas, features: [...defaultFeatures(), ...recipeFeatures], selectOnClick: false, fitOnOpen: false,
       ...(trace.enabled ? { renderer: () => {
         const renderer = webglRenderer(canvas);
         return { ...renderer, renderFrame: () => {

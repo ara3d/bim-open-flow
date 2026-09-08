@@ -12,6 +12,7 @@ public sealed class ModelCatalog
     public readonly IReadOnlyList<string> Roots;
     public readonly string CacheDir;
     private readonly IIfcConverter _converter;
+    private readonly Dictionary<string, (long Size, DateTime Written, DateTime Created, string Hash)> _hashes = new(StringComparer.Ordinal);
 
     public ModelCatalog(IReadOnlyList<string> roots, string cacheDir, IIfcConverter? converter = null)
     {
@@ -31,7 +32,6 @@ public sealed class ModelCatalog
     /// Missing roots contribute nothing. Deterministic order (per root, then
     /// ordinal by path).</summary>
     // TODO: no file watchers in v1 — the host polls by calling Scan again.
-    // TODO: memoize content hashing by (path, size, mtime) if scans get slow on large trees.
     public IReadOnlyList<ModelEntry> Scan()
     {
         var entries = new List<ModelEntry>();
@@ -70,10 +70,10 @@ public sealed class ModelCatalog
             _ => null,
         };
 
-    private static ModelEntry CreateEntry(string root, string file, HashSet<string> seenIds)
+    private ModelEntry CreateEntry(string root, string file, HashSet<string> seenIds)
     {
         var info = new FileInfo(file);
-        var hash = HashFile(file);
+        var hash = ContentHash(info);
         var id = Slug(Path.GetRelativePath(root, file));
         if (!seenIds.Add(id))
         {
@@ -88,6 +88,23 @@ public sealed class ModelCatalog
             info.Length,
             hash,
             info.LastWriteTimeUtc);
+    }
+
+    private string ContentHash(FileInfo info)
+    {
+        // Serialize cache misses so concurrent catalog/model requests do not hash twice.
+        lock (_hashes)
+        {
+            var stamp = (info.Length, info.LastWriteTimeUtc, info.CreationTimeUtc);
+            if (_hashes.TryGetValue(info.FullName, out var cached)
+                && (cached.Size, cached.Written, cached.Created) == stamp)
+                return cached.Hash;
+            var hash = HashFile(info.FullName);
+            info.Refresh();
+            if ((info.Length, info.LastWriteTimeUtc, info.CreationTimeUtc) == stamp)
+                _hashes[info.FullName] = (stamp.Length, stamp.LastWriteTimeUtc, stamp.CreationTimeUtc, hash);
+            return hash;
+        }
     }
 
     /// <summary>Lowercased root-relative path with every non [a-z0-9.] run

@@ -22,7 +22,8 @@ import { modelPathFor } from "./modelRef.js";
 import { modelCatalog } from "./modelCatalog.js";
 import { createCanvasEditor } from "./canvasEditor.js";
 import { inlineParams } from "./canvasSlots.js";
-import { setSuggestionProvider } from "./canvasControls.js";
+import { setSuggestionProvider, refreshColumnOptions } from "./canvasControls.js";
+import { autoLayout } from './autoLayout.js';
 import { buildCanvasModel, freePosition, nodeHeight, nodeWidth } from "./viewModel.js";
 import { freshNodeId, freshUntitledId } from "./ids.js";
 import { loadThemeChoice, saveThemeChoice } from "./themeChoice.js";
@@ -47,6 +48,8 @@ export function primaryNodeId(state: State): string | null {
 }
 
 export interface AppOptions {
+  tableOnly?: boolean;
+  autoLayout?: boolean;
   graphDemo?: boolean;
   initialAnalysis?: string;
 }
@@ -98,6 +101,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   const resolveModelId = modelCatalog(() => api.listModels());
 
   const paneArea = createPaneArea(shell.paneEl, {
+    tableOnly: options.tableOnly,
     ctx: boundCtx,
     // Result object IDs are a different identity space from graph node IDs.
     onSelect: (ids) => { resultSelection = ids; paneArea.updateSelection(ids); },
@@ -177,6 +181,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   const unsubscribe = store.subscribe(() => {
     const state = store.getState();
     topbar.setDirty(state.dirty);
+    if (state.evalState !== lastEval) refreshColumnOptions();
     // Keep the last preview visible while panning or clearing graph selection.
     const primary = primaryNodeId(state) ?? (options.graphDemo &&
       state.document.structure.nodes.some(n => n.id === lastPrimary) ? lastPrimary : null);
@@ -225,15 +230,21 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
         onSaveError: (e) => fail(`Autosave failed: ${e instanceof Error ? e.message : e}`),
       });
       currentId = id;
+      refreshColumnOptions();
       topbar.setConnection("connected");
       sidebar.setAnalyses(analyses, id);
       topbar.setAnalyses(analyses, id);
       if (options.graphDemo) {
+        if (options.autoLayout) {
+          const positions = autoLayout(buildCanvasModel(store.getState(), catalog), { width: shell.canvas.clientWidth, height: shell.canvas.clientHeight });
+          for (const [nodeId, layout] of Object.entries(positions)) dispatch({ type: 'setLayout', nodeId, layout });
+        }
         const nodes = store.getState().document.structure.nodes;
         const initial = nodes.find(n => n.kind === "view3d.categoryStyle") ??
           nodes.find(n => n.kind.startsWith("view3d.")) ?? nodes[0];
         if (initial) dispatch({ type: "select", ids: [initial.id] });
-        canvasEditor.focus(initial?.id);
+        if (options.autoLayout) canvasEditor.fit();
+        else canvasEditor.focus(initial?.id);
       }
     } catch (e) {
       topbar.setConnection("offline");
@@ -314,7 +325,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     try {
       const [, cat] = await Promise.all([refreshAnalyses(), api.getNodeCatalog()]);
       for (const n of cat.nodes) catalog.set(n.kind, n);
-      if (options.graphDemo && catalog.get("view3d.section")?.params.find(p => p.name === "fraction")?.control?.kind !== "slider")
+      if (options.graphDemo && catalog.has("view3d.section") && catalog.get("view3d.section")?.params.find(p => p.name === "fraction")?.control?.kind !== "slider")
         fail("The 3D backend is out of date. Rebuild and restart BimOpenFlow.Host, then reload this page to enable the node controls.");
       sidebar.setCatalog(cat.nodes);
       canvasEditor.refresh();

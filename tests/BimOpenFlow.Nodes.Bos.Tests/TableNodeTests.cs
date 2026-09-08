@@ -8,6 +8,21 @@ namespace BimOpenFlow.Nodes.Bos.Tests;
 public sealed class TableNodeTests
 {
     [Test]
+    public void Sort_UsesThreeExactColumnNamesAndIndependentDirections()
+    {
+        var table = Ara3D.DataFlowEngine.TestKit.NodeTestHelpers.Table(
+            ("First name", new[] { "b", "a", "a", "a" }),
+            ("Second,key", new[] { 1L, 2L, 2L, 1L }),
+            ("Third", new[] { 1L, 1L, 2L, 3L })).Table;
+        var result = new TableSortNode().EvalTable(table, ("A", "First name"), ("B", "Second,key"), ("C", "Third"), ("descendingB", "true"), ("descendingC", "true"));
+        Assert.That(result.Cell("Third", 0), Is.EqualTo(2L));
+        Assert.That(result.Cell("Third", 1), Is.EqualTo(1L));
+        Assert.That(result.Cell("Third", 2), Is.EqualTo(3L));
+        Assert.That(result.Cell("First name", 3), Is.EqualTo("b"));
+        Assert.That(() => new TableSortNode().EvalTable(table, ("A", "Removed")), Throws.ArgumentException.With.Message.Contains("Removed"));
+    }
+
+    [Test]
     public void Pack_ExposesAllSixNodes()
         => Assert.That(BosNodes.All.Select(n => n.Spec.Kind), Is.EquivalentTo(new[]
         {

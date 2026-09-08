@@ -63,6 +63,7 @@ interface ShownNode {
 }
 
 export interface PaneAreaDeps {
+  tableOnly?: boolean;
   ctx: PaneContext;
   onSelect(ids: string[]): void;
   onSetParam(nodeId: string, name: string, value: string): void;
@@ -91,6 +92,7 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
   source.setAttribute("role", "status");
   const tabs = root.ownerDocument.createElement("div");
   tabs.className = "bof-app-tabs";
+  tabs.hidden = deps.tableOnly ?? false;
   const body = root.ownerDocument.createElement("div");
   body.className = "bof-app-panebody";
   root.append(source, tabs, body);
@@ -162,7 +164,7 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
         if (desc) pane.update({ kind: "inspect", node: desc, values, state, nodeId });
         return;
       }
-      const port = firstTableOutput(desc);
+      const port = deps.tableOnly ? desc?.outputs[0] : firstTableOutput(desc);
       if (!port) return;
       if (activeKind === "view3d" && shown.live?.kind !== "unsupported" && shown.live) {
         if (shown.live.kind === "invalid") return;
@@ -214,6 +216,7 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
 
   const rebuildTabs = (kinds: PaneKind[]) => {
     tabs.textContent = "";
+    if (deps.tableOnly) { tabs.style.display = 'none'; return; }
     for (const kind of kinds) {
       const tab = root.ownerDocument.createElement("div");
       tab.className = "bof-app-tab";
@@ -243,7 +246,7 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
         showEmpty("Select a node to see its data.");
         return;
       }
-      const kinds = choosePanes(next.desc);
+      const kinds: PaneKind[] = deps.tableOnly ? ['table'] : choosePanes(next.desc);
       // Recipe branches share the loaded model and renderer. Reapply their
       // complete recipe without reloading Snowdon on every node click.
       if (!sameNode && sameRecipeModel && activeKind === "view3d" && kinds.includes("view3d")) {

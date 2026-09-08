@@ -2,10 +2,8 @@ using Ara3D.DataFlowEngine.Abstractions;
 
 namespace BimOpenFlow.Nodes.Bos;
 
-/// <summary>Sorts via DuckDB. The 'by' parameter is comma-separated column names,
-/// each with an optional ' desc' (or explicit ' asc') suffix.</summary>
-// TODO: column names containing commas or spaces cannot be expressed in 'by'; add a
-// quoting syntax if such columns show up in practice.
+/// <summary>Sorts by three exact column names with independent directions.
+/// Legacy graphs may still use the comma-separated 'by' parameter.</summary>
 public sealed class TableSortNode : IFlowNode
 {
     public const string Kind = "table.sort";
@@ -14,12 +12,27 @@ public sealed class TableSortNode : IFlowNode
         Kind, 1, NodeCapability.Pure,
         Inputs: [new PortSpec("table", PortType.Table)],
         Outputs: [new PortSpec("table", PortType.Table)],
-        Params: [new ParamSpec("by", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table"))],
-        "Sorts by comma-separated column names, each optionally suffixed with ' desc'.");
+        Params: [
+            new ParamSpec("A", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table"), Control: new ParamControl("sortColumn")),
+            new ParamSpec("B", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table"), Control: new ParamControl("sortColumn")),
+            new ParamSpec("C", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table"), Control: new ParamControl("sortColumn")),
+            new ParamSpec("descendingA", ParamKind.Boolean, "false", Control: new ParamControl("hidden")),
+            new ParamSpec("descendingB", ParamKind.Boolean, "false", Control: new ParamControl("hidden")),
+            new ParamSpec("descendingC", ParamKind.Boolean, "false", Control: new ParamControl("hidden")),
+            new ParamSpec("by", ParamKind.Text, Control: new ParamControl("hidden"))],
+        "Sorts by columns A, B, then C, each with its own ascending or descending direction.");
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {
         var table = inputs.TableInput(0, Kind);
+        var columns = new[] { "A", "B", "C" }.Where(key => parameters.GetText(key).Length > 0).ToArray();
+        if (columns.Length > 0)
+        {
+            var order = columns.Select(key => table.RequireColumn(parameters.GetText(key), Kind).Descriptor.Name.QuoteIdentifier()
+                + (parameters.GetBoolean("descending" + key) ? " DESC" : " ASC"));
+            return [new TableValue(table.QueryOver($"SELECT * FROM t ORDER BY {string.Join(", ", order)}", table.Name))];
+        }
+        if (parameters.GetText("by").Length == 0) return [new TableValue(table)];
         var terms = parameters.RequiredText("by", Kind).SplitNames().Select(Term).ToList();
         if (terms.Count == 0)
             throw new ArgumentException($"{Kind}: parameter 'by' names no columns.");

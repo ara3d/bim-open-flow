@@ -9,6 +9,7 @@ public static class DuckDbNodes
     public static IReadOnlyList<IFlowNode> All { get; } =
     [
         new DuckReadNode(),
+        new DuckSourceNode(),
         new DuckQueryNode(),
         new SqlQueryNode(),
         new CsvReadNode(),

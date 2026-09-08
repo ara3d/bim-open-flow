@@ -10,6 +10,7 @@
 import type { ControlDescriptor, ParamDescriptor, ParamKind, SuggestDescriptor } from "@bimopenflow/contracts";
 
 export interface CanvasParam {
+  readonly descending?: boolean;
   readonly name: string;
   readonly kind: ParamKind;
   readonly value: string;
@@ -68,11 +69,12 @@ export function inlineParams(
   values: Readonly<Record<string, string>>,
 ): CanvasParam[] {
   return params
-    .filter((p) => isInlineKind(p.kind))
+    .filter((p) => isInlineKind(p.kind) && p.control?.kind !== "hidden")
     .map((p) => ({
       name: p.name,
       kind: p.kind,
       value: values[p.name] ?? p.default,
+      ...(p.control?.kind === "sortColumn" ? { descending: values['descending' + p.name] === 'true' } : {}),
       ...(p.enumValues ? { enumValues: p.enumValues } : {}),
       ...(p.suggest ? { suggest: p.suggest } : {}),
       ...(p.control ? { control: p.control } : {}),
@@ -87,7 +89,7 @@ export function placeSlots(
   if (params.length === 0) return { slots: [], bottom: topOffset };
   let y = topOffset + SLOTS_PAD_TOP;
   const slots = params.map((param) => {
-    const h = param.control?.kind === "slider" || param.control?.kind === "range" ? WIDGET_SLOT_H : slotHeight(param.kind);
+    const h = param.control?.kind === "sortColumn" ? COMPACT_SLOT_H : param.control?.kind === "slider" || param.control?.kind === "range" ? WIDGET_SLOT_H : slotHeight(param.kind);
     const placed = { param, y, h };
     y += h + SLOT_GAP;
     return placed;

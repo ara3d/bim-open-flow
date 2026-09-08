@@ -35,6 +35,7 @@ import type { ControlDescriptor, ParamKind, SuggestDescriptor, SuggestionList } 
 import { rangeSlot, sliderSlot } from "./graphWidgets";
 import { displayScale, isNumericParam, numericDisplay, numericFromDisplay, numericLimits, numericValue, paramLabel } from "./numericParam";
 import { attachSuggestions } from "./suggestInput.js";
+import { ColumnSelects } from './columnSelect.js';
 import type { CanvasParam } from "./canvasSlots.js";
 import { COMPACT_SLOT_H, FIELD_SLOT_H } from "./canvasSlots.js";
 import { canvasThemes, currentCanvasTheme } from "./canvasTheme.js";
@@ -261,6 +262,10 @@ export function setInlineControlDispatch(fn: (intent: CanvasIntent) => void): vo
 export type SuggestionProvider = (nodeId: string, param: string) => Promise<SuggestionList>;
 
 let suggestionProvider: SuggestionProvider | null = null;
+const columnSelects = new ColumnSelects(
+  (node, param) => suggestionProvider ? suggestionProvider(node, param) : Promise.reject(new Error('No open flow')),
+  (nodeId, name, value) => dispatchIntent({ kind: 'setParam', nodeId, name, value }));
+export const refreshColumnOptions = () => columnSelects.refresh();
 
 /** The app registers how suggest-annotated params fetch their live values
  *  (the suggestions endpoint of the open analysis). */
@@ -284,6 +289,7 @@ export const islandKey = (nodeId: string, name: string): string => `${nodeId}::$
 
 /** Drops island elements for (node, param) keys no longer on the canvas. */
 export function pruneInlineControls(liveKeys: ReadonlySet<string>): void {
+  columnSelects.prune(liveKeys);
   for (const key of openDropdowns) if (!liveKeys.has(key)) openDropdowns.delete(key);
   for (const [key, entry] of islands) {
     if (!liveKeys.has(key)) {
@@ -396,6 +402,20 @@ function islandFor(props: IslandSlotProps): IslandEntry {
 
 const COMPACT_INPUT_W = 96;
 
+const ColumnSlot = part<{ nodeId: string; param: CanvasParam; w: number }, { label: Color }>('bof-slot-column', {
+  size: p => v(p.w, COMPACT_SLOT_H),
+  style: t => ({ label: t.textDim }),
+  render(node, painter, style) {
+    painter.label(node.props.param.name, v(node.rect.x, node.rect.center.y), style.label, { align: 'left', size: LABEL_SIZE });
+  },
+  island(node) {
+    if (openDropdowns.size) return null;
+    const { nodeId, param } = node.props;
+    return { el: columnSelects.get(nodeId, param.name, param.value, param.descending ?? false),
+      rect: rect(node.rect.x + 24, node.rect.y + 1, node.rect.w - 24, node.rect.h - 2) };
+  },
+});
+
 const IslandSlot = part<IslandSlotProps, { label: Color }>("bof-slot-island", {
   size: (p) => v(p.w, layoutOf(p.paramKind) === "compact" ? COMPACT_SLOT_H : FIELD_SLOT_H),
   style: (t, ch) => ({ label: t.mix(t.textDim, t.text, ch.hover) }),
@@ -430,6 +450,7 @@ const layoutOf = (kind: ParamKind): IslandLayout =>
 // ── Slot factory: one element per inline param, chosen by kind ───────────────
 
 export function slotElement(nodeId: string, param: CanvasParam, w: number): Element {
+  if (param.control?.kind === 'sortColumn') return ColumnSlot(param.name, { nodeId, param, w });
   if (param.kind !== "Enum" || param.control?.kind === "range" || param.control?.kind === "slider")
     openDropdowns.delete(islandKey(nodeId, param.name));
   const field = () => IslandSlot("field", {

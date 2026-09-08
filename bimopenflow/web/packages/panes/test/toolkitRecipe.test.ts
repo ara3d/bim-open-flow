@@ -1,7 +1,7 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createViewer, defaultFeatures } from "@bim-open-toolkit/viewer";
 import { translation } from "@bim-open-toolkit/model";
-import { layoutsSlice } from "@bim-open-toolkit/features";
+import { clippingSlice, layoutsSlice } from "@bim-open-toolkit/features";
 import { fakeRenderer, testFrames } from "../../../../../viewer/packages/viewer/test/support/fake-renderer";
 import { twoObjectModel } from "../../../../../viewer/packages/viewer/test/support/model-fixture";
 import { mountRecipe, recipeFeatures, requireResult } from "../src/toolkitRecipe";
@@ -84,5 +84,66 @@ describe("recipe branch isolation with a real viewer binding", () => {
     recipe.apply([scene, categories, explode(.8), band]);
     expect(transforms()).not.toEqual(source);
     expect(transforms()).toEqual(exploded);
+  });
+
+  it("scrubs upstream sections without restoring materials, moving the camera or replaying downstream controls", () => {
+    const { recipe, viewer, table } = setup();
+    const section = (fraction: number): ViewStep => ({ operation: "section", input: { axis: "x", fraction } });
+    const projection: ViewStep = { operation: "projection", input: { mode: "orthographic" } };
+    const environment: ViewStep = { operation: "environment", input: { theme: "dark", grid: true } };
+    const steps = (fraction: number) => [scene, categories, section(fraction), projection, environment];
+    const run = vi.spyOn(viewer, "run");
+    const apply = vi.spyOn(viewer, "apply");
+    recipe.apply(steps(.2));
+    const fullReplayCommands = run.mock.calls.length;
+    const camera = viewer.views.all()[0]!.camera();
+    requireResult(viewer.run("view.look", { camera: { ...camera, camera: { ...camera.camera, position: [10, 12, 14] } } }));
+    const navigated = viewer.views.all()[0]!.camera();
+    const colors = table.groups.map(group => group.colorsVersion);
+    run.mockClear();
+    apply.mockClear();
+    for (const fraction of [.3, .4, .5]) recipe.apply(steps(fraction));
+    expect(run.mock.calls.map(call => call[0])).toEqual(Array(3).fill("clipping.sectionAt"));
+    expect(fullReplayCommands).toBeGreaterThanOrEqual(10);
+    expect(apply).not.toHaveBeenCalled();
+    expect(table.groups.map(group => group.colorsVersion)).toEqual(colors);
+    expect(viewer.views.all()[0]!.camera()).toEqual(navigated);
+    const expected = setup();
+    expected.recipe.apply(steps(.5));
+    expect(viewer.session.read(clippingSlice)).toEqual(expected.viewer.session.read(clippingSlice));
+  });
+
+  it("keeps later clipping overrides when an earlier section changes", () => {
+    const { recipe, viewer } = setup();
+    const section = (fraction: number): ViewStep => ({ operation: "section", input: { axis: "z", fraction } });
+    recipe.apply([scene, section(.1), band]);
+    const clipping = viewer.session.read(clippingSlice);
+    recipe.apply([scene, section(.9), band]);
+    expect(viewer.session.read(clippingSlice)).toEqual(clipping);
+  });
+
+  it.each<ViewStep>([
+    { operation: "scene", input: { path: "other.bos" } },
+    { operation: "categoryStyle", input: { opacity: .3 } },
+    { operation: "projection", input: { mode: "plan" } },
+  ])("fully replays when a non-spatial step changes: $operation", replacement => {
+    const { recipe, viewer } = setup();
+    const steps: ViewStep[] = [scene, categories, band, { operation: "projection", input: { mode: "perspective" } }];
+    recipe.apply(steps);
+    const run = vi.spyOn(viewer, "run");
+    recipe.apply(steps.map(step => step.operation === replacement.operation ? replacement : step));
+    expect(run.mock.calls.map(call => call[0])).toContain("appearance.clear");
+    expect(run.mock.calls.map(call => call[0])).toContain("layouts.reset");
+  });
+
+  it("scrubs an upstream explosion back to source without replaying a downstream section", () => {
+    const { recipe, viewer, transforms, source } = setup();
+    recipe.apply([scene, categories, explode(.8), band]);
+    const clipping = viewer.session.read(clippingSlice);
+    const run = vi.spyOn(viewer, "run");
+    recipe.apply([scene, categories, explode(0), band]);
+    expect(run.mock.calls.map(call => call[0])).toEqual(["layouts.explode"]);
+    expect(transforms()).toEqual(source);
+    expect(viewer.session.read(clippingSlice)).toEqual(clipping);
   });
 });

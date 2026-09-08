@@ -40,6 +40,34 @@ export function layoutModel(model: ModelData, table: InstanceTable): ModelData {
   }) };
 }
 
+// These commands replace a complete, independent presentation domain. A later
+// command in the same domain must still win when an upstream control changes.
+function spatialDomain(step: ViewStep): string | undefined {
+  switch (step.operation) {
+    case "section": case "sectionBox": case "sectionRange": return "clipping";
+    case "explode": return "layout";
+    case "environment": return "environment";
+    default: return undefined;
+  }
+}
+
+function incrementalSteps(previous: readonly ViewStep[], steps: readonly ViewStep[]): readonly ViewStep[] | null {
+  if (previous.length !== steps.length) return null;
+  const affected = new Set<string>();
+  const updates: ViewStep[] = [];
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
+    if (previous[i].operation !== step.operation) return null;
+    const domain = spatialDomain(step);
+    if (JSON.stringify(previous[i]) !== JSON.stringify(step)) {
+      if (!domain) return null;
+      affected.add(domain);
+    }
+    if (domain && affected.has(domain)) updates.push(step);
+  }
+  return updates;
+}
+
 export function mountRecipe(viewer: Viewer, model: ModelData, table: InstanceTable, restoreSource: () => void = () => {}) {
   let previous: readonly ViewStep[] | null = null;
   let legend: readonly LegendEntry[] = [];
@@ -70,15 +98,12 @@ export function mountRecipe(viewer: Viewer, model: ModelData, table: InstanceTab
     dispose: () => hook.dispose(),
     apply(steps: readonly ViewStep[]) {
       if (JSON.stringify(previous) === JSON.stringify(steps)) return;
-      // Scrubbing one spatial control preserves materials and camera. Layout
-      // commands derive absolute offsets from source placements, so no drift.
-      const last = steps.at(-1);
-      const incremental = !!last && !!previous && previous.length === steps.length &&
-        previous.at(-1)?.operation === last.operation &&
-        ["explode","section","sectionBox","sectionRange","environment"].includes(last.operation) &&
-        JSON.stringify(previous.slice(0,-1)) === JSON.stringify(steps.slice(0,-1));
+      // Keep scrubbing cheap even when the edited node has downstream steps.
+      // Layout offsets are absolute; unchanged camera and materials stay put.
+      const updates = previous ? incrementalSteps(previous, steps) : null;
+      const incremental = updates !== null;
       if (!incremental) reset();
-      for (const step of incremental ? [last!] : steps) {
+      for (const step of updates ?? steps) {
         switch (step.operation) {
           case "scene": break;
           case "section":

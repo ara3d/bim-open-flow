@@ -1,4 +1,5 @@
 {
+  "extends": "../../toolkit.tsconfig.json",
   "compilerOptions": {
     "target": "ES2020",
     "module": "ESNext",
@@ -13,7 +14,8 @@
     // gratify is consumed from the submodule source (same pattern as
     // platoflow/web); the vite alias in vite.config.ts is the runtime twin.
     "paths": {
-      "gratify": ["../../../../submodules/gratify/src/gratify/index.ts"]
+      "gratify": ["../../../../submodules/gratify/src/gratify/index.ts"],
+      "@bim-open-toolkit/*": ["../../../../viewer/packages/*/src/index.ts"]
     }
   },
   "include": ["src", "test"]

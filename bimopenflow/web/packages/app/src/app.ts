@@ -51,6 +51,7 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
   let analyses: AnalysisSummary[] = [];
   let currentId: string | null = null;
   let connection: AnalysisConnection | null = null;
+  let resultSelection: string[] = [];
 
   const fail = (message: string) => showToast(message, "error");
 
@@ -98,7 +99,8 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
 
   const paneArea = createPaneArea(shell.paneEl, {
     ctx: boundCtx,
-    onSelect: (ids) => dispatch({ type: "select", ids }),
+    // Result object IDs are a different identity space from graph node IDs.
+    onSelect: (ids) => { resultSelection = ids; paneArea.updateSelection(ids); },
     onSetParam: (nodeId, name, value) =>
       dispatch({ type: "setParam", nodeId, name, value }),
     onError: fail,
@@ -152,7 +154,7 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
     } else if (primary !== lastPrimary || dataChanged) {
       paneArea.showNode(shownFor(state, primary));
     } else {
-      paneArea.updateSelection([...state.selection]);
+      paneArea.updateSelection(resultSelection);
     }
     lastDoc = state.document;
     lastEval = state.evalState;
@@ -169,6 +171,7 @@ export function createApp(root: HTMLElement, api: ApiClient): App {
   };
 
   async function openAnalysis(id: string): Promise<void> {
+    resultSelection = [];
     topbar.setConnection("connecting");
     connection?.dispose();
     connection = null;

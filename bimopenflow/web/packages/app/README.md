@@ -68,3 +68,8 @@ gratify is consumed from the submodule source via a vite/tsc alias to
   dedicated create endpoint).
 
 Provenance: new for the BimOpenFlow rewrite (see `docs/bimopenflow-structure.md`).
+# Snowdon 3D lab
+
+Open **Snowdon 3D lab** in the editor's top bar, or visit `/3d.html`.
+The lab and graph editor share the V2 visualization pane.
+See [setup and examples](../../../../docs/bim-flow-3d.md).

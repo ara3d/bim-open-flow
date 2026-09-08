@@ -1,121 +1,159 @@
-// The thin, real wiring between the 3D pane and the viewer workspace
-// (@ara3d/viewer-core/-loaders/-controls). Everything testable lives in
-// instanceTable.ts; this module is deliberately minimal glue.
-import { InstancedGroup, Viewer, sceneBounds } from "@ara3d/viewer-core";
-import { loadBos, loadGlb } from "@ara3d/viewer-loaders";
-import {
-  OrbitControls,
-  Picker,
-  PickControls,
-  Selection,
-  type InputElement,
-  type PickElement,
-} from "@ara3d/viewer-controls";
+import { InstancedGroup, groupBounds } from "@ara3d/viewer-core";
+import { fitBounds } from "@bim-open-toolkit/interact";
+import { loadModel } from "@bim-open-toolkit/formats";
+import { createViewer, defaultFeatures } from "@bim-open-toolkit/viewer";
+import type { TableSlice } from "@bimopenflow/contracts";
 import type { ModelFormat } from "./pane";
 import type { GroupEntityMap } from "./instanceTable";
 import { UNIT_CUBE } from "./boxTable";
+import { mountRecipe, recipeFeatures, requireResult, type LegendEntry } from "./toolkitRecipe";
+import { parseViewRecipe } from "./viewRecipe";
+import { visibleSource, restoreSourceColors } from "./toolkitSource";
 
-/** A mounted viewer with controls; what the 3D pane drives. */
 export interface ViewerRig {
-  /** Loads a model into the scene; resolves to the group→entity mapping (empty for GLB). */
   load(url: string, format: ModelFormat): Promise<readonly GroupEntityMap[]>;
-  /** Replaces the boxes group: unit-cube instances (16 floats transform, RGBA color each). */
   setBoxes(transforms: Float32Array, colors: Float32Array): void;
-  /** Removes the boxes group, if any. */
   clearBoxes(): void;
   requestRender(): void;
+  applyRecipe?(table: TableSlice): void;
+  fit?(): void;
+  reset?(): void;
+  capture?(): Promise<Blob>;
+  legend?(): readonly LegendEntry[];
   dispose(): void;
 }
-
 export interface View3DDeps {
-  createRig(
-    canvas: HTMLCanvasElement,
-    onPick: (entityId: number | null) => void,
-  ): ViewerRig;
+  createRig(canvas: HTMLCanvasElement, onPick: (entityId: number | null) => void): ViewerRig;
 }
 
-const hasWebGl = (canvas: HTMLCanvasElement): boolean => {
-  try {
-    return canvas.getContext("webgl2") !== null || canvas.getContext("webgl") !== null;
-  } catch {
-    return false;
-  }
-};
-
-/**
- * Real rig: Viewer + OrbitControls + Picker/PickControls on the canvas.
- * Without a WebGL context (e.g. jsdom) the renderer is never attached; the
- * scene, controls, and picking wiring still exist.
- */
+/** Public V2 composition owns model binding, resize, camera, clipping, capture and disposal. */
 export const defaultView3DDeps: View3DDeps = {
   createRig(canvas, onPick) {
-    const viewer = new Viewer();
-    if (hasWebGl(canvas)) {
-      viewer.attach(canvas);
-      viewer.start();
+    const viewer = createViewer({ canvas, features: [...defaultFeatures(), ...recipeFeatures], selectOnClick: false });
+    const startup = viewer.diagnostics().filter(d => d.severity === "error");
+    if (startup.length) {
+      viewer.dispose();
+      throw new Error(startup.map(d => d.message).join("; "));
     }
-    const orbit = new OrbitControls({
-      camera: viewer.camera,
-      requestRender: () => viewer.requestRender(),
-    });
-    // DOM listener signatures are wider than the controls' minimal element
-    // interfaces; the casts are safe for real elements.
-    orbit.attach(canvas as unknown as InputElement);
-    const selection = new Selection();
-    const picker = new Picker(viewer.scene, viewer.objects);
-    const picks = new PickControls(picker, selection, () => viewer.camera);
-    picks.attach(canvas as unknown as PickElement);
-
-    let maps: readonly GroupEntityMap[] = [];
-    let boxes: InstancedGroup | null = null;
-    let framed = false;
-    const frameScene = () => {
-      const bounds = sceneBounds(viewer.scene);
-      if (!bounds) return;
-      orbit.model.frame(bounds, (viewer.camera.fov * Math.PI) / 180);
-      orbit.update();
-      framed = true;
+    let recipe: ReturnType<typeof mountRecipe> | undefined;
+    let boxes: InstancedGroup | undefined;
+    let abort: AbortController | undefined;
+    let generation = 0;
+    let disposed = false;
+    const listeners = new AbortController();
+    let down: { x: number; y: number; id: number } | undefined;
+    canvas.addEventListener("pointerdown", e => {
+      down = e.button === 0 ? { x: e.clientX, y: e.clientY, id: e.pointerId } : undefined;
+    }, { signal: listeners.signal });
+    canvas.addEventListener("pointercancel", () => { down = undefined; }, { signal: listeners.signal });
+    canvas.addEventListener("pointerup", e => {
+      const start = down;
+      down = undefined;
+      if (!start || start.id !== e.pointerId || Math.hypot(e.clientX-start.x, e.clientY-start.y) > 4) return;
+      const view = viewer.views.all()[0];
+      const ndc = view?.ndc(e.clientX, e.clientY);
+      const hit = ndc ? viewer.pick(ndc.x, ndc.y) : undefined;
+      if (!hit) return;
+      // BOS object IDs are source entity rows, not Revit sourceIds.
+      const local = hit.key.split("|").at(-1);
+      const id = local ? Number(decodeURIComponent(local).replace(/^bos:/, "")) : NaN;
+      onPick(Number.isFinite(id) ? id : null);
+    }, { signal: listeners.signal });
+    const clearBoxes = () => {
+      if (!boxes) return;
+      viewer.views.removeGroups([boxes]);
+      boxes = undefined;
     };
-    selection.changed.on((s) => {
-      const entity = s
-        ? maps.find((m) => m.group === s.group)?.entities[s.instanceIndex]
-        : undefined;
-      onPick(entity ?? null);
-    });
-
+    const fit = () => {
+      const view = viewer.views.all()[0];
+      const bounds = boxes && viewer.models().length === 0 ? groupBounds(boxes) : undefined;
+      if (view && bounds) {
+        const camera = fitBounds(view.camera(), bounds, { aspect: view.aspect(), padding: 1.05 });
+        if (camera) view.setCamera(camera);
+      } else requireResult(viewer.run("view.fit"));
+    };
     return {
       async load(url, format) {
-        if (format === "bos") {
-          const result = await loadBos(url, viewer.scene);
-          maps = result.groupEntities;
-        } else {
-          await loadGlb(url, viewer.scene);
-          maps = []; // GLB carries no entity mapping: picks emit nothing
+        const token = ++generation;
+        abort?.abort();
+        abort = new AbortController();
+        // Load without binding. A cancelled or superseded request cannot enter the scene.
+        const loaded = visibleSource(requireResult(await loadModel(url, { format, signal: abort.signal })));
+        if (disposed || token !== generation) throw new Error("Model load superseded.");
+        recipe?.dispose();
+        recipe = undefined;
+        clearBoxes();
+        for (const model of viewer.models()) viewer.close(model.id);
+        const opened = requireResult(viewer.show(loaded));
+        const table = viewer.binding.tableOf(opened.ref.id);
+        if (!table || table.rowCount === 0) throw new Error("The model contains no renderable geometry.");
+        // Frame with the source coordinate convention, including z-up BOS.
+        const view = viewer.views.all()[0];
+        if (view) {
+          const current = view.camera();
+          view.setCamera({ ...current, coordinates: loaded.data.coordinates,
+            camera: { ...current.camera, up: loaded.data.coordinates.up === "z" ? [0,0,1] : [0,1,0] } });
+          requireResult(viewer.run("view.fit"));
         }
-        frameScene();
-        viewer.requestRender();
-        return maps;
+        const restore = () => restoreSourceColors(loaded, table);
+        restore();
+        recipe = mountRecipe(viewer, loaded.data, table, restore);
+        return table.groups.map((group, groupIndex) => {
+          const start = table.groupStart[groupIndex];
+          const end = table.groupStart[groupIndex + 1];
+          const entities: number[] = [];
+          for (let row = start; row < end; row++) {
+            const record = loaded.data.objects[table.objectOfRow[row]];
+            entities.push(Number(record?.ref.objectId.replace(/^bos:/, "")));
+          }
+          return { entities, group: {
+            instanceCount: group.instanceCount,
+            colors: group.colors,
+            transforms: group.transforms,
+            setColors(first: number, colors: Float32Array) {
+              for (let slot = 0; slot < colors.length / 4; slot++) {
+                const row = start + first + slot;
+                table.opacity[row] = colors[slot * 4 + 3];
+                table.visible[row] = colors[slot * 4 + 3] > 0 ? 1 : 0;
+              }
+              group.setColors(first, colors);
+            },
+            setTransform: (index: number, matrix: Float32Array) => group.setTransform(index, matrix),
+          } };
+        });
+      },
+      applyRecipe(table) {
+        const steps = parseViewRecipe(table);
+        if (!recipe) throw new Error("Open a model before applying a view recipe.");
+        recipe.apply(steps);
+      },
+      fit,
+      reset: () => recipe?.reset(),
+      legend: () => recipe?.legend() ?? [],
+      async capture() {
+        const image = requireResult(await viewer.capture());
+        return new Blob([new Uint8Array(image.bytes)], { type: image.format });
       },
       setBoxes(transforms, colors) {
-        if (boxes) viewer.scene.removeGroup(boxes);
+        clearBoxes();
         boxes = new InstancedGroup(UNIT_CUBE);
         boxes.append(transforms, colors);
-        viewer.scene.addGroup(boxes);
-        // Frame only until the first framing: later box swaps (recolors,
-        // filters) must not yank the camera the user has positioned.
-        if (!framed) frameScene();
-        viewer.requestRender();
+        viewer.views.addGroups([boxes]);
+        if (viewer.models().length === 0) {
+          // Unbound analytical boxes have their own bounds, outside the model inventory.
+          fit();
+        }
       },
-      clearBoxes() {
-        if (!boxes) return;
-        viewer.scene.removeGroup(boxes);
-        boxes = null;
-        viewer.requestRender();
-      },
-      requestRender: () => viewer.requestRender(),
+      clearBoxes,
+      requestRender: () => viewer.views.requestRender(),
       dispose() {
-        picks.dispose();
-        orbit.dispose();
+        if (disposed) return;
+        disposed = true;
+        generation++;
+        abort?.abort();
+        listeners.abort();
+        recipe?.dispose();
+        clearBoxes();
         viewer.dispose();
       },
     };

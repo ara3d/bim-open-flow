@@ -67,13 +67,12 @@ describe("createPaneArea 3D model wiring", () => {
     const root = document.createElement("div");
     document.body.appendChild(root);
     const updates: unknown[] = [];
+    const errors: string[] = [];
     const area = createPaneArea(root, {
       ctx: { requestTable: async () => slice, resolveAsset: (url) => url },
       onSelect: () => {},
       onSetParam: () => {},
-      onError: (m) => {
-        throw new Error(m);
-      },
+      onError: (m) => { errors.push(m); },
       resolveModelId: async (path) => resolved[path] ?? null,
       paneFactory: () => ({
         mount: () => {},
@@ -84,7 +83,7 @@ describe("createPaneArea 3D model wiring", () => {
         destroy: () => {},
       }),
     });
-    return { area, updates };
+    return { area, updates, errors };
   };
 
   const shownWith = (modelPath?: string) => ({
@@ -111,11 +110,12 @@ describe("createPaneArea 3D model wiring", () => {
     area.dispose();
   });
 
-  it("feeds only the table when the model path is missing or unresolved", async () => {
-    const { area, updates } = makeView3dArea({});
+  it("feeds tables without a model path and reports unresolved model paths", async () => {
+    const { area, updates, errors } = makeView3dArea({});
     area.showNode(shownWith("unknown.ifc"));
     await settle();
-    expect(updates).toEqual([{ kind: "instances", data: slice }]);
+    expect(updates).toEqual([]);
+    expect(errors[0]).toContain("not in the host catalog");
     area.dispose();
   });
 });

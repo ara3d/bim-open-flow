@@ -22,11 +22,14 @@ public static class BimSampleSeeding
             return [];
         var samplesDir = Path.Combine(root, "samples", "bim");
         EnsureSampleModel(samplesDir);
-        return SampleSeeding.SeedIfEmpty(store,
-        [
+        var sources = new List<(string, string, string)>
+        {
             (Path.Combine(root, "samples", "bim-analyses"), SampleSeeding.PathPlaceholder, samplesDir),
             (Path.Combine(root, "samples", "view3d-analyses"), DataPlaceholder, Path.Combine(root, "data")),
-        ]);
+        };
+        if (SnowdonPath() is { } snowdon)
+            sources.Add((Path.Combine(root, "samples", "snowdon-analyses"), "{SNOWDON}", snowdon));
+        return SampleSeeding.SeedIfEmpty(store, sources);
     }
 
     /// <summary>The directories the seeded analyses' model paths point at
@@ -35,8 +38,18 @@ public static class BimSampleSeeding
     /// /api/models/{id}/bos. Empty outside a repo checkout.</summary>
     public static IReadOnlyList<string> SeededModelRoots(string startDir)
         => SampleSeeding.FindRepoRoot(startDir) is { } root
-            ? [Path.Combine(root, "samples", "bim"), Path.Combine(root, "data")]
+            ? new[] { Path.Combine(root, "samples", "bim"), Path.Combine(root, "data") }
+                .Concat(SnowdonPath() is { } snowdon ? [Path.GetDirectoryName(snowdon)!] : Array.Empty<string>()).ToArray()
             : [];
+
+    /// <summary>Local-only sample, optionally configured; model bytes are never distributed.</summary>
+    public static string? SnowdonPath()
+    {
+        var path = Environment.GetEnvironmentVariable("BIMOPENFLOW_SNOWDON")
+            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                "BIM Open Schema", "Snowdon Towers Sample Architectural.bos");
+        return File.Exists(path) ? Path.GetFullPath(path) : null;
+    }
 
     public static string EnsureSampleModel(string samplesDir)
     {

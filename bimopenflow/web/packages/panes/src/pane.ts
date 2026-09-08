@@ -7,7 +7,7 @@ import type {
 } from "@bimopenflow/contracts";
 
 /** Model file formats the 3D pane can load. */
-export type ModelFormat = "bos" | "glb";
+export type ModelFormat = "bos" | "bfast" | "glb";
 
 /**
  * Host services a pane may call. Provided once at mount; panes hold no other
@@ -51,6 +51,8 @@ export type PaneInput =
   | { kind: "model"; url: string; format?: ModelFormat }
   /** A 3D instance table: per-instance colors and isolation (3D pane). */
   | { kind: "instances"; data: TableSlice }
+  /** A bounded, ordered visualization recipe from view3d.scene and its downstream nodes. */
+  | { kind: "view"; data: TableSlice }
   /** A boxes table: axis-aligned boxes rendered as instanced unit cubes (3D pane). */
   | { kind: "boxes"; data: TableSlice };
 

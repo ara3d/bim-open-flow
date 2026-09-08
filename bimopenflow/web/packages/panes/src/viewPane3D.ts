@@ -9,6 +9,7 @@ import {
 } from "./instanceTable";
 import { parseBoxTable } from "./boxTable";
 import { defaultView3DDeps, type View3DDeps } from "./viewerDeps";
+import { parseViewRecipe } from "./viewRecipe";
 
 export interface ViewPane3DOptions {
   /** Viewer wiring override, mainly for headless tests. */
@@ -17,6 +18,7 @@ export interface ViewPane3DOptions {
 
 /** ".bos" (any case, query/hash ignored) loads as BOS; everything else as GLB. */
 export const inferFormat = (url: string): ModelFormat =>
+  /\.bfast$/i.test(url.split(/[?#]/, 1)[0]) ? "bfast" :
   /\.bos$/i.test(url.split(/[?#]/, 1)[0]) ? "bos" : "glb";
 
 /**
@@ -37,15 +39,50 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
     const deps = options?.deps ?? defaultView3DDeps;
     const canvas = root.ownerDocument.createElement("canvas");
     canvas.className = "bof-panes-canvas";
+    canvas.tabIndex = 0;
+    canvas.setAttribute("aria-label", "3D model. Drag to orbit, scroll to zoom.");
+    root.classList.add("bof-panes-view3d");
+    const toolbar = root.ownerDocument.createElement("div");
+    toolbar.className = "bof-panes-toolbar";
+    const status = root.ownerDocument.createElement("div");
+    status.className = "bof-panes-viewstatus";
+    status.setAttribute("role", "status");
+    status.textContent = "Choose a model or view recipe.";
+    root.append(toolbar, status);
     root.appendChild(canvas);
+    const legend = root.ownerDocument.createElement("div");
+    legend.className = "bof-panes-legend";
+    legend.setAttribute("aria-label", "Source category legend");
+    root.append(legend);
+    const updateLegend = () => {
+      legend.replaceChildren();
+      for (const entry of rig.legend?.() ?? []) {
+        const item = root.ownerDocument.createElement("span");
+        const swatch = root.ownerDocument.createElement("i");
+        swatch.style.background = `rgb(${entry.color.map(c => Math.round(c * 255)).join(",")})`;
+        item.append(swatch, `${entry.name} (${entry.count.toLocaleString()} objects)`);
+        legend.append(item);
+      }
+      legend.hidden = !legend.children.length;
+    };
 
-    const rig = deps.createRig(canvas, (entityId) => {
+    const reportError = (error: unknown) => {
+      status.textContent = String(error);
+      status.setAttribute("role", "alert");
+      emit({ kind: "action", action: "loadError", payload: { message: String(error) } });
+    };
+    let rig: ReturnType<View3DDeps["createRig"]>;
+    try { rig = deps.createRig(canvas, (entityId) => {
+      if (entityId !== null) status.textContent = `Selected entity ${entityId}`;
       if (entityId !== null)
         emit({
           kind: "selection",
           event: { source: "view3d", ids: [String(entityId)] },
         });
-    });
+    }); } catch (error) {
+      reportError(error);
+      return { update() {}, destroy() {} };
+    }
 
     let maps: readonly GroupEntityMap[] = [];
     let baseColors: Float32Array[] = [];
@@ -53,6 +90,45 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
     let offsetsApplied = false;
     let pending: TableSlice | null = null;
     let loadToken = 0;
+    let loading = false;
+    let pendingView: TableSlice | null = null;
+    let pendingBoxes: TableSlice | null = null;
+    let lastModel: { url: string; format: ModelFormat } | null = null;
+    let disposed = false;
+    const button = (label: string, action: () => void | Promise<void>) => {
+      const control = root.ownerDocument.createElement("button");
+      control.type = "button";
+      control.textContent = label;
+      control.addEventListener("click", () => {
+        Promise.resolve().then(action).catch(error => { if (!disposed) reportError(error); });
+      });
+      toolbar.append(control);
+    };
+    if (rig.fit) button("Fit", () => rig.fit?.());
+    if (rig.reset) button("Reset view", () => {
+      rig.reset?.();
+      updateLegend();
+      status.textContent = "Original view restored. Reapply to restore the graph presentation.";
+    });
+    if (rig.applyRecipe) button("Reapply graph", () => {
+      if (pending) applyInstances(pending);
+      if (pendingBoxes) applyBoxes(pendingBoxes);
+      if (pendingView) rig.applyRecipe?.(pendingView);
+      updateLegend();
+    });
+    if (rig.capture) button("Save PNG", async () => {
+      const blob = await rig.capture!();
+      if (disposed) return;
+      const url = URL.createObjectURL(blob);
+      const link = root.ownerDocument.createElement("a");
+      link.href = url;
+      link.download = "bim-flow-view.png";
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+    });
+    button("Retry model", () => {
+      if (lastModel) load(lastModel.url, lastModel.format);
+    });
 
     const applyInstances = (slice: TableSlice): void => {
       const plan = planFromSlice(slice);
@@ -70,46 +146,64 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
       rig.requestRender();
     };
 
+    const applyBoxes = (slice: TableSlice) => {
+      const boxes = parseBoxTable(slice);
+      if (boxes.count === 0) rig.clearBoxes();
+      else rig.setBoxes(boxes.transforms, boxes.colors);
+      rig.requestRender();
+    };
+    const load = (url: string, format: ModelFormat) => {
+      lastModel = { url, format };
+      const token = ++loadToken;
+      maps = [];
+      loading = true;
+      status.setAttribute("role", "status");
+      status.textContent = "Loading model…";
+      rig.load(ctx.resolveAsset(url), format).then(loaded => {
+        if (disposed || token !== loadToken) return;
+        maps = loaded;
+        loading = false;
+        baseColors = loaded.map(m => m.group.colors.slice());
+        baseTransforms = loaded.map(m => m.group.transforms?.slice() ?? null);
+        offsetsApplied = false;
+        if (pending) applyInstances(pending);
+        if (pendingBoxes) applyBoxes(pendingBoxes);
+        if (pendingView) rig.applyRecipe?.(pendingView);
+        updateLegend();
+        status.textContent = `${loaded.reduce((n, m) => n + m.entities.length, 0).toLocaleString()} instances · orbit / pan / zoom`;
+        emit({ kind: "action", action: "modelLoaded", payload: { url } });
+      }).catch(error => {
+        if (disposed || token !== loadToken) return;
+        loading = false;
+        status.textContent = String(error);
+        status.setAttribute("role", "alert");
+        emit({ kind: "action", action: "loadError", payload: { url, message: String(error) } });
+      });
+    };
+
     return {
       update(input) {
         if (input.kind === "model") {
-          const token = ++loadToken;
-          const url = ctx.resolveAsset(input.url);
-          rig.load(url, input.format ?? inferFormat(input.url)).then(
-            (loaded) => {
-              if (token !== loadToken) return;
-              maps = loaded;
-              baseColors = loaded.map((m) => m.group.colors.slice());
-              baseTransforms = loaded.map((m) => m.group.transforms?.slice() ?? null);
-              offsetsApplied = false;
-              if (pending) {
-                const slice = pending;
-                pending = null;
-                applyInstances(slice);
-              }
-              emit({
-                kind: "action",
-                action: "modelLoaded",
-                payload: { url: input.url },
-              });
-            },
-            (err) =>
-              emit({
-                kind: "action",
-                action: "loadError",
-                payload: { url: input.url, message: String(err) },
-              }),
-          );
+          if (lastModel) {
+            pending = null;
+            pendingBoxes = null;
+            pendingView = null;
+          }
+          load(input.url, input.format ?? inferFormat(input.url));
         } else if (input.kind === "instances") {
-          if (maps.length === 0) pending = input.data;
-          else applyInstances(input.data);
+          pending = input.data;
+          if (!loading && maps.length > 0) applyInstances(input.data);
         } else if (input.kind === "boxes") {
-          const boxes = parseBoxTable(input.data);
-          if (boxes.count === 0) rig.clearBoxes();
-          else rig.setBoxes(boxes.transforms, boxes.colors);
-          rig.requestRender();
+          pendingBoxes = input.data;
+          if (!loading) applyBoxes(input.data);
+        } else if (input.kind === "view") {
+          try {
+            parseViewRecipe(input.data);
+            pendingView = input.data;
+            if (!loading && maps.length > 0) { rig.applyRecipe?.(input.data); updateLegend(); }
+          } catch (error) { reportError(error); }
         }
       },
-      destroy: () => rig.dispose(),
+      destroy: () => { disposed = true; loadToken++; rig.dispose(); },
     };
   });

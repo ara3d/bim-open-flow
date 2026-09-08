@@ -13,6 +13,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@bim-open-toolkit/model": "file:../../../../viewer/packages/model",
+    "@bim-open-toolkit/formats": "file:../../../../viewer/packages/formats",
+    "@bim-open-toolkit/render": "file:../../../../viewer/packages/render",
+    "@bim-open-toolkit/interact": "file:../../../../viewer/packages/interact",
+    "@bim-open-toolkit/features": "file:../../../../viewer/packages/features",
+    "@bim-open-toolkit/viewer": "file:../../../../viewer/packages/viewer",
     "@ara3d/viewer-controls": "file:../../../../viewer/packages/controls",
     "@ara3d/viewer-core": "file:../../../../viewer/packages/core",
     "@ara3d/viewer-loaders": "file:../../../../viewer/packages/loaders",

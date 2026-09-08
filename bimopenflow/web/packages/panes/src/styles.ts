@@ -22,6 +22,15 @@ export const panesCss = `
 }
 .bof-panes-root .bof-viz-table tbody tr { cursor: pointer; }
 .bof-panes-canvas { display: block; width: 100%; height: 100%; }
+.bof-panes-view3d { display: flex; flex-direction: column; height: 100%; min-height: 280px; }
+.bof-panes-view3d .bof-panes-canvas { flex: 1; min-height: 0; touch-action: none; }
+.bof-panes-toolbar { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; }
+.bof-panes-toolbar button { padding: 6px 10px; cursor: pointer; }
+.bof-panes-viewstatus { padding: 4px 8px; font-size: 12px; }
+.bof-panes-viewstatus[role="alert"] { color: #b91c1c; }
+.bof-panes-legend { display: flex; flex-wrap: wrap; gap: 5px 12px; max-height: 76px; overflow: auto; padding: 8px; font-size: 11px; }
+.bof-panes-legend[hidden] { display: none; }
+.bof-panes-legend i { display: inline-block; width: 9px; height: 9px; margin-right: 5px; border-radius: 2px; }
 .bof-panes-title { font-weight: 600; margin: 4px 0; }
 .bof-panes-section { color: var(--bof-panes-muted); margin: 8px 0 2px; font-size: 11px; text-transform: uppercase; }
 .bof-panes-dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 4px 0; }

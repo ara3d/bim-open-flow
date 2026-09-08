@@ -31,6 +31,10 @@ export function createTopbar(root: HTMLElement, handlers: TopbarHandlers): Topba
 
   const title = doc.createElement("strong");
   title.textContent = "BimOpenFlow";
+  const lab = doc.createElement("a");
+  lab.href = "/3d.html";
+  lab.textContent = "Snowdon 3D lab";
+  title.append(" · ", lab);
 
   const picker = doc.createElement("select");
   picker.addEventListener("change", () => {

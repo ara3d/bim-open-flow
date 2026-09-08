@@ -25,6 +25,7 @@ import {
   type PaneKind,
 } from "./paneChoice.js";
 import { createParamsPane } from "./paramsPane.js";
+import { completeTable } from "./completeTable.js";
 
 const PANE_LABELS: Record<PaneKind, string> = {
   verdict: "Verdicts",
@@ -102,6 +103,7 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
     JSON.stringify(a) === JSON.stringify(b);
 
   const destroyPane = () => {
+    fetchToken++;
     activePane?.destroy();
     activePane = null;
     loadedModelUrl = null;
@@ -120,8 +122,10 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
     if (e.kind === "selection") deps.onSelect(e.event.ids);
     else if (e.action === "setParam" && shown && e.payload)
       deps.onSetParam(shown.nodeId, e.payload.name!, e.payload.value ?? "");
-    else if (e.action === "loadError")
+    else if (e.action === "loadError") {
+      loadedModelUrl = null;
       deps.onError(`3D model load failed: ${e.payload?.message ?? "unknown error"}`);
+    }
   };
 
   // Loads the shown node's model into the 3D pane once per model: resolves the
@@ -133,7 +137,8 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
     const id = await deps.resolveModelId(path);
     if (token !== fetchToken || pane !== activePane) return; // stale
     const url = id ? `model:${id}` : null;
-    if (!url || url === loadedModelUrl) return;
+    if (!url) throw new Error(`Model is not in the host catalog: ${path}. Add its directory to ModelRoots.`);
+    if (url === loadedModelUrl) return;
     loadedModelUrl = url;
     // The model-bytes endpoint always serves BOS; the id in the url may keep
     // a source extension (.ifc), so the format cannot be inferred from it.
@@ -154,12 +159,16 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
       if (!hasResults(state)) return; // no result on the host yet; pane stays empty
       const token = ++fetchToken;
       if (activeKind === "view3d") await feedModel(pane, token);
-      const data = await deps.ctx.requestTable(nodeId, port.name);
+      const data = activeKind === "view3d"
+        ? await completeTable(deps.ctx, nodeId, port.name, () => token === fetchToken && pane === activePane)
+        : await deps.ctx.requestTable(nodeId, port.name);
+      if (!data) return;
       if (token !== fetchToken || pane !== activePane) return; // stale
       if (activeKind === "view3d") {
         // The pane queues an instances slice that arrives before the model
         // finishes loading, so pushing the table right after is safe.
-        if (port.name === "boxes" || isBoxTable(data.columns))
+        if (port.name === "view") pane.update({ kind: "view", data });
+        else if (port.name === "boxes" || isBoxTable(data.columns))
           pane.update({ kind: "boxes", data });
         else pane.update({ kind: "instances", data });
       } else {
@@ -179,6 +188,7 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
     const pane = (deps.paneFactory ?? paneFactory)(kind, activeChartOptions);
     pane.onEvent(onPaneEvent);
     const host = root.ownerDocument.createElement("div");
+    if (kind === "view3d") host.style.height = "100%";
     body.appendChild(host);
     pane.mount(host, deps.ctx);
     activePane = pane;
@@ -199,6 +209,7 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
 
   return {
     showNode(next) {
+      fetchToken++;
       const sameNode = shown?.nodeId === next?.nodeId;
       shown = next;
       if (!next) {

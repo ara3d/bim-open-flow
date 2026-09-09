@@ -153,6 +153,25 @@ public sealed class AskAgentTests
     }
 
     [Test]
+    public async Task AnIdenticalRepeatedCallIsFlaggedToTheModel()
+    {
+        var model = new ScriptedModel(
+            ToolCall("c1", "listAnalyses", "{}"),
+            ToolCall("c2", "listAnalyses", "{}"),
+            ToolCall("c3", "addNode", """{"id":"ask-test","nodeId":"database","kind":"duck.source"}"""),
+            Text("done"));
+        var (_, events) = await Run(Agent(model));
+
+        Assert.That(events[0].Summary, Does.Not.Contain("repeated"));
+        Assert.That(events[1].Summary, Does.EndWith("(repeated, unchanged)"));
+        Assert.That(events[2].Summary, Does.Not.Contain("repeated"), "a different call resets the check");
+        var secondToolMessage = model.Requests[2]["messages"]!.AsArray().Last()!;
+        Assert.That(secondToolMessage["content"]!.GetValue<string>(), Does.Contain("same call as before"));
+        var firstToolMessage = model.Requests[1]["messages"]!.AsArray().Last()!;
+        Assert.That(firstToolMessage["content"]!.GetValue<string>(), Does.Not.Contain("same call as before"));
+    }
+
+    [Test]
     public void UnparseableArgumentsBecomeAnEmptyCallNotACrash()
     {
         var model = new ScriptedModel(ToolCall("c1", "addNode", "not json"), Text("ok"));

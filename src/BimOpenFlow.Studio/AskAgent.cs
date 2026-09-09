@@ -20,7 +20,11 @@ public sealed class AskAgent(McpServer tools, OpenAiChat chat, int maxTurns = As
 {
     public const int DefaultMaxTurns = 60;
     private const int SummaryLength = 160;
+    private const string RepeatNote =
+        " Note from the host: this is the same call as before and it returned the same result; nothing has changed. "
+        + "Repeating it will not help. Make a different edit, read a different node's result, or explain the outcome.";
     private int _nextId;
+    private (string Call, string Result)? _last;
 
     /// <summary>Starts a conversation: system prompt plus the first request.</summary>
     public static JsonArray NewConversation(string system)
@@ -60,12 +64,15 @@ public sealed class AskAgent(McpServer tools, OpenAiChat chat, int maxTurns = As
                 var name = call["function"]?["name"]?.GetValue<string>() ?? "";
                 var args = ParseArguments(call["function"]?["arguments"]?.GetValue<string>());
                 var (ok, resultText, summary) = Execute(name, args);
-                await emit(new AskEvent("tool", name, args, ok, summary));
+                var signature = (Call: name + args.ToJsonString(), Result: resultText);
+                var repeated = _last == signature;
+                _last = signature;
+                await emit(new AskEvent("tool", name, args, ok, repeated ? summary + " (repeated, unchanged)" : summary));
                 messages.Add(new JsonObject
                 {
                     ["role"] = "tool",
                     ["tool_call_id"] = callId,
-                    ["content"] = resultText,
+                    ["content"] = repeated ? resultText + RepeatNote : resultText,
                 });
             }
         }

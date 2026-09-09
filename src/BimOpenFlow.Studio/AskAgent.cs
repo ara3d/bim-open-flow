@@ -26,6 +26,11 @@ public sealed class AskAgent(McpServer tools, OpenAiChat chat, int maxTurns = As
     private int _nextId;
     private (string Call, string Result)? _last;
 
+    /// <summary>Tools not offered to the model: ones whose content the system
+    /// prompt already carries (the catalog, the database list) and ones a
+    /// graph-building request never needs. Fewer tools, fewer wasted turns.</summary>
+    public IReadOnlySet<string> Hidden { get; init; } = new HashSet<string>(StringComparer.Ordinal);
+
     /// <summary>Starts a conversation: system prompt plus the first request.</summary>
     public static JsonArray NewConversation(string system)
         => [new JsonObject { ["role"] = "system", ["content"] = system }];
@@ -86,6 +91,8 @@ public sealed class AskAgent(McpServer tools, OpenAiChat chat, int maxTurns = As
         var result = new JsonArray();
         foreach (var tool in listed["result"]?["tools"]?.AsArray().OfType<JsonObject>() ?? [])
         {
+            if (Hidden.Contains(tool["name"]?.GetValue<string>() ?? ""))
+                continue;
             result.Add(new JsonObject
             {
                 ["type"] = "function",

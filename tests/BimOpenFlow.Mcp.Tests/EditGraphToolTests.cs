@@ -46,7 +46,8 @@ public sealed class EditGraphToolTests : FlowToolFixture
               {"op":"addNode","nodeId":"x","kind":"no.such"}
             ]
             """));
-        Assert.That(error!.Message, Does.StartWith("Edit 2 (addNode x)").And.Contain("Unknown node kind"));
+        Assert.That(error!.Message, Does.StartWith("Nothing was saved; the graph is unchanged. Edit 2 (addNode x)")
+            .And.Contain("Unknown node kind"));
         Assert.That(Services.Host.Store.Exists("batch"), Is.False);
     }
 

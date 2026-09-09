@@ -107,10 +107,18 @@ public static class FlowEditTools
             }
             catch (Exception e) when (e is ArgumentException or InvalidOperationException or KeyNotFoundException)
             {
-                throw new ArgumentException($"Edit {i + 1} ({list[i].Op} {Describe(list[i])}): {e.Message}", e);
+                throw new ArgumentException(
+                    $"Nothing was saved; the graph is unchanged. Edit {i + 1} ({list[i].Op} {Describe(list[i])}): {e.Message}", e);
             }
         }
-        FlowDocumentTools.SaveValidated(s, id, doc);
+        try
+        {
+            FlowDocumentTools.SaveValidated(s, id, doc);
+        }
+        catch (ArgumentException e)
+        {
+            throw new ArgumentException($"Nothing was saved; the graph is unchanged. {e.Message}", e);
+        }
         return new { id, applied = list.Count, graphHash = doc.ComputeGraphHash() };
     }
 

@@ -172,6 +172,18 @@ public sealed class AskAgentTests
     }
 
     [Test]
+    public void HiddenToolsAreNotOfferedToTheModel()
+    {
+        var agent = new AskAgent(_tools, new OpenAiChat(new HttpClient(new ScriptedModel()), "sk-test", "gpt-test"))
+        {
+            Hidden = new HashSet<string> { "getNodeCatalog", "listDatabases" },
+        };
+        var names = agent.ListFunctions().Select(f => f!["function"]!["name"]!.GetValue<string>()).ToList();
+        Assert.That(names, Does.Not.Contain("getNodeCatalog").And.Not.Contain("listDatabases"));
+        Assert.That(names, Does.Contain("editGraph").And.Contain("describeDatabase").And.Contain("evaluate"));
+    }
+
+    [Test]
     public void UnparseableArgumentsBecomeAnEmptyCallNotACrash()
     {
         var model = new ScriptedModel(ToolCall("c1", "addNode", "not json"), Text("ok"));

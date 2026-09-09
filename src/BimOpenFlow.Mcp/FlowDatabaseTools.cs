@@ -58,10 +58,31 @@ public static partial class FlowDatabaseTools
                     {
                         name = t.Name,
                         rowCount = t.RowCount,
-                        columns = t.Columns.Select(c => new { name = c.Name, type = c.Type }).ToList(),
+                        columns = ProfileColumns(path, t),
                     })
                     .ToList(),
             };
+    }
+
+    /// <summary>Columns with types and, when the table has rows, their value
+    /// profile: nulls, distinct count, sample values, numeric range. The
+    /// samples are what let an agent write a correct filter the first time.</summary>
+    private static object ProfileColumns(string path, DuckTable t)
+    {
+        if (t.RowCount == 0)
+            return t.Columns.Select(c => new { name = c.Name, type = c.Type }).ToList<object>();
+        return DuckDbTableProbe.Profile(path, t.Name)
+            .Select(c => (object)new
+            {
+                name = c.Name,
+                type = c.Type,
+                nulls = c.NullCount,
+                distinct = c.DistinctCount,
+                samples = c.Samples,
+                min = c.Min,
+                max = c.Max,
+            })
+            .ToList();
     }
 
     /// <summary>Row count, base column names, and the bases that carry companion

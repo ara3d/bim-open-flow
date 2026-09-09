@@ -86,7 +86,7 @@ public static class FlowEditTools
         JsonNode? parsed;
         try
         {
-            parsed = JsonNode.Parse(editsJson);
+            parsed = JsonNode.Parse(EscapeControlCharactersInStrings(editsJson));
         }
         catch (System.Text.Json.JsonException e)
         {
@@ -136,6 +136,46 @@ public static class FlowEditTools
                 Text(o, "nodeId"), Text(o, "kind"), o["version"]?.GetValue<int>(),
                 Text(o, "name"), Text(o, "value"), Text(o, "from"), Text(o, "to")))
             .ToList();
+    }
+
+    /// <summary>Models write SQL with real line breaks inside JSON strings, which
+    /// strict JSON rejects. Escape control characters that sit inside string
+    /// literals; whitespace between tokens is left alone.</summary>
+    public static string EscapeControlCharactersInStrings(string json)
+    {
+        var sb = new System.Text.StringBuilder(json.Length + 16);
+        var inString = false;
+        var escaped = false;
+        foreach (var ch in json)
+        {
+            if (inString)
+            {
+                if (escaped)
+                {
+                    sb.Append(ch);
+                    escaped = false;
+                    continue;
+                }
+                switch (ch)
+                {
+                    case '\\': sb.Append(ch); escaped = true; continue;
+                    case '"': sb.Append(ch); inString = false; continue;
+                    case '\n': sb.Append("\\n"); continue;
+                    case '\r': sb.Append("\\r"); continue;
+                    case '\t': sb.Append("\\t"); continue;
+                    default:
+                        if (ch < ' ')
+                            sb.Append("\\u").Append(((int)ch).ToString("x4"));
+                        else
+                            sb.Append(ch);
+                        continue;
+                }
+            }
+            if (ch == '"')
+                inString = true;
+            sb.Append(ch);
+        }
+        return sb.ToString();
     }
 
     private static string? Text(JsonObject o, string key)

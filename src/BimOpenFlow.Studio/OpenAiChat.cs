@@ -15,10 +15,21 @@ public sealed class OpenAiChat(HttpClient http, string apiKey, string model, str
     public const string KeyVariable = "OPENAI_API_KEY";
     public const string KeyFileVariable = "OPENAI_API_KEY_FILE";
     public const string ModelVariable = "OPENAI_MODEL";
+    public const string ReasoningVariable = "OPENAI_REASONING_EFFORT";
 
     public string Model { get; } = model;
 
+    /// <summary>Reasoning effort for reasoning models (minimal, low, medium, high);
+    /// null sends nothing and takes the model's default. From OPENAI_REASONING_EFFORT.</summary>
+    public string? ReasoningEffort { get; init; } = ResolveReasoningEffort();
+
     private readonly string _endpoint = endpoint ?? DefaultEndpoint;
+
+    public static string? ResolveReasoningEffort(Func<string, string?>? environment = null)
+    {
+        var value = (environment ?? Environment.GetEnvironmentVariable)(ReasoningVariable);
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim().ToLowerInvariant();
+    }
 
     /// <summary>The key from OPENAI_API_KEY, else the first line of the file named by
     /// OPENAI_API_KEY_FILE; null when neither is set. The file form keeps the key
@@ -56,6 +67,8 @@ public sealed class OpenAiChat(HttpClient http, string apiKey, string model, str
             ["tools"] = tools.DeepClone(),
             ["tool_choice"] = "auto",
         };
+        if (ReasoningEffort is not null)
+            body["reasoning_effort"] = ReasoningEffort;
         using var request = new HttpRequestMessage(HttpMethod.Post, _endpoint);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         request.Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json");

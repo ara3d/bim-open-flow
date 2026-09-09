@@ -64,6 +64,17 @@ public sealed class EditGraphToolTests : FlowToolFixture
     }
 
     [Test]
+    public void LineBreaksInsideValuesAreAccepted()
+    {
+        // Models write multi-line SQL as real line breaks inside the JSON string.
+        FlowEditTools.EditGraph(Services, "batch", "[{\"op\":\"addNode\",\"nodeId\":\"cam\",\"kind\":\"view3d.camera\"},\n"
+            + "{\"op\":\"setParam\",\"nodeId\":\"cam\",\"name\":\"name\",\"value\":\"line one\nline two\ttabbed\"}]");
+        Assert.That(Services.Host.Store.Load("batch").Values["cam"]["name"], Is.EqualTo("line one\nline two\ttabbed"));
+        Assert.That(FlowEditTools.EscapeControlCharactersInStrings("[\"a\\\"b\nc\"]"), Is.EqualTo("[\"a\\\"b\\nc\"]"),
+            "an escaped quote does not end the string");
+    }
+
+    [Test]
     public void IsRegisteredAsATool()
     {
         using var mcp = new Ara3D.MCP.McpServer(Ara3D.MCP.McpServer.DefaultPort, "test", "0", transport: Ara3D.MCP.McpTransport.Http);

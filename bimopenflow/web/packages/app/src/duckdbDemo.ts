@@ -63,7 +63,9 @@ async function download() {
 // ── Ask ──────────────────────────────────────────────────────────────────────
 
 interface AskEvent {
-  type: 'start' | 'tool' | 'text' | 'done' | 'error';
+  type: 'start' | 'tool' | 'text' | 'check' | 'done' | 'error';
+  verified?: boolean;
+  problem?: string | null;
   analysisId?: string;
   model?: string;
   name?: string;
@@ -140,8 +142,12 @@ async function ask(request: string, form: HTMLFormElement, followUp: HTMLInputEl
         case 'text':
           line('agent', `Agent: ${event.text}`);
           break;
+        case 'check':
+          line('bad', `Check: ${event.summary}`);
+          break;
         case 'done': {
-          line('done', `Done in ${event.turns} turns (${event.inputTokens} in, ${event.outputTokens} out): ${event.text}`);
+          const verdict = event.built ? (event.verified ? 'Done, checked' : `Done, unverified (${event.problem ?? 'see above'})`) : 'Answered';
+          line(event.built && !event.verified ? 'bad' : 'done', `${verdict} in ${event.turns} turns (${event.inputTokens} in, ${event.outputTokens} out): ${event.text}`);
           if (event.built && event.analysisId && app) {
             await app.refreshAnalyses();
             await app.openAnalysis(event.analysisId);

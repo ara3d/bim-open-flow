@@ -77,6 +77,31 @@ public sealed class DatabaseToolTests : FlowToolFixture
     }
 
     [Test]
+    public void DescribeDatabase_OneTableProfilesValues()
+    {
+        var description = Json(FlowDatabaseTools.DescribeDatabase(_database, "door"));
+        var columns = description.GetProperty("tables")[0].GetProperty("columns").EnumerateArray()
+            .ToDictionary(c => c.GetProperty("name").GetString()!);
+        var mark = columns["mark"];
+        Assert.That(mark.GetProperty("samples").EnumerateArray().Select(v => v.GetString()), Is.EqualTo(new[] { "D1", "D2" }));
+        Assert.That(mark.GetProperty("distinct").GetInt64(), Is.EqualTo(2));
+        Assert.That(mark.GetProperty("nulls").GetInt64(), Is.EqualTo(0));
+        var width = columns["width"];
+        Assert.That(width.GetProperty("nulls").GetInt64(), Is.EqualTo(1));
+        Assert.That(width.GetProperty("min").GetString(), Is.EqualTo("0.9"));
+        Assert.That(width.GetProperty("max").GetString(), Is.EqualTo("0.9"));
+        var reason = columns["width_reason"];
+        Assert.That(reason.GetProperty("samples").EnumerateArray().Select(v => v.GetString()), Is.EqualTo(new[] { "NotObserved" }));
+        var evidence = columns["width_evidence"];
+        Assert.That(evidence.GetProperty("nulls").GetInt64(), Is.EqualTo(2), "list columns are profiled too");
+        Assert.That(evidence.GetProperty("samples").GetArrayLength(), Is.EqualTo(0));
+
+        var empty = Json(FlowDatabaseTools.DescribeDatabase(_database, "storey"));
+        var storeyColumns = empty.GetProperty("tables")[0].GetProperty("columns")[0];
+        Assert.That(storeyColumns.TryGetProperty("samples", out _), Is.False, "an empty table has only names and types");
+    }
+
+    [Test]
     public void DescribeDatabase_UnknownTableIsAnError()
         => Assert.Throws<ArgumentException>(() => FlowDatabaseTools.DescribeDatabase(_database, "wall"));
 

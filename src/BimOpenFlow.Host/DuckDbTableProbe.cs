@@ -4,10 +4,22 @@ using BimOpenFlow.Nodes.DuckDb;
 
 namespace BimOpenFlow.Host;
 
-/// <summary>DuckDB-backed FileTableProbe for TablesInFile suggestions: opens the
-/// file read-only and lists its table names from information_schema (no scans).</summary>
+/// <summary>One column of a described DuckDB table.</summary>
+public sealed record DuckColumn(string Name, string Type);
+
+/// <summary>One table of a described DuckDB database: its columns and row count.</summary>
+public sealed record DuckTable(string Name, long RowCount, IReadOnlyList<DuckColumn> Columns);
+
+/// <summary>A .duckdb file found under a model root.</summary>
+public sealed record DuckDatabase(string Name, string Path, long SizeBytes);
+
+/// <summary>DuckDB-backed FileTableProbe for TablesInFile suggestions, plus the
+/// schema description the MCP server offers agents. Every call opens the file
+/// read-only, so nothing here can modify a database.</summary>
 public static class DuckDbTableProbe
 {
+    public const string Extension = ".duckdb";
+
     public static IReadOnlyList<Suggestion> Tables(string path)
     {
         if (!File.Exists(path))
@@ -21,4 +33,28 @@ public static class DuckDbTableProbe
             tables.Add(new((string)names[0, row]!, null));
         return tables;
     }
+
+    /// <summary>Every table in the file with its columns, types, and row count:
+    /// what an agent reads before writing SQL against a database it was handed.</summary>
+    public static IReadOnlyList<DuckTable> Describe(string path)
+    {
+        if (!File.Exists(path))
+            throw new FileNotFoundException($"File not found: {path}", path);
+        using var conn = DuckDbOps.OpenReadOnly(path);
+        return conn.GetTableInfo()
+            .Select(t => new DuckTable(t.Table, t.RowCount,
+                t.Columns.Select(c => new DuckColumn(c.Name, c.Type)).ToList()))
+            .ToList();
+    }
+
+    /// <summary>The .duckdb files directly under each root, with forward-slash
+    /// paths ready to paste into a duck.source node.</summary>
+    public static IReadOnlyList<DuckDatabase> ListDatabases(IEnumerable<string> roots)
+        => roots
+            .Where(Directory.Exists)
+            .SelectMany(root => Directory.EnumerateFiles(root, "*" + Extension, SearchOption.TopDirectoryOnly))
+            .Select(file => new FileInfo(file))
+            .OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(f => new DuckDatabase(f.Name, f.FullName.Replace('\\', '/'), f.Length))
+            .ToList();
 }

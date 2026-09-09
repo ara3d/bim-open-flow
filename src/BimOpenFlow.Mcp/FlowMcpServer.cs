@@ -32,6 +32,7 @@ public static class FlowMcpServer
     public static McpServer RegisterTools(McpServer mcp, FlowServices services)
         => mcp
             .RegisterDocumentTools(services)
+            .RegisterDatabaseTools(services)
             .RegisterEditTools(services)
             .RegisterEvalTools(services);
 }

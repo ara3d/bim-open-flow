@@ -6,6 +6,7 @@
   "description": "BimOpenFlow editor shell: canvas editing on gratify, node catalog browsing, panes, session/run controls. Owns the layout and session layers of a graph file; never evaluates anything.",
   "scripts": {
     "dev": "vite",
+    "duckdb": "node ../../node_modules/vite/bin/vite.js --config vite.duckdb.config.ts",
     "build": "vite build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"

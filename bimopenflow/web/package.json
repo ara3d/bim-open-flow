@@ -8,6 +8,10 @@
   ],
   "scripts": {
     "host": "dotnet run --project ../../src/BimOpenFlow.Host -- --profile bim --port 5214 --store ../../artifacts/bim-flow/store --cache ../../artifacts/bim-flow/cache",
-    "web": "npm run dev -w @bimopenflow/app"
+    "web": "npm run dev -w @bimopenflow/app",
+    "duckdb:prepare": "node ../../scripts/prepare-bim-flow-duckdb.mjs",
+    "duckdb:build": "dotnet build ../../src/BimOpenFlow.Host --no-restore -o ../../artifacts/bim-flow-duckdb/host --verbosity quiet",
+    "duckdb:host": "dotnet ../../artifacts/bim-flow-duckdb/host/bimopenflow-host.dll --profile tables --port 5218 --store ../../artifacts/bim-flow-duckdb/store --cache ../../artifacts/bim-flow-duckdb/cache --models ../../artifacts/building-model-workflows",
+    "duckdb:web": "npm run duckdb -w @bimopenflow/app"
   }
 }

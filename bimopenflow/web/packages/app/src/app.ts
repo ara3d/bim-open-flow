@@ -33,6 +33,8 @@ import { nodeTitle, upstreamIds } from "./graphPreview";
 
 export interface App {
   openAnalysis(id: string): Promise<void>;
+  /** Re-reads the analysis list from the host (for graphs created outside the editor). */
+  refreshAnalyses(): Promise<void>;
   dispose(): void;
 }
 
@@ -351,6 +353,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
 
   return {
     openAnalysis,
+    refreshAnalyses,
     dispose() {
       unsubscribe();
       setSuggestionProvider(null);

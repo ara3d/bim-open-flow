@@ -9,6 +9,9 @@ namespace BimOpenFlow.Host.Api;
 /// One standing EvalSession per analysis, created on demand from the store.
 /// The engine is single-threaded by design, so every session operation runs
 /// under a per-session lock; SSE fan-out uses the session's own observers.
+/// A session remembers the store stamp of the document it holds and reloads
+/// when the file on disk has been replaced by another writer (the MCP tools,
+/// another process), so readers never see results of a superseded document.
 /// </summary>
 public sealed class AnalysisSessions
 {
@@ -16,6 +19,7 @@ public sealed class AnalysisSessions
     {
         public readonly object Lock = new();
         public required EvalSession Session { get; init; }
+        public StoreStamp? Stamp;
     }
 
     private readonly AnalysisStore _store;
@@ -30,44 +34,61 @@ public sealed class AnalysisSessions
     }
 
     /// <summary>The current snapshot, evaluating the stored document first if
-    /// this analysis has no session yet.</summary>
+    /// this analysis has no session yet or the store has changed underneath it.</summary>
     public EvalSnapshot Snapshot(string id)
     {
-        var entry = GetOrCreate(id, loadOnCreate: true);
+        var entry = GetOrCreate(id);
         lock (entry.Lock)
+        {
+            Refresh(entry, id);
             return entry.Session.Snapshot;
+        }
     }
 
-    /// <summary>Sets the (already validated) document as current and runs one pass.</summary>
+    /// <summary>Sets the (already validated and saved) document as current and runs one pass.</summary>
     public EvalSnapshot Set(string id, GraphDocument doc)
     {
-        var entry = GetOrCreate(id, loadOnCreate: false);
+        var entry = GetOrCreate(id);
         lock (entry.Lock)
-            return entry.Session.SetDocument(doc);
+        {
+            var snapshot = entry.Session.SetDocument(doc);
+            entry.Stamp = _store.Stamp(id);
+            return snapshot;
+        }
     }
 
     /// <summary>Observes every completed evaluation pass for one analysis.</summary>
     public IDisposable Subscribe(string id, Action<EvalSnapshot> observer)
     {
-        var entry = GetOrCreate(id, loadOnCreate: true);
+        var entry = GetOrCreate(id);
         lock (entry.Lock)
         {
+            Refresh(entry, id);
             var subscription = entry.Session.Subscribe(observer);
             return new LockedDisposable(entry.Lock, subscription);
         }
     }
 
-    // TODO: sessions never observe out-of-band edits to the store directory;
-    // a stale session persists until the next PUT. Add an mtime check if needed.
-    private Entry GetOrCreate(string id, bool loadOnCreate)
+    /// <summary>Reloads when the stored bytes differ from the ones this session
+    /// evaluated. Cheap: one stat call, no read, when nothing changed.</summary>
+    private void Refresh(Entry entry, string id)
+    {
+        var current = _store.Stamp(id);
+        if (current is null && entry.Stamp is null)
+            throw new FileNotFoundException($"Analysis '{id}' not found");
+        if (current is null || current == entry.Stamp)
+            return;
+        entry.Session.SetDocument(_store.Load(id));
+        entry.Stamp = current;
+    }
+
+    private Entry GetOrCreate(string id)
     {
         lock (_mapLock)
         {
             if (_entries.TryGetValue(id, out var existing))
                 return existing;
             var entry = new Entry { Session = new EvalSession(_registry) };
-            if (loadOnCreate)
-                entry.Session.SetDocument(_store.Load(id));
             _entries[id] = entry;
             return entry;
         }

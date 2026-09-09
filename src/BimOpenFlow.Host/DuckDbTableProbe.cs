@@ -34,14 +34,15 @@ public static class DuckDbTableProbe
         return tables;
     }
 
-    /// <summary>Every table in the file with its columns, types, and row count:
-    /// what an agent reads before writing SQL against a database it was handed.</summary>
-    public static IReadOnlyList<DuckTable> Describe(string path)
+    /// <summary>Every table in the file (or just one) with its columns, types, and
+    /// row count: what an agent reads before writing SQL against a database it was
+    /// handed. An unknown table name is an error, not an empty list.</summary>
+    public static IReadOnlyList<DuckTable> Describe(string path, string? table = null)
     {
         if (!File.Exists(path))
             throw new FileNotFoundException($"File not found: {path}", path);
         using var conn = DuckDbOps.OpenReadOnly(path);
-        return conn.GetTableInfo()
+        return conn.GetTableInfo(string.IsNullOrWhiteSpace(table) ? null : table.Trim())
             .Select(t => new DuckTable(t.Table, t.RowCount,
                 t.Columns.Select(c => new DuckColumn(c.Name, c.Type)).ToList()))
             .ToList();

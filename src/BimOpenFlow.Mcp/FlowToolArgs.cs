@@ -11,8 +11,13 @@ internal static class FlowToolArgs
     public static McpSchemaBuilder Analysis()
         => McpSchema.Object().String("id", "Analysis id (a lowercase slug, e.g. 'wall-areas').", required: true);
 
+    /// <summary>'id', or 'analysisId' as an alias, because agents reach for both.</summary>
     public static string AnalysisId(this McpToolArgs args)
-        => args.GetRequiredString("id");
+        => args.GetString("id") is { Length: > 0 } id
+            ? id
+            : args.GetString("analysisId") is { Length: > 0 } alias
+                ? alias
+                : args.GetRequiredString("id");
 
     public static McpSchemaBuilder Paged(this McpSchemaBuilder builder)
         => builder

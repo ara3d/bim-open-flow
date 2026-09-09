@@ -1,2 +1,13 @@
 #duck-editor.bof-app-root { --bof-app-accent: #47795f; }
 #duck-error:not([hidden]) { padding: 12px 16px; color: #8c3227; background: #fff0e9; border-bottom: 1px solid #e5ab98; font: 13px Inter, 'Segoe UI', system-ui, sans-serif; }
+.duck-ask { display: flex; gap: 6px; align-items: center; margin: 0 8px; }
+.duck-ask input { width: 380px; max-width: 40vw; padding: 3px 8px; font: 13px Inter, 'Segoe UI', system-ui, sans-serif; border: 1px solid #b9c3bd; border-radius: 4px; }
+.duck-ask input:disabled, .duck-ask button:disabled { opacity: 0.6; }
+#duck-ask-log:not([hidden]) { max-height: 180px; overflow: auto; padding: 6px 16px; background: #f4f7f5; border-bottom: 1px solid #d5ddd8; font: 12px/1.5 ui-monospace, Consolas, 'Cascadia Mono', monospace; color: #2b3b32; }
+.duck-ask-line { white-space: pre-wrap; word-break: break-word; }
+.duck-ask-you { font-weight: 600; }
+.duck-ask-note, .duck-ask-tool { color: #4b5d53; }
+.duck-ask-agent { color: #1f4d36; }
+.duck-ask-done { color: #1f4d36; font-weight: 600; }
+.duck-ask-bad { color: #8c3227; }
+.duck-ask-followup { font: 12px Inter, 'Segoe UI', system-ui, sans-serif; color: #4b5d53; white-space: nowrap; display: flex; align-items: center; gap: 3px; }

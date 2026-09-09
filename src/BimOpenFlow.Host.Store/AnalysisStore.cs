@@ -43,6 +43,16 @@ public sealed class AnalysisStore
     public bool Exists(string id)
         => File.Exists(CurrentPath(id));
 
+    /// <summary>Identifies the current document's bytes on disk (length and last
+    /// write time) without reading them, so a cache can tell whether another
+    /// writer, in this process or not, replaced the document since it loaded it.
+    /// Null when the analysis does not exist.</summary>
+    public StoreStamp? Stamp(string id)
+    {
+        var file = new FileInfo(CurrentPath(id));
+        return file.Exists ? new StoreStamp(file.Length, file.LastWriteTimeUtc.Ticks) : null;
+    }
+
     public IReadOnlyList<AnalysisEntry> List()
         => Directory.EnumerateDirectories(RootDir)
             .Select(Path.GetFileName)

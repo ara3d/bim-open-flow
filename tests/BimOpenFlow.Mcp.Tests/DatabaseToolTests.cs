@@ -16,10 +16,25 @@ public sealed class DatabaseToolTests : FlowToolFixture
         using var conn = new DuckDBConnection($"DataSource={_database}");
         conn.Open();
         using var cmd = conn.CreateCommand();
-        cmd.CommandText = "CREATE TABLE door (id INTEGER, mark VARCHAR, width DOUBLE); "
-            + "INSERT INTO door VALUES (1, 'D1', 0.9), (2, 'D2', NULL); "
+        cmd.CommandText = "CREATE TABLE door (id INTEGER, mark VARCHAR, width DOUBLE, width_reason VARCHAR, width_evidence VARCHAR[]); "
+            + "INSERT INTO door VALUES (1, 'D1', 0.9, NULL, NULL), (2, 'D2', NULL, 'NotObserved', NULL); "
             + "CREATE TABLE storey (id INTEGER, name VARCHAR)";
         cmd.ExecuteNonQuery();
+    }
+
+    [Test]
+    public void DescribeDatabase_FoldsCompanionColumnsAndSkipsEmptyTableColumns()
+    {
+        var description = Json(FlowDatabaseTools.DescribeDatabase(_database));
+        var tables = description.GetProperty("tables").EnumerateArray().ToList();
+        var door = tables[0];
+        Assert.That(door.GetProperty("columns").EnumerateArray().Select(c => c.GetString()),
+            Is.EqualTo(new[] { "id", "mark", "width" }), "companion columns are folded away");
+        Assert.That(door.GetProperty("companions").EnumerateArray().Select(c => c.GetString()), Is.EqualTo(new[] { "width" }));
+        var storey = tables[1];
+        Assert.That(storey.GetProperty("rowCount").GetInt64(), Is.EqualTo(0));
+        Assert.That(storey.TryGetProperty("columns", out _), Is.False, "an empty table lists no columns");
+        Assert.That(storey.GetProperty("columnCount").GetInt64(), Is.EqualTo(2));
     }
 
     [Test]
@@ -34,19 +49,36 @@ public sealed class DatabaseToolTests : FlowToolFixture
     }
 
     [Test]
-    public void DescribeDatabase_ListsTablesColumnsAndRowCounts()
+    public void DescribeDatabase_SummarisesEveryTableWithColumnNames()
     {
         var description = Json(FlowDatabaseTools.DescribeDatabase(_database));
         var tables = description.GetProperty("tables").EnumerateArray().ToList();
         Assert.That(tables.Select(t => t.GetProperty("name").GetString()), Is.EqualTo(new[] { "door", "storey" }));
         var door = tables[0];
         Assert.That(door.GetProperty("rowCount").GetInt64(), Is.EqualTo(2));
-        var columns = door.GetProperty("columns").EnumerateArray()
-            .Select(c => (c.GetProperty("name").GetString(), c.GetProperty("type").GetString()))
-            .ToList();
-        Assert.That(columns, Is.EqualTo(new[] { ("id", "INTEGER"), ("mark", "VARCHAR"), ("width", "DOUBLE") }));
+        Assert.That(door.GetProperty("columns").EnumerateArray().Select(c => c.GetString()),
+            Is.EqualTo(new[] { "id", "mark", "width" }));
         Assert.That(tables[1].GetProperty("rowCount").GetInt64(), Is.EqualTo(0));
     }
+
+    [Test]
+    public void DescribeDatabase_OneTableHasColumnTypes()
+    {
+        var description = Json(FlowDatabaseTools.DescribeDatabase(_database, "door"));
+        var tables = description.GetProperty("tables").EnumerateArray().ToList();
+        Assert.That(tables, Has.Count.EqualTo(1));
+        var columns = tables[0].GetProperty("columns").EnumerateArray()
+            .Select(c => (c.GetProperty("name").GetString(), c.GetProperty("type").GetString()))
+            .ToList();
+        Assert.That(columns, Is.EqualTo(new[]
+        {
+            ("id", "INTEGER"), ("mark", "VARCHAR"), ("width", "DOUBLE"), ("width_reason", "VARCHAR"), ("width_evidence", "VARCHAR[]"),
+        }));
+    }
+
+    [Test]
+    public void DescribeDatabase_UnknownTableIsAnError()
+        => Assert.Throws<ArgumentException>(() => FlowDatabaseTools.DescribeDatabase(_database, "wall"));
 
     [Test]
     public void DescribeDatabase_MissingFileIsAnError()

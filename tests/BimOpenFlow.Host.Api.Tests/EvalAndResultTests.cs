@@ -45,6 +45,25 @@ public sealed class EvalAndResultTests
     }
 
     [Test]
+    public async Task ResultsFollowTheStore_WhenAnotherWriterReplacesTheDocument()
+    {
+        await PutAnalysis("stale-case", ConstNegate("42"));
+        using (var before = await GetJson("/api/analyses/stale-case/results/n/out"))
+            Assert.That(before.RootElement.GetProperty("rows")[0][0].GetInt64(), Is.EqualTo(-42));
+
+        // Not through the API: the MCP tools, or another process, save straight to the store.
+        var store = new BimOpenFlow.Host.Store.AnalysisStore(Path.Combine(ApiTestServer.RootDir, "analyses"));
+        store.Save("stale-case", ConstNegate("7"));
+
+        using var state = await GetJson("/api/analyses/stale-case/state");
+        Assert.That(state.RootElement.GetProperty("nodes").EnumerateArray().Select(n => n.GetProperty("status").GetString()),
+            Has.All.EqualTo("Ok"));
+        using var after = await GetJson("/api/analyses/stale-case/results/n/out");
+        Assert.That(after.RootElement.GetProperty("rows")[0][0].GetInt64(), Is.EqualTo(-7),
+            "the standing session reloads a document replaced on disk");
+    }
+
+    [Test]
     public async Task UnknownNodeOrPort_Returns404()
     {
         await PutAnalysis("missing-result", ConstNegate());

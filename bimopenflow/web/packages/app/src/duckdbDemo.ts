@@ -188,6 +188,7 @@ function mountAsk() {
   const followUp = document.createElement('input');
   followUp.type = 'checkbox';
   followUp.disabled = true;
+  followUp.setAttribute('aria-label', 'Follow up on the last graph');
   followUpLabel.append(followUp, ' follow-up');
   form.append(input, examples, button, followUpLabel);
   // With the suggestion list open, Enter would only close it; submit outright.

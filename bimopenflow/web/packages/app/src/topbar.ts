@@ -11,6 +11,8 @@ import {
 export type ConnectionStatus = "connected" | "offline" | "connecting";
 
 export interface TopbarHandlers {
+  /** Replaces the default "BimOpenFlow · Snowdon 3D graphs" heading. */
+  heading?: string;
   onOpenAnalysis(id: string): void;
   onNewAnalysis(): void;
   onSave(): void;
@@ -30,11 +32,14 @@ export function createTopbar(root: HTMLElement, handlers: TopbarHandlers): Topba
   root.classList.add("bof-app-topbar");
 
   const title = doc.createElement("strong");
-  title.textContent = "BimOpenFlow";
-  const lab = doc.createElement("a");
-  lab.href = "/3d.html";
-  lab.textContent = "Snowdon 3D graphs";
-  title.append(" · ", lab);
+  if (handlers.heading) title.textContent = handlers.heading;
+  else {
+    title.textContent = "BimOpenFlow";
+    const lab = doc.createElement("a");
+    lab.href = "/3d.html";
+    lab.textContent = "Snowdon 3D graphs";
+    title.append(" · ", lab);
+  }
 
   const picker = doc.createElement("select");
   picker.setAttribute("aria-label", "Open flow");

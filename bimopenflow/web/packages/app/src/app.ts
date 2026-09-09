@@ -52,6 +52,8 @@ export interface AppOptions {
   autoLayout?: boolean;
   graphDemo?: boolean;
   initialAnalysis?: string;
+  /** Topbar heading; defaults to the BimOpenFlow / Snowdon 3D link. */
+  heading?: string;
 }
 
 export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions = {}): App {
@@ -140,6 +142,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
 
   // ── chrome ─────────────────────────────────────────────────────────────────
   const topbar = createTopbar(shell.topbarEl, {
+    heading: options.heading,
     onOpenAnalysis: (id) => void openAnalysis(id),
     onNewAnalysis: () => void newAnalysis(),
     onSave: () => void save(),

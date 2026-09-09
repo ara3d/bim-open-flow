@@ -5,7 +5,7 @@
   "type": "module",
   "description": "BimOpenFlow editor shell: canvas editing on gratify, node catalog browsing, panes, session/run controls. Owns the layout and session layers of a graph file; never evaluates anything.",
   "scripts": {
-    "dev": "vite --port 5300 --strictPort",
+    "dev": "vite",
     "build": "vite build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"

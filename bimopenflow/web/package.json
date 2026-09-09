@@ -5,5 +5,9 @@
   "type": "module",
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "scripts": {
+    "host": "dotnet run --project ../../src/BimOpenFlow.Host -- --profile bim --port 5214 --store ../../artifacts/bim-flow/store --cache ../../artifacts/bim-flow/cache",
+    "web": "npm run dev -w @bimopenflow/app"
+  }
 }

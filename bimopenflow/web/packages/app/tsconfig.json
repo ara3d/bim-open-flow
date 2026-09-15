@@ -12,7 +12,7 @@
     "types": ["vite/client"],
     "baseUrl": ".",
     // gratify is consumed from the submodule source (same pattern as
-    // platoflow/web); the vite alias in vite.config.ts is the runtime twin.
+    // the former platoflow/web); the vite alias in vite.config.ts is the runtime twin.
     "paths": {
       "gratify": ["../../../../submodules/gratify/src/gratify/index.ts"],
       "@bim-open-toolkit/*": ["../../../../viewer/packages/*/src/index.ts"]

@@ -4,7 +4,7 @@ import { toolkitAlias } from "../../toolkit.config";
 import { snowdonFixture } from "./snowdonFixture";
 
 // Gratify is imported from the submodule source (pattern copied from
-// platoflow/web/vite.config.ts).
+// the former platoflow/web/vite.config.ts).
 const gratify = resolve(__dirname, "../../../../submodules/gratify/src/gratify");
 
 // The dev server proxies /api to the host; override the target with

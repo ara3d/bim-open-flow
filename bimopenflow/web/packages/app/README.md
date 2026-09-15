@@ -56,7 +56,7 @@ npm run -w @bimopenflow/app build   # vite production build
 - `app.ts` — the controller wiring all of the above around one `ApiClient`.
 
 gratify is consumed from the submodule source via a vite/tsc alias to
-`submodules/gratify/src/gratify` (pattern copied from `platoflow/web`).
+`submodules/gratify/src/gratify` (pattern copied from the former `platoflow/web`).
 
 ## Assumptions and stubs
 

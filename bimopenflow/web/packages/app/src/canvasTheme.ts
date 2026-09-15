@@ -56,7 +56,7 @@ const darkPalette: Palette = {
   danger: rgb(255, 92, 108),
 };
 
-// "light" = platoflow/web/src/theme.ts cream palette, token for token.
+// "light" = the former platoflow/web/src/theme.ts cream palette, token for token.
 const lightPalette: Palette = {
   bg: rgb(239, 237, 232),
   surface: rgb(255, 255, 255),

@@ -19,8 +19,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\BimOpenFlow.Host.Catalog\BimOpenFlow.Host.Catalog.csproj" />
-    <ProjectReference Include="..\..\src\Ara3D.BimOpenSchema\Ara3D.BimOpenSchema.csproj" />
-    <ProjectReference Include="..\..\src\Ara3D.BimOpenSchema.IO\Ara3D.BimOpenSchema.IO.csproj" />
+    <ProjectReference Include="..\..\submodules\bim-open-schema\src\Ara3D.BimOpenSchema\Ara3D.BimOpenSchema.csproj" />
+    <ProjectReference Include="..\..\submodules\bim-open-schema\src\Ara3D.BimOpenSchema.IO\Ara3D.BimOpenSchema.IO.csproj" />
   </ItemGroup>
 
   <ItemGroup>

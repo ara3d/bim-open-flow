@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Ara3D.IfcLoader\Ara3D.IfcLoader.csproj" />
-    <ProjectReference Include="..\Ara3D.BimOpenSchema.IO\Ara3D.BimOpenSchema.IO.csproj" />
+    <ProjectReference Include="..\..\submodules\bim-open-schema\src\Ara3D.BimOpenSchema.IO\Ara3D.BimOpenSchema.IO.csproj" />
     <ProjectReference Include="..\Ara3D.Ifc.Bos\Ara3D.Ifc.Bos.csproj" />
     <PackageReference Include="Ara3D.Utils" Version="$(Ara3DSdkVersion)" />
   </ItemGroup>

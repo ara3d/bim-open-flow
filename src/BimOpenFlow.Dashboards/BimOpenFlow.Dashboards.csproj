@@ -7,7 +7,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BimOpenFlow.Publishing\BimOpenFlow.Publishing.csproj" />
-    <ProjectReference Include="..\Ara3D.DataFlowEngine.Runs\Ara3D.DataFlowEngine.Runs.csproj" />
+    <ProjectReference Include="..\..\submodules\ara3d-dataflow\src\Ara3D.DataFlowEngine.Runs\Ara3D.DataFlowEngine.Runs.csproj" />
   </ItemGroup>
 
 </Project>

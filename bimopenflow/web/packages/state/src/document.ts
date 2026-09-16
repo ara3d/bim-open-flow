@@ -1,5 +1,5 @@
 // Client-side mirror of the frozen four-layer graph document format
-// (spec/dataflow-graph/format, canonical implementation: src/Ara3D.NodeGraph).
+// (submodules/ara3d-dataflow/spec/dataflow-graph/format, canonical implementation: submodules/ara3d-dataflow/src/Ara3D.NodeGraph).
 // The client round-trips the JSON it received and applies edits structurally;
 // full canonical byte-identity (hashing) lives server-side.
 

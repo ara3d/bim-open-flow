@@ -6,8 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Ara3D.DataFlowEngine.Runs\Ara3D.DataFlowEngine.Runs.csproj" />
-    <ProjectReference Include="..\Ara3D.NodeGraph\Ara3D.NodeGraph.csproj" />
+    <ProjectReference Include="..\..\submodules\ara3d-dataflow\src\Ara3D.DataFlowEngine.Runs\Ara3D.DataFlowEngine.Runs.csproj" />
+    <ProjectReference Include="..\..\submodules\ara3d-dataflow\src\Ara3D.NodeGraph\Ara3D.NodeGraph.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Reports\BimOpenFlow.Reports.csproj" />
   </ItemGroup>
 

@@ -23,7 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\BimOpenFlow.Host.Api\BimOpenFlow.Host.Api.csproj" />
-    <ProjectReference Include="..\..\src\Ara3D.DataFlowEngine.TestKit\Ara3D.DataFlowEngine.TestKit.csproj" />
+    <ProjectReference Include="..\..\submodules\ara3d-dataflow\src\Ara3D.DataFlowEngine.TestKit\Ara3D.DataFlowEngine.TestKit.csproj" />
   </ItemGroup>
 
   <ItemGroup>

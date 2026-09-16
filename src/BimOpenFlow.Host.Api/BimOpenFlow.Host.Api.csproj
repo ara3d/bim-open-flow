@@ -11,9 +11,9 @@
     <ProjectReference Include="..\BimOpenFlow.Contracts\BimOpenFlow.Contracts.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Host.Catalog\BimOpenFlow.Host.Catalog.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Host.Store\BimOpenFlow.Host.Store.csproj" />
-    <ProjectReference Include="..\Ara3D.DataFlowEngine\Ara3D.DataFlowEngine.csproj" />
-    <ProjectReference Include="..\Ara3D.DataFlowEngine.Runs\Ara3D.DataFlowEngine.Runs.csproj" />
-    <ProjectReference Include="..\Ara3D.NodeGraph\Ara3D.NodeGraph.csproj" />
+    <ProjectReference Include="..\..\submodules\ara3d-dataflow\src\Ara3D.DataFlowEngine\Ara3D.DataFlowEngine.csproj" />
+    <ProjectReference Include="..\..\submodules\ara3d-dataflow\src\Ara3D.DataFlowEngine.Runs\Ara3D.DataFlowEngine.Runs.csproj" />
+    <ProjectReference Include="..\..\submodules\ara3d-dataflow\src\Ara3D.NodeGraph\Ara3D.NodeGraph.csproj" />
   </ItemGroup>
 
 </Project>

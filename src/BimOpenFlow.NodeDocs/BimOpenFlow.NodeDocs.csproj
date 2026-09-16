@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Ara3D.DataFlowEngine.Abstractions\Ara3D.DataFlowEngine.Abstractions.csproj" />
+    <ProjectReference Include="..\..\submodules\ara3d-dataflow\src\Ara3D.DataFlowEngine.Abstractions\Ara3D.DataFlowEngine.Abstractions.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Bos\BimOpenFlow.Nodes.Bos.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Geometry\BimOpenFlow.Nodes.Geometry.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Compliance\BimOpenFlow.Nodes.Compliance.csproj" />

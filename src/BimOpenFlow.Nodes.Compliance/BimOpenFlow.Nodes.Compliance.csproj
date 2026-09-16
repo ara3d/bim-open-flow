@@ -7,8 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Ara3D.DataFlowEngine.Abstractions\Ara3D.DataFlowEngine.Abstractions.csproj" />
-    <ProjectReference Include="..\Ara3D.DataFlowEngine.Expressions\Ara3D.DataFlowEngine.Expressions.csproj" />
+    <ProjectReference Include="..\..\submodules\ara3d-dataflow\src\Ara3D.DataFlowEngine.Abstractions\Ara3D.DataFlowEngine.Abstractions.csproj" />
+    <ProjectReference Include="..\..\submodules\ara3d-dataflow\src\Ara3D.DataFlowEngine.Expressions\Ara3D.DataFlowEngine.Expressions.csproj" />
   </ItemGroup>
 
   <ItemGroup>

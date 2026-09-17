@@ -17,7 +17,7 @@
 
   <ItemGroup>
     <PackageReference Include="Ara3D.MCP" Version="$(Ara3DSdkVersion)" />
-    <ProjectReference Include="..\BimOpenFlow.Host\BimOpenFlow.Host.csproj" />
+    <ProjectReference Include="..\flow\BimOpenFlow.Host\BimOpenFlow.Host.csproj" />
   </ItemGroup>
 
 </Project>

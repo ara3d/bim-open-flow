@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "host": "dotnet run --project ../../src/BimOpenFlow.Host -- --profile bim --port 5214 --store ../../artifacts/bim-flow/store --cache ../../artifacts/bim-flow/cache",
+    "host": "dotnet run --project ../../src/flow/BimOpenFlow.Host -- --profile bim --port 5214 --store ../../artifacts/bim-flow/store --cache ../../artifacts/bim-flow/cache",
     "web": "npm run dev -w @bimopenflow/app",
     "duckdb:prepare": "node ../../scripts/prepare-bim-flow-duckdb.mjs",
     "duckdb:build": "dotnet build ../../src/BimOpenFlow.Studio -o ../../artifacts/bim-flow-duckdb/studio --verbosity quiet",

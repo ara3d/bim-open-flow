@@ -1,6 +1,6 @@
 using Ara3D.MCP;
 
-namespace BimOpenFlow.Mcp;
+namespace BimOpenMcp.Flow;
 
 /// <summary>The argument and schema fragments the BimOpenFlow tools share.</summary>
 internal static class FlowToolArgs

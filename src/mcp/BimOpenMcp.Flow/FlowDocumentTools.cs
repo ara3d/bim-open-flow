@@ -2,7 +2,7 @@ using Ara3D.MCP;
 using Ara3D.NodeGraph;
 using BimOpenFlow.Host.Api;
 
-namespace BimOpenFlow.Mcp;
+namespace BimOpenMcp.Flow;
 
 /// <summary>Tools over the analysis library and model catalog: list, read, and
 /// save whole documents, and describe the node vocabulary.</summary>

@@ -13,7 +13,7 @@
     "duckdb:build": "dotnet build ../../src/studio/BimOpenFlow.Studio -o ../../artifacts/bim-flow-duckdb/studio --verbosity quiet",
     "duckdb:host": "dotnet ../../artifacts/bim-flow-duckdb/studio/bimopenflow-studio.dll --profile tables --port 5218 --store ../../artifacts/bim-flow-duckdb/store --cache ../../artifacts/bim-flow-duckdb/cache --models ../../artifacts/building-model-workflows",
     "duckdb:web": "npm run duckdb -w @bimopenflow/app",
-    "duckdb:mcp-build": "dotnet build ../../src/mcp/BimOpenFlow.Mcp -o ../../artifacts/bim-flow-duckdb/mcp --verbosity quiet",
+    "duckdb:mcp-build": "dotnet build ../../src/mcp/BimOpenMcp.Flow -o ../../artifacts/bim-flow-duckdb/mcp --verbosity quiet",
     "duckdb:mcp-demo": "node ../../scripts/demo-bim-flow-mcp.mjs"
   }
 }

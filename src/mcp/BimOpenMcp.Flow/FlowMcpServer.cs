@@ -2,7 +2,7 @@ using Ara3D.MCP;
 using BimOpenFlow.Host;
 using BimOpenFlow.Host.Api;
 
-namespace BimOpenFlow.Mcp;
+namespace BimOpenMcp.Flow;
 
 /// <summary>
 /// What every tool operates on: the one host wiring (catalog, store, registry)

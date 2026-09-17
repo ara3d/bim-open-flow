@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Ara3D.NodeGraph;
 
-namespace BimOpenFlow.Mcp.Tests;
+namespace BimOpenMcp.Flow.Tests;
 
 /// <summary>editGraph: many edits, one validation, one save; a bad edit saves nothing.</summary>
 public sealed class EditGraphToolTests : FlowToolFixture

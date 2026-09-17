@@ -1,7 +1,7 @@
 using System.Text;
 using Ara3D.MCP;
 using BimOpenFlow.Host;
-using BimOpenFlow.Mcp;
+using BimOpenMcp.Flow;
 
 // Stdio is the default because that is how MCP clients launch a server. Under it stdout is the
 // protocol stream, so every diagnostic goes to stderr. Pass --http [port] to listen instead.

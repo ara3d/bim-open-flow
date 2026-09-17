@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\mcp\BimOpenFlow.Mcp\BimOpenFlow.Mcp.csproj" />
+    <ProjectReference Include="..\..\..\src\mcp\BimOpenMcp.Flow\BimOpenMcp.Flow.csproj" />
   </ItemGroup>
 
   <ItemGroup>

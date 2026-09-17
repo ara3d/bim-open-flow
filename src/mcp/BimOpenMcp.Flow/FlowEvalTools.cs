@@ -4,7 +4,7 @@ using Ara3D.MCP;
 using BimOpenFlow.Host.Api;
 using BimOpenFlow.Host.Store;
 
-namespace BimOpenFlow.Mcp;
+namespace BimOpenMcp.Flow;
 
 /// <summary>Evaluation state, result paging, and run archival — the same
 /// store/session semantics as the HTTP API.</summary>

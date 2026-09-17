@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 using Ara3D.MCP;
 using BimOpenFlow.Host;
 
-namespace BimOpenFlow.Mcp;
+namespace BimOpenMcp.Flow;
 
 /// <summary>Schema discovery for DuckDB files: what an agent reads before it
 /// writes the SQL of a duck.query node. Read-only, and the same probe the host

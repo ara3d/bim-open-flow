@@ -6,8 +6,8 @@
     <PlatformTarget>x64</PlatformTarget>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <AssemblyName>bimopenflow-mcp</AssemblyName>
-    <RootNamespace>BimOpenFlow.Mcp</RootNamespace>
+    <AssemblyName>bimopenmcp-flow</AssemblyName>
+    <RootNamespace>BimOpenMcp.Flow</RootNamespace>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 

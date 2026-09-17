@@ -1,6 +1,6 @@
-using BimOpenFlow.Mcp;
+using BimOpenMcp.Flow;
 
-namespace BimOpenFlow.Mcp.Tests;
+namespace BimOpenMcp.Flow.Tests;
 
 public sealed class EditAndEvalToolTests : FlowToolFixture
 {

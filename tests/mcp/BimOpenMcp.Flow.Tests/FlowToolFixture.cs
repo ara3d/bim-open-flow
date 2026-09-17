@@ -1,9 +1,9 @@
 using System.Text.Json;
 using Ara3D.MCP;
 using BimOpenFlow.Host;
-using BimOpenFlow.Mcp;
+using BimOpenMcp.Flow;
 
-namespace BimOpenFlow.Mcp.Tests;
+namespace BimOpenMcp.Flow.Tests;
 
 /// <summary>Fresh services over temp directories for every test class.</summary>
 public abstract class FlowToolFixture

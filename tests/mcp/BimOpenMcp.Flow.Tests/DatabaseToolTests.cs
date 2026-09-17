@@ -1,7 +1,7 @@
 using System.Text.Json;
 using DuckDB.NET.Data;
 
-namespace BimOpenFlow.Mcp.Tests;
+namespace BimOpenMcp.Flow.Tests;
 
 /// <summary>listDatabases and describeDatabase over a small database written
 /// into the fixture's model root.</summary>

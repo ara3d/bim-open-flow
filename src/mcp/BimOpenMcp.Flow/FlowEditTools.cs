@@ -2,7 +2,7 @@ using System.Text.Json.Nodes;
 using Ara3D.MCP;
 using Ara3D.NodeGraph;
 
-namespace BimOpenFlow.Mcp;
+namespace BimOpenMcp.Flow;
 
 /// <summary>Incremental graph editing: each tool loads the current document
 /// (or starts empty), applies one GraphEditing operation, validates against the

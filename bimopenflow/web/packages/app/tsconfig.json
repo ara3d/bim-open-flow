@@ -15,7 +15,7 @@
     // the former platoflow/web); the vite alias in vite.config.ts is the runtime twin.
     "paths": {
       "gratify": ["../../../../submodules/gratify/src/gratify/index.ts"],
-      "@bim-open-toolkit/*": ["../../../../viewer/packages/*/src/index.ts"]
+      "@bim-open-toolkit/*": ["../../../../viz/packages/*/src/index.ts"]
     }
   },
   "include": ["src", "test"]

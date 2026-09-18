@@ -21,6 +21,10 @@ TypeScript contracts exactly.
   `WarmAll(log)` evaluates every stored analysis once, which the host runs in the
   background after start-up so the first graph a person opens answers from warm caches.
 - `DocumentEndpoints` — models, analysis CRUD/history, node catalog.
+- `ModelBytesEndpoint` / `EntityPropertiesEndpoint` — the BOS bytes of a model,
+  and one entity's parameters by LocalId (grouped by property set, sorted by
+  group then name) out of the catalog's cached `ModelEntityIndex`, which the
+  3D pane calls on a pick.
 - `EvalEndpoints` — evaluation state, result paging (`skip`/`take`,
   default take 1000; scalar outputs become a one-cell slice), run
   create/list/get, and the `text/event-stream` endpoint. `POST .../runs`

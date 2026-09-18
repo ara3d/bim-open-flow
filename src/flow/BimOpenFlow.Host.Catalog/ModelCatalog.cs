@@ -14,6 +14,14 @@ public sealed class ModelCatalog
     private readonly IIfcConverter _converter;
     private readonly Dictionary<string, (long Size, DateTime Written, DateTime Created, string Hash)> _hashes = new(StringComparer.Ordinal);
 
+    /// <summary>Entity indexes keyed by BOS path. Small on purpose: each index holds
+    /// every parameter of a model as text, and picks only ever ask about the model
+    /// or two currently on screen.</summary>
+    public const int EntityIndexCacheSize = 4;
+
+    private readonly BoundedCache<string, ModelEntityIndex> _entityIndexes =
+        new(EntityIndexCacheSize, StringComparer.OrdinalIgnoreCase);
+
     public ModelCatalog(IReadOnlyList<string> roots, string cacheDir, IIfcConverter? converter = null)
     {
         if (roots.Count == 0)
@@ -61,6 +69,12 @@ public sealed class ModelCatalog
         var data = new FilePath(GetBos(entry)).ReadBimDataFromParquetZip();
         return new(data.Entities.Length, data.Parameters.Length, data.Documents.Length, data.Relations.Length);
     }
+
+    /// <summary>Entity lookup for the BOS form of the model, built on first use and
+    /// cached by BOS path (converting first if needed).</summary>
+    public ModelEntityIndex GetEntityIndex(ModelEntry entry)
+        => _entityIndexes.GetOrAdd(GetBos(entry),
+            path => ModelEntityIndex.Build(new FilePath(path).ReadBimDataFromParquetZip()));
 
     public static ModelKind? KindOf(string path)
         => Path.GetExtension(path).ToLowerInvariant() switch

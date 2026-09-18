@@ -26,6 +26,13 @@ public static class ApiMapping
         => new(entry.Id, entry.Name, entry.Kind.ByName<ModelKind>(),
             entry.SizeBytes, entry.LastWriteUtc.ToUtcString(), entry.SourcePath);
 
+    public static EntityProperties ToProperties(this ModelEntity entity)
+        => new(entity.LocalId, entity.GlobalId, entity.Name, entity.Category,
+            entity.Parameters.Select(ToParameter).ToList());
+
+    public static EntityParameter ToParameter(this ModelEntityParameter parameter)
+        => new(parameter.Group, parameter.Name, parameter.Value, parameter.Units);
+
     public static EvalUpdate ToEvalUpdate(this EvalSnapshot snapshot, string analysisId)
         => new(analysisId, snapshot.Results.Values
             .OrderBy(r => r.NodeId, StringComparer.Ordinal)

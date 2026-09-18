@@ -59,4 +59,29 @@ internal static class CatalogTestHelpers
         Assert.Ignore($"Sample model {fileName} not found under a 'data' folder.");
         return "";
     }
+
+    /// <summary>Walks up from the test directory looking for samples/{relativePath};
+    /// ignores the test when absent.</summary>
+    public static string FindSample(string relativePath)
+        => FindUp(Path.Combine("samples", relativePath))
+           ?? IgnoredPath($"Sample {relativePath} not found under a 'samples' folder.");
+
+    public static string? FindUp(string relativePath)
+    {
+        var dir = new DirectoryInfo(TestContext.CurrentContext.TestDirectory);
+        while (dir != null)
+        {
+            var candidate = Path.Combine(dir.FullName, relativePath);
+            if (File.Exists(candidate))
+                return candidate;
+            dir = dir.Parent;
+        }
+        return null;
+    }
+
+    private static string IgnoredPath(string reason)
+    {
+        Assert.Ignore(reason);
+        return "";
+    }
 }

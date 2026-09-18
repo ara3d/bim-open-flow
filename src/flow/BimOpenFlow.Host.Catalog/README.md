@@ -15,6 +15,12 @@ host. Owns all knowledge of where model files live and how they become BOS.
   re-converted when its content changes.
 - `GetInfo(entry)` reads the BOS archive and reports entity, parameter,
   document, and relation counts.
+- `GetEntityIndex(entry)` returns a `ModelEntityIndex`: every entity of the BOS
+  keyed by `LocalId` (the STEP express id for an IFC-derived model), each with
+  its GlobalId, name, category, and parameters already resolved to text and
+  sorted by group then name. Built once per model and held in a
+  `BoundedCache` of `EntityIndexCacheSize` (4) entries keyed by BOS path, so a
+  3D pick answers from a dictionary hit rather than a parquet read.
 
 ## Decisions
 
@@ -35,4 +41,5 @@ host. Owns all knowledge of where model files live and how they become BOS.
 The converter is a constructor-injected `IIfcConverter`, so tests exercise
 discovery and cache logic with a stub and no real IFC files. One real
 conversion test runs against `data/duplex.ifc` when present
-(category `RequiresData`).
+(category `RequiresData`). `ModelEntityIndex` is tested against the committed
+`samples/nrc/duplex-enriched.bos`, which needs no conversion.

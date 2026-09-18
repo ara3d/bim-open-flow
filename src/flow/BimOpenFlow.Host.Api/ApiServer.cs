@@ -30,6 +30,7 @@ public static class ApiServer
         sessions ??= new AnalysisSessions(store, registry);
         app.MapDocumentEndpoints(catalog, store, registry, sessions);
         app.MapModelBytes(catalog);
+        app.MapEntityProperties(catalog);
         app.MapEvalEndpoints(catalog, store, registry, sessions, relations);
         app.MapSuggestEndpoints(store, registry, sessions, fileTables, relations);
         return app;

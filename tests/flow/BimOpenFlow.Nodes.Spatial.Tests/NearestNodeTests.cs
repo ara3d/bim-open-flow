@@ -74,6 +74,17 @@ public class NearestNodeTests
     }
 
     [Test]
+    public void Far_Cluster_Off_The_Diagonal_Is_Still_Found()
+    {
+        // Over the scan threshold, all of b sits near (R, R, R): the reach box covers the
+        // cluster before the radius reaches its Euclidean distance R * sqrt(3).
+        var b = Enumerable.Range(0, 80).Select(i => ($"b{i}", 1000.0 + i * 0.01, 1000.0 + i * 0.01, 1000.0 + i * 0.01)).ToArray();
+        var table = Node.EvalTable([TestTables.Points(("o", 0, 0, 0)), TestTables.Points(b)]);
+        Assert.That(table.KeyPairs(), Is.EqualTo(new[] { ("o", "b0") }));
+        Assert.That((double)table.Cell("Distance", 0)!, Is.EqualTo(1000 * Math.Sqrt(3)).Within(1e-6));
+    }
+
+    [Test]
     public void K_Below_One_Is_An_Error()
         => Assert.That(() => Node.EvalTable([Rooms, Doors], ("k", "0")),
             Throws.ArgumentException.With.Message.StartsWith("spatial.nearest: "));

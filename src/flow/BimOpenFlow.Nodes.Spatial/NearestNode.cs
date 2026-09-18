@@ -85,8 +85,11 @@ public sealed class NearestNode : IFlowNode
         while (true)
         {
             var reach = box.Expand(radius);
+            // The reach is a box, so rows inside it can still be up to radius * sqrt(3) away;
+            // once it covers every indexed row, rank them all without the radius filter.
+            if (reach.Contains(total)) return Measured(index.All(), null);
             var found = Measured(index.Candidates(reach), radius);
-            if (found.Count >= k || reach.Contains(total)) return found;
+            if (found.Count >= k) return found;
             radius *= 2;
         }
     }

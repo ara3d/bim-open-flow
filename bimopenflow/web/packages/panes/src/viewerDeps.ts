@@ -10,6 +10,7 @@ import { mountRecipe, recipeFeatures, requireResult, type LegendEntry } from "./
 import { parseViewRecipe } from "./viewRecipe";
 import { visibleSource, restoreSourceColors } from "./toolkitSource";
 import { startupTrace } from "./startupTrace";
+import { entityKeyOf, entityKeysByObjectId } from "./entityKeys";
 
 export interface ViewerRig {
   load(url: string, format: ModelFormat): Promise<readonly GroupEntityMap[]>;
@@ -52,6 +53,7 @@ export const defaultView3DDeps: View3DDeps = {
     let abort: AbortController | undefined;
     let generation = 0;
     let disposed = false;
+    let entityKeys: ReadonlyMap<string, number> = new Map();
     const listeners = new AbortController();
     let down: { x: number; y: number; id: number } | undefined;
     canvas.addEventListener("pointerdown", e => {
@@ -66,10 +68,9 @@ export const defaultView3DDeps: View3DDeps = {
       const ndc = view?.ndc(e.clientX, e.clientY);
       const hit = ndc ? viewer.pick(ndc.x, ndc.y) : undefined;
       if (!hit) return;
-      // BOS object IDs are source entity rows, not Revit sourceIds.
       const local = hit.key.split("|").at(-1);
-      const id = local ? Number(decodeURIComponent(local).replace(/^bos:/, "")) : NaN;
-      onPick(Number.isFinite(id) ? id : null);
+      const id = local ? entityKeys.get(decodeURIComponent(local)) : undefined;
+      onPick(id !== undefined && Number.isFinite(id) ? id : null);
     }, { signal: listeners.signal });
     const clearBoxes = () => {
       if (!boxes) return;
@@ -105,6 +106,7 @@ export const defaultView3DDeps: View3DDeps = {
         clearBoxes();
         for (const model of viewer.models()) viewer.close(model.id);
         const opened = trace.span("model-bind", () => requireResult(viewer.show(loaded)));
+        entityKeys = entityKeysByObjectId(loaded.data.objects);
         const table = viewer.binding.tableOf(opened.ref.id);
         if (!table || table.rowCount === 0) throw new Error("The model contains no renderable geometry.");
         // Frame with the source coordinate convention, including z-up BOS.
@@ -122,10 +124,8 @@ export const defaultView3DDeps: View3DDeps = {
           const start = table.groupStart[groupIndex];
           const end = table.groupStart[groupIndex + 1];
           const entities: number[] = [];
-          for (let row = start; row < end; row++) {
-            const record = loaded.data.objects[table.objectOfRow[row]];
-            entities.push(Number(record?.ref.objectId.replace(/^bos:/, "")));
-          }
+          for (let row = start; row < end; row++)
+            entities.push(entityKeyOf(loaded.data.objects[table.objectOfRow[row]]));
           return { entities, group: {
             instanceCount: group.instanceCount,
             colors: group.colors,

@@ -16,6 +16,8 @@ identical to the live app, because it *is* the same rendering code.
   imports — nothing at runtime).
 - **Invariant formatting.** Values render the same on every machine; no locale
   surprises between a dashboard generated on a server and the live app.
+  Doubles display with at most six fractional digits (`48696.79999999999`
+  reads `48696.8`); a table cell keeps the exact value in its `title`.
 - **Styling** is injected once per document under the `bof-viz-` class prefix
   and driven by CSS custom properties (`--bof-viz-*`), so a host page can
   re-theme without touching the components.

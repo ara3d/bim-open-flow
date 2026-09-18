@@ -1,6 +1,6 @@
 import type { ColumnType, TableData } from "@bimopenflow/contracts";
 import { defineComponent } from "./component";
-import { formatValue, isNumericType, numberOf } from "./format";
+import { exactNumber, formatValue, isNumericType, numberOf } from "./format";
 import { columnIndexByName } from "./columns";
 
 export interface DataTableOptions {
@@ -100,8 +100,14 @@ export const DataTableView = defineComponent<TableData, DataTableOptions>(
         const tr = doc.createElement("tr");
         current.columns.forEach((col, i) => {
           const td = doc.createElement("td");
-          td.textContent = formatValue(row[i], col.type);
-          if (isNumericType(col.type)) td.classList.add("bof-viz-num");
+          const text = formatValue(row[i], col.type);
+          td.textContent = text;
+          if (isNumericType(col.type)) {
+            td.classList.add("bof-viz-num");
+            // Rounded display keeps the exact value one hover away.
+            const exact = row[i] === null || row[i] === undefined ? "" : exactNumber(Number(row[i]));
+            if (exact !== text) td.title = exact;
+          }
           tr.appendChild(td);
         });
         tbody.appendChild(tr);

@@ -45,6 +45,17 @@ describe("DataTableView", () => {
     expect(numericCell?.textContent).toBe("3");
   });
 
+  it("rounds long doubles for display and keeps the exact value in the title", () => {
+    const { container } = mountTable({
+      columns: [{ name: "Embodied", type: "Number" }, { name: "n", type: "Integer" }],
+      rows: [[48696.79999999999, 93], [5821, 8]],
+    });
+    const cells = [...container.querySelectorAll("tbody td")] as HTMLElement[];
+    expect(cells.map((c) => c.textContent)).toEqual(["48696.8", "93", "5821", "8"]);
+    expect(cells[0].title).toBe("48696.79999999999");
+    expect(cells.slice(1).map((c) => c.title)).toEqual(["", "", ""]);
+  });
+
   it("sorts by column on header click, toggles direction, nulls last", () => {
     const { container } = mountTable();
     const countHeader = [...container.querySelectorAll("th")][1];

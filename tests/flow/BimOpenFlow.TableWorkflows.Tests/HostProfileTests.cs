@@ -10,7 +10,7 @@ public sealed class HostProfileTests
     private static readonly string[] ExpectedTableKinds =
     [
         // DuckDb pack
-        "duck.read", "duck.query", "sql.query",
+        "duck.read", "duck.query", "sql.query", "duck.source",
         "csv.read", "parquet.read", "json.read", "duck.table", "duck.tables",
         // Tables pack
         "xlsx.read", "xlsx.sheets", "sqlite.query", "sqlite.table", "sqlite.tables",

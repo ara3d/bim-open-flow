@@ -14,6 +14,10 @@
     "duckdb:host": "dotnet ../../artifacts/bim-flow-duckdb/studio/bimopenflow-studio.dll --profile tables --port 5218 --store ../../artifacts/bim-flow-duckdb/store --cache ../../artifacts/bim-flow-duckdb/cache --models ../../artifacts/building-model-workflows",
     "duckdb:web": "npm run duckdb -w @bimopenflow/app",
     "duckdb:mcp-build": "dotnet build ../../src/mcp/BimOpenMcp.Flow -o ../../artifacts/bim-flow-duckdb/mcp --verbosity quiet",
-    "duckdb:mcp-demo": "node ../../scripts/demo-bim-flow-mcp.mjs"
+    "duckdb:mcp-demo": "node ../../scripts/demo-bim-flow-mcp.mjs",
+    "ifc:mcp-build": "dotnet build ../../src/mcp/BimOpenMcp.Ifc -o ../../artifacts/bim-flow-ifc/mcp --verbosity quiet",
+    "ifc:mcp-demo": "node ../../scripts/demo-ifc-mcp.mjs",
+    "ifc:ask-build": "dotnet build ../../src/studio/BimOpenMcp.Ifc.Ask -o ../../artifacts/bim-flow-ifc/ask --verbosity quiet",
+    "nrc:walkthrough": "node ../../scripts/nrc-walkthrough.mjs"
   }
 }

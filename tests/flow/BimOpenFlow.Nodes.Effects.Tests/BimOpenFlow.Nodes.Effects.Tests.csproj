@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\BimOpenToolkit.TestSupport\BimOpenToolkit.TestSupport.csproj" />
     <ProjectReference Include="..\..\..\src\flow\BimOpenFlow.Nodes.Effects\BimOpenFlow.Nodes.Effects.csproj" />
   </ItemGroup>
 

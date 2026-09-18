@@ -1,4 +1,5 @@
 using BimOpenFlow.Host.Store;
+using BimOpenToolkit.TestSupport;
 
 namespace BimOpenFlow.Host.Tests;
 
@@ -55,7 +56,7 @@ public sealed class NrcSeedingTests
     [Test]
     public void SeededRoots_IncludeSamplesNrc_AndItsDatabaseIsAPreparationJob()
     {
-        var root = SampleSeeding.FindRepoRoot(AppContext.BaseDirectory)!;
+        var root = RepoPaths.Root;
         var nrc = SampleSeeding.NrcSamplesDir(root);
         Assert.Multiple(() =>
         {

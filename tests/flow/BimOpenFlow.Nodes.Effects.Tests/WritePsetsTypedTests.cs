@@ -1,6 +1,7 @@
 using Ara3D.DataTable;
 using BimOpenFlow.Nodes.Effects;
 using static BimOpenFlow.Nodes.Effects.Tests.TestSupport;
+using BimOpenToolkit.TestSupport;
 
 namespace BimOpenFlow.Nodes.Effects.Tests;
 
@@ -10,26 +11,6 @@ namespace BimOpenFlow.Nodes.Effects.Tests;
 /// </summary>
 public sealed class WritePsetsTypedTests
 {
-    private const int WallId = 6;
-
-    // Same fixture file as WritePsetsTests; it is a private const there.
-    private const string MiniIfc =
-        "ISO-10303-21;\r\n" +
-        "HEADER;\r\n" +
-        "FILE_DESCRIPTION((''),'2;1');\r\n" +
-        "FILE_NAME('mini.ifc','2026-08-31T00:00:00',(''),(''),'','','');\r\n" +
-        "FILE_SCHEMA(('IFC4'));\r\n" +
-        "ENDSEC;\r\n" +
-        "DATA;\r\n" +
-        "#1=IFCPERSON($,$,'p',$,$,$,$,$);\r\n" +
-        "#2=IFCORGANIZATION($,'o',$,$,$);\r\n" +
-        "#3=IFCPERSONANDORGANIZATION(#1,#2,$);\r\n" +
-        "#4=IFCAPPLICATION(#2,'1','app','app');\r\n" +
-        "#5=IFCOWNERHISTORY(#3,#4,$,.ADDED.,$,$,$,0);\r\n" +
-        "#6=IFCWALL('0000000000000000000000',#5,'W',$,$,$,$,$,$);\r\n" +
-        "ENDSEC;\r\n" +
-        "END-ISO-10303-21;\r\n";
-
     /// <summary>One row per case: the valueType cell, the text in paramValue, and the IFC literal it must produce.</summary>
     private static readonly (string? ValueType, string Text, string Nominal)[] Cases =
     {
@@ -59,7 +40,7 @@ public sealed class WritePsetsTypedTests
         _dir = NewTempDir();
         _sourcePath = Path.Combine(_dir, "mini.ifc");
         _targetPath = Path.Combine(_dir, "mini-out.ifc");
-        File.WriteAllText(_sourcePath, MiniIfc);
+        File.WriteAllText(_sourcePath, MiniIfc.Wall);
     }
 
     [TearDown]
@@ -70,7 +51,7 @@ public sealed class WritePsetsTypedTests
     private static IDataTable Rows(params (string? ValueType, string Name, string Text)[] rows)
         => new MemoryTable("psets", new[]
         {
-            Column("entityId", typeof(long), rows.Select(_ => (object?)(long)WallId), 0),
+            Column("entityId", typeof(long), rows.Select(_ => (object?)(long)MiniIfc.WallId), 0),
             Column("psetName", typeof(string), rows.Select(_ => (object?)"Pset_Typed"), 1),
             Column("paramName", typeof(string), rows.Select(r => (object?)r.Name), 2),
             Column("valueType", typeof(string), rows.Select(r => (object?)r.ValueType), 3),
@@ -107,7 +88,7 @@ public sealed class WritePsetsTypedTests
     {
         var rows = new MemoryTable("psets", new[]
         {
-            new MemoryColumn("entityId", typeof(long), new object?[] { (long)WallId }, 0),
+            new MemoryColumn("entityId", typeof(long), new object?[] { (long)MiniIfc.WallId }, 0),
             new MemoryColumn("psetName", typeof(string), new object?[] { "Pset_A" }, 1),
             new MemoryColumn("paramName", typeof(string), new object?[] { "FireRating" }, 2),
             new MemoryColumn("paramValue", typeof(string), new object?[] { "2HR" }, 3),

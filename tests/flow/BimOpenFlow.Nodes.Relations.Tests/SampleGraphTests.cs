@@ -1,5 +1,6 @@
 using Ara3D.DataFlowEngine;
 using Ara3D.NodeGraph;
+using BimOpenToolkit.TestSupport;
 
 namespace BimOpenFlow.Nodes.Relations.Tests;
 
@@ -9,24 +10,13 @@ namespace BimOpenFlow.Nodes.Relations.Tests;
 [TestFixture]
 public sealed class SampleGraphTests
 {
-    private static string Root
-        => FindRoot(AppContext.BaseDirectory);
-
-    private static string FindRoot(string start)
-    {
-        for (var dir = new DirectoryInfo(start); dir != null; dir = dir.Parent)
-            if (File.Exists(Path.Combine(dir.FullName, "BimOpenToolkit.sln")))
-                return dir.FullName;
-        throw new InvalidOperationException("BimOpenToolkit.sln not found above " + start);
-    }
-
     public static IEnumerable<TestCaseData> SampleFiles
-        => Directory.EnumerateFiles(Path.Combine(Root, "samples", "relations"), "*.json")
+        => Directory.EnumerateFiles(RepoPaths.Samples("relations"), "*.json")
             .Order(StringComparer.Ordinal)
             .Select(f => new TestCaseData(f).SetArgDisplayNames(Path.GetFileNameWithoutExtension(f)));
 
     private static NodeRegistry Registry
-        => new(RelationNodes.All(RelationRuntime.FromRoots([Path.Combine(Root, "samples", "tables")])));
+        => new(RelationNodes.All(RelationRuntime.FromRoots([RepoPaths.Samples("tables")])));
 
     [Test]
     public void ThereAreSamples()

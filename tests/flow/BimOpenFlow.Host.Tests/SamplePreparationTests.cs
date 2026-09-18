@@ -1,3 +1,5 @@
+using BimOpenToolkit.TestSupport;
+
 namespace BimOpenFlow.Host.Tests;
 
 /// <summary>Background preparation of generated samples: staleness, the "not ready yet"
@@ -126,7 +128,7 @@ public sealed class SamplePreparationTests
     [Test]
     public void NrcDatabaseJob_NamesTheSourceTheGraphsUse()
     {
-        var root = SampleSeeding.FindRepoRoot(AppContext.BaseDirectory)!;
+        var root = RepoPaths.Root;
         var job = SamplePreparation.NrcDatabase(root);
         Assert.That(job, Is.Not.Null);
         Assert.Multiple(() =>

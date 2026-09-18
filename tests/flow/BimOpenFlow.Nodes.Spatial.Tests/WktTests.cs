@@ -17,6 +17,14 @@ public class WktTests
         Assert.That(Wkt.TryParsePolygon("polygon Z ( ( 0 0 5 , 4 0 5 , 4 3 5 ) , ( 1 1 5 , 2 1 5 , 2 2 5 ) )", out var p), Is.True);
         Assert.That(p.Outer.Count, Is.EqualTo(3));
         Assert.That(p.Holes, Is.EqualTo(1));
+        Assert.That(p.HoleRings[0], Is.EqualTo(new[] { (1.0, 1.0), (2.0, 1.0), (2.0, 2.0) }));
+    }
+
+    [Test]
+    public void Any_Whitespace_Separates_Ordinates()
+    {
+        Assert.That(Wkt.TryParsePolygon("POLYGON((0\t0,\n4\t0, 4  3))", out var p), Is.True);
+        Assert.That(p.Outer, Is.EqualTo(new[] { (0.0, 0.0), (4.0, 0.0), (4.0, 3.0) }));
     }
 
     [TestCase("POINT(1 2)")]

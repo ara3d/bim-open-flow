@@ -3,9 +3,13 @@ using System.Text.RegularExpressions;
 
 namespace BimOpenFlow.Nodes.Spatial;
 
-/// <summary>A parsed WKT polygon: the outer ring's XY vertices (closing vertex
-/// dropped) and how many holes the text carried, which the nodes ignore with a warning.</summary>
-public sealed record WktPolygon(IReadOnlyList<(double X, double Y)> Outer, int Holes);
+/// <summary>A parsed WKT polygon: the outer ring and any hole rings as XY vertices
+/// (closing vertex dropped). The nodes use only the outer ring today and warn about
+/// holes; the rings are kept so boolean operations can have them later.</summary>
+public sealed record WktPolygon(IReadOnlyList<(double X, double Y)> Outer, IReadOnlyList<IReadOnlyList<(double X, double Y)>> HoleRings)
+{
+    public int Holes => HoleRings.Count;
+}
 
 /// <summary>Reads and writes the two WKT forms the pack exchanges with GIS tools:
 /// POLYGON((x y, ...)[, (hole)...]) and POINT(x y). Extra ordinates (Z, M) are
@@ -28,9 +32,9 @@ public static partial class Wkt
         if (!match.Success) return false;
         var rings = RingPattern().Matches(match.Groups[1].Value);
         if (rings.Count == 0) return false;
-        var outer = ParseRing(rings[0].Groups[1].Value);
-        if (outer == null || outer.Count < 3) return false;
-        polygon = new(outer, rings.Count - 1);
+        var parsed = rings.Select(r => ParseRing(r.Groups[1].Value)).ToList();
+        if (parsed.Any(r => r == null || r.Count < 3)) return false;
+        polygon = new(parsed[0]!, parsed.Skip(1).Select(r => r!).ToList());
         return true;
     }
 
@@ -61,7 +65,7 @@ public static partial class Wkt
 
     private static (double X, double Y)? ParseVertex(string text)
     {
-        var parts = text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var parts = text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         return parts.Length >= 2
             && double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var x)
             && double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var y)

@@ -17,11 +17,12 @@ public sealed class ReadTable(string source, string table) : Plan
 }
 
 /// <summary>An in-process table registered with the executor under its content hash. The plan
-/// carries the table's identity and schema; the rows live in the runtime's inline store.</summary>
+/// carries the table's identity and schema; the rows live in the runtime's inline store.
+/// <see cref="TableHash"/> is the rows' identity, distinct from the inherited plan hash.</summary>
 public sealed class InlineTable(string name, string hash, Schema schema) : Plan
 {
     public string Name => name;
-    public string Hash => hash;
+    public string TableHash => hash;
     public Schema Schema => schema;
     public override IReadOnlyList<Plan> Inputs => [];
 }

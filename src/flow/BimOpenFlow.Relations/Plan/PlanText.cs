@@ -11,7 +11,7 @@ public static class PlanText
         {
             ReadCsv r => $"(csv {Q(r.Source)} {Q(r.Path)})",
             ReadTable r => $"(table {Q(r.Source)} {Q(r.Table)})",
-            InlineTable t => $"(inline {Q(t.Name)} {Q(t.Hash)})",
+            InlineTable t => $"(inline {Q(t.Name)} {Q(t.TableHash)})",
             RawSql r => $"(sql {Q(r.Sql)}{List(r.Inputs.Select(Render))})",
             Select s => $"(select {s.Input.Render()}{List(s.Columns.Select(Q))})",
             Rename r => $"(rename {r.Input.Render()}{List(r.Renamings.Select(x => $"{Q(x.From)}>{Q(x.To)}"))})",

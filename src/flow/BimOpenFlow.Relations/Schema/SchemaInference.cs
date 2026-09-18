@@ -21,6 +21,7 @@ public static class SchemaInference
         {
             ReadCsv r => catalog.CsvSchema(r.Source, r.Path),
             ReadTable r => catalog.TableSchema(r.Source, r.Table),
+            InlineTable t => SchemaResult.Of(t.Schema),
             RawSql r => catalog.QuerySchema(r.Sql, schemas),
             Select s => InferSelect(s, schemas[0]),
             Rename r => InferRename(r, schemas[0]),

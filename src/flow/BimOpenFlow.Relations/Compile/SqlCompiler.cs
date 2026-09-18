@@ -17,7 +17,8 @@ public static class SqlCompiler
         var sources = order.OfType<ReadCsv>().Select(r => new SourceUse(r.Source, SourceKind.Csv, r.Path))
             .Concat(order.OfType<ReadTable>().Select(r => new SourceUse(r.Source, SourceKind.Table, r.Table)))
             .Distinct().ToList();
-        return new($"WITH {string.Join(",\n     ", ctes)}\nSELECT * FROM {names[plan]}", sources);
+        var inlines = order.OfType<InlineTable>().Select(t => new InlineUse(t.Name, t.TableHash)).Distinct().ToList();
+        return new($"WITH {string.Join(",\n     ", ctes)}\nSELECT * FROM {names[plan]}", sources, inlines);
     }
 
     private static string Body(Plan plan, IReadOnlyList<string> inputs, SchemaCache schemas)
@@ -25,6 +26,7 @@ public static class SqlCompiler
         {
             ReadCsv r => $"SELECT * FROM {new SourceUse(r.Source, SourceKind.Csv, r.Path).Ident}",
             ReadTable r => $"SELECT * FROM {new SourceUse(r.Source, SourceKind.Table, r.Table).Ident}",
+            InlineTable t => $"SELECT * FROM {new InlineUse(t.Name, t.TableHash).Ident}",
             RawSql r => RawSqlBody(r, inputs),
             Select s => $"SELECT {Columns(s.Columns)} FROM {inputs[0]}",
             Rename r => $"SELECT {RenameList(r, Schema(r.Input, schemas))} FROM {inputs[0]}",

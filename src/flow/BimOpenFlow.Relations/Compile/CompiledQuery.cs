@@ -11,7 +11,10 @@ public readonly record struct SourceUse(string Source, SourceKind Kind, string R
 
 /// <summary>An in-process table the SQL refers to as "_inline"."Name"; the executor writes
 /// the table found under Hash into that schema before running the statement.</summary>
-public readonly record struct InlineUse(string Name, string Hash);
+public readonly record struct InlineUse(string Name, string Hash)
+{
+    public string Ident => CompiledQuery.InlineSchema.Ident() + "." + Name.Ident();
+}
 
 /// <summary>One statement (WITH n1 AS ..., nK AS ... SELECT * FROM nK) plus the sources and
 /// inline tables it binds.</summary>

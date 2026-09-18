@@ -11,11 +11,15 @@ public sealed class NrcSeedingTests
     private static readonly string[] SharedIds =
     [
         "nrc-q1-building-total", "nrc-q3-top-elements", "nrc-q5-by-category", "nrc-q7-absence",
-        "nrc-q8-per-storey", "nrc-storey-of-element",
+        "nrc-q8-per-storey", "nrc-storey-of-element", "nrc-storey-carbon-chart", "nrc-property-values",
     ];
 
-    /// <summary>check.rule, view3d.color, and sink.writePsets exist only in the bim profile.</summary>
-    private static readonly string[] BimOnlyIds = ["nrc-dc-w1-verdicts", "nrc-enrich-run"];
+    /// <summary>check.rule, view3d.instances, view3d.color, and sink.writePsets exist only in the bim profile.</summary>
+    private static readonly string[] BimOnlyIds =
+    [
+        "nrc-dc-w1-verdicts", "nrc-enrich-run",
+        "nrc-color-operational-carbon", "nrc-color-embodied-carbon", "nrc-color-category",
+    ];
 
     private static string NewStoreDir()
         => Path.Combine(Path.GetTempPath(), "bof-nrc-seeding", Guid.NewGuid().ToString("N"));
@@ -30,8 +34,8 @@ public sealed class NrcSeedingTests
         {
             Assert.That(seeded, Is.SupersetOf(SharedIds));
             Assert.That(seeded, Has.None.AnyOf(BimOnlyIds));
-            Assert.That(log.ToString(), Does.Contain("skipped sample analysis nrc-dc-w1-verdicts")
-                .And.Contain("skipped sample analysis nrc-enrich-run"));
+            foreach (var id in BimOnlyIds)
+                Assert.That(log.ToString(), Does.Contain($"skipped sample analysis {id}"));
         });
     }
 

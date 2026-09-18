@@ -51,6 +51,11 @@ public sealed class RelationRuntime
     public long Count(Plan plan)
         => Compile(plan).Count(Registry);
 
+    /// <summary>Registers an in-process table under its content hash and returns the plan node
+    /// that reads it. Contract C4 of the nrc-handoff wave; the body belongs to track C.</summary>
+    public InlineTable Inline(IDataTable table, string name)
+        => throw new NotImplementedException("Track C fills in RelationRuntime.Inline.");
+
     /// <summary>Forget inferred schemas and materialized rows, for when a source changed on disk.</summary>
     public void Invalidate()
     {

@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\submodules\ara3d-dataflow\src\Ara3D.DataFlowEngine.Abstractions\Ara3D.DataFlowEngine.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\submodules\ara3d-dataflow\src\Ara3D.DataFlowEngine\Ara3D.DataFlowEngine.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Relations\BimOpenFlow.Relations.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Relations.DuckDb\BimOpenFlow.Relations.DuckDb.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Support\BimOpenFlow.Nodes.Support.csproj" />

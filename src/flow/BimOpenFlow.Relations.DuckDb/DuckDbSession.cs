@@ -10,6 +10,12 @@ public sealed class DuckDbSession : IDisposable
     public DuckDBConnection Connection { get; } = BosDuckDb.OpenInMemory();
     private readonly HashSet<string> _bound = new(StringComparer.Ordinal);
 
+    /// <summary>A session with the query's sources bound and every inline table written into
+    /// schema "_inline". Contract C4 of the nrc-handoff wave; the body belongs to track C.</summary>
+    public static DuckDbSession For(IReadOnlyList<SourceUse> sources, IConnectionRegistry registry,
+        IReadOnlyList<InlineUse> inlines, IInlineTables tables)
+        => throw new NotImplementedException("Track C fills in DuckDbSession.For with inline tables.");
+
     public static DuckDbSession For(IReadOnlyList<SourceUse> sources, IConnectionRegistry registry)
     {
         var session = new DuckDbSession();

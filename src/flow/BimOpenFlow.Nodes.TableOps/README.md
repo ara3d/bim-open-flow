@@ -1,17 +1,20 @@
 # BimOpenFlow.Nodes.TableOps
 
-Row, column, reshape, and window transforms over one flowing table, each a typed
-facade over one generated DuckDB clause. Exposes `TableOpsNodes.All` for registry
-composition. All nodes are version 1 and Pure.
-
-`table.filter`, `table.derive`, `table.aggregate`, and `table.sort` are moving here
-from `BimOpenFlow.Nodes.Bos` (wave flow-demos, chunk M3); their rows are added with
-that move. `SortTerms` (the `col desc, other` parser) already lives here.
+The general table vocabulary: filter, derive, aggregate, and sort, then row,
+column, reshape, and window transforms over one flowing table, each a typed
+facade over one compiled expression or one generated DuckDB clause. Both host
+profiles carry this pack. Exposes `TableOpsNodes.All` for registry composition.
+All nodes are version 1 and Pure. `SortTerms` is the `col desc, other` parser;
+`TableExpressions` bridges table columns to the engine expression grammar.
 
 ## Nodes
 
 | Kind | Inputs | Outputs | Params |
 |---|---|---|---|
+| `table.filter` | table | table | expr (Expression, Boolean over the table's columns) |
+| `table.derive` | table | table | name (Text), expr (Expression) |
+| `table.aggregate` | table | table | groupBy (Text, comma-separated, may be empty), aggregates (Text, `func(column) as name`, funcs count/sum/min/max/avg) |
+| `table.sort` | table | table | by (Text, comma-separated names, optional ` desc` suffix) |
 | `table.limit` | table | table | count (Integer), offset (Integer, default 0) |
 | `table.distinct` | table | table | columns (Text, comma-separated keys; empty = whole-row distinct) |
 | `table.sample` | table | table | mode (Enum rows/fraction, default rows), rows (Integer, default 100), fraction (Number, default 0.1), seed (Integer, default 1) |
@@ -29,6 +32,12 @@ that move. `SortTerms` (the `col desc, other` parser) already lives here.
 
 ## Semantics
 
+- Expressions (`table.filter`, `table.derive`) see the table's scalar columns
+  by name; columns with non-scalar .NET types are unavailable. Null cells
+  propagate: a null filter result excludes the row, a null derive result
+  yields a null cell. `table.aggregate` and `table.sort` run through DuckDB
+  with the input as `t`; sums are cast to BIGINT or DOUBLE so the result type
+  is predictable.
 - The input table is written to an in-memory DuckDB as `t` with a hidden row
   ordinal, so every node preserves input row order; `table.limit` and the window
   functions read that order, never DuckDB scan order.
@@ -45,7 +54,7 @@ that move. `SortTerms` (the `col desc, other` parser) already lives here.
 
 ## Errors
 
-Unknown columns, malformed rename or split specs, a `table.window` name that
+Expression parse or type errors (with character offsets), unknown columns, malformed rename or split specs, a `table.window` name that
 already exists or a negative `offset`, and failed casts under `onError=error`
 throw `ArgumentException` with the node kind prefixed. `onError=null` warns with
 the count of rows that became null.

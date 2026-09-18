@@ -28,20 +28,19 @@ public sealed record HostApp(HostConfig Config, HostServices Services, WebApplic
 /// <summary>The composition root. Wiring only; any logic belongs in the modules.</summary>
 public static class HostComposition
 {
-    /// <summary>The "bim" profile registry: the Bos, BimAnalysis, Geometry, Compliance,
-    /// Effects, and Viz packs plus the rel.* pack. Without a runtime the rel.* pack sees no
-    /// sources, which is enough for validation, catalogs, and docs.</summary>
+    /// <summary>The "bim" profile registry: the Bos, TableOps, BimAnalysis, Geometry,
+    /// Compliance, Effects, and Viz packs plus the rel.* pack. Without a runtime the rel.*
+    /// pack sees no sources, which is enough for validation, catalogs, and docs.</summary>
     public static NodeRegistry AllPacks(RelationRuntime? relations = null)
-        => NodeRegistry.Combine(BosNodes.All, BimAnalysisNodes.All, GeometryNodes.All,
+        => NodeRegistry.Combine(BosNodes.All, TableOpsNodes.All, BimAnalysisNodes.All, GeometryNodes.All,
             ComplianceNodes.All, EffectNodes.All, VizNodes.All, RelationNodes.All(relations ?? NoSources()));
 
     /// <summary>The "tables" profile registry: the DuckDB, Tables, TableOps, Cleaning,
-    /// Dates, and Viz packs, the table writers from the Effects pack, the four BIM-free
-    /// table.* nodes cherry-picked from the Bos pack, plus the rel.* pack.</summary>
+    /// Dates, and Viz packs, the table writers from the Effects pack, plus the rel.* pack.
+    /// Nothing here references BIM Open Schema.</summary>
     public static NodeRegistry TablePacks(RelationRuntime? relations = null)
         => NodeRegistry.Combine(DuckDbNodes.All, TableNodes.All,
             TableOpsNodes.All, CleaningNodes.All, DatesNodes.All, VizNodes.All, EffectNodes.TableSinks,
-            [new TableFilterNode(), new TableDeriveNode(), new TableAggregateNode(), new TableSortNode()],
             RelationNodes.All(relations ?? NoSources()));
 
     /// <summary>The registry a profile name selects, over the given relation sources.</summary>

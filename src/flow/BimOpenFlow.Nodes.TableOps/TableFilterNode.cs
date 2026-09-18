@@ -1,7 +1,7 @@
 using Ara3D.DataFlowEngine.Abstractions;
 using Ara3D.DataFlowEngine.Expressions;
 
-namespace BimOpenFlow.Nodes.Bos;
+namespace BimOpenFlow.Nodes.TableOps;
 
 /// <summary>Keeps the rows where the Boolean expression evaluates to true.
 /// A null result excludes the row (SQL WHERE semantics).</summary>

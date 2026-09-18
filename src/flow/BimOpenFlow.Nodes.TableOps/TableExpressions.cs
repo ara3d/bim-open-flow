@@ -2,7 +2,7 @@ using System.Globalization;
 using Ara3D.DataFlowEngine.Expressions;
 using Ara3D.DataTable;
 
-namespace BimOpenFlow.Nodes.Bos;
+namespace BimOpenFlow.Nodes.TableOps;
 
 /// <summary>Bridges IDataTable columns to the expression facade: the column environment,
 /// compile-or-throw, and cell/scalar conversion. Columns whose .NET type has no scalar

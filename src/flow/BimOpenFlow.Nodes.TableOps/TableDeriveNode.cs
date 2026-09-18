@@ -1,7 +1,7 @@
 using Ara3D.DataFlowEngine.Abstractions;
 using Ara3D.DataTable;
 
-namespace BimOpenFlow.Nodes.Bos;
+namespace BimOpenFlow.Nodes.TableOps;
 
 /// <summary>Appends one computed column to the input table. The column's .NET type comes
 /// from the expression's static type; rows where the expression is null get a null cell.</summary>

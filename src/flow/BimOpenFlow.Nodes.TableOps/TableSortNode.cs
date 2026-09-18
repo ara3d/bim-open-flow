@@ -1,6 +1,6 @@
 using Ara3D.DataFlowEngine.Abstractions;
 
-namespace BimOpenFlow.Nodes.Bos;
+namespace BimOpenFlow.Nodes.TableOps;
 
 /// <summary>Sorts by three exact column names with independent directions.
 /// Legacy graphs may still use the comma-separated 'by' parameter.</summary>
@@ -28,7 +28,7 @@ public sealed class TableSortNode : IFlowNode
         var columns = new[] { "A", "B", "C" }.Where(key => parameters.GetText(key).Length > 0).ToArray();
         if (columns.Length > 0)
         {
-            var order = columns.Select(key => table.RequireColumn(parameters.GetText(key), Kind).Descriptor.Name.QuoteIdentifier()
+            var order = columns.Select(key => table.CanonicalName(parameters.GetText(key), Kind).Ident()
                 + (parameters.GetBoolean("descending" + key) ? " DESC" : " ASC"));
             return [new TableValue(table.QueryOver($"SELECT * FROM t ORDER BY {string.Join(", ", order)}", table.Name))];
         }
@@ -49,7 +49,7 @@ public sealed class TableSortNode : IFlowNode
                 2 when tokens[1].Equals("asc", StringComparison.OrdinalIgnoreCase) => "ASC",
                 _ => throw new ArgumentException($"{Kind}: cannot parse sort term '{entry}'."),
             };
-            return $"{table.RequireColumn(tokens[0], Kind).Descriptor.Name.QuoteIdentifier()} {direction}";
+            return $"{table.CanonicalName(tokens[0], Kind).Ident()} {direction}";
         }
     }
 }

@@ -2,12 +2,17 @@ using Ara3D.DataFlowEngine.Abstractions;
 
 namespace BimOpenFlow.Nodes.TableOps;
 
-/// <summary>The TableOps pack: rows, columns, reshape, and window transforms,
-/// each a typed facade over one generated DuckDB clause.</summary>
+/// <summary>The TableOps pack: filter, derive, aggregate, and sort, then rows, columns,
+/// reshape, and window transforms, each a typed facade over one generated DuckDB clause
+/// or one compiled expression.</summary>
 public static class TableOpsNodes
 {
     public static IReadOnlyList<IFlowNode> All { get; } =
     [
+        new TableFilterNode(),
+        new TableDeriveNode(),
+        new TableAggregateNode(),
+        new TableSortNode(),
         new TableCastNode(),
         new TableConcatNode(),
         new TableDistinctNode(),

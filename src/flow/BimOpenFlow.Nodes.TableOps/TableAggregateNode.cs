@@ -3,7 +3,7 @@ using Ara3D.DataFlowEngine.Abstractions;
 using Ara3D.DataFlowEngine.Expressions;
 using Ara3D.DataTable;
 
-namespace BimOpenFlow.Nodes.Bos;
+namespace BimOpenFlow.Nodes.TableOps;
 
 /// <summary>Groups and aggregates via DuckDB. Aggregates are written as
 /// "func(column) as name" with funcs count/sum/min/max/avg; count also accepts *.
@@ -34,7 +34,7 @@ public sealed partial class TableAggregateNode : IFlowNode
     {
         var table = inputs.TableInput(0, Kind);
         var groups = parameters.GetText("groupBy").SplitNames()
-            .Select(g => table.RequireColumn(g, Kind).Descriptor.Name)
+            .Select(g => table.CanonicalName(g, Kind))
             .ToList();
         var aggregates = parameters.RequiredText("aggregates", Kind).SplitNames()
             .Select(a => ToSql(a, table))
@@ -64,7 +64,7 @@ public sealed partial class TableAggregateNode : IFlowNode
                 ? $"count(*) AS {alias}"
                 : throw new ArgumentException($"{Kind}: only count may aggregate over '*' ('{spec}').");
 
-        var column = table.RequireColumn(col, Kind);
+        var column = table.Columns[table.RequireColumn(col, Kind)];
         var quoted = QuoteId(column.Descriptor.Name);
         return func == "sum"
             ? $"CAST(sum({quoted}) AS {SumType(column)}) AS {alias}"
@@ -75,5 +75,5 @@ public sealed partial class TableAggregateNode : IFlowNode
         => TableExpressions.ToScalarType(column.Descriptor.Type) == ScalarType.Integer ? "BIGINT" : "DOUBLE";
 
     private static string QuoteId(string name)
-        => name.QuoteIdentifier();
+        => name.Ident();
 }

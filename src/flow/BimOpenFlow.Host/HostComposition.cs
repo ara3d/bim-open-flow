@@ -27,29 +27,39 @@ public sealed record HostApp(HostConfig Config, HostServices Services, WebApplic
 /// <summary>The composition root. Wiring only; any logic belongs in the modules.</summary>
 public static class HostComposition
 {
-    /// <summary>The "bim" profile registry: all five BIM packs plus the Viz pack.</summary>
-    public static NodeRegistry AllPacks()
+    /// <summary>The "bim" profile registry: the Bos, BimAnalysis, Geometry, Compliance,
+    /// Effects, and Viz packs plus the rel.* pack. Without a runtime the rel.* pack sees no
+    /// sources, which is enough for validation, catalogs, and docs.</summary>
+    public static NodeRegistry AllPacks(RelationRuntime? relations = null)
         => NodeRegistry.Combine(BosNodes.All, BimAnalysisNodes.All, GeometryNodes.All,
-            ComplianceNodes.All, EffectNodes.All, VizNodes.All);
+            ComplianceNodes.All, EffectNodes.All, VizNodes.All, RelationNodes.All(relations ?? NoSources()));
 
-    /// <summary>The "tables" profile registry: the DuckDB, Tables, TableOps,
-    /// Cleaning, Dates, and Viz packs, the table writers from the Effects pack,
-    /// plus the four BIM-free table.* nodes cherry-picked from the Bos pack.</summary>
-    public static NodeRegistry TablePacks()
+    /// <summary>The "tables" profile registry: the DuckDB, Tables, TableOps, Cleaning,
+    /// Dates, and Viz packs, the table writers from the Effects pack, the four BIM-free
+    /// table.* nodes cherry-picked from the Bos pack, plus the rel.* pack.</summary>
+    public static NodeRegistry TablePacks(RelationRuntime? relations = null)
         => NodeRegistry.Combine(DuckDbNodes.All, TableNodes.All,
             TableOpsNodes.All, CleaningNodes.All, DatesNodes.All, VizNodes.All, EffectNodes.TableSinks,
-            [new TableFilterNode(), new TableDeriveNode(), new TableAggregateNode(), new TableSortNode()]);
+            [new TableFilterNode(), new TableDeriveNode(), new TableAggregateNode(), new TableSortNode()],
+            RelationNodes.All(relations ?? NoSources()));
 
-    /// <summary>Either profile plus the rel.* pack, whose sources are the model roots:
-    /// each root folder by name for CSV files, each .duckdb file inside one by file name.</summary>
+    /// <summary>The registry a profile name selects, over the given relation sources.</summary>
+    public static NodeRegistry Registry(string profile, RelationRuntime relations)
+        => profile == HostConfig.TablesProfile ? TablePacks(relations) : AllPacks(relations);
+
+    /// <summary>A relation runtime with no sources: rel.csv and rel.table resolve nothing.</summary>
+    public static RelationRuntime NoSources()
+        => RelationRuntime.FromRoots([]);
+
+    /// <summary>The profile's registry over a relation runtime whose sources are the model
+    /// roots: each root folder by name for CSV files, each .duckdb file inside one by file name.</summary>
     public static HostServices BuildServices(HostConfig config)
     {
         var relations = RelationRuntime.FromRoots(config.ModelRoots);
-        var packs = config.Profile == HostConfig.TablesProfile ? TablePacks() : AllPacks();
         return new(
             new ModelCatalog(config.ModelRoots, config.CacheDir),
             new AnalysisStore(config.StoreDir),
-            NodeRegistry.Combine(packs.Nodes, RelationNodes.All(relations)),
+            Registry(config.Profile, relations),
             relations);
     }
 

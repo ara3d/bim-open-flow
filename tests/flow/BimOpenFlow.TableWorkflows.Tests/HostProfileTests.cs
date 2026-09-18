@@ -32,6 +32,9 @@ public sealed class HostProfileTests
         "chart.bar", "chart.line", "view.table",
         // Cherry-picked from the Bos pack
         "table.filter", "table.derive", "table.aggregate", "table.sort",
+        // Relations pack
+        "rel.csv", "rel.table", "rel.fromTable", "rel.sql", "rel.select", "rel.filter", "rel.derive",
+        "rel.sort", "rel.limit", "rel.aggregate", "rel.join", "rel.materialize",
     ];
 
     [Test]

@@ -16,6 +16,16 @@ public static class TestGraphs
             .Connect("c.out", "n.in")
             .Build();
 
+    /// <summary>const(value) -> test.effect e -> probe after: one effect with a downstream.</summary>
+    public static GraphDocument ConstEffect(string value = "42")
+        => Graph
+            .Node("c", "test.const", ("kind", "Integer"), ("value", value))
+            .Node("e", "test.effect")
+            .Node("after", "test.probe")
+            .Connect("c.out", "e.in")
+            .Connect("e.out", "after.in")
+            .Build();
+
     public static Task<HttpResponseMessage> PutText(string path, string body)
         => ApiTestServer.Client.PutAsync(path,
             new StringContent(body, Encoding.UTF8, "application/json"));

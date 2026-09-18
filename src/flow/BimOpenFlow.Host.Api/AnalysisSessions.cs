@@ -45,6 +45,19 @@ public sealed class AnalysisSessions
         }
     }
 
+    /// <summary>The engine Run over the analysis's current document (spec semantics §6): effect
+    /// nodes execute once, in order, and the run snapshot becomes the session's current one, so
+    /// subscribers see the effects' outputs. Reloads first if the store changed underneath.</summary>
+    public EvalSnapshot Run(string id, CancellationToken ct = default)
+    {
+        var entry = GetOrCreate(id);
+        lock (entry.Lock)
+        {
+            Refresh(entry, id);
+            return entry.Session.Run(ct);
+        }
+    }
+
     /// <summary>Sets the (already validated and saved) document as current and runs one pass.</summary>
     public EvalSnapshot Set(string id, GraphDocument doc)
     {

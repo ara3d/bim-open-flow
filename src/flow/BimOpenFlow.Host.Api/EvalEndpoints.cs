@@ -10,7 +10,7 @@ using RunSummary = BimOpenFlow.Contracts.RunSummary;
 
 namespace BimOpenFlow.Host.Api;
 
-/// <summary>Evaluation state, result paging, run archival, and the SSE event stream.</summary>
+/// <summary>Evaluation state, result paging, runs (the engine Run plus its archived record), and the SSE event stream.</summary>
 internal static class EvalEndpoints
 {
     public const int DefaultTake = 1000;
@@ -95,7 +95,7 @@ internal static class EvalEndpoints
     {
         if (!store.Exists(id))
             return ApiResults.NotFound($"Analysis '{id}' not found");
-        var snapshot = sessions.Snapshot(id);
+        var snapshot = sessions.Run(id);
         var inputs = RunInputs.Derive(snapshot.Document, registry, catalog);
         var record = RunRecorder.Freeze(snapshot, registry, inputs, EngineVersion, DateTimeOffset.UtcNow);
         try

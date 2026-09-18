@@ -23,7 +23,11 @@ TypeScript contracts exactly.
 - `DocumentEndpoints` — models, analysis CRUD/history, node catalog.
 - `EvalEndpoints` — evaluation state, result paging (`skip`/`take`,
   default take 1000; scalar outputs become a one-cell slice), run
-  create/list/get, and the `text/event-stream` endpoint
+  create/list/get, and the `text/event-stream` endpoint. `POST .../runs`
+  performs the engine Run (`AnalysisSessions.Run`): effect nodes such as
+  `sink.report` execute once, in topological order, the run snapshot is
+  pushed to SSE subscribers, and the archived record lists each executed
+  effect with its status and its terminal outputs.
   (`data: <EvalUpdate JSON>\n\n` per evaluation pass, initial state on
   connect, keep-alive comment every 15 s).
 - `ApiMapping` — pure host/engine → contract mapping; enum crossings by name.

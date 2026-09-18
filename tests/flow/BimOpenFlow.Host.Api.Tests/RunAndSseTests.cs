@@ -30,6 +30,36 @@ public sealed class RunAndSseTests
     }
 
     [Test]
+    public async Task CreateRun_ExecutesEffects_AndRecordsThem()
+    {
+        await PutAnalysis("run-effect", ConstEffect());
+        using var before = await GetJson("/api/analyses/run-effect/state");
+        Assert.That(NodeStatus(before, "e"), Is.EqualTo("EffectPending"), "standing evaluation never runs effects");
+
+        var created = await ApiTestServer.Client.PostAsync("/api/analyses/run-effect/runs", null);
+        Assert.That((int)created.StatusCode, Is.EqualTo(200));
+        using var summary = JsonDocument.Parse(await created.Content.ReadAsStringAsync());
+        var fileName = summary.RootElement.GetProperty("fileName").GetString()!;
+
+        using var run = JsonDocument.Parse(await GetOk($"/api/analyses/run-effect/runs/{fileName}"));
+        var effects = run.RootElement.GetProperty("effects").EnumerateArray().ToList();
+        Assert.That(effects, Has.Count.EqualTo(1));
+        Assert.That(effects[0].GetProperty("node").GetString(), Is.EqualTo("e"));
+        Assert.That(effects[0].GetProperty("status").GetString(), Is.EqualTo("ok"));
+        Assert.That(run.RootElement.GetProperty("nodeOutputs").TryGetProperty("e.out", out _), Is.True, "the effect's output hash is recorded");
+        var recorded = run.RootElement.GetProperty("recordedOutputs").GetProperty("after.out");
+        Assert.That(recorded.GetProperty("value").GetInt64(), Is.EqualTo(42), "the effect's downstream evaluated in the run");
+
+        using var after = await GetJson("/api/analyses/run-effect/state");
+        Assert.That(NodeStatus(after, "e"), Is.EqualTo("Ok"), "the run snapshot is the session's current one");
+    }
+
+    private static string? NodeStatus(JsonDocument state, string nodeId)
+        => state.RootElement.GetProperty("nodes").EnumerateArray()
+            .Single(n => n.GetProperty("nodeId").GetString() == nodeId)
+            .GetProperty("status").GetString();
+
+    [Test]
     public async Task CreateRun_MissingAnalysis_Returns404()
     {
         var response = await ApiTestServer.Client.PostAsync("/api/analyses/no-runs-here/runs", null);

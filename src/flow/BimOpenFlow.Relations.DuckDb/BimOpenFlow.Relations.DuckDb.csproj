@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>BimOpenFlow.Relations.DuckDb</PackageId>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\data\Ara3D.BimOpenSchema.DuckDb\Ara3D.BimOpenSchema.DuckDb.csproj" />
+    <ProjectReference Include="..\BimOpenFlow.Relations\BimOpenFlow.Relations.csproj" />
+  </ItemGroup>
+
+</Project>

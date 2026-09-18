@@ -7,6 +7,7 @@ public static class RelationNodes
     [
         new RelCsvNode(runtime),
         new RelTableNode(runtime),
+        new RelFromTableNode(runtime),
         new RelSqlNode(runtime),
         new RelSelectNode(runtime),
         new RelFilterNode(runtime),

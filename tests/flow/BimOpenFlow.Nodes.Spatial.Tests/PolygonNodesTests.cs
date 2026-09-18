@@ -96,6 +96,16 @@ public class PolygonNodesTests
     }
 
     [Test]
+    public void PolygonContains_Self_Join_Skips_Itself()
+    {
+        var polys = Polygons(("sq", Square), ("l", LShape));
+        // Centers: the square's (2, 2) lies in the L; the L's box center (2, 2) lies in the square.
+        var boxed = new FootprintNode().EvalTable([TestTables.Boxes(("sq", 0, 0, 0, 4, 4, 1), ("l", 0, 0, 0, 4, 4, 1))]);
+        var table = new PolygonContainsNode().EvalTable([new Ara3D.DataFlowEngine.Abstractions.TableValue(boxed), polys], ("smallest", "false"));
+        Assert.That(table.KeyPairs(), Is.EqualTo(new[] { ("sq", "l"), ("l", "sq") }));
+    }
+
+    [Test]
     public void PolygonIntersects_Detects_Crossing_Touching_And_Nesting()
     {
         var a = Polygons(

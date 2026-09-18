@@ -146,6 +146,19 @@ public sealed record ModelSummary(
     string LastWriteUtc,
     string SourcePath);
 
+public sealed record EntityParameter(
+    string Group,
+    string Name,
+    string Value,
+    string? Units);
+
+public sealed record EntityProperties(
+    long LocalId,
+    string? GlobalId,
+    string? Name,
+    string? Category,
+    IReadOnlyList<EntityParameter> Parameters);
+
 public sealed record AnalysisSummary(
     string Id,
     string GraphHash);
@@ -186,6 +199,7 @@ public static class ApiRoutes
 {
     public const string ListModels = "/api/models";
     public const string GetModelBos = "/api/models/{id}/bos";
+    public const string GetEntityProperties = "/api/models/{id}/entities/{localId}/properties";
     public const string ListAnalyses = "/api/analyses";
     public const string GetAnalysis = "/api/analyses/{id}";
     public const string PutAnalysis = "/api/analyses/{id}";

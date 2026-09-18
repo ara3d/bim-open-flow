@@ -32,6 +32,10 @@ const calls: Record<string, { args: string[]; invoke: (api: ApiClient) => Promis
   listRuns: { args: [ID], invoke: (api) => api.listRuns(ID) },
   createRun: { args: [ID], invoke: (api) => api.createRun(ID) },
   getRun: { args: [ID, "run 1.json"], invoke: (api) => api.getRun(ID, "run 1.json") },
+  getEntityProperties: {
+    args: ["m 1", "1234"],
+    invoke: (api) => api.getEntityProperties("m 1", "1234"),
+  },
 };
 
 function clientWith(body: string, status = 200) {

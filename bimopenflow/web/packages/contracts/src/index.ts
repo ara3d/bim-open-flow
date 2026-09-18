@@ -133,6 +133,21 @@ export interface ModelSummary {
   sourcePath: string;
 }
 
+export interface EntityParameter {
+  group: string;
+  name: string;
+  value: string;
+  units?: string | undefined;
+}
+
+export interface EntityProperties {
+  localId: number;
+  globalId?: string | undefined;
+  name?: string | undefined;
+  category?: string | undefined;
+  parameters: EntityParameter[];
+}
+
 export interface AnalysisSummary {
   id: string;
   graphHash: string;

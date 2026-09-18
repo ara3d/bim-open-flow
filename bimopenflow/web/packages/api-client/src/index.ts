@@ -1,6 +1,6 @@
 // Generated from contracts/contracts.json v0.1.0 by contracts/generate.mjs.
 // Do not edit by hand.
-import type { ModelSummary, AnalysisSummary, AnalysisVersion, NodeCatalog, EvalUpdate, TableSlice, SuggestionList, RunSummary } from "@bimopenflow/contracts";
+import type { ModelSummary, EntityProperties, AnalysisSummary, AnalysisVersion, NodeCatalog, EvalUpdate, TableSlice, SuggestionList, RunSummary } from "@bimopenflow/contracts";
 
 export interface ApiClientOptions {
   baseUrl?: string;
@@ -36,6 +36,11 @@ export class ApiClient {
   /** URL of the raw bytes served by GET /api/models/{id}/bos. */
   getModelBosUrl(id: string): string {
     return this.baseUrl + `/api/models/${encodeURIComponent(id)}/bos`;
+  }
+
+  async getEntityProperties(id: string, localId: string): Promise<EntityProperties> {
+    const res = await this.request("GET", `/api/models/${encodeURIComponent(id)}/entities/${encodeURIComponent(localId)}/properties`, undefined, undefined);
+    return res.json() as Promise<EntityProperties>;
   }
 
   async listAnalyses(): Promise<AnalysisSummary[]> {

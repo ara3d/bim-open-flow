@@ -13,10 +13,14 @@ export type PaneKind =
   | "params"
   | "inspector";
 
+/**
+ * The first output the host can page as rows: a Table, or a Relation, which
+ * the host runs on request (one limited query plus a count).
+ */
 export function firstTableOutput(
   desc: NodeDescriptor | undefined,
 ): PortDescriptor | undefined {
-  return desc?.outputs.find((p) => p.type === "Table");
+  return desc?.outputs.find((p) => p.type === "Table" || p.type === "Relation");
 }
 
 /**

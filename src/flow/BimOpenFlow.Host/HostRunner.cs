@@ -8,8 +8,9 @@ public static class HostRunner
     public static async Task<int> RunAsync(string[] args, Action<HostApp>? configure = null, string name = "BimOpenFlow host")
     {
         var config = HostConfig.Resolve(args, Environment.CurrentDirectory);
-        if (config.Profile == HostConfig.BimProfile)
-            config = WithSeededRoots(config);
+        config = WithSeededRoots(config, config.Profile == HostConfig.TablesProfile
+            ? SampleSeeding.SeededModelRoots(AppContext.BaseDirectory)
+            : BimSampleSeeding.SeededModelRoots(AppContext.BaseDirectory));
         var host = HostComposition.Build(config);
 
         var seeded = config.Profile == HostConfig.TablesProfile
@@ -31,12 +32,12 @@ public static class HostRunner
         return 0;
     }
 
-    private static HostConfig WithSeededRoots(HostConfig config)
+    private static HostConfig WithSeededRoots(HostConfig config, IReadOnlyList<string> roots)
     {
         var known = config.ModelRoots
             .Select(Path.GetFullPath)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var seededRoots = BimSampleSeeding.SeededModelRoots(AppContext.BaseDirectory)
+        var seededRoots = roots
             .Where(r => !known.Contains(Path.GetFullPath(r)))
             .ToList();
         return seededRoots.Count > 0

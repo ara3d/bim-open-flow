@@ -5,8 +5,9 @@ namespace BimOpenFlow.Host;
 
 /// <summary>
 /// Seeds an empty analysis store with the committed sample analyses
-/// (samples/analyses/*.json), rewriting the {SAMPLES} path placeholder to the
-/// absolute samples/tables directory. A non-empty store is never touched.
+/// (samples/analyses/*.json, rewriting the {SAMPLES} path placeholder to the
+/// absolute samples/tables directory, and samples/relations/*.json, which name
+/// their sources). A non-empty store is never touched.
 /// </summary>
 public static class SampleSeeding
 {
@@ -22,9 +23,17 @@ public static class SampleSeeding
     public static IReadOnlyList<string> SeedIfEmpty(AnalysisStore store, string startDir)
         => FindRepoRoot(startDir) is { } root
             ? SeedIfEmpty(store,
-                Path.Combine(root, "samples", "analyses"),
-                Path.Combine(root, "samples", "tables"))
+            [
+                (Path.Combine(root, "samples", "analyses"), PathPlaceholder, Path.Combine(root, "samples", "tables")),
+                (Path.Combine(root, "samples", "relations"), PathPlaceholder, Path.Combine(root, "samples", "tables")),
+            ])
             : [];
+
+    /// <summary>The sample data directory the relation samples name as sources
+    /// "tables" (the folder) and "sample" (sample.duckdb), so the tables host can
+    /// add it to its model roots. Empty outside a repo checkout.</summary>
+    public static IReadOnlyList<string> SeededModelRoots(string startDir)
+        => FindRepoRoot(startDir) is { } root ? [Path.Combine(root, "samples", "tables")] : [];
 
     /// <summary>Seeds every analysesDir *.json (file stem = analysis id) into an
     /// empty store, pointing {SAMPLES} at samplesDir. Returns the seeded ids.</summary>

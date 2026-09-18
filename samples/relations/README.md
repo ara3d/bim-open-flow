@@ -1,9 +1,10 @@
 # Relation sample graphs
 
 Graph documents built entirely from the `rel.*` pack, over the CSV files and
-`sample.duckdb` in `samples/tables`. With `samples/tables` as a model root
-the host registers two sources: `tables` (the folder, for CSV files) and
-`sample` (the database file).
+`sample.duckdb` in `samples/tables`. A host started with `--profile tables`
+seeds them into an empty analysis store and adds `samples/tables` to its
+model roots, which registers two sources: `tables` (the folder, for CSV
+files) and `sample` (the database file).
 
 | Graph | Shows |
 |-------|-------|

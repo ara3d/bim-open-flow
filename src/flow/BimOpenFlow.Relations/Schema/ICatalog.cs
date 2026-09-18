@@ -11,9 +11,10 @@ public interface ICatalog
     SchemaResult QuerySchema(string sql, IReadOnlyList<Schema> inputs);
 }
 
-/// <summary>A catalog answered from a fixed table, for tests and for graphs whose
-/// sources are declared rather than probed. Keys are "source/reference".</summary>
-public sealed class StaticCatalog(IReadOnlyDictionary<string, Schema> entries) : ICatalog
+/// <summary>A catalog answered from fixed tables, for tests and for graphs whose
+/// sources are declared rather than probed. Source keys are "source/reference";
+/// raw SQL is keyed by its exact text.</summary>
+public sealed class StaticCatalog(IReadOnlyDictionary<string, Schema> entries, IReadOnlyDictionary<string, Schema>? queries = null) : ICatalog
 {
     public static string Key(string source, string reference) => $"{source}/{reference}";
 
@@ -21,7 +22,9 @@ public sealed class StaticCatalog(IReadOnlyDictionary<string, Schema> entries) :
     public SchemaResult TableSchema(string source, string table) => Lookup(source, table);
 
     public SchemaResult QuerySchema(string sql, IReadOnlyList<Schema> inputs)
-        => SchemaResult.Fail("Raw SQL cannot be typed without a database catalog.");
+        => queries is not null && queries.TryGetValue(sql, out var schema)
+            ? SchemaResult.Of(schema)
+            : SchemaResult.Fail("Raw SQL cannot be typed without a database catalog.");
 
     private SchemaResult Lookup(string source, string reference)
         => entries.TryGetValue(Key(source, reference), out var schema)

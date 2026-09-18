@@ -16,9 +16,10 @@ public sealed class ReadTable(string source, string table) : Plan
     public override IReadOnlyList<Plan> Inputs => [];
 }
 
-/// <summary>The escape hatch: user-written SQL whose inputs are visible as t1, t2, ... tN.</summary>
+/// <summary>The escape hatch: user-written SQL whose inputs are visible as t1, t2, ... tN.
+/// Only a single SELECT or WITH statement is representable.</summary>
 public sealed class RawSql(string sql, IReadOnlyList<Plan> inputs) : Plan
 {
-    public string Sql => sql;
+    public string Sql { get; } = SqlText.RequireReadOnly(sql);
     public override IReadOnlyList<Plan> Inputs => inputs;
 }

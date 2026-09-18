@@ -138,6 +138,31 @@ describe("ViewPane3D", () => {
     pane.destroy();
   });
 
+  it("fills the legend from a coloured instance table when the rig has none", async () => {
+    const { group } = recordingGroup([0.5, 0.5, 0.5, 1, 0.5, 0.5, 0.5, 1]);
+    const { deps } = fakeDeps([{ group, entities: [7, 8] }]);
+    const pane = createViewPane3D({ deps });
+    const host = document.createElement("div");
+    pane.mount(host, fakeCtx());
+    pane.update({ kind: "model", url: "m.bos" });
+    await settle();
+    const columns: Array<[string, "Integer" | "Text" | "Number"]> = [
+      ["entityId", "Integer"], ["category", "Text"], ["r", "Number"], ["g", "Number"], ["b", "Number"], ["a", "Number"],
+    ];
+    pane.update({ kind: "instances", data: makeSlice(columns, [[7, "IfcWall", 1, 0, 0, 1], [8, "IfcWall", 1, 0, 0, 1]]) });
+    const legend = host.querySelector(".bof-panes-legend") as HTMLElement;
+    expect(legend.hidden).toBe(false);
+    expect(legend.textContent).toBe("IfcWall (2 objects)");
+    expect((legend.querySelector("i") as HTMLElement).style.background).toBe("rgb(255, 0, 0)");
+    const many = Array.from({ length: 14 }, (_, i) => [i, `Cat${i}`, 0, 0, 1, 1]);
+    pane.update({ kind: "instances", data: makeSlice(columns, many) });
+    expect(legend.querySelectorAll("span").length).toBe(13);
+    expect(legend.lastElementChild?.textContent).toBe("and 2 more");
+    pane.update({ kind: "instances", data: colorSlice });
+    expect(legend.hidden).toBe(true);
+    pane.destroy();
+  });
+
   it("holds an instances input that arrives before the model finishes", async () => {
     const { group, applied } = recordingGroup([0.5, 0.5, 0.5, 1]);
     const { deps } = fakeDeps([{ group, entities: [7] }]);

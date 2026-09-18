@@ -31,5 +31,13 @@ export {
   type InstancePlan,
   type Rgba,
 } from "./instanceTable";
+export {
+  emptyInstanceLegend,
+  legendColumn,
+  legendFromSlice,
+  LEGEND_COLUMNS,
+  LEGEND_MAX_ENTRIES,
+  type InstanceLegend,
+} from "./instanceLegend";
 export { isBoxTable, parseBoxTable, UNIT_CUBE, type BoxPlan } from "./boxTable";
 export { defaultView3DDeps, type View3DDeps, type ViewerRig } from "./viewerDeps";

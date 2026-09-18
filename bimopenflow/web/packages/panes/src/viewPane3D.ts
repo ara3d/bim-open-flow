@@ -11,6 +11,7 @@ import { parseBoxTable } from "./boxTable";
 import { defaultView3DDeps, type View3DDeps } from "./viewerDeps";
 import { parseViewRecipe } from "./viewRecipe";
 import type { LegendEntry } from "./toolkitRecipe";
+import { emptyInstanceLegend, legendFromSlice, type InstanceLegend } from "./instanceLegend";
 
 export interface ViewPane3DOptions {
   /** The graph owns presentation; do not offer temporary overrides of it. */
@@ -34,7 +35,9 @@ export const inferFormat = (url: string): ModelFormat =>
  * transforms, and absent instances get alpha 0. "boxes" renders a boxes
  * table as instanced unit cubes, replacing any previous boxes group. An
  * instances input arriving before the model finishes loading is applied
- * afterwards. Emits "selection" (ids = [entityId]) on pick where the
+ * afterwards; when the rig has no recipe legend, the legend strip lists the
+ * table's distinct `verdict` or `category` values with their colours. Emits
+ * "selection" (ids = [entityId]) on pick where the
  * loader provided a group→entity mapping, and "action" modelLoaded/loadError.
  */
 export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
@@ -57,9 +60,12 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
     legend.className = "bof-panes-legend";
     legend.setAttribute("aria-label", "Source category legend");
     root.append(legend);
+    // The recipe rig's legend wins; a coloured instance table supplies one otherwise.
+    let tableLegend: InstanceLegend = emptyInstanceLegend;
     let displayedLegend: readonly LegendEntry[] | undefined;
     const updateLegend = () => {
-      const entries = rig.legend?.() ?? [];
+      const fromRig = rig.legend?.() ?? [];
+      const { entries, omitted } = fromRig.length > 0 ? { entries: fromRig, omitted: 0 } : tableLegend;
       if (entries === displayedLegend) return;
       displayedLegend = entries;
       legend.replaceChildren();
@@ -69,6 +75,12 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
         swatch.style.background = `rgb(${entry.color.map(c => Math.round(c * 255)).join(",")})`;
         item.append(swatch, `${entry.name} (${entry.count.toLocaleString()} objects)`);
         legend.append(item);
+      }
+      if (omitted > 0) {
+        const more = root.ownerDocument.createElement("span");
+        more.className = "bof-panes-legend-more";
+        more.textContent = `and ${omitted.toLocaleString()} more`;
+        legend.append(more);
       }
       legend.hidden = !legend.children.length;
     };
@@ -165,6 +177,8 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
           m.group.setTransform(j, transforms.subarray(j * 16, (j + 1) * 16));
       });
       offsetsApplied = plan.offsets !== null;
+      tableLegend = legendFromSlice(slice);
+      updateLegend();
       rig.requestRender();
     };
 

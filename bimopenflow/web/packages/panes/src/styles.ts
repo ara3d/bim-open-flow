@@ -31,6 +31,7 @@ export const panesCss = `
 .bof-panes-legend { display: flex; flex-wrap: wrap; gap: 5px 12px; max-height: 76px; overflow: auto; padding: 8px; font-size: 11px; }
 .bof-panes-legend[hidden] { display: none; }
 .bof-panes-legend i { display: inline-block; width: 9px; height: 9px; margin-right: 5px; border-radius: 2px; }
+.bof-panes-legend-more { color: var(--bof-panes-muted); }
 .bof-panes-title { font-weight: 600; margin: 4px 0; }
 .bof-panes-section { color: var(--bof-panes-muted); margin: 8px 0 2px; font-size: 11px; text-transform: uppercase; }
 .bof-panes-dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 4px 0; }

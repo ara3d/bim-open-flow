@@ -109,7 +109,10 @@ canvas. Scene/color/mapping logic is pure and viewer-free
     `instanceIndex`); rows present define the visible set (absent instances
     are hidden via alpha 0), and `r`/`g`/`b`/`a` columns (0..1 floats), when
     all four are present, recolor. Arriving before the model finishes
-    loading, it is held and applied afterwards.
+    loading, it is held and applied afterwards. When the rig has no recipe
+    legend, the legend strip lists the table's distinct `verdict` (else
+    `category`) values with their colours and counts, capped at 12 with an
+    "and N more" row (`src/instanceLegend.ts`).
 - Emits:
   - `selection` with `source: "view3d"` and `ids: [entityId]` on pick, using
     the BOS loader's `groupEntities` mapping. GLB models carry no mapping,

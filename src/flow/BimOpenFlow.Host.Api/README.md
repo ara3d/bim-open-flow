@@ -18,6 +18,8 @@ TypeScript contracts exactly.
   SSE fan-out via the session's observers. `Reevaluate()` re-runs every open
   session over its unchanged document when data behind the nodes has landed
   (the host calls it after a background sample build); Ok results stay memoized.
+  `WarmAll(log)` evaluates every stored analysis once, which the host runs in the
+  background after start-up so the first graph a person opens answers from warm caches.
 - `DocumentEndpoints` — models, analysis CRUD/history, node catalog.
 - `EvalEndpoints` — evaluation state, result paging (`skip`/`take`,
   default take 1000; scalar outputs become a one-cell slice), run

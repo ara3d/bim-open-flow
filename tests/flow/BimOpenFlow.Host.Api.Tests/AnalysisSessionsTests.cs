@@ -79,6 +79,25 @@ public sealed class AnalysisSessionsTests
     }
 
     [Test]
+    public void WarmAll_EvaluatesEveryStoredAnalysis_AndLogsTheOnesThatFail()
+    {
+        var store = new AnalysisStore(_storeDir);
+        var sessions = new AnalysisSessions(store, TestNodes.Registry);
+        store.Save("good", TestGraphs.ConstNegate());
+        store.Save("bad", Graph.Node("x", "test.nosuchkind").Build());
+        var log = new StringWriter();
+
+        sessions.WarmAll(log);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(sessions.Snapshot("good").Results["n"].Status, Is.EqualTo(NodeStatus.Ok));
+            Assert.That(sessions.Snapshot("good").Results["n"].ExecutionCount, Is.EqualTo(1), "warm-up evaluated it; the snapshot is served from that pass");
+            Assert.That(log.ToString(), Does.Contain("warm-up skipped bad"));
+        });
+    }
+
+    [Test]
     public void Reevaluate_WithNoOpenSessions_DoesNothing()
     {
         var sessions = new AnalysisSessions(new AnalysisStore(_storeDir), TestNodes.Registry);

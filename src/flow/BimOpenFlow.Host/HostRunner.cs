@@ -36,9 +36,13 @@ public static class HostRunner
             host.Services.Relations.Invalidate();
             host.Services.Sessions.Reevaluate();
         }, Console.Out);
+        // Evaluating every stored analysis once warms the model conversion, meshing, and
+        // database caches, so the first graph a person opens answers in milliseconds instead
+        // of paying a cold conversion. Runs after the generated samples are ready.
+        var warmUp = preparation.ContinueWith(_ => host.Services.Sessions.WarmAll(Console.Out), TaskScheduler.Default);
 
         await host.App.WaitForShutdownAsync();
-        await preparation;
+        await warmUp;
         return 0;
     }
 

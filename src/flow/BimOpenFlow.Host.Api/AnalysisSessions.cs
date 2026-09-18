@@ -69,6 +69,28 @@ public sealed class AnalysisSessions
         }
     }
 
+    /// <summary>Evaluates every stored analysis once, so the caches behind them (IFC
+    /// conversion, meshing, DuckDB attachments) are warm before a person opens one. Meant for
+    /// a background task after the port is open; an analysis that fails is logged and skipped.</summary>
+    public void WarmAll(TextWriter log)
+    {
+        var entries = _store.List();
+        var started = System.Diagnostics.Stopwatch.StartNew();
+        log.WriteLine($"  warming {entries.Count} analyses in the background");
+        foreach (var entry in entries)
+        {
+            try
+            {
+                Snapshot(entry.Id);
+            }
+            catch (Exception e) when (e is not OutOfMemoryException)
+            {
+                log.WriteLine($"  warm-up skipped {entry.Id}: {e.Message}");
+            }
+        }
+        log.WriteLine($"  warm-up done in {started.Elapsed.TotalSeconds:F1} s");
+    }
+
     /// <summary>Re-runs every open session over its current document, for when the data
     /// behind the nodes changed while the documents did not (a source prepared in the
     /// background). Successful pure results stay memoized; failed nodes run again, and

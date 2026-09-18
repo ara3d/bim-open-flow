@@ -16,6 +16,7 @@ public sealed class BoxIndex
         _tree = tree;
         _rows = rows;
         _boxes = boxes;
+        TotalBounds = boxes.Length == 0 ? null : boxes.Skip(1).Aggregate(boxes[0], (u, b) => u.Union(b));
     }
 
     public static BoxIndex Build(IReadOnlyList<Box?> boxes)
@@ -29,8 +30,7 @@ public sealed class BoxIndex
     public int Count => _rows.Length;
 
     /// <summary>The union of every indexed box, or null when nothing is indexed.</summary>
-    public Box? TotalBounds
-        => _boxes.Length == 0 ? null : _boxes.Skip(1).Aggregate(_boxes[0], (u, b) => u.Union(b));
+    public Box? TotalBounds { get; }
 
     /// <summary>Indexed rows whose padded bounds overlap the query's, in row order.</summary>
     public IReadOnlyList<(int Row, Box Box)> Candidates(Box query)

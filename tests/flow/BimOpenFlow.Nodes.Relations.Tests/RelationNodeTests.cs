@@ -43,7 +43,7 @@ public sealed class RelationNodeTests
 
     [Test]
     public void RootsRegisterTheFolderAndItsDatabases()
-        => Assert.That(((ConnectionRegistry)_runtime.Registry).Names, Is.EquivalentTo(new[] { "files", "levels" }));
+        => Assert.That(((RootScanRegistry)_runtime.Registry).Names, Is.EquivalentTo(new[] { "files", "levels" }));
 
     [Test]
     public void SourceNodesCarryPlansNotRows()

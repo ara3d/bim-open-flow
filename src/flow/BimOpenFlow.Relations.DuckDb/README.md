@@ -5,7 +5,9 @@ the only project in the relational stack that opens files or connections.
 
 | File | Role |
 |------|------|
-| `ConnectionRegistry.cs` | Source name to location: a DuckDB file or a folder of CSV files |
+| `ConnectionRegistry.cs` | Source name to location: a DuckDB file or a folder of CSV files; `SourceRegistries.FromRoots` snapshots a set of roots |
+| `RootScanRegistry.cs` | The same naming over roots, rescanned on every lookup, so a database written later resolves without a restart |
+| `PreparingRegistry.cs` | Wraps a registry with the sources still being prepared; an unresolved one fails with "not ready yet" and why, not "unknown" |
 | `DuckDbSession.cs` | An in-memory connection with every source a query uses attached under its name |
 | `DuckDbCatalog.cs` | `ICatalog` answered by `information_schema` and `DESCRIBE` |
 | `DuckDbExecutor.cs` | Runs a compiled query, optionally limited, and checks the result against the inferred schema |

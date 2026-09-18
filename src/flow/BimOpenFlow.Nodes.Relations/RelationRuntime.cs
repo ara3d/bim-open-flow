@@ -25,8 +25,10 @@ public sealed class RelationRuntime
         _inlines = new InlineTableStore(inlineCapacity);
     }
 
+    /// <summary>A runtime whose sources are the given roots, rescanned on every lookup so a
+    /// database written into a root later resolves without a restart.</summary>
     public static RelationRuntime FromRoots(IReadOnlyList<string> roots)
-        => new(SourceRegistries.FromRoots(roots));
+        => new(new RootScanRegistry(roots));
 
     public SchemaResult Schema(Plan plan)
     {

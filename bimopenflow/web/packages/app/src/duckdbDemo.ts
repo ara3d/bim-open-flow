@@ -7,6 +7,7 @@ import { ApiClient } from '@bimopenflow/api-client';
 import { createApp, type App } from './app.js';
 import { watchHost } from './hostStatus.js';
 import { mountHostBanner } from './topbar.js';
+import { startOnce } from './startOnce.js';
 import workflows from '../../../../../samples/duckdb-analyses/workflows.json';
 import './duckdbDemo.css';
 
@@ -238,9 +239,11 @@ async function start() {
     if (host.get().status === 'connected') fail(`Could not open the DuckDB demo. ${String(cause)} ${START}`);
   }
 }
-void start();
+// The page load and the first "connected" report both trigger a start; one attempt at a time.
+const startDemo = startOnce(start, () => app !== undefined);
+void startDemo();
 host.subscribe(state => {
-  if (state.status === 'connected' && !app) void start();
+  if (state.status === 'connected') void startDemo();
 });
 window.addEventListener('pagehide', () => {
   observer.disconnect();

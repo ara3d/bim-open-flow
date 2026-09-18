@@ -9,7 +9,8 @@ namespace BimOpenFlow.Host;
 /// samples/bim-analyses/*.json with {SAMPLES} pointed at samples/bim (the
 /// sample.bos there is generated from BimSampleModel when absent — the model
 /// binary is never committed), and samples/view3d-analyses/*.json with {DATA}
-/// pointed at the repo data directory. A non-empty store is never touched.
+/// pointed at the repo data directory, and samples/nrc-analyses/*.json, which name
+/// their sources. A non-empty store is never touched.
 /// </summary>
 public static class BimSampleSeeding
 {
@@ -26,6 +27,7 @@ public static class BimSampleSeeding
         {
             (Path.Combine(root, "samples", "bim-analyses"), SampleSeeding.PathPlaceholder, samplesDir),
             (Path.Combine(root, "samples", "view3d-analyses"), DataPlaceholder, Path.Combine(root, "data")),
+            SampleSeeding.NrcAnalyses(root),
         };
         if (SnowdonPath() is { } snowdon)
             sources.Add((Path.Combine(root, "samples", "snowdon-analyses"), "{SNOWDON}", snowdon));
@@ -33,12 +35,12 @@ public static class BimSampleSeeding
     }
 
     /// <summary>The directories the seeded analyses' model paths point at
-    /// (samples/bim and the repo data dir), so the host can add them to the
+    /// (samples/bim, the repo data dir, and samples/nrc), so the host can add them to the
     /// model catalog roots and serve those models' bytes over
     /// /api/models/{id}/bos. Empty outside a repo checkout.</summary>
     public static IReadOnlyList<string> SeededModelRoots(string startDir)
         => SampleSeeding.FindRepoRoot(startDir) is { } root
-            ? new[] { Path.Combine(root, "samples", "bim"), Path.Combine(root, "data") }
+            ? new[] { Path.Combine(root, "samples", "bim"), Path.Combine(root, "data"), SampleSeeding.NrcSamplesDir(root) }
                 .Concat(SnowdonPath() is { } snowdon ? [Path.GetDirectoryName(snowdon)!] : Array.Empty<string>()).ToArray()
             : [];
 

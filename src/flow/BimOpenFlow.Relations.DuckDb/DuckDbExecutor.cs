@@ -7,24 +7,26 @@ namespace BimOpenFlow.Relations.DuckDb;
 /// which is what keeps the executor replaceable.</summary>
 public static class DuckDbExecutor
 {
-    public static IDataTable Execute(this CompiledQuery query, IConnectionRegistry registry, long? limit = null, long offset = 0, string name = "result")
+    public static IDataTable Execute(this CompiledQuery query, IConnectionRegistry registry, long? limit = null,
+        long offset = 0, string name = "result", IInlineTables? inlines = null)
     {
-        using var session = DuckDbSession.For(query.Sources, registry);
+        using var session = DuckDbSession.For(query.Sources, registry, query.Inlines, inlines ?? NoInlineTables.Instance);
         var sql = limit is { } n ? query.WithLimit(n, offset) : query.Sql;
         return session.Connection.Query(sql, name).NormalizeDatesToText();
     }
 
-    public static long Count(this CompiledQuery query, IConnectionRegistry registry)
+    public static long Count(this CompiledQuery query, IConnectionRegistry registry, IInlineTables? inlines = null)
     {
-        using var session = DuckDbSession.For(query.Sources, registry);
+        using var session = DuckDbSession.For(query.Sources, registry, query.Inlines, inlines ?? NoInlineTables.Instance);
         return session.Connection.ScalarInt64(query.CountSql);
     }
 
     /// <summary>Compile, run, and check the rows against the inferred schema in one call.</summary>
-    public static IDataTable Execute(this Plan plan, ICatalog catalog, IConnectionRegistry registry, long? limit = null, long offset = 0)
+    public static IDataTable Execute(this Plan plan, ICatalog catalog, IConnectionRegistry registry,
+        long? limit = null, long offset = 0, IInlineTables? inlines = null)
     {
         var schemas = new SchemaCache(catalog);
-        var table = plan.Compile(schemas).Execute(registry, limit, offset);
+        var table = plan.Compile(schemas).Execute(registry, limit, offset, inlines: inlines);
         return table.Conforming(schemas.Infer(plan).Require());
     }
 

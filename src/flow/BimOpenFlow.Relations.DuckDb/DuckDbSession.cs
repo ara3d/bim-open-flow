@@ -1,4 +1,5 @@
 using Ara3D.BimOpenSchema.DuckDb;
+using Ara3D.BimOpenSchema.IO;
 using DuckDB.NET.Data;
 
 namespace BimOpenFlow.Relations.DuckDb;
@@ -11,10 +12,22 @@ public sealed class DuckDbSession : IDisposable
     private readonly HashSet<string> _bound = new(StringComparer.Ordinal);
 
     /// <summary>A session with the query's sources bound and every inline table written into
-    /// schema "_inline". Contract C4 of the nrc-handoff wave; the body belongs to track C.</summary>
+    /// schema "_inline".</summary>
     public static DuckDbSession For(IReadOnlyList<SourceUse> sources, IConnectionRegistry registry,
         IReadOnlyList<InlineUse> inlines, IInlineTables tables)
-        => throw new NotImplementedException("Track C fills in DuckDbSession.For with inline tables.");
+    {
+        var session = For(sources, registry);
+        try
+        {
+            session.BindInline(inlines, tables);
+            return session;
+        }
+        catch
+        {
+            session.Dispose();
+            throw;
+        }
+    }
 
     public static DuckDbSession For(IReadOnlyList<SourceUse> sources, IConnectionRegistry registry)
     {
@@ -48,6 +61,27 @@ public sealed class DuckDbSession : IDisposable
                 break;
             default:
                 throw new ArgumentException($"Source '{use.Source}' is a {location.Type} and cannot serve a {use.Kind} reference.");
+        }
+    }
+
+    /// <summary>Writes the rows behind each inline table into schema "_inline", where the
+    /// compiled SQL expects them. <c>DuckDbUtils.WriteTable</c> quotes its table name as a
+    /// single identifier and so cannot target a schema; each table is therefore written under
+    /// a private name in the session's main schema and exposed under "_inline" as a view.</summary>
+    public void BindInline(IReadOnlyList<InlineUse> inlines, IInlineTables tables)
+    {
+        if (inlines.Count == 0) return;
+        Connection.Execute($"CREATE SCHEMA IF NOT EXISTS {CompiledQuery.InlineSchema.Ident()}");
+        for (var i = 0; i < inlines.Count; i++)
+        {
+            var use = inlines[i];
+            if (!_bound.Add(CompiledQuery.InlineSchema + "/" + use.Name))
+                throw new ArgumentException($"Two different inline tables are named '{use.Name}'.");
+            var table = tables.Find(use.Hash)
+                ?? throw new ArgumentException($"No rows are registered for inline table '{use.Name}' (hash {use.Hash}).");
+            var staged = $"_inline_{i + 1}";
+            Connection.WriteTable(table, staged);
+            Connection.Execute($"CREATE VIEW {use.Ident} AS SELECT * FROM {staged.Ident()}");
         }
     }
 

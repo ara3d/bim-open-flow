@@ -16,10 +16,10 @@ public sealed class HtmlDocumentBuilder
     private readonly List<string> _body = new();
     private readonly List<string> _scripts = new();
 
-    public HtmlDocumentBuilder(string title, string theme = HtmlTheme.Default)
+    public HtmlDocumentBuilder(string title, string? theme = null)
     {
         _title = title;
-        _css.Add(theme);
+        _css.Add(theme ?? HtmlTheme.Default);
     }
 
     public HtmlDocumentBuilder AddCss(string css)

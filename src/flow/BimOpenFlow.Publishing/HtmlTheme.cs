@@ -7,7 +7,10 @@ namespace BimOpenFlow.Publishing;
 /// </summary>
 public static class HtmlTheme
 {
-    public const string Default = """
+    /// <summary>The theme with LF newlines whatever line endings the source was checked out with.</summary>
+    public static readonly string Default = Source.Replace("\r\n", "\n");
+
+    private const string Source = """
 :root {
   --bof-bg: #ffffff;
   --bof-fg: #1c1e26;

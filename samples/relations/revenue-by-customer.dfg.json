@@ -1,0 +1,111 @@
+{
+  "formatVersion": "0.1.0",
+  "structure": {
+    "edges": [
+      {
+        "from": "totals.relation",
+        "to": "answer.input"
+      },
+      {
+        "from": "revenue.relation",
+        "to": "named.left"
+      },
+      {
+        "from": "customers.relation",
+        "to": "named.right"
+      },
+      {
+        "from": "orders.relation",
+        "to": "priced.left"
+      },
+      {
+        "from": "products.relation",
+        "to": "priced.right"
+      },
+      {
+        "from": "priced.relation",
+        "to": "revenue.input"
+      },
+      {
+        "from": "named.relation",
+        "to": "totals.input"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "answer",
+        "kind": "rel.sort",
+        "version": 1
+      },
+      {
+        "id": "customers",
+        "kind": "rel.csv",
+        "version": 1
+      },
+      {
+        "id": "named",
+        "kind": "rel.join",
+        "version": 1
+      },
+      {
+        "id": "orders",
+        "kind": "rel.csv",
+        "version": 1
+      },
+      {
+        "id": "priced",
+        "kind": "rel.join",
+        "version": 1
+      },
+      {
+        "id": "products",
+        "kind": "rel.csv",
+        "version": 1
+      },
+      {
+        "id": "revenue",
+        "kind": "rel.derive",
+        "version": 1
+      },
+      {
+        "id": "totals",
+        "kind": "rel.aggregate",
+        "version": 1
+      }
+    ]
+  },
+  "values": {
+    "answer": {
+      "by": "Revenue desc"
+    },
+    "customers": {
+      "path": "customers.csv",
+      "source": "tables"
+    },
+    "named": {
+      "kind": "left",
+      "leftKey": "CustomerId",
+      "rightKey": "CustomerId"
+    },
+    "orders": {
+      "path": "orders.csv",
+      "source": "tables"
+    },
+    "priced": {
+      "leftKey": "ProductId",
+      "rightKey": "ProductId"
+    },
+    "products": {
+      "path": "products.csv",
+      "source": "tables"
+    },
+    "revenue": {
+      "expr": "[Quantity] * [UnitPrice]",
+      "name": "Revenue"
+    },
+    "totals": {
+      "aggregates": "count(*) as Orders, sum(Revenue) as Revenue",
+      "groupBy": "Name, City"
+    }
+  }
+}

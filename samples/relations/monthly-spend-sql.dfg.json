@@ -1,0 +1,45 @@
+{
+  "formatVersion": "0.1.0",
+  "structure": {
+    "edges": [
+      {
+        "from": "jan.relation",
+        "to": "answer.t1"
+      },
+      {
+        "from": "feb.relation",
+        "to": "answer.t2"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "answer",
+        "kind": "rel.sql",
+        "version": 1
+      },
+      {
+        "id": "feb",
+        "kind": "rel.csv",
+        "version": 1
+      },
+      {
+        "id": "jan",
+        "kind": "rel.csv",
+        "version": 1
+      }
+    ]
+  },
+  "values": {
+    "answer": {
+      "sql": "SELECT Item, round(sum(Amount), 2) AS Total, count(*) AS Months FROM (SELECT * FROM t1 UNION ALL SELECT * FROM t2) GROUP BY Item ORDER BY Total DESC"
+    },
+    "feb": {
+      "path": "monthly-2024-02.csv",
+      "source": "tables"
+    },
+    "jan": {
+      "path": "monthly-2024-01.csv",
+      "source": "tables"
+    }
+  }
+}

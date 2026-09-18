@@ -1,0 +1,68 @@
+{
+  "formatVersion": "0.1.0",
+  "structure": {
+    "edges": [
+      {
+        "from": "cols.relation",
+        "to": "answer.input"
+      },
+      {
+        "from": "orders.relation",
+        "to": "big.input"
+      },
+      {
+        "from": "sorted.relation",
+        "to": "cols.input"
+      },
+      {
+        "from": "big.relation",
+        "to": "sorted.input"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "answer",
+        "kind": "rel.limit",
+        "version": 1
+      },
+      {
+        "id": "big",
+        "kind": "rel.filter",
+        "version": 1
+      },
+      {
+        "id": "cols",
+        "kind": "rel.select",
+        "version": 1
+      },
+      {
+        "id": "orders",
+        "kind": "rel.csv",
+        "version": 1
+      },
+      {
+        "id": "sorted",
+        "kind": "rel.sort",
+        "version": 1
+      }
+    ]
+  },
+  "values": {
+    "answer": {
+      "count": "3"
+    },
+    "big": {
+      "expr": "[Quantity] >= 100"
+    },
+    "cols": {
+      "columns": "OrderId, CustomerId, Quantity"
+    },
+    "orders": {
+      "path": "orders.csv",
+      "source": "tables"
+    },
+    "sorted": {
+      "by": "Quantity desc, OrderId"
+    }
+  }
+}

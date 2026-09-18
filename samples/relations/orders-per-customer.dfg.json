@@ -1,0 +1,72 @@
+{
+  "formatVersion": "0.1.0",
+  "structure": {
+    "edges": [
+      {
+        "from": "counts.relation",
+        "to": "answer.input"
+      },
+      {
+        "from": "joined.relation",
+        "to": "counts.input"
+      },
+      {
+        "from": "customers.relation",
+        "to": "joined.left"
+      },
+      {
+        "from": "orders.relation",
+        "to": "joined.right"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "answer",
+        "kind": "rel.sort",
+        "version": 1
+      },
+      {
+        "id": "counts",
+        "kind": "rel.aggregate",
+        "version": 1
+      },
+      {
+        "id": "customers",
+        "kind": "rel.csv",
+        "version": 1
+      },
+      {
+        "id": "joined",
+        "kind": "rel.join",
+        "version": 1
+      },
+      {
+        "id": "orders",
+        "kind": "rel.table",
+        "version": 1
+      }
+    ]
+  },
+  "values": {
+    "answer": {
+      "by": "Units desc"
+    },
+    "counts": {
+      "aggregates": "count(OrderId) as Orders, sum(Quantity) as Units",
+      "groupBy": "Name, Segment"
+    },
+    "customers": {
+      "path": "customers.csv",
+      "source": "tables"
+    },
+    "joined": {
+      "kind": "left",
+      "leftKey": "CustomerId",
+      "rightKey": "CustomerId"
+    },
+    "orders": {
+      "source": "sample",
+      "table": "orders"
+    }
+  }
+}

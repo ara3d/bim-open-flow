@@ -15,7 +15,7 @@ using BimOpenFlow.Nodes.Viz;
 var packs = new Pack[]
 {
     new("BOS — `BimOpenFlow.Nodes.Bos`",
-        "Loading BIM Open Schema (.bos) files and the core table transforms: filter, derive, aggregate, sort.",
+        "Loading BIM Open Schema (.bos) files and querying them with SQL; the general table transforms live in TableOps.",
         BosNodes.All),
     new("BIM analysis — `BimOpenFlow.Nodes.BimAnalysis`",
         "The bim.* pack: grouping tables (elements, rooms, levels), typed parameter tables and "

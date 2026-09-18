@@ -1,3 +1,4 @@
+using Ara3D.DataFlowEngine;
 using Ara3D.DataTable;
 using BimOpenFlow.Relations.DuckDb;
 
@@ -12,14 +13,16 @@ public sealed class RelationRuntime
     public ICatalog Catalog { get; }
     private readonly SchemaCache _schemas;
     private readonly ResultCache _results;
+    private readonly InlineTableStore _inlines;
     private readonly object _gate = new();
 
-    public RelationRuntime(IConnectionRegistry registry, ICatalog? catalog = null, int resultCapacity = 64)
+    public RelationRuntime(IConnectionRegistry registry, ICatalog? catalog = null, int resultCapacity = 64, int inlineCapacity = 16)
     {
         Registry = registry;
         Catalog = catalog ?? new DuckDbCatalog(registry);
         _schemas = new SchemaCache(Catalog);
         _results = new ResultCache(resultCapacity);
+        _inlines = new InlineTableStore(inlineCapacity);
     }
 
     public static RelationRuntime FromRoots(IReadOnlyList<string> roots)
@@ -46,15 +49,25 @@ public sealed class RelationRuntime
 
     public IDataTable Materialize(Plan plan, long? limit = null, long offset = 0)
         => _results.GetOrAdd(plan, limit, offset,
-            () => Compile(plan).Execute(Registry, limit, offset).Conforming(Schema(plan).Require()));
+            () => Compile(plan).Execute(Registry, limit, offset, inlines: _inlines).Conforming(Schema(plan).Require()));
 
     public long Count(Plan plan)
-        => Compile(plan).Count(Registry);
+        => Compile(plan).Count(Registry, _inlines);
 
     /// <summary>Registers an in-process table under its content hash and returns the plan node
-    /// that reads it. Contract C4 of the nrc-handoff wave; the body belongs to track C.</summary>
+    /// that reads it. The same rows under the same name give the same plan, so a graph that
+    /// re-evaluates an unchanged table hits the schema and result caches.</summary>
     public InlineTable Inline(IDataTable table, string name)
-        => throw new NotImplementedException("Track C fills in RelationRuntime.Inline.");
+    {
+        var hash = ValueHash.Compute(new TableValue(table));
+        _inlines.Add(hash, table);
+        return new InlineTable(name, hash, SchemaOf(table));
+    }
+
+    /// <summary>An inline table types itself from the CLR types its columns carry, using the
+    /// same mapping the executor checks materialized results against.</summary>
+    private static Schema SchemaOf(IDataTable table)
+        => new(table.Columns.Select(c => new Column(c.Descriptor.Name, DuckDbTypes.FromClr(c.Descriptor.Type))).ToList());
 
     /// <summary>Forget inferred schemas and materialized rows, for when a source changed on disk.</summary>
     public void Invalidate()

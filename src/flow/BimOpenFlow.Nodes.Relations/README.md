@@ -9,6 +9,7 @@ packs.
 | Node | Builds |
 |------|--------|
 | `rel.csv`, `rel.table` | a source, by source name and file or table |
+| `rel.fromTable` | a relation over an input Table, so any row-based node can feed the pack |
 | `rel.select`, `rel.filter`, `rel.derive`, `rel.sort`, `rel.limit` | one operator over one input |
 | `rel.join`, `rel.aggregate` | join by keys; group and aggregate |
 | `rel.sql` | user SQL over up to three inputs named t1..t3 |

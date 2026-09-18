@@ -43,6 +43,8 @@ describe("hostStatusMessage and probe cadence", () => {
   });
 
   it("probes faster while not connected", () => {
+    expect(probeIntervalMs("connected")).toBe(10_000);
+    expect(probeIntervalMs("offline")).toBe(5_000);
     expect(probeIntervalMs("connected")).toBeGreaterThan(probeIntervalMs("offline"));
     expect(probeIntervalMs("reconnecting")).toBe(probeIntervalMs("offline"));
   });

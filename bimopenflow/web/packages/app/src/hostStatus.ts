@@ -29,8 +29,13 @@ export function reduceHostStatus(state: HostStatusState, event: HostEvent): Host
   return { status: failures >= OFFLINE_AFTER ? "offline" : "reconnecting", failures, reason: event.reason };
 }
 
-/** Probe cadence: cheap while connected, eager while not. */
-export const probeIntervalMs = (status: HostStatus): number => (status === "connected" ? 15_000 : 5_000);
+/**
+ * Probe cadence: cheap while connected, eager while not. An idle page learns
+ * of a host death only from this probe (the event stream's onerror is slow),
+ * so the connected cadence bounds the time to the offline banner: about the
+ * interval plus the second failure needed for "offline".
+ */
+export const probeIntervalMs = (status: HostStatus): number => (status === "connected" ? 10_000 : 5_000);
 
 /** What the banner says; empty while connected. */
 export function hostStatusMessage(status: HostStatus, apiUrl: string): string {

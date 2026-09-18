@@ -1,13 +1,11 @@
 using Ara3D.DataTable;
 
-namespace BimOpenFlow.Nodes.Effects;
+namespace BimOpenFlow.Nodes.Support;
 
-// TODO: third copy of this minimal table (Runs.RecordTable, Compliance.MemoryTable); hoist into a shared table utility.
-
-internal sealed record MemoryDescriptor(string Name, Type Type) : IDataDescriptor;
+public sealed record MemoryDescriptor(string Name, Type Type) : IDataDescriptor;
 
 /// <summary>An immutable column over an in-memory cell array; null cells are allowed.</summary>
-internal sealed class MemoryColumn : IDataColumn
+public sealed class MemoryColumn : IDataColumn
 {
     private readonly object?[] _cells;
 
@@ -24,7 +22,7 @@ internal sealed class MemoryColumn : IDataColumn
     }
 }
 
-internal sealed class MemoryRow : IDataRow
+public sealed class MemoryRow : IDataRow
 {
     public int RowIndex { get; }
     public IDataTable DataTable { get; }
@@ -48,8 +46,9 @@ internal sealed class MemoryRow : IDataRow
     }
 }
 
-/// <summary>Minimal immutable in-memory IDataTable used to build node outputs.</summary>
-internal sealed class MemoryTable : IDataTable
+/// <summary>Minimal immutable in-memory IDataTable the packs build node outputs with, for
+/// the tables too small or too irregular for DataTableBuilder (summary rows, verdicts).</summary>
+public sealed class MemoryTable : IDataTable
 {
     public string Name { get; }
     public IReadOnlyList<IDataColumn> Columns { get; }

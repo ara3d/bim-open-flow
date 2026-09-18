@@ -11,6 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\data\Ara3D.BimOpenSchema.DuckDb\Ara3D.BimOpenSchema.DuckDb.csproj" />
     <ProjectReference Include="..\..\..\submodules\ara3d-dataflow\src\Ara3D.DataFlowEngine.Abstractions\Ara3D.DataFlowEngine.Abstractions.csproj" />
+    <ProjectReference Include="..\BimOpenFlow.Nodes.Support\BimOpenFlow.Nodes.Support.csproj" />
     <ProjectReference Include="..\..\..\submodules\ara3d-dataflow\src\Ara3D.DataFlowEngine.Runs\Ara3D.DataFlowEngine.Runs.csproj" />
     <ProjectReference Include="..\..\data\Ara3D.Ifc.Editing\Ara3D.Ifc.Editing.csproj" />
     <PackageReference Include="Ara3D.DataTable" Version="$(Ara3DSdkVersion)" />
@@ -21,6 +22,10 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="BimOpenFlow.Nodes.Effects.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="BimOpenFlow.Nodes.Support" />
   </ItemGroup>
 
 </Project>

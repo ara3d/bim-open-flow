@@ -17,7 +17,7 @@ Every node here:
 | Kind | Inputs | Params | Output (one-row summary) |
 |---|---|---|---|
 | `sink.exportCsv` v1 | in: Table | path (FilePath) | path, rowCount |
-| `sink.writePsets` v1 | in: Table with entityId (Integer, STEP express id), psetName, paramName, paramValue (Text) | sourcePath, targetPath (FilePath) | targetPath, entitiesTouched, valuesWritten |
+| `sink.writePsets` v1 | in: Table with entityId (Integer, STEP express id), psetName, paramName, paramValue (Text), optional valueType (Text) | sourcePath, targetPath (FilePath) | targetPath, entitiesTouched, valuesWritten |
 | `sink.report` v1 | in: Table | path (FilePath), title (Text) | path, rowCount |
 
 `sink.exportCsv` writes RFC-4180 CSV: CRLF rows, header row, invariant
@@ -28,9 +28,12 @@ a quote, comma, or line break.
 at `sourcePath` is copied to `targetPath` with new
 IfcPropertySingleValue/IfcPropertySet/IfcRelDefinesByProperties lines appended
 before ENDSEC; untouched bytes are identical. Rows are grouped by
-(entityId, psetName) in first-appearance order. v1 limitation: every value is
-written as IFCTEXT; typed measures and units are deferred until the editing
-API grows a typed value path.
+(entityId, psetName) in first-appearance order. An optional `valueType` column
+names each row's IFC value type - `Text`, `Label`, `Identifier`, `Integer`,
+`Number` (`Real` is an accepted synonym), or `Boolean`, case-insensitive - and
+`paramValue` is parsed from text with the invariant culture. An empty cell or an
+absent column means `Text`, so tables written before the column existed produce
+the same bytes. Units are still not written.
 
 `sink.report` writes a minimal standalone HTML file (title + table).
 

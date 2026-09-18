@@ -8,7 +8,8 @@ namespace BimOpenFlow.Nodes.Effects;
 /// sink.writePsets: applies byte-exact property-set additions to a copy of an IFC file.
 /// Input rows (entityId, psetName, paramName, paramValue) are grouped by (entityId, psetName)
 /// in first-appearance order; each group becomes one IfcPropertySet attached to the entity.
-/// v1 limitation: every value is written as IFCTEXT; typed measures/units come later.
+/// An optional valueType column picks the IFC value type per row (see <see cref="PsetValueTypes"/>);
+/// without it every value is IFCTEXT, as before. Units are still not written.
 /// </summary>
 public sealed class WritePsetsNode : IFlowNode
 {
@@ -21,7 +22,11 @@ public sealed class WritePsetsNode : IFlowNode
             new ParamSpec("sourcePath", ParamKind.FilePath),
             new ParamSpec("targetPath", ParamKind.FilePath),
         },
-        "Byte-exact pset write-back: reads sourcePath, appends psets from the input table, writes targetPath. Outputs a one-row summary (targetPath, entitiesTouched, valuesWritten).");
+        "Byte-exact pset write-back: reads sourcePath, appends psets from the input table, writes targetPath. "
+        + "An optional valueType column names the IFC value type of each row - Text, Label, Identifier, Integer, "
+        + "Number (Real is a synonym), or Boolean, case-insensitive - and paramValue is parsed from text with the "
+        + "invariant culture; an empty cell or an absent column means Text. "
+        + "Outputs a one-row summary (targetPath, entitiesTouched, valuesWritten).");
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {

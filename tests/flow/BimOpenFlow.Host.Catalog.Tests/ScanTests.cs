@@ -26,13 +26,23 @@ public sealed class ScanTests
         => new(roots.Length == 0 ? [_root] : roots, _cache, new StubConverter());
 
     [Test]
+    public void Scan_DoesNotHashUntilTheHashIsAskedFor()
+    {
+        var path = WriteFile(_root, "lazy.bos", "first");
+        var entry = Catalog().Scan().Single();
+        File.WriteAllText(path, "second");
+        Assert.That(entry.ContentHash, Is.EqualTo(ModelCatalog.HashFile(path)),
+            "the scan stats the file; the hash is read when first asked for");
+    }
+
+    [Test]
     public void Scan_ReusesUnchangedHashWithoutReopeningFile()
     {
         var path = WriteFile(_root, "cached.bos", "original");
         var catalog = Catalog();
-        var before = catalog.Scan().Single();
+        var beforeHash = catalog.Scan().Single().ContentHash;
         using var locked = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None);
-        Assert.That(catalog.Scan().Single().ContentHash, Is.EqualTo(before.ContentHash));
+        Assert.That(catalog.Scan().Single().ContentHash, Is.EqualTo(beforeHash));
     }
 
     [Test]
@@ -41,12 +51,13 @@ public sealed class ScanTests
         var path = WriteFile(_root, "cached.bos", "version1");
         var catalog = Catalog();
         var before = catalog.Scan().Single();
+        var beforeHash = before.ContentHash;
         File.WriteAllText(path, "version2");
         File.SetLastWriteTimeUtc(path, before.LastWriteUtc.AddSeconds(2));
         var after = catalog.Scan().Single();
         Assert.That(after.Id, Is.EqualTo(before.Id));
         Assert.That(after.ContentHash, Is.EqualTo(ModelCatalog.HashFile(path)));
-        Assert.That(after.ContentHash, Is.Not.EqualTo(before.ContentHash));
+        Assert.That(after.ContentHash, Is.Not.EqualTo(beforeHash));
     }
 
     [Test]
@@ -96,12 +107,13 @@ public sealed class ScanTests
     {
         WriteFile(_root, "m.ifc", "version 1");
         var before = Catalog().Scan().Single();
+        var beforeHash = before.ContentHash;
 
         WriteFile(_root, "m.ifc", "version 2");
         var after = Catalog().Scan().Single();
 
         Assert.That(after.Id, Is.EqualTo(before.Id));
-        Assert.That(after.ContentHash, Is.Not.EqualTo(before.ContentHash));
+        Assert.That(after.ContentHash, Is.Not.EqualTo(beforeHash));
     }
 
     [Test]

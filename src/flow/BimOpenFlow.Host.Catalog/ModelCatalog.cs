@@ -73,11 +73,11 @@ public sealed class ModelCatalog
     private ModelEntry CreateEntry(string root, string file, HashSet<string> seenIds)
     {
         var info = new FileInfo(file);
-        var hash = ContentHash(info);
+        var hash = new Lazy<string>(() => ContentHash(info));
         var id = Slug(Path.GetRelativePath(root, file));
         if (!seenIds.Add(id))
         {
-            id = $"{id}-{hash[..8]}";
+            id = $"{id}-{hash.Value[..8]}";
             seenIds.Add(id);
         }
         return new(

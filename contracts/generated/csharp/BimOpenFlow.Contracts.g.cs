@@ -30,6 +30,7 @@ public enum PortType
     Number,
     Text,
     Table,
+    Relation,
     Any,
 }
 

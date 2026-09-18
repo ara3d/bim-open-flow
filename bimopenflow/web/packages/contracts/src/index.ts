@@ -21,6 +21,7 @@ export type PortType =
   | "Number"
   | "Text"
   | "Table"
+  | "Relation"
   | "Any";
 
 export type ColumnType =

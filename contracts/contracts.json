@@ -3,7 +3,7 @@
   "description": "Single source of truth for app-level shared types. Edit this file, run `node contracts/generate.mjs`, commit the generated outputs. Never hand-edit generated files.",
   "enums": {
     "ParamKind": ["Boolean", "Integer", "Number", "Text", "Enum", "FilePath", "ModelRef", "Expression", "Json", "DateTime", "Fraction", "Percent"],
-    "PortType": ["Boolean", "Integer", "Number", "Text", "Table", "Any"],
+    "PortType": ["Boolean", "Integer", "Number", "Text", "Table", "Relation", "Any"],
     "ColumnType": ["Boolean", "Integer", "Number", "Text"],
     "NodeCapability": ["Pure", "Effect"],
     "Verdict": ["Pass", "Fail", "NeedsReview", "InfoNotAvailable"],

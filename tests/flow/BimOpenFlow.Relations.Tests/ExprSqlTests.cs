@@ -10,6 +10,8 @@ public class ExprSqlTests
     [TestCase("x ? 1 : 2", "(CASE WHEN \"x\" THEN 1 ELSE 2 END)")]
     [TestCase("max(a, 3) + len(lower([Fire Rating]))", "(greatest(\"a\", 3) + length(lower(\"Fire Rating\")))")]
     [TestCase("startswith(n, 'it\\'s')", "starts_with(\"n\", 'it''s')")]
+    [TestCase("toNumber(v) * 1000", "(TRY_CAST(\"v\" AS DOUBLE) * 1000)")]
+    [TestCase("coalesce(toNumber('x'), 0)", "coalesce(TRY_CAST('x' AS DOUBLE), 0)")]
     [TestCase("2.0", "2.0")]
     [TestCase("-1", "(-1)")]
     public void EmitsDuckDbSql(string text, string expected)

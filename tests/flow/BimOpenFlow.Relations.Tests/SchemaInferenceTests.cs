@@ -26,6 +26,8 @@ public class SchemaInferenceTests
     [Test] public void RenameClash() => Assert.That(Infer(WallsPlan.Rename("name", "id")), Is.EqualTo("Rename produces duplicate column 'id'."));
     [Test] public void Cast() => Assert.That(Infer(WallsPlan.Cast("id", ColumnType.Text).Select("id")), Is.EqualTo("id:Text"));
     [Test] public void DeriveTypesTheExpression() => Assert.That(Infer(WallsPlan.Derive("tall", "[height] > 3").Select("tall")), Is.EqualTo("tall:Boolean?"));
+    [Test] public void DeriveToNumberIsNullableNumber() => Assert.That(Infer(WallsPlan.Derive("w", "toNumber([name]) * 1000").Select("w")), Is.EqualTo("w:Number?"));
+    [Test] public void DeriveToNumberNeedsText() => Assert.That(Infer(WallsPlan.Derive("w", "toNumber([height])")), Does.StartWith("In 'w': ").And.Contain("Text argument"));
     [Test] public void DeriveIntegerArithmetic() => Assert.That(Infer(WallsPlan.Derive("twice", "[id] * 2").Select("twice")), Is.EqualTo("twice:Integer?"));
     [Test] public void DeriveUnknownColumn() => Assert.That(Infer(WallsPlan.Derive("x", "[width] * 2")), Does.StartWith("In 'x': Unknown identifier"));
     [Test] public void DeriveExisting() => Assert.That(Infer(WallsPlan.Derive("id", "1")), Is.EqualTo("Column 'id' already exists."));

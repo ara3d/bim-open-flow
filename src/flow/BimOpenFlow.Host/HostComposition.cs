@@ -26,10 +26,12 @@ public sealed record HostApp(HostConfig Config, HostServices Services, WebApplic
 /// <summary>The composition root. Wiring only; any logic belongs in the modules.</summary>
 public static class HostComposition
 {
-    /// <summary>The "bim" profile registry: all five BIM packs plus the Viz pack.</summary>
+    /// <summary>The "bim" profile registry: all five BIM packs, the Viz pack, and the
+    /// DuckDB and Tables packs so that an external value table (CSV, Parquet, a DuckDB
+    /// query) can be joined to a model and drive a 3D colouring.</summary>
     public static NodeRegistry AllPacks()
         => NodeRegistry.Combine(BosNodes.All, BimAnalysisNodes.All, GeometryNodes.All,
-            ComplianceNodes.All, EffectNodes.All, VizNodes.All);
+            ComplianceNodes.All, EffectNodes.All, VizNodes.All, DuckDbNodes.All, TableNodes.All);
 
     /// <summary>The "tables" profile registry: the DuckDB, Tables, TableOps,
     /// Cleaning, Dates, and Viz packs, the table writers from the Effects pack,

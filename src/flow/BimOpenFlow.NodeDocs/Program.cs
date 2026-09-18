@@ -8,6 +8,7 @@ using BimOpenFlow.Nodes.DuckDb;
 using BimOpenFlow.Nodes.Effects;
 using BimOpenFlow.Nodes.Geometry;
 using BimOpenFlow.Nodes.Relations;
+using BimOpenFlow.Nodes.Spatial;
 using BimOpenFlow.Nodes.TableOps;
 using BimOpenFlow.Nodes.Tables;
 using BimOpenFlow.Nodes.Viz;
@@ -49,6 +50,10 @@ var packs = new Pack[]
     new("Viz — `BimOpenFlow.Nodes.Viz`",
         "Chart and table-view nodes that validate and project table data for the web panes; rendering stays client-side.",
         VizNodes.All),
+    new("Spatial — `BimOpenFlow.Nodes.Spatial`",
+        "GIS-style predicates and measures (intersects, within, nearest, contains, footprints, polygons) over "
+        + "point, box, and WKT polygon columns; every join emits a pairs table. BIM-free and DuckDB-free.",
+        SpatialNodes.All),
     new("Relations — `BimOpenFlow.Nodes.Relations`",
         "The rel.* pack: wires carry a logical plan plus its schema instead of rows. A chain compiles to one "
         + "SQL statement and runs only when inspected or materialized. Sources are named through the host's "

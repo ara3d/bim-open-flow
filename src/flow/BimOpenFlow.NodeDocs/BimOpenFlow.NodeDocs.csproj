@@ -18,6 +18,7 @@
     <ProjectReference Include="..\BimOpenFlow.Nodes.TableOps\BimOpenFlow.Nodes.TableOps.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Cleaning\BimOpenFlow.Nodes.Cleaning.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Dates\BimOpenFlow.Nodes.Dates.csproj" />
+    <ProjectReference Include="..\BimOpenFlow.Nodes.Spatial\BimOpenFlow.Nodes.Spatial.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Viz\BimOpenFlow.Nodes.Viz.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.BimAnalysis\BimOpenFlow.Nodes.BimAnalysis.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Relations\BimOpenFlow.Nodes.Relations.csproj" />

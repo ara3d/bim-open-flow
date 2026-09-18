@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>BimOpenFlow.Nodes.Spatial</PackageId>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Description>BimOpenFlow node pack: GIS-style spatial predicates and measures (intersects, within, nearest, contains, footprint, polygon) over point, box, and WKT polygon columns.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\submodules\ara3d-dataflow\src\Ara3D.DataFlowEngine.Abstractions\Ara3D.DataFlowEngine.Abstractions.csproj" />
+    <ProjectReference Include="..\BimOpenFlow.Nodes.Support\BimOpenFlow.Nodes.Support.csproj" />
+    <PackageReference Include="Ara3D.DataTable" Version="$(Ara3DSdkVersion)" />
+    <PackageReference Include="Ara3D.Geometry" Version="$(Ara3DSdkVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="BimOpenFlow.Nodes.Support" />
+  </ItemGroup>
+
+</Project>

@@ -11,6 +11,7 @@ using BimOpenFlow.Nodes.DuckDb;
 using BimOpenFlow.Nodes.Effects;
 using BimOpenFlow.Nodes.Geometry;
 using BimOpenFlow.Nodes.Relations;
+using BimOpenFlow.Nodes.Spatial;
 using BimOpenFlow.Nodes.TableOps;
 using BimOpenFlow.Nodes.Tables;
 using BimOpenFlow.Nodes.Viz;
@@ -31,20 +32,20 @@ public static class HostComposition
     /// <summary>The "bim" profile registry: the Bos, TableOps, BimAnalysis, Geometry,
     /// Compliance, Effects, and Viz packs, the DuckDB and Tables packs so an external value
     /// table (CSV, Parquet, a DuckDB query) can be joined to a model and drive a 3D
-    /// colouring, plus the rel.* pack. Without a runtime the rel.* pack sees no sources,
+    /// colouring, the Spatial pack, plus the rel.* pack. Without a runtime the rel.* pack sees no sources,
     /// which is enough for validation, catalogs, and docs.</summary>
     public static NodeRegistry AllPacks(RelationRuntime? relations = null)
         => NodeRegistry.Combine(BosNodes.All, TableOpsNodes.All, BimAnalysisNodes.All, GeometryNodes.All,
             ComplianceNodes.All, EffectNodes.All, VizNodes.All, DuckDbNodes.All, TableNodes.All,
-            RelationNodes.All(relations ?? NoSources()));
+            SpatialNodes.All, RelationNodes.All(relations ?? NoSources()));
 
     /// <summary>The "tables" profile registry: the DuckDB, Tables, TableOps, Cleaning,
-    /// Dates, and Viz packs, the table writers from the Effects pack, plus the rel.* pack.
-    /// Nothing here references BIM Open Schema.</summary>
+    /// Dates, Viz, and Spatial packs, the table writers from the Effects pack, plus the
+    /// rel.* pack. Nothing here references BIM Open Schema.</summary>
     public static NodeRegistry TablePacks(RelationRuntime? relations = null)
         => NodeRegistry.Combine(DuckDbNodes.All, TableNodes.All,
-            TableOpsNodes.All, CleaningNodes.All, DatesNodes.All, VizNodes.All, EffectNodes.TableSinks,
-            RelationNodes.All(relations ?? NoSources()));
+            TableOpsNodes.All, CleaningNodes.All, DatesNodes.All, VizNodes.All, SpatialNodes.All,
+            EffectNodes.TableSinks, RelationNodes.All(relations ?? NoSources()));
 
     /// <summary>The registry a profile name selects, over the given relation sources.</summary>
     public static NodeRegistry Registry(string profile, RelationRuntime relations)

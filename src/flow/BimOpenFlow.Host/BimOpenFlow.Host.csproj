@@ -23,6 +23,7 @@
     <ProjectReference Include="..\BimOpenFlow.Nodes.TableOps\BimOpenFlow.Nodes.TableOps.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Cleaning\BimOpenFlow.Nodes.Cleaning.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Dates\BimOpenFlow.Nodes.Dates.csproj" />
+    <ProjectReference Include="..\BimOpenFlow.Nodes.Spatial\BimOpenFlow.Nodes.Spatial.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Geometry\BimOpenFlow.Nodes.Geometry.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Compliance\BimOpenFlow.Nodes.Compliance.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Effects\BimOpenFlow.Nodes.Effects.csproj" />

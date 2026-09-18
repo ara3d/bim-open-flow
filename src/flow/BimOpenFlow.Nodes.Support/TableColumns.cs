@@ -41,9 +41,9 @@ public static class TableColumns
         return name;
     }
 
-    /// <summary>A copy of the table with an extra 0-based Integer ordinal column,
-    /// so generated SQL can ORDER BY the table's actual row order.</summary>
-    public static IDataTable WithOrdinal(this IDataTable table, string ordinal)
+    /// <summary>A builder seeded with every column of the table, for nodes that
+    /// append columns to their input.</summary>
+    public static DataTableBuilder CopyBuilder(this IDataTable table)
     {
         var rows = table.RowCount();
         var builder = new DataTableBuilder(table.Name);
@@ -54,6 +54,15 @@ public static class TableColumns
                 cells[row] = table[c.ColumnIndex, row];
             builder.AddColumn(cells, c.Descriptor.Name, c.Descriptor.Type);
         }
+        return builder;
+    }
+
+    /// <summary>A copy of the table with an extra 0-based Integer ordinal column,
+    /// so generated SQL can ORDER BY the table's actual row order.</summary>
+    public static IDataTable WithOrdinal(this IDataTable table, string ordinal)
+    {
+        var rows = table.RowCount();
+        var builder = table.CopyBuilder();
         var ordinals = new object?[rows];
         for (var row = 0; row < rows; row++)
             ordinals[row] = (long)row;
@@ -72,6 +81,17 @@ public static class TableColumns
         if (t == typeof(float) || t == typeof(double) || t == typeof(decimal)) return "Number";
         return "Text";
     }
+
+    /// <summary>The numeric value of a cell of any integral, floating, or decimal
+    /// type; null for absent or non-numeric cells.</summary>
+    public static double? CellNumber(object? cell)
+        => cell switch
+        {
+            null or DBNull => null,
+            sbyte or byte or short or ushort or int or uint or long or ulong or float or double or decimal
+                => Convert.ToDouble(cell, CultureInfo.InvariantCulture),
+            _ => null,
+        };
 
     /// <summary>Invariant text of a cell; null for absent values.</summary>
     public static string? CellText(object? cell)

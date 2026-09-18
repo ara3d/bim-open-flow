@@ -23,8 +23,13 @@ public static class Pairs
         return builder.Build();
     }
 
-    /// <summary>True when the pair joins a row to itself by key, which a self-join
-    /// reports for every row unless the caller excludes it.</summary>
+    /// <summary>True when the pair joins a row to itself: the same row when both sides
+    /// are the same table, otherwise the same non-null key. Two rows that merely share a
+    /// name in one table are distinct elements and stay paired; null keys never match.</summary>
     public static bool IsSelf(IKeyedSide a, IKeyedSide b, Pair pair)
-        => string.Equals(a.KeyText(pair.ARow), b.KeyText(pair.BRow), StringComparison.Ordinal);
+    {
+        if (ReferenceEquals(a.Table, b.Table)) return pair.ARow == pair.BRow;
+        var key = a.KeyText(pair.ARow);
+        return key != null && string.Equals(key, b.KeyText(pair.BRow), StringComparison.Ordinal);
+    }
 }

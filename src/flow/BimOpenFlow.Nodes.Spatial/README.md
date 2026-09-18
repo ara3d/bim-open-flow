@@ -24,8 +24,10 @@ an error naming the row.
 Every join node emits a **pairs** table: `A` (a's key), `B` (b's key), each
 typed like its source column, then the node's measure. Use `table.join` to
 bring the rest of either side's columns back. A table joined to itself reports
-each unordered pair in both directions; `excludeSelf` (default true) drops the
-pairs whose two keys are equal.
+each unordered pair in both directions; `excludeSelf` (default true) drops a
+row paired with itself. "Itself" means the same row when both inputs are the
+same table, otherwise the same non-null key, so two elements that share a
+name stay paired and unnamed rows are never dropped.
 
 ## Nodes
 
@@ -38,7 +40,7 @@ pairs whose two keys are equal.
 
 | `spatial.footprint` | boxes | as (default `Footprint`) | input + WKT rectangle |
 | `spatial.polygon` | table | polygon | input + `Area`, `Perimeter`, `CentroidX`, `CentroidY`, `Vertices`, `IsConvex` |
-| `spatial.polygonContains` | a, polygons | aKey, bKey, x, y, z, polygon, smallest | pairs + `Area` |
+| `spatial.polygonContains` | a, polygons | aKey, bKey, x, y, z, polygon, smallest, excludeSelf | pairs + `Area` |
 | `spatial.polygonIntersects` | a, b | aKey, bKey, polygon, excludeSelf | pairs |
 
 `measure = box` is the distance between box surfaces, zero when they intersect;

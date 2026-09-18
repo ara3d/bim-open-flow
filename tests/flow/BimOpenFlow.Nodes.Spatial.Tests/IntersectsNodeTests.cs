@@ -51,6 +51,23 @@ public class IntersectsNodeTests
     }
 
     [Test]
+    public void Self_Join_Keeps_Distinct_Rows_That_Share_A_Name()
+    {
+        var boxes = TestTables.Boxes(TestTables.Cube("Door 900", 0, 0, 0, 2), TestTables.Cube("Door 900", 1, 1, 1, 2));
+        var table = Node.EvalTable([boxes, boxes]);
+        Assert.That(table.KeyPairs(), Is.EqualTo(new[] { ("Door 900", "Door 900"), ("Door 900", "Door 900") }));
+    }
+
+    [Test]
+    public void Null_Keys_Never_Count_As_Self()
+    {
+        var a = NodeTestHelpers.Table(("Name", new object?[] { null }), ("CenterX", new[] { 0.5 }), ("CenterY", new[] { 0.5 }), ("CenterZ", new[] { 0.5 }));
+        var b = NodeTestHelpers.Table(("Name", new object?[] { null }),
+            ("MinX", new[] { 0.0 }), ("MinY", new[] { 0.0 }), ("MinZ", new[] { 0.0 }), ("MaxX", new[] { 1.0 }), ("MaxY", new[] { 1.0 }), ("MaxZ", new[] { 1.0 }));
+        Assert.That(Node.EvalTable([a, b]).Rows.Count, Is.EqualTo(1));
+    }
+
+    [Test]
     public void Points_Are_Degenerate_Boxes()
     {
         var points = TestTables.Points(("inside", 0.5, 0.5, 0.5), ("outside", 5, 5, 5));

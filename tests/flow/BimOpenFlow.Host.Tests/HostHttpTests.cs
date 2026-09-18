@@ -21,6 +21,7 @@ public sealed class HostHttpTests
         var modelsDir = Path.Combine(_root, "models");
         Directory.CreateDirectory(modelsDir);
         File.WriteAllBytes(Path.Combine(modelsDir, "sample.bos"), "hello"u8.ToArray());
+        File.WriteAllText(Path.Combine(modelsDir, "walls.csv"), "id,height\n1,2.5\n2,3.0\n3,4.5\n");
 
         var config = new HostConfig([modelsDir], Path.Combine(_root, "cache"),
             Path.Combine(_root, "analyses"), Port: 0);
@@ -72,6 +73,56 @@ public sealed class HostHttpTests
         Assert.That((int)result.StatusCode, Is.EqualTo(200));
         using var slice = JsonDocument.Parse(await result.Content.ReadAsStringAsync());
         Assert.That(slice.RootElement.GetProperty("totalRows").GetInt32(), Is.EqualTo(1));
+    }
+
+    /// <summary>rel.csv over the models root (registered as source "models") into rel.filter.</summary>
+    private static GraphDocument TallWalls()
+        => GraphDocument.Empty
+            .AddNode("src", "rel.csv", 1)
+            .SetParam("src", "source", "models")
+            .SetParam("src", "path", "walls.csv")
+            .AddNode("tall", "rel.filter", 1)
+            .SetParam("tall", "expr", "[height] >= 3")
+            .AddNode("pick", "rel.select", 1)
+            .SetParam("pick", "columns", "id")
+            .Connect("src.relation", "tall.input")
+            .Connect("tall.relation", "pick.input");
+
+    [Test]
+    public async Task RelationNodes_InspectAsPagedRowsAndSuggestColumnsWithoutRunning()
+    {
+        var put = await _client.PutAsync("/api/analyses/rel",
+            new StringContent(TallWalls().ToCanonicalJson(), Encoding.UTF8, "application/json"));
+        Assert.That((int)put.StatusCode, Is.EqualTo(200));
+
+        var result = await _client.GetAsync("/api/analyses/rel/results/tall/relation?skip=1&take=5");
+        Assert.That((int)result.StatusCode, Is.EqualTo(200), await result.Content.ReadAsStringAsync());
+        using var slice = JsonDocument.Parse(await result.Content.ReadAsStringAsync());
+        Assert.That(slice.RootElement.GetProperty("totalRows").GetInt32(), Is.EqualTo(2));
+        Assert.That(slice.RootElement.GetProperty("skip").GetInt32(), Is.EqualTo(1));
+        Assert.That(slice.RootElement.GetProperty("rows").EnumerateArray().Select(r => r[0].GetInt64()), Is.EqualTo(new[] { 3L }));
+        Assert.That(slice.RootElement.GetProperty("columns").EnumerateArray().Select(c => c.GetProperty("name").GetString()),
+            Is.EqualTo(new[] { "id", "height" }));
+
+        var suggest = await _client.GetAsync("/api/analyses/rel/suggestions/pick/columns");
+        Assert.That((int)suggest.StatusCode, Is.EqualTo(200));
+        using var list = JsonDocument.Parse(await suggest.Content.ReadAsStringAsync());
+        Assert.That(list.RootElement.GetProperty("status").GetString(), Is.EqualTo("Ok"));
+        Assert.That(list.RootElement.GetProperty("values").EnumerateArray().Select(v => v.GetProperty("value").GetString()),
+            Is.EqualTo(new[] { "id", "height" }));
+    }
+
+    [Test]
+    public async Task RelationNodes_SchemaErrorIsANodeError()
+    {
+        var doc = TallWalls().SetParam("pick", "columns", "width");
+        await _client.PutAsync("/api/analyses/rel-bad",
+            new StringContent(doc.ToCanonicalJson(), Encoding.UTF8, "application/json"));
+        var state = await _client.GetAsync("/api/analyses/rel-bad/state");
+        using var update = JsonDocument.Parse(await state.Content.ReadAsStringAsync());
+        var pick = update.RootElement.GetProperty("nodes").EnumerateArray().Single(n => n.GetProperty("nodeId").GetString() == "pick");
+        Assert.That(pick.GetProperty("status").GetString(), Is.EqualTo("Error"));
+        Assert.That(pick.GetProperty("error").GetString(), Does.EndWith("rel.select: No column named 'width'."));
     }
 
     [Test]

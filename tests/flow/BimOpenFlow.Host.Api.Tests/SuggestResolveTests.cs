@@ -70,6 +70,48 @@ public sealed class SuggestResolveTests
         Assert.That(list.Values.Select(v => v.Detail), Is.EqualTo(new[] { "Text", "Integer" }));
     }
 
+    private static readonly IFlowNode RelationSource = new DelegateNode(
+        new("test.relationSource", 1, NodeCapability.Pure,
+            Inputs: Array.Empty<PortSpec>(),
+            Outputs: new PortSpec[] { new("out", PortType.Relation) },
+            Params: Array.Empty<ParamSpec>(),
+            "A relation with a fake plan."),
+        (_, _, _) => new FlowValue[] { new RelationValue("(plan)", "hash", Payload: "plan") });
+
+    private static readonly IFlowNode RelationConsumer = new DelegateNode(
+        new("test.relationConsumer", 1, NodeCapability.Pure,
+            Inputs: new PortSpec[] { new("input", PortType.Relation) },
+            Outputs: new PortSpec[] { new("out", PortType.Relation) },
+            Params: new ParamSpec[] { new("column", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("input")) },
+            "Passes its input through."),
+        (_, inputs, _) => new[] { inputs[0] });
+
+    private sealed class FakeRelationResults : IRelationResults
+    {
+        public TableSlice Slice(RelationValue relation, int skip, int take) => throw new NotSupportedException();
+        public IReadOnlyList<Suggestion> Columns(RelationValue relation)
+            => new Suggestion[] { new("id", "Integer"), new("name", "Text") };
+    }
+
+    [Test]
+    public void ColumnsOfInput_RelationUpstream_ComesFromTheRelationResults()
+    {
+        var registry = new NodeRegistry(new[] { RelationSource, RelationConsumer });
+        var snapshot = Graph
+            .Node("s", "test.relationSource")
+            .Node("c", "test.relationConsumer")
+            .Connect("s.out", "c.input")
+            .Build()
+            .Evaluate(registry);
+        var suggest = RelationConsumer.Spec.Params[0].Suggest!;
+        var list = SuggestEndpoints.Resolve(snapshot, registry, "c", suggest, null, new FakeRelationResults());
+        Assert.That(list.Status, Is.EqualTo(SuggestStatus.Ok));
+        Assert.That(list.Values.Select(v => v.Value), Is.EqualTo(new[] { "id", "name" }));
+
+        var without = SuggestEndpoints.Resolve(snapshot, registry, "c", suggest, null);
+        Assert.That(without.Status, Is.EqualTo(SuggestStatus.Unavailable));
+    }
+
     [Test]
     public void ColumnsOfInput_NoEdge_IsUnready()
     {

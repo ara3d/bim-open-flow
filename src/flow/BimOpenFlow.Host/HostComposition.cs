@@ -10,6 +10,7 @@ using BimOpenFlow.Nodes.Dates;
 using BimOpenFlow.Nodes.DuckDb;
 using BimOpenFlow.Nodes.Effects;
 using BimOpenFlow.Nodes.Geometry;
+using BimOpenFlow.Nodes.Relations;
 using BimOpenFlow.Nodes.TableOps;
 using BimOpenFlow.Nodes.Tables;
 using BimOpenFlow.Nodes.Viz;
@@ -18,7 +19,7 @@ namespace BimOpenFlow.Host;
 
 /// <summary>The wired core: everything the host (or another front end, e.g. the
 /// MCP server) needs, with no HTTP attached.</summary>
-public sealed record HostServices(ModelCatalog Catalog, AnalysisStore Store, NodeRegistry Registry);
+public sealed record HostServices(ModelCatalog Catalog, AnalysisStore Store, NodeRegistry Registry, RelationRuntime Relations);
 
 /// <summary>The full host: services plus the composed HTTP application.</summary>
 public sealed record HostApp(HostConfig Config, HostServices Services, WebApplication App);
@@ -39,17 +40,24 @@ public static class HostComposition
             TableOpsNodes.All, CleaningNodes.All, DatesNodes.All, VizNodes.All, EffectNodes.TableSinks,
             [new TableFilterNode(), new TableDeriveNode(), new TableAggregateNode(), new TableSortNode()]);
 
+    /// <summary>Either profile plus the rel.* pack, whose sources are the model roots:
+    /// each root folder by name for CSV files, each .duckdb file inside one by file name.</summary>
     public static HostServices BuildServices(HostConfig config)
-        => new(
+    {
+        var relations = RelationRuntime.FromRoots(config.ModelRoots);
+        var packs = config.Profile == HostConfig.TablesProfile ? TablePacks() : AllPacks();
+        return new(
             new ModelCatalog(config.ModelRoots, config.CacheDir),
             new AnalysisStore(config.StoreDir),
-            config.Profile == HostConfig.TablesProfile ? TablePacks() : AllPacks());
+            NodeRegistry.Combine(packs.Nodes, RelationNodes.All(relations)),
+            relations);
+    }
 
     public static HostApp Build(HostConfig config)
     {
         var services = BuildServices(config);
         var app = ApiServer.Create(services.Catalog, services.Store, services.Registry,
-            DuckDbTableProbe.Tables);
+            DuckDbTableProbe.Tables, relations: new RelationHostResults(services.Relations));
         app.Urls.Add($"http://127.0.0.1:{config.Port}");
         return new(config, services, app);
     }

@@ -19,17 +19,17 @@ public static class SuggestEndpoints
 {
     public static void MapSuggestEndpoints(this IEndpointRouteBuilder app,
         AnalysisStore store, INodeRegistry registry, AnalysisSessions sessions,
-        FileTableProbe? fileTables)
+        FileTableProbe? fileTables, IRelationResults? relations = null)
     {
         app.MapGet(ApiRoutes.GetSuggestions, (string id, string nodeId, string param)
             => ApiResults.Guard(() =>
                 store.Exists(id)
-                    ? GetSuggestions(sessions.Snapshot(id), registry, nodeId, param, fileTables)
+                    ? GetSuggestions(sessions.Snapshot(id), registry, nodeId, param, fileTables, relations)
                     : ApiResults.NotFound($"Analysis '{id}' not found")));
     }
 
     private static IResult GetSuggestions(EvalSnapshot snapshot, INodeRegistry registry,
-        string nodeId, string param, FileTableProbe? fileTables)
+        string nodeId, string param, FileTableProbe? fileTables, IRelationResults? relations)
     {
         var node = snapshot.Document.FindNode(nodeId);
         if (node is null)
@@ -40,21 +40,21 @@ public static class SuggestEndpoints
             return ApiResults.NotFound($"Node '{nodeId}' has no parameter '{param}'");
         if (paramSpec.Suggest is null)
             return ApiResults.NotFound($"Parameter '{param}' of '{node.Kind}' declares no suggestions");
-        return ApiResults.Json(Resolve(snapshot, registry, nodeId, paramSpec.Suggest, fileTables));
+        return ApiResults.Json(Resolve(snapshot, registry, nodeId, paramSpec.Suggest, fileTables, relations));
     }
 
     /// <summary>Pure resolution of one SuggestSource against a snapshot.</summary>
     public static SuggestionList Resolve(EvalSnapshot snapshot, INodeRegistry registry,
-        string nodeId, SuggestSource suggest, FileTableProbe? fileTables)
+        string nodeId, SuggestSource suggest, FileTableProbe? fileTables, IRelationResults? relations = null)
         => suggest.Kind switch
         {
-            SuggestKind.ColumnsOfInput => ColumnsOfInput(snapshot, registry, nodeId, suggest.Source),
+            SuggestKind.ColumnsOfInput => ColumnsOfInput(snapshot, registry, nodeId, suggest.Source, relations),
             SuggestKind.TablesInFile => TablesInFile(snapshot, nodeId, suggest.Source, fileTables),
             _ => Unavailable($"Unknown suggestion kind '{suggest.Kind}'"),
         };
 
     private static SuggestionList ColumnsOfInput(EvalSnapshot snapshot, INodeRegistry registry,
-        string nodeId, string port)
+        string nodeId, string port, IRelationResults? relations)
     {
         var edge = snapshot.Document.Edges
             .FirstOrDefault(e => e.ToRef.NodeId == nodeId && e.ToRef.Port == port);
@@ -67,6 +67,10 @@ public static class SuggestEndpoints
         var upNode = snapshot.Document.FindNode(edge.FromRef.NodeId)!;
         var upSpec = registry.Find(upNode.Kind, upNode.Version)!.Spec;
         var index = upSpec.Outputs.ToList().FindIndex(o => o.Name == edge.FromRef.Port);
+        if (index >= 0 && upstream.Outputs[index] is RelationValue relation)
+            return relations is null
+                ? Unavailable("This host has no relation executor")
+                : Ok(relations.Columns(relation));
         if (index < 0 || upstream.Outputs[index] is not TableValue table)
             return Unavailable($"Output '{edge.From}' is not a table");
         return Ok(table.Table.Columns

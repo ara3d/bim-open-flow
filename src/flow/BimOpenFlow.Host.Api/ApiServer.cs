@@ -12,23 +12,24 @@ namespace BimOpenFlow.Host.Api;
 public static class ApiServer
 {
     public static WebApplication Create(ModelCatalog catalog, AnalysisStore store,
-        INodeRegistry registry, FileTableProbe? fileTables = null, string[]? args = null)
+        INodeRegistry registry, FileTableProbe? fileTables = null, string[]? args = null,
+        IRelationResults? relations = null)
     {
         var builder = WebApplication.CreateBuilder(args ?? Array.Empty<string>());
         var app = builder.Build();
-        app.MapBimOpenFlowApi(catalog, store, registry, fileTables);
+        app.MapBimOpenFlowApi(catalog, store, registry, fileTables, relations);
         return app;
     }
 
     public static IEndpointRouteBuilder MapBimOpenFlowApi(this IEndpointRouteBuilder app,
         ModelCatalog catalog, AnalysisStore store, INodeRegistry registry,
-        FileTableProbe? fileTables = null)
+        FileTableProbe? fileTables = null, IRelationResults? relations = null)
     {
         var sessions = new AnalysisSessions(store, registry);
         app.MapDocumentEndpoints(catalog, store, registry, sessions);
         app.MapModelBytes(catalog);
-        app.MapEvalEndpoints(catalog, store, registry, sessions);
-        app.MapSuggestEndpoints(store, registry, sessions, fileTables);
+        app.MapEvalEndpoints(catalog, store, registry, sessions, relations);
+        app.MapSuggestEndpoints(store, registry, sessions, fileTables, relations);
         return app;
     }
 }

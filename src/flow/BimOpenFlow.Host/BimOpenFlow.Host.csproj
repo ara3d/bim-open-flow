@@ -26,6 +26,7 @@
     <ProjectReference Include="..\BimOpenFlow.Nodes.Compliance\BimOpenFlow.Nodes.Compliance.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Effects\BimOpenFlow.Nodes.Effects.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.BimAnalysis\BimOpenFlow.Nodes.BimAnalysis.csproj" />
+    <ProjectReference Include="..\BimOpenFlow.Nodes.Relations\BimOpenFlow.Nodes.Relations.csproj" />
   </ItemGroup>
 
 </Project>

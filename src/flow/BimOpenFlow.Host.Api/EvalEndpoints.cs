@@ -20,7 +20,8 @@ internal static class EvalEndpoints
         typeof(EvalSession).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
 
     public static void MapEvalEndpoints(this IEndpointRouteBuilder app,
-        ModelCatalog catalog, AnalysisStore store, INodeRegistry registry, AnalysisSessions sessions)
+        ModelCatalog catalog, AnalysisStore store, INodeRegistry registry, AnalysisSessions sessions,
+        IRelationResults? relations = null)
     {
         app.MapGet(ApiRoutes.GetAnalysisState, (string id) => ApiResults.Guard(() =>
             store.Exists(id)
@@ -29,7 +30,7 @@ internal static class EvalEndpoints
 
         app.MapGet(ApiRoutes.GetResult, (string id, string nodeId, string port, int? skip, int? take)
             => ApiResults.Guard(() =>
-                GetResult(store, registry, sessions, id, nodeId, port, skip ?? 0, take ?? DefaultTake)));
+                GetResult(store, registry, sessions, relations, id, nodeId, port, skip ?? 0, take ?? DefaultTake)));
 
         app.MapGet(ApiRoutes.ListRuns, (string id) => ApiResults.Guard(() =>
             store.Exists(id)
@@ -51,7 +52,7 @@ internal static class EvalEndpoints
     }
 
     private static IResult GetResult(AnalysisStore store, INodeRegistry registry,
-        AnalysisSessions sessions, string id, string nodeId, string port, int skip, int take)
+        AnalysisSessions sessions, IRelationResults? relations, string id, string nodeId, string port, int skip, int take)
     {
         if (!store.Exists(id))
             return ApiResults.NotFound($"Analysis '{id}' not found");
@@ -67,7 +68,12 @@ internal static class EvalEndpoints
         if (result is null || result.Status != EngineNodeStatus.Ok)
             return ApiResults.NotFound(
                 $"No result for '{nodeId}.{port}' (status {result?.Status.ToString() ?? "unknown"})");
-        return ApiResults.Json(result.Outputs[index].ToSlice(port, skip, take));
+        return result.Outputs[index] switch
+        {
+            RelationValue relation when relations is null => ApiResults.NotFound($"'{nodeId}.{port}' is a relation but this host has no relation executor"),
+            RelationValue relation => ApiResults.Json(relations.Slice(relation, skip, take)),
+            var value => ApiResults.Json(value.ToSlice(port, skip, take)),
+        };
     }
 
     private static int IndexOfOutput(NodeSpec spec, string port)

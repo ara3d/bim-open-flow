@@ -21,6 +21,13 @@ export {
 } from "./verdictGroups";
 export { createViewPane3D, inferFormat, type ViewPane3DOptions } from "./viewPane3D";
 export {
+  groupParameters,
+  parameterText,
+  renderEntityMessage,
+  renderEntityProperties,
+  type EntityPropertyGroup,
+} from "./entityProperties";
+export {
   entityForPick,
   groupColorPlan,
   groupTransformPlan,

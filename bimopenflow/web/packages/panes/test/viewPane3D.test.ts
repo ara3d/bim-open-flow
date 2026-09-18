@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
+import type { EntityProperties } from "@bimopenflow/contracts";
 import { createViewPane3D, inferFormat } from "../src/viewPane3D";
+import type { PaneContext } from "../src/pane";
 import type { ColorableGroup, GroupEntityMap } from "../src/instanceTable";
 import type { View3DDeps, ViewerRig } from "../src/viewerDeps";
 import { conformance } from "./conformance";
@@ -267,6 +269,81 @@ describe("ViewPane3D", () => {
     expect(events).toEqual([
       { kind: "selection", event: { source: "view3d", ids: ["42"] } },
     ]);
+    pane.destroy();
+  });
+
+  const wallProps = (localId: number): EntityProperties => ({
+    localId,
+    globalId: "0Xs3",
+    name: "Basic Wall",
+    category: "IFCWALLSTANDARDCASE",
+    parameters: [
+      { group: "Pset_NRCOperationalCarbon", name: "OperationalCarbon_kgCO2e_per_year", value: "412.5", units: "kgCO2e" },
+      { group: "Pset_WallCommon", name: "IsExternal", value: "true", units: undefined },
+    ],
+  });
+
+  const ctxWithProperties = (
+    respond: (localId: number) => Promise<EntityProperties>,
+  ): { ctx: PaneContext; asked: Array<[string, number]> } => {
+    const asked: Array<[string, number]> = [];
+    return {
+      asked,
+      ctx: {
+        ...fakeCtx(),
+        requestEntityProperties: (modelUrl, localId) => {
+          asked.push([modelUrl, localId]);
+          return respond(localId);
+        },
+      },
+    };
+  };
+
+  const mountAndPick = async (ctx: PaneContext, deps: View3DDeps, rig: () => FakeRig) => {
+    const host = document.createElement("div");
+    const pane = createViewPane3D({ deps });
+    pane.mount(host, ctx);
+    pane.update({ kind: "model", url: "model:duplex" });
+    await settle();
+    rig().pick(1234);
+    await settle();
+    return { host, pane, panel: host.querySelector(".bof-panes-props") as HTMLElement };
+  };
+
+  it("renders the picked entity's property groups under the status line", async () => {
+    const { deps, rig } = fakeDeps();
+    const { ctx, asked } = ctxWithProperties((id) => Promise.resolve(wallProps(id)));
+    const { pane, panel } = await mountAndPick(ctx, deps, rig);
+    expect(asked).toEqual([["model:duplex", 1234]]);
+    expect(panel.hidden).toBe(false);
+    expect([...panel.querySelectorAll(".bof-panes-section")].map((e) => e.textContent))
+      .toEqual(["Pset_NRCOperationalCarbon", "Pset_WallCommon"]);
+    expect(panel.textContent).toContain("412.5 kgCO2e");
+    expect(panel.textContent).toContain("IFCWALLSTANDARDCASE");
+    pane.destroy();
+  });
+
+  it("shows one line and keeps the view when the properties fetch fails", async () => {
+    const { deps, rig } = fakeDeps();
+    const { ctx } = ctxWithProperties(() => Promise.reject(new Error("offline")));
+    const { host, pane, panel } = await mountAndPick(ctx, deps, rig);
+    expect(panel.querySelector(".bof-panes-error")?.textContent).toContain("offline");
+    expect(host.querySelector(".bof-panes-viewstatus")?.textContent).toBe("Selected entity 1234");
+    pane.destroy();
+  });
+
+  it("hides the panel with no requestEntityProperties, and clears it on a new model", async () => {
+    const { deps, rig } = fakeDeps();
+    const plain = await mountAndPick(fakeCtx(), deps, rig);
+    expect(plain.panel.hidden).toBe(true);
+    plain.pane.destroy();
+
+    const { ctx } = ctxWithProperties((id) => Promise.resolve(wallProps(id)));
+    const { pane, panel } = await mountAndPick(ctx, deps, rig);
+    expect(panel.hidden).toBe(false);
+    pane.update({ kind: "model", url: "model:other" });
+    expect(panel.hidden).toBe(true);
+    expect(panel.textContent).toBe("");
     pane.destroy();
   });
 

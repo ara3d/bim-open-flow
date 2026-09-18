@@ -87,6 +87,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     getResult: api.getResult.bind(api),
     getSuggestions: api.getSuggestions.bind(api),
     getModelBosUrl: api.getModelBosUrl.bind(api),
+    getEntityProperties: api.getEntityProperties.bind(api),
   };
   const boundCtx = {
     requestTable: (nodeId: string, port: string, skip?: number, take?: number) => {
@@ -98,6 +99,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       return makePaneContext(resultApi, currentId).requestSuggestions!(nodeId, param);
     },
     resolveAsset: makePaneContext(resultApi, "").resolveAsset,
+    requestEntityProperties: makePaneContext(resultApi, "").requestEntityProperties,
   };
   setSuggestionProvider(boundCtx.requestSuggestions);
 

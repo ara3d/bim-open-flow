@@ -12,6 +12,7 @@ import { defaultView3DDeps, type View3DDeps } from "./viewerDeps";
 import { parseViewRecipe } from "./viewRecipe";
 import type { LegendEntry } from "./toolkitRecipe";
 import { emptyInstanceLegend, legendFromSlice, type InstanceLegend } from "./instanceLegend";
+import { renderEntityMessage, renderEntityProperties } from "./entityProperties";
 
 export interface ViewPane3DOptions {
   /** The graph owns presentation; do not offer temporary overrides of it. */
@@ -55,6 +56,11 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
     status.setAttribute("role", "status");
     status.textContent = "Choose a model or view recipe.";
     root.append(toolbar, status);
+    const properties = root.ownerDocument.createElement("div");
+    properties.className = "bof-panes-props";
+    properties.setAttribute("aria-label", "Selected element properties");
+    properties.hidden = true;
+    root.append(properties);
     root.appendChild(canvas);
     const legend = root.ownerDocument.createElement("div");
     legend.className = "bof-panes-legend";
@@ -92,12 +98,13 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
     };
     let rig: ReturnType<View3DDeps["createRig"]>;
     try { rig = deps.createRig(canvas, (entityId) => {
-      if (entityId !== null) status.textContent = `Selected entity ${entityId}`;
-      if (entityId !== null)
-        emit({
-          kind: "selection",
-          event: { source: "view3d", ids: [String(entityId)] },
-        });
+      if (entityId === null) return;
+      status.textContent = `Selected entity ${entityId}`;
+      showProperties(entityId);
+      emit({
+        kind: "selection",
+        event: { source: "view3d", ids: [String(entityId)] },
+      });
     }); } catch (error) {
       reportError(error);
       return { update() {}, destroy() {} };
@@ -114,6 +121,19 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
     let pendingBoxes: TableSlice | null = null;
     let lastModel: { url: string; format: ModelFormat } | null = null;
     let disposed = false;
+    let propsToken = 0;
+    /** Fetches the picked entity's properties; a later pick supersedes an
+     * in-flight one, and a failure is reported in the panel only. */
+    const showProperties = (entityId: number): void => {
+      const model = lastModel;
+      if (!ctx.requestEntityProperties || !model) return;
+      const token = ++propsToken;
+      const current = () => !disposed && token === propsToken;
+      ctx.requestEntityProperties(model.url, entityId).then(
+        props => { if (current()) renderEntityProperties(properties, props); },
+        error => { if (current()) renderEntityMessage(properties, `No properties for entity ${entityId} (${error})`); },
+      );
+    };
     let recipeFrame: number | null = null;
     const scheduleRecipe = () => {
       const win = root.ownerDocument.defaultView;
@@ -190,6 +210,9 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
     };
     const load = (url: string, format: ModelFormat) => {
       lastModel = { url, format };
+      propsToken++;
+      properties.hidden = true;
+      properties.replaceChildren();
       const token = ++loadToken;
       maps = [];
       loading = true;

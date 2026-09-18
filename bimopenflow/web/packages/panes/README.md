@@ -15,6 +15,8 @@ under the `bof-panes-` class/custom-property prefix, the same approach as viz.
 interface PaneContext {
   requestTable(nodeId: string, port: string, skip?: number, take?: number): Promise<TableSlice>;
   resolveAsset(url: string): string;
+  requestSuggestions?(nodeId: string, param: string): Promise<SuggestionList>;
+  requestEntityProperties?(modelUrl: string, localId: number): Promise<EntityProperties>;
 }
 
 interface Pane {
@@ -118,6 +120,12 @@ canvas. Scene/color/mapping logic is pure and viewer-free
     the BOS loader's `groupEntities` mapping. GLB models carry no mapping,
     so picks emit nothing.
   - `action` `modelLoaded` / `loadError` with `{ url }` payloads.
+- Property panel: a pick also calls `ctx.requestEntityProperties(modelUrl,
+  localId)` — when the context supplies it — and renders the entity's name,
+  category, GlobalId, and one section per property set in a scrollable panel
+  under the status line (`src/entityProperties.ts`). A failed fetch shows one
+  line there and leaves the view alone; a later pick supersedes an in-flight
+  request, and loading a model clears the panel.
 
 ## Development
 

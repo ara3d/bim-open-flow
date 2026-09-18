@@ -1,4 +1,5 @@
 import type {
+  EntityProperties,
   NodeDescriptor,
   NodeState,
   SelectionEvent,
@@ -25,6 +26,15 @@ export interface PaneContext {
   resolveAsset(url: string): string;
   /** Live value suggestions for a suggest-annotated node parameter. */
   requestSuggestions?(nodeId: string, param: string): Promise<SuggestionList>;
+  /**
+   * Properties of one entity of a loaded model. modelUrl is the same URL the
+   * pane was given (e.g. "model:duplex.bos"); localId is the entity key a pick
+   * reports. Optional: a pane without it simply shows no property panel.
+   */
+  requestEntityProperties?(
+    modelUrl: string,
+    localId: number,
+  ): Promise<EntityProperties>;
 }
 
 /**

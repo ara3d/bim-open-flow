@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { TableSlice } from "@bimopenflow/contracts";
-import { DEFAULT_PAGE_SIZE, makePaneContext, type ResultApi } from "../src/paneContext.js";
+import {
+  DEFAULT_PAGE_SIZE,
+  makePaneContext,
+  modelIdOf,
+  type ResultApi,
+} from "../src/paneContext.js";
 
 const slice = (skip: number, rows: number): TableSlice => ({
   columns: [{ name: "id", type: "Integer"}],
@@ -23,6 +28,18 @@ function fakeApi(): { api: ResultApi; calls: unknown[][] } {
         return Promise.resolve({ status: "Ok" as const, values: [{ value: "name" }] });
       },
       getModelBosUrl: (id) => `/api/models/${encodeURIComponent(id)}/bos`,
+      getEntityProperties: (id, localId) => {
+        calls.push(["properties", id, localId]);
+        return Promise.resolve({
+          localId: Number(localId),
+          globalId: "0Xs3",
+          name: "Basic Wall",
+          category: "IFCWALLSTANDARDCASE",
+          parameters: [
+            { group: "Pset_WallCommon", name: "IsExternal", value: "true", units: undefined },
+          ],
+        });
+      },
     },
   };
 }
@@ -57,5 +74,30 @@ describe("makePaneContext.resolveAsset", () => {
   it("passes other urls through", () => {
     const ctx = makePaneContext(fakeApi().api, "an1");
     expect(ctx.resolveAsset("/files/x.glb")).toBe("/files/x.glb");
+  });
+});
+
+describe("makePaneContext.requestEntityProperties", () => {
+  it("resolves the model: scheme to a catalog id and asks the host", async () => {
+    const { api, calls } = fakeApi();
+    const ctx = makePaneContext(api, "an1");
+    const props = await ctx.requestEntityProperties!("model:abc", 1234);
+    expect(calls).toEqual([["properties", "abc", "1234"]]);
+    expect(props.localId).toBe(1234);
+    expect(props.parameters[0].group).toBe("Pset_WallCommon");
+  });
+
+  it("rejects for a url that is not a catalog model", async () => {
+    const ctx = makePaneContext(fakeApi().api, "an1");
+    await expect(ctx.requestEntityProperties!("/files/x.glb", 1)).rejects.toThrow(
+      "No catalog model",
+    );
+  });
+});
+
+describe("modelIdOf", () => {
+  it("reads the id out of a model: url and nothing else", () => {
+    expect(modelIdOf("model:duplex.bos")).toBe("duplex.bos");
+    expect(modelIdOf("/files/x.glb")).toBeNull();
   });
 });

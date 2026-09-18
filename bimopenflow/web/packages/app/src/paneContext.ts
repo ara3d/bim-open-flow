@@ -1,4 +1,8 @@
-import type { SuggestionList, TableSlice } from "@bimopenflow/contracts";
+import type {
+  EntityProperties,
+  SuggestionList,
+  TableSlice,
+} from "@bimopenflow/contracts";
 import type { PaneContext } from "@bimopenflow/panes";
 
 /** The slice of ApiClient the pane context needs; structural for test fakes. */
@@ -16,13 +20,21 @@ export interface ResultApi {
     param: string,
   ): Promise<SuggestionList>;
   getModelBosUrl(id: string): string;
+  getEntityProperties(id: string, localId: string): Promise<EntityProperties>;
 }
 
 export const DEFAULT_PAGE_SIZE = 200;
 
+const MODEL_SCHEME = "model:";
+
+/** The catalog id inside a "model:{id}" URL, or null for any other URL. */
+export const modelIdOf = (url: string): string | null =>
+  url.startsWith(MODEL_SCHEME) ? url.slice(MODEL_SCHEME.length) : null;
+
 /**
  * PaneContext bound to one analysis: requestTable pages through the host's
- * result endpoint; resolveAsset maps graph asset URLs to fetchable ones.
+ * result endpoint; resolveAsset maps graph asset URLs to fetchable ones;
+ * requestEntityProperties asks the host for one entity of a catalog model.
  */
 export function makePaneContext(api: ResultApi, analysisId: string): PaneContext {
   return {
@@ -32,9 +44,16 @@ export function makePaneContext(api: ResultApi, analysisId: string): PaneContext
       api.getSuggestions(analysisId, nodeId, param),
     // "model:{id}" resolves to the host's model-bytes endpoint; anything
     // else passes through unchanged.
-    resolveAsset: (url) =>
-      url.startsWith("model:")
-        ? api.getModelBosUrl(url.slice("model:".length))
-        : url,
+    resolveAsset: (url) => {
+      const id = modelIdOf(url);
+      return id === null ? url : api.getModelBosUrl(id);
+    },
+    // Only catalog models have an entity index to query.
+    requestEntityProperties: (modelUrl, localId) => {
+      const id = modelIdOf(modelUrl);
+      return id === null
+        ? Promise.reject(new Error(`No catalog model for ${modelUrl}`))
+        : api.getEntityProperties(id, String(localId));
+    },
   };
 }

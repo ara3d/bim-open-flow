@@ -9,5 +9,8 @@ public static class SpatialNodes
     public static IReadOnlyList<IFlowNode> All { get; } =
     [
         new IntersectsNode(),
+        new WithinNode(),
+        new NearestNode(),
+        new ContainsNode(),
     ];
 }

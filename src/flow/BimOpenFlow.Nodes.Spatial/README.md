@@ -32,6 +32,15 @@ pairs whose two keys are equal.
 | Kind | Inputs | Params | Output |
 |---|---|---|---|
 | `spatial.intersects` | a, b | aKey, bKey, x, y, z, excludeSelf | pairs + `OverlapVolume` |
+| `spatial.within` | a, b | distance, measure (box \| center), aKey, bKey, x, y, z, excludeSelf | pairs + `Distance` |
+| `spatial.nearest` | a, b | k (default 1), measure, aKey, bKey, x, y, z, excludeSelf | pairs + `Distance`, `Rank` |
+| `spatial.contains` | a, boxes | aKey, bKey, x, y, z, smallest (default true), ignoreZ, excludeSelf | pairs + `ContainerVolume` |
+
+`measure = box` is the distance between box surfaces, zero when they intersect;
+`center` is the distance between box centers. `spatial.nearest` searches the
+index in a doubling radius, so a row never scans all of `b` unless the answer
+needs it; `spatial.contains` with `smallest` keeps the container of least
+volume (least footprint area under `ignoreZ`).
 
 ## Semantics and limits
 

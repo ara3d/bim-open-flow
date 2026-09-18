@@ -73,6 +73,7 @@ public sealed class WritePsetsNode : IFlowNode
         var psetName = table.RequiredColumn("psetName");
         var paramName = table.RequiredColumn("paramName");
         var paramValue = table.RequiredColumn("paramValue");
+        var valueType = OptionalColumn(table, "valueType");
         var groups = new List<PsetGroup>();
         var byKey = new Dictionary<(long, string), PsetGroup>();
         for (var r = 0; r < table.Rows.Count; r++)
@@ -86,9 +87,21 @@ public sealed class WritePsetsNode : IFlowNode
                 byKey.Add(key, group);
                 groups.Add(group);
             }
-            group.Values.Add(IfcPropertyValue.Text(TextCell(table, paramName, r), TextCell(table, paramValue, r)));
+            group.Values.Add(PsetValueTypes.Create(
+                valueType < 0 ? null : table[valueType, r] as string,
+                TextCell(table, paramName, r),
+                TextCell(table, paramValue, r),
+                r));
         }
         return groups;
+    }
+
+    private static int OptionalColumn(IDataTable table, string name)
+    {
+        for (var i = 0; i < table.Columns.Count; i++)
+            if (table.Columns[i].Descriptor.Name == name)
+                return i;
+        return -1;
     }
 
     private static long IntegerCell(IDataTable table, int column, int row)

@@ -27,8 +27,7 @@ public sealed class FootprintNode : IFlowNode
         var asName = parameters.TextOr(As, SpatialColumns.Footprint);
         if (boxes.ColumnIndex(asName) >= 0)
             throw new ArgumentException($"{Kind}: input already has a column named '{asName}'.");
-        var side = Shapes.Read(boxes, Kind, boxes.Columns[0].Descriptor.Name, parameters, "boxes");
-        var wkt = side.Boxes
+        var wkt = Shapes.ReadBoxes(boxes, Kind, "boxes")
             .Select(b => b is { } box ? Polygon.Rectangle(box.MinX, box.MinY, box.MaxX, box.MaxY).ToWkt() : null)
             .ToArray();
         var builder = boxes.CopyBuilder();

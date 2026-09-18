@@ -64,7 +64,8 @@ public static class Shapes
         return new(table, keyIndex, boxes);
     }
 
-    private static IReadOnlyList<Box?> ReadBoxes(IDataTable table, string kind, string label)
+    /// <summary>The table's MinX..MaxZ columns as boxes, for nodes that need no key.</summary>
+    public static IReadOnlyList<Box?> ReadBoxes(IDataTable table, string kind, string label)
     {
         var c = SpatialColumns.BoxColumns.Select(n => table.ColumnIndex(n)).ToArray();
         var rows = table.RowCount();

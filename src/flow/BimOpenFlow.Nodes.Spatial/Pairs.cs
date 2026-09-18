@@ -12,12 +12,12 @@ public static class Pairs
 {
     public const string TableName = "pairs";
 
-    public static IDataTable Build(Side a, Side b, IReadOnlyList<Pair> pairs,
+    public static IDataTable Build(IKeyedSide a, IKeyedSide b, IReadOnlyList<Pair> pairs,
         params (string Name, Array Values)[] measures)
     {
         var builder = new DataTableBuilder(TableName);
-        builder.AddColumn(pairs.Select(p => a.Key(p.ARow)).ToArray(), SpatialColumns.A, a.KeyType);
-        builder.AddColumn(pairs.Select(p => b.Key(p.BRow)).ToArray(), SpatialColumns.B, b.KeyType);
+        builder.AddColumn(pairs.Select(p => a.Key(p.ARow)).ToArray(), SpatialColumns.A, a.KeyType());
+        builder.AddColumn(pairs.Select(p => b.Key(p.BRow)).ToArray(), SpatialColumns.B, b.KeyType());
         foreach (var (name, values) in measures)
             builder.AddColumn(values, name, values.GetType().GetElementType()!);
         return builder.Build();
@@ -25,6 +25,6 @@ public static class Pairs
 
     /// <summary>True when the pair joins a row to itself by key, which a self-join
     /// reports for every row unless the caller excludes it.</summary>
-    public static bool IsSelf(Side a, Side b, Pair pair)
+    public static bool IsSelf(IKeyedSide a, IKeyedSide b, Pair pair)
         => string.Equals(a.KeyText(pair.ARow), b.KeyText(pair.BRow), StringComparison.Ordinal);
 }

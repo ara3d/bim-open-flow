@@ -12,5 +12,9 @@ public static class SpatialNodes
         new WithinNode(),
         new NearestNode(),
         new ContainsNode(),
+        new FootprintNode(),
+        new PolygonNode(),
+        new PolygonContainsNode(),
+        new PolygonIntersectsNode(),
     ];
 }

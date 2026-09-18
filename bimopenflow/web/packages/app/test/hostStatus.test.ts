@@ -86,13 +86,14 @@ describe("createHostStatus", () => {
     expect(seen).toEqual(["connected", "reconnecting"]);
   });
 
-  it("probes on the disconnected cadence until connected, then on the slow one", async () => {
+  it("probes at once, then on the disconnected cadence until connected, then on the slow one", async () => {
     vi.useFakeTimers();
     const inner = vi.fn<typeof fetch>().mockRejectedValue(new TypeError("refused"));
     const host = createHostStatus({ fetch: inner, probeInterval: (s) => (s === "connected" ? 150 : 50) });
     host.start(() => host.fetch("/api/models").catch(() => undefined));
-    await vi.advanceTimersByTimeAsync(50);
+    await vi.advanceTimersByTimeAsync(0);
     expect(inner).toHaveBeenCalledTimes(1);
+    expect(host.get().status).toBe("reconnecting");
     await vi.advanceTimersByTimeAsync(50);
     expect(inner).toHaveBeenCalledTimes(2);
     expect(host.get().status).toBe("offline");
@@ -113,7 +114,7 @@ describe("createHostStatus", () => {
     const inner = vi.fn<typeof fetch>().mockResolvedValue(response(200));
     const { api, host } = watchHost((f) => ({ listModels: () => f("/api/models") }), { fetch: inner, probeInterval: () => 10 });
     expect(api).toBeDefined();
-    await vi.advanceTimersByTimeAsync(10);
+    await vi.advanceTimersByTimeAsync(0);
     expect(inner).toHaveBeenCalledWith("/api/models", undefined);
     expect(host.get().status).toBe("connected");
     host.dispose();

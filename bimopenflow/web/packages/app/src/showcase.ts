@@ -1,9 +1,16 @@
+import { ApiClient } from "@bimopenflow/api-client";
 import { createViewPane3D, ensurePaneStyles } from "@bimopenflow/panes";
+import { watchHost } from "./hostStatus.js";
+import { mountHostBanner } from "./topbar.js";
 import type { TableSlice } from "@bimopenflow/contracts";
 import type { ViewStep } from "../../panes/src/viewRecipe";
 import "./showcase.css";
 import graphUrl from "../../../../../samples/snowdon-analyses/snowdon-toolkit.json?url";
 
+// The lab loads its model from the Vite fixture, not the host API, but the
+// page still says when the host is unreachable, like every other page.
+const { host } = watchHost(fetchFn => new ApiClient({ fetch: fetchFn }));
+mountHostBanner(document, host);
 const root = document.querySelector<HTMLDivElement>("#lab")!;
 root.innerHTML = `<header><a href="/3d.html">BIM FLOW · EDIT GRAPHS</a><span>VISUALIZATION TOOLKIT / 3D LAB</span><label class="file">Open local BOS / BFAST<input type="file" accept=".bos,.bfast" aria-label="Open local model"></label></header>
 <aside><p class="eyebrow">SNOWDON TOWERS</p><h1>A building.<br>Seven ways in.</h1><p class="intro">Explore a model through composable 3D nodes. Each view uses the same pane as the graph editor.</p><nav aria-label="3D examples"></nav><div class="adjust"><label for="amount">Section position <output id="amountLabel">50%</output></label><input id="amount" type="range" min="1" max="99" value="50"></div><p class="note">Source categories drive colors. Sections are uncapped. Exploded positions are presentation offsets, not changes to the building.</p><a class="graph" href="/snowdon-toolkit.json" download>Download the example graph ↗</a></aside>
@@ -69,4 +76,4 @@ document.querySelector<HTMLInputElement>('input[type="file"]')!.onchange = event
   pane.update({ kind: "model", url: localUrl, format: /\.bfast$/i.test(file.name) ? "bfast" : "bos" });
   apply();
 };
-window.addEventListener("pagehide", () => { pane.destroy(); if (localUrl) URL.revokeObjectURL(localUrl); }, { once: true });
+window.addEventListener("pagehide", () => { pane.destroy(); host.dispose(); if (localUrl) URL.revokeObjectURL(localUrl); }, { once: true });

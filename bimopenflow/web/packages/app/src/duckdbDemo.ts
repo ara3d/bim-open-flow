@@ -5,6 +5,8 @@
 // opens when it is done.
 import { ApiClient } from '@bimopenflow/api-client';
 import { createApp, type App } from './app.js';
+import { watchHost } from './hostStatus.js';
+import { mountHostBanner } from './topbar.js';
 import workflows from '../../../../../samples/duckdb-analyses/workflows.json';
 import './duckdbDemo.css';
 
@@ -22,7 +24,10 @@ root.innerHTML = `<div id="duck-error" role="alert" hidden></div><div id="duck-a
 const editor = root.querySelector<HTMLElement>('#duck-editor')!;
 const error = root.querySelector<HTMLElement>('#duck-error')!;
 const log = root.querySelector<HTMLElement>('#duck-ask-log')!;
-const api = new ApiClient();
+// Every host call, including the Ask requests, reports into one host status;
+// the page-level banner shows it and a reconnect retries the demo start.
+const { api, host } = watchHost(fetchFn => new ApiClient({ fetch: fetchFn }));
+mountHostBanner(document, host);
 let app: App | undefined;
 let downloadUrl: string | undefined;
 /** The graph the last Ask built; a follow-up continues its conversation. */
@@ -123,7 +128,7 @@ async function ask(request: string, form: HTMLFormElement, followUp: HTMLInputEl
   line('you', `You: ${request}`);
   let analysisId: string | undefined;
   try {
-    const response = await fetch('/api/ask', {
+    const response = await host.fetch('/api/ask', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(continuing ? { request, analysisId: continuing } : { request }),
@@ -207,7 +212,7 @@ function mountAsk() {
     if (request) void ask(request, form, followUp);
   });
   editor.querySelector('.bof-app-conn')!.before(form);
-  void fetch('/api/ask/model').then(async response => {
+  void host.fetch('/api/ask/model').then(async response => {
     if (!response.ok) throw new Error('This host has no /api/ask; start the studio host (npm run duckdb:host).');
     const info = await response.json() as { model: string; configured: boolean; problem: string | null };
     input.title = `Model: ${info.model}`;
@@ -220,18 +225,26 @@ async function start() {
     const available = await api.listAnalyses();
     if (workflows.some(workflow => !available.some(item => item.id === workflow.id)))
       throw new Error('Demo workflows are missing.');
-    app = createApp(editor, api, { graphDemo: true, tableOnly: true, autoLayout: true, initialAnalysis: workflows[0]!.id, heading: 'BimOpenFlow · Snowdon DuckDB' });
+    app = createApp(editor, api, { graphDemo: true, tableOnly: true, autoLayout: true, initialAnalysis: workflows[0]!.id, heading: 'BimOpenFlow · Snowdon DuckDB', host });
+    error.hidden = true;
     mountAsk();
     const button = document.createElement('button');
     button.textContent = 'Download';
     button.title = 'Download the current graph as a .dfg.json document';
     button.addEventListener('click', () => void download());
     editor.querySelector('.bof-app-conn')!.before(button);
-  } catch (cause) { fail(`Could not open the DuckDB demo. ${String(cause)} ${START}`); }
+  } catch (cause) {
+    // While the host is unreachable the banner says so; the start is retried on reconnect.
+    if (host.get().status === 'connected') fail(`Could not open the DuckDB demo. ${String(cause)} ${START}`);
+  }
 }
 void start();
+host.subscribe(state => {
+  if (state.status === 'connected' && !app) void start();
+});
 window.addEventListener('pagehide', () => {
   observer.disconnect();
   app?.dispose();
+  host.dispose();
   if (downloadUrl) URL.revokeObjectURL(downloadUrl);
 }, { once: true });

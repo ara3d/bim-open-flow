@@ -51,7 +51,7 @@ export interface HostStatusSource {
   subscribe(listener: (state: HostStatusState) => void): () => void;
   reportFailure(reason: string): void;
   reportSuccess(): void;
-  /** Begins periodic probing with `probe` (its outcome is reported through `fetch`). */
+  /** Probes now and then periodically with `probe` (its outcome is reported through `fetch`). */
   start(probe: () => Promise<unknown>): void;
   dispose(): void;
 }
@@ -81,15 +81,15 @@ export function createHostStatus(options: HostStatusOptions = {}): HostStatusSou
     if (changed) schedule();
   };
 
-  const schedule = () => {
+  const schedule = (delay = interval(state.status)) => {
     if (timer !== null) clearTimeout(timer);
     timer = null;
     if (disposed || !probe) return;
     timer = setTimeout(() => {
       timer = null;
       // Failures are reported by the wrapped fetch; a non-network error is not a host failure.
-      probe!().then(schedule, schedule);
-    }, interval(state.status));
+      probe!().then(() => schedule(), () => schedule());
+    }, delay);
   };
 
   const wrapped: typeof fetch = async (input, init) => {
@@ -117,7 +117,7 @@ export function createHostStatus(options: HostStatusOptions = {}): HostStatusSou
     reportSuccess: () => dispatch({ type: "success" }),
     start(fn) {
       probe = fn;
-      schedule();
+      schedule(0);
     },
     dispose() {
       disposed = true;

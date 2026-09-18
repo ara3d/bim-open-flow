@@ -4,6 +4,8 @@
 
 import { ApiClient } from "@bimopenflow/api-client";
 import { createApp } from "./app.js";
+import { watchHost } from "./hostStatus.js";
+import { mountHostBanner } from "./topbar.js";
 
 export const DEFAULT_ANALYSIS = "snowdon-toolkit";
 
@@ -19,4 +21,8 @@ class GraphDemoApi extends ApiClient {
 
 // Boot only inside 3d.html; importing this module elsewhere (tests) is side-effect free.
 const root = document.getElementById("app");
-if (root) createApp(root, new GraphDemoApi({ baseUrl: "" }), { graphDemo: true, initialAnalysis: analysisFromSearch(location.search) });
+if (root) {
+  const { api, host } = watchHost((fetchFn) => new GraphDemoApi({ baseUrl: "", fetch: fetchFn }));
+  mountHostBanner(document, host);
+  createApp(root, api, { graphDemo: true, initialAnalysis: analysisFromSearch(location.search), host });
+}

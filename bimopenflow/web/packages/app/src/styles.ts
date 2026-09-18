@@ -122,6 +122,13 @@ html, body { margin: 0; height: 100%; }
   padding: 8px 12px; border-radius: 6px; max-width: 360px; box-shadow: 0 2px 10px rgba(0,0,0,.25);
 }
 .bof-app-toast.bof-app-toast-error { background: var(--bof-app-red); }
+.bof-app-host-banner {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
+  padding: 10px 16px; text-align: center; font: 14px/1.4 var(--bof-app-font); font-weight: 600;
+  background: var(--bof-app-amber); color: #1a1a18; box-shadow: 0 -2px 10px rgba(0,0,0,.2);
+}
+.bof-app-host-banner.bof-app-host-banner-offline { background: var(--bof-app-red); color: #fff; }
+.bof-app-host-banner[hidden] { display: none; }
 `;
 
 const STYLE_ID = "bof-app-styles";

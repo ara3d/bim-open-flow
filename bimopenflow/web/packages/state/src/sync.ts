@@ -30,6 +30,8 @@ export interface ConnectOptions {
   autosaveMs?: number;
   /** Called when an autosave PUT fails. Only a newer edit is retried automatically. */
   onSaveError?: (err: unknown) => void;
+  /** Called when the evaluation-update stream errors (the browser retries it by itself). */
+  onStreamError?: (err: unknown) => void;
 }
 
 /**
@@ -45,7 +47,7 @@ export async function connectAnalysis(
   store.dispatch({ type: "setDocument", json: await api.getAnalysis(analysisId) });
   store.dispatch({ type: "applyServerState", update: await api.getAnalysisState(analysisId) });
   const unsubscribe = api.analysisEvents(analysisId, (update) =>
-    store.dispatch({ type: "applyServerState", update }));
+    store.dispatch({ type: "applyServerState", update }), options.onStreamError);
 
   let timer: ReturnType<typeof setTimeout> | null = null;
   let inFlight: Promise<void> | null = null;

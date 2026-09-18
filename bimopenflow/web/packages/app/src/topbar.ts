@@ -1,5 +1,6 @@
 // Top bar: analysis picker + new, save (with dirty indicator), run, canvas
-// theme picker, and connection status.
+// theme picker, and host connection status. Also the page-level host banner
+// that every page mounts, inside or outside the shell.
 
 import type { AnalysisSummary } from "@bimopenflow/contracts";
 import {
@@ -7,8 +8,8 @@ import {
   isCanvasThemeName,
   type CanvasThemeName,
 } from "./canvasTheme.js";
-
-export type ConnectionStatus = "connected" | "offline" | "connecting";
+import { hostStatusMessage, type HostStatus, type HostStatusSource } from "./hostStatus.js";
+import { ensureAppStyles } from "./styles.js";
 
 export interface TopbarHandlers {
   /** Replaces the default "BimOpenFlow · Snowdon 3D graphs" heading. */
@@ -23,7 +24,7 @@ export interface TopbarHandlers {
 export interface Topbar {
   setAnalyses(list: AnalysisSummary[], activeId: string | null): void;
   setDirty(dirty: boolean): void;
-  setConnection(status: ConnectionStatus): void;
+  setConnection(status: HostStatus): void;
   setTheme(name: CanvasThemeName): void;
 }
 
@@ -77,7 +78,7 @@ export function createTopbar(root: HTMLElement, handlers: TopbarHandlers): Topba
 
   const conn = doc.createElement("span");
   conn.className = "bof-app-conn";
-  conn.textContent = "connecting…";
+  conn.textContent = "reconnecting…";
 
   root.append(title, picker, newBtn, saveBtn, dirtyMark, runBtn, themePicker, conn);
 
@@ -104,9 +105,37 @@ export function createTopbar(root: HTMLElement, handlers: TopbarHandlers): Topba
       themePicker.value = name;
     },
     setConnection(status) {
-      conn.textContent = status;
+      conn.textContent = status === "reconnecting" ? "reconnecting…" : status;
       conn.classList.toggle("bof-app-conn-ok", status === "connected");
       conn.classList.toggle("bof-app-conn-bad", status === "offline");
     },
+  };
+}
+
+/**
+ * A fixed strip along the bottom of the page that names the host API url and
+ * how to recover whenever the host is not connected; hidden while it is.
+ * Returns the unsubscribe.
+ */
+export function mountHostBanner(
+  doc: Document,
+  host: HostStatusSource,
+  apiUrl = new URL("/api", doc.baseURI).href,
+): () => void {
+  ensureAppStyles(doc);
+  const banner = doc.createElement("div");
+  banner.className = "bof-app-host-banner";
+  banner.setAttribute("role", "alert");
+  const render = (status: HostStatus) => {
+    banner.textContent = hostStatusMessage(status, apiUrl);
+    banner.hidden = status === "connected";
+    banner.classList.toggle("bof-app-host-banner-offline", status === "offline");
+  };
+  render(host.get().status);
+  doc.body.appendChild(banner);
+  const unsubscribe = host.subscribe((state) => render(state.status));
+  return () => {
+    unsubscribe();
+    banner.remove();
   };
 }

@@ -29,6 +29,7 @@ import { freshNodeId, freshUntitledId } from "./ids.js";
 import { loadThemeChoice, saveThemeChoice } from "./themeChoice.js";
 import { showToast } from "./toast.js";
 import { buildLiveViewRecipe } from "./liveViewRecipe";
+import { createHostStatus, type HostStatusSource } from "./hostStatus.js";
 import { nodeTitle, upstreamIds } from "./graphPreview";
 
 export interface App {
@@ -56,6 +57,9 @@ export interface AppOptions {
   initialAnalysis?: string;
   /** Topbar heading; defaults to the BimOpenFlow / Snowdon 3D link. */
   heading?: string;
+  /** The host status the api reports into (see watchHost). Without one the
+   *  app only learns about the host from its own periodic probe. */
+  host?: HostStatusSource;
 }
 
 export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions = {}): App {
@@ -70,6 +74,8 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   let lastPrimary: string | null = null;
 
   const fail = (message: string) => showToast(message, "error");
+  const host = options.host ?? createHostStatus();
+  if (!options.host) host.start(() => api.listModels());
 
   const dispatch = (action: Action) => {
     try {
@@ -226,17 +232,16 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     resultSelection = [];
     lastPrimary = null;
     paneArea.showNode(null);
-    topbar.setConnection("connecting");
     connection?.dispose();
     connection = null;
     try {
       connection = await connectAnalysis(store, api, id, {
         autosaveMs: AUTOSAVE_MS,
         onSaveError: (e) => fail(`Autosave failed: ${e instanceof Error ? e.message : e}`),
+        onStreamError: () => host.reportFailure("evaluation stream lost"),
       });
       currentId = id;
       refreshColumnOptions();
-      topbar.setConnection("connected");
       sidebar.setAnalyses(analyses, id);
       topbar.setAnalyses(analyses, id);
       if (options.graphDemo) {
@@ -252,8 +257,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
         else canvasEditor.focus(initial?.id);
       }
     } catch (e) {
-      topbar.setConnection("offline");
-      fail(`Could not open flow '${id}': ${e instanceof Error ? e.message : e}`);
+      if (connectedNow()) fail(`Could not open flow '${id}': ${e instanceof Error ? e.message : e}`);
     }
   }
 
@@ -325,16 +329,22 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   };
   root.ownerDocument.addEventListener("keydown", onKeyDown);
 
-  // ── boot ───────────────────────────────────────────────────────────────────
-  void (async () => {
+  // ── boot and reconnect ─────────────────────────────────────────────────────
+  // Connectivity failures are shown by the host banner, so error toasts are
+  // reserved for failures that happened while the host was reachable.
+  const connectedNow = () => host.get().status === "connected";
+  let booted = false;
+
+  const boot = async () => {
     try {
       const [, cat] = await Promise.all([refreshAnalyses(), api.getNodeCatalog()]);
+      catalog.clear();
       for (const n of cat.nodes) catalog.set(n.kind, n);
       if (options.graphDemo && catalog.has("view3d.section") && catalog.get("view3d.section")?.params.find(p => p.name === "fraction")?.control?.kind !== "slider")
         fail("The 3D backend is out of date. Rebuild and restart BimOpenFlow.Host, then reload this page to enable the node controls.");
       sidebar.setCatalog(cat.nodes);
       canvasEditor.refresh();
-      topbar.setConnection("connected");
+      booted = true;
       // Always land in an open analysis so no click can fail for lack of one;
       // if the stored analysis fails to open, fall back to a fresh one.
       if (options.initialAnalysis) {
@@ -345,17 +355,45 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
         await openAnalysis(options.initialAnalysis);
       } else if (analyses.length > 0) await openAnalysis(analyses[0]!.id);
       if (currentId === null) await newAnalysis();
-    } catch {
-      topbar.setConnection("offline");
-      showToast("Host not reachable — start it and reload (see README).", "error");
+    } catch (e) {
+      if (connectedNow()) fail(`Could not load the host: ${e instanceof Error ? e.message : e}`);
     }
-  })();
+  };
+
+  // After a host restart the list and the open analysis's server state may be
+  // stale, so a reconnect re-reads both; a boot that never completed is retried.
+  const resync = async () => {
+    if (!booted) return boot();
+    try {
+      await refreshAnalyses();
+      if (currentId) await openAnalysis(currentId);
+    } catch (e) {
+      if (connectedNow()) fail(`Could not refresh after reconnecting: ${e instanceof Error ? e.message : e}`);
+    }
+  };
+
+  let syncing: Promise<void> | null = null;
+  const syncOnce = () => {
+    if (syncing) return;
+    syncing = resync().finally(() => { syncing = null; });
+  };
+
+  let lastStatus = host.get().status;
+  topbar.setConnection(lastStatus);
+  const unsubscribeHost = host.subscribe((state) => {
+    topbar.setConnection(state.status);
+    if (state.status === "connected" && lastStatus !== "connected") syncOnce();
+    lastStatus = state.status;
+  });
+  syncOnce();
 
   return {
     openAnalysis,
     refreshAnalyses,
     dispose() {
       unsubscribe();
+      unsubscribeHost();
+      if (!options.host) host.dispose();
       setSuggestionProvider(null);
       connection?.dispose();
       canvasEditor.dispose();

@@ -14,6 +14,7 @@ const docJson = JSON.stringify({
 function fakeApi() {
   const calls: string[] = [];
   let emit: ((e: EvalUpdate) => void) | undefined;
+  let streamError: ((err: unknown) => void) | undefined;
   let saved: string | undefined;
   let disposed = false;
   const api: AnalysisApi = {
@@ -30,9 +31,10 @@ function fakeApi() {
       saved = body;
       return { id, graphHash: "h" };
     },
-    analysisEvents: (id, onEvent) => {
+    analysisEvents: (id, onEvent, onError) => {
       calls.push(`analysisEvents:${id}`);
       emit = onEvent;
+      streamError = onError;
       return () => {
         disposed = true;
       };
@@ -42,6 +44,7 @@ function fakeApi() {
     api,
     calls,
     emit: (e: EvalUpdate) => emit!(e),
+    failStream: (err: unknown) => streamError?.(err),
     getSaved: () => saved,
     isDisposed: () => disposed,
   };
@@ -76,6 +79,14 @@ describe("connectAnalysis", () => {
     expect(store.getState().dirty).toBe(false);
     const saved = parseDocument(fake.getSaved()!);
     expect(saved.values).toEqual({ a: { path: "n.bos" } });
+  });
+
+  it("forwards stream errors to onStreamError", async () => {
+    const fake = fakeApi();
+    const errors: unknown[] = [];
+    await connectAnalysis(createStore(), fake.api, "an1", { onStreamError: (e) => errors.push(e) });
+    fake.failStream("closed");
+    expect(errors).toEqual(["closed"]);
   });
 
   it("dispose unsubscribes from the event stream", async () => {

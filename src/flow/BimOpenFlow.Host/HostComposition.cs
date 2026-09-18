@@ -29,11 +29,14 @@ public sealed record HostApp(HostConfig Config, HostServices Services, WebApplic
 public static class HostComposition
 {
     /// <summary>The "bim" profile registry: the Bos, TableOps, BimAnalysis, Geometry,
-    /// Compliance, Effects, and Viz packs plus the rel.* pack. Without a runtime the rel.*
-    /// pack sees no sources, which is enough for validation, catalogs, and docs.</summary>
+    /// Compliance, Effects, and Viz packs, the DuckDB and Tables packs so an external value
+    /// table (CSV, Parquet, a DuckDB query) can be joined to a model and drive a 3D
+    /// colouring, plus the rel.* pack. Without a runtime the rel.* pack sees no sources,
+    /// which is enough for validation, catalogs, and docs.</summary>
     public static NodeRegistry AllPacks(RelationRuntime? relations = null)
         => NodeRegistry.Combine(BosNodes.All, TableOpsNodes.All, BimAnalysisNodes.All, GeometryNodes.All,
-            ComplianceNodes.All, EffectNodes.All, VizNodes.All, RelationNodes.All(relations ?? NoSources()));
+            ComplianceNodes.All, EffectNodes.All, VizNodes.All, DuckDbNodes.All, TableNodes.All,
+            RelationNodes.All(relations ?? NoSources()));
 
     /// <summary>The "tables" profile registry: the DuckDB, Tables, TableOps, Cleaning,
     /// Dates, and Viz packs, the table writers from the Effects pack, plus the rel.* pack.

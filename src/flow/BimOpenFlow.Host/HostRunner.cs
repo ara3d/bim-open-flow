@@ -2,7 +2,9 @@ namespace BimOpenFlow.Host;
 
 /// <summary>The host's main routine, shared with front ends that add endpoints
 /// to the same application (the studio's ask endpoint): resolve settings, seed
-/// samples, let the caller map more routes, start, print where we are, wait.</summary>
+/// samples, let the caller map more routes, start, print where we are, prepare the
+/// slow generated samples in the background, wait. Start-up itself stays under a
+/// second or two; nothing that takes longer runs before the port is open.</summary>
 public static class HostRunner
 {
     public static async Task<int> RunAsync(string[] args, Action<HostApp>? configure = null, string name = "BimOpenFlow host")
@@ -11,7 +13,8 @@ public static class HostRunner
         config = WithSeededRoots(config, config.Profile == HostConfig.TablesProfile
             ? SampleSeeding.SeededModelRoots(AppContext.BaseDirectory)
             : BimSampleSeeding.SeededModelRoots(AppContext.BaseDirectory));
-        var host = HostComposition.Build(config);
+        var preparing = SamplePreparation.Jobs(AppContext.BaseDirectory);
+        var host = HostComposition.Build(config, preparing);
 
         var seeded = config.Profile == HostConfig.TablesProfile
             ? SampleSeeding.SeedIfEmpty(host.Services.Store, AppContext.BaseDirectory)
@@ -28,7 +31,14 @@ public static class HostRunner
         Console.WriteLine($"  store dir:   {config.StoreDir}");
         Console.WriteLine($"  profile:     {config.Profile}");
 
+        var preparation = SamplePreparation.RunInBackground(preparing, _ =>
+        {
+            host.Services.Relations.Invalidate();
+            host.Services.Sessions.Reevaluate();
+        }, Console.Out);
+
         await host.App.WaitForShutdownAsync();
+        await preparation;
         return 0;
     }
 

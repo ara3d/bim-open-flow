@@ -69,6 +69,20 @@ public sealed class AnalysisSessions
         }
     }
 
+    /// <summary>Re-runs every open session over its current document, for when the data
+    /// behind the nodes changed while the documents did not (a source prepared in the
+    /// background). Successful pure results stay memoized; failed nodes run again, and
+    /// observers see the pass like any other.</summary>
+    public void Reevaluate()
+    {
+        List<Entry> entries;
+        lock (_mapLock)
+            entries = _entries.Values.ToList();
+        foreach (var entry in entries)
+            lock (entry.Lock)
+                entry.Session.SetDocument(entry.Session.Document);
+    }
+
     /// <summary>Reloads when the stored bytes differ from the ones this session
     /// evaluated. Cheap: one stat call, no read, when nothing changed.</summary>
     private void Refresh(Entry entry, string id)

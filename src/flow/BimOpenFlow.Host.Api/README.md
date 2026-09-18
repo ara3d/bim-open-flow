@@ -15,7 +15,9 @@ TypeScript contracts exactly.
   `MapBimOpenFlowApi` composes the routes onto any endpoint builder.
 - `AnalysisSessions` — one standing `EvalSession` per analysis, created on
   demand from the store; per-session lock (the engine is single-threaded);
-  SSE fan-out via the session's observers.
+  SSE fan-out via the session's observers. `Reevaluate()` re-runs every open
+  session over its unchanged document when data behind the nodes has landed
+  (the host calls it after a background sample build); Ok results stay memoized.
 - `DocumentEndpoints` — models, analysis CRUD/history, node catalog.
 - `EvalEndpoints` — evaluation state, result paging (`skip`/`take`,
   default take 1000; scalar outputs become a one-cell slice), run

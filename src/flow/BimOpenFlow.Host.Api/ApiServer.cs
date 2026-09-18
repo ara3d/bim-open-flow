@@ -13,19 +13,21 @@ public static class ApiServer
 {
     public static WebApplication Create(ModelCatalog catalog, AnalysisStore store,
         INodeRegistry registry, FileTableProbe? fileTables = null, string[]? args = null,
-        IRelationResults? relations = null)
+        IRelationResults? relations = null, AnalysisSessions? sessions = null)
     {
         var builder = WebApplication.CreateBuilder(args ?? Array.Empty<string>());
         var app = builder.Build();
-        app.MapBimOpenFlowApi(catalog, store, registry, fileTables, relations);
+        app.MapBimOpenFlowApi(catalog, store, registry, fileTables, relations, sessions);
         return app;
     }
 
+    /// <summary>Maps every route. The caller may pass the sessions so it can reach them
+    /// after start-up (to re-evaluate when background data lands); otherwise they are private.</summary>
     public static IEndpointRouteBuilder MapBimOpenFlowApi(this IEndpointRouteBuilder app,
         ModelCatalog catalog, AnalysisStore store, INodeRegistry registry,
-        FileTableProbe? fileTables = null, IRelationResults? relations = null)
+        FileTableProbe? fileTables = null, IRelationResults? relations = null, AnalysisSessions? sessions = null)
     {
-        var sessions = new AnalysisSessions(store, registry);
+        sessions ??= new AnalysisSessions(store, registry);
         app.MapDocumentEndpoints(catalog, store, registry, sessions);
         app.MapModelBytes(catalog);
         app.MapEvalEndpoints(catalog, store, registry, sessions, relations);

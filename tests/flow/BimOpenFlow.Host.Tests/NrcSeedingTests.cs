@@ -3,7 +3,8 @@ using BimOpenFlow.Host.Store;
 namespace BimOpenFlow.Host.Tests;
 
 /// <summary>Both host profiles seed the eight NRC sample graphs into an empty store and
-/// register samples/nrc, with its database built on demand, as a model root.</summary>
+/// register samples/nrc as a model root; its database is a background preparation job,
+/// never built inside start-up.</summary>
 public sealed class NrcSeedingTests
 {
     private static readonly string[] NrcIds =
@@ -24,7 +25,7 @@ public sealed class NrcSeedingTests
         => Assert.That(BimSampleSeeding.SeedIfEmpty(new AnalysisStore(NewStoreDir()), AppContext.BaseDirectory), Is.SupersetOf(NrcIds));
 
     [Test]
-    public void SeededRoots_IncludeSamplesNrcWithItsDatabase()
+    public void SeededRoots_IncludeSamplesNrc_AndItsDatabaseIsAPreparationJob()
     {
         var root = SampleSeeding.FindRepoRoot(AppContext.BaseDirectory)!;
         var nrc = SampleSeeding.NrcSamplesDir(root);
@@ -32,7 +33,8 @@ public sealed class NrcSeedingTests
         {
             Assert.That(SampleSeeding.SeededModelRoots(AppContext.BaseDirectory), Does.Contain(nrc));
             Assert.That(BimSampleSeeding.SeededModelRoots(AppContext.BaseDirectory), Does.Contain(nrc));
-            Assert.That(File.Exists(Path.Combine(nrc, SampleSeeding.NrcDatabaseFileName)), Is.True);
+            Assert.That(SamplePreparation.Jobs(AppContext.BaseDirectory).Select(j => j.Output),
+                Does.Contain(Path.Combine(nrc, SampleSeeding.NrcDatabaseFileName)));
         });
     }
 }

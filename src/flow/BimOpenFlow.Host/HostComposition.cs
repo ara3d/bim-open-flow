@@ -14,12 +14,13 @@ using BimOpenFlow.Nodes.Relations;
 using BimOpenFlow.Nodes.TableOps;
 using BimOpenFlow.Nodes.Tables;
 using BimOpenFlow.Nodes.Viz;
+using BimOpenFlow.Relations.DuckDb;
 
 namespace BimOpenFlow.Host;
 
 /// <summary>The wired core: everything the host (or another front end, e.g. the
 /// MCP server) needs, with no HTTP attached.</summary>
-public sealed record HostServices(ModelCatalog Catalog, AnalysisStore Store, NodeRegistry Registry, RelationRuntime Relations);
+public sealed record HostServices(ModelCatalog Catalog, AnalysisStore Store, NodeRegistry Registry, RelationRuntime Relations, AnalysisSessions Sessions);
 
 /// <summary>The full host: services plus the composed HTTP application.</summary>
 public sealed record HostApp(HostConfig Config, HostServices Services, WebApplication App);
@@ -52,22 +53,28 @@ public static class HostComposition
         => RelationRuntime.FromRoots([]);
 
     /// <summary>The profile's registry over a relation runtime whose sources are the model
-    /// roots: each root folder by name for CSV files, each .duckdb file inside one by file name.</summary>
-    public static HostServices BuildServices(HostConfig config)
+    /// roots, rescanned on use: each root folder by name for CSV files, each .duckdb file
+    /// inside one by file name. Sources a preparation job is still building answer
+    /// "not ready yet" instead of "unknown".</summary>
+    public static HostServices BuildServices(HostConfig config, IReadOnlyList<SamplePreparation.Job>? preparing = null)
     {
-        var relations = RelationRuntime.FromRoots(config.ModelRoots);
+        var relations = new RelationRuntime(new PreparingRegistry(
+            new RootScanRegistry(config.ModelRoots), SamplePreparation.PendingReason(preparing ?? [])));
+        var store = new AnalysisStore(config.StoreDir);
+        var registry = Registry(config.Profile, relations);
         return new(
             new ModelCatalog(config.ModelRoots, config.CacheDir),
-            new AnalysisStore(config.StoreDir),
-            Registry(config.Profile, relations),
-            relations);
+            store,
+            registry,
+            relations,
+            new AnalysisSessions(store, registry));
     }
 
-    public static HostApp Build(HostConfig config)
+    public static HostApp Build(HostConfig config, IReadOnlyList<SamplePreparation.Job>? preparing = null)
     {
-        var services = BuildServices(config);
+        var services = BuildServices(config, preparing);
         var app = ApiServer.Create(services.Catalog, services.Store, services.Registry,
-            DuckDbTableProbe.Tables, relations: new RelationHostResults(services.Relations));
+            DuckDbTableProbe.Tables, relations: new RelationHostResults(services.Relations), sessions: services.Sessions);
         app.Urls.Add($"http://127.0.0.1:{config.Port}");
         return new(config, services, app);
     }

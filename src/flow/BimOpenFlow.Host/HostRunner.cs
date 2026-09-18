@@ -17,8 +17,8 @@ public static class HostRunner
         var host = HostComposition.Build(config, preparing);
 
         var seeded = config.Profile == HostConfig.TablesProfile
-            ? SampleSeeding.SeedIfEmpty(host.Services.Store, AppContext.BaseDirectory)
-            : BimSampleSeeding.SeedIfEmpty(host.Services.Store, AppContext.BaseDirectory);
+            ? SampleSeeding.SeedIfEmpty(host.Services.Store, AppContext.BaseDirectory, host.Services.Registry, Console.Out)
+            : BimSampleSeeding.SeedIfEmpty(host.Services.Store, AppContext.BaseDirectory, host.Services.Registry, Console.Out);
         foreach (var id in seeded)
             Console.WriteLine($"  seeded sample analysis: {id}");
 

@@ -12,6 +12,10 @@ public static class SamplePreparation
 {
     public const string NrcSourceName = "duplex-enriched";
 
+    /// <summary>The BOS file is a path for bos.load, not a named relation source; the job
+    /// carries this name only for its log lines.</summary>
+    public const string NrcBosName = "duplex-enriched.bos";
+
     /// <summary>Suffix of the file a build writes before it is moved into place, so a
     /// registry scanning for *.duckdb never sees a half-written database.</summary>
     public const string PartSuffix = ".part";
@@ -47,9 +51,23 @@ public static class SamplePreparation
             : null;
     }
 
+    /// <summary>The NRC BOS job (the IFC converted to a .bos file for bos.load), or null when
+    /// the IFC is not there.</summary>
+    public static Job? NrcBos(string root)
+    {
+        var dir = SampleSeeding.NrcSamplesDir(root);
+        var ifc = Path.Combine(dir, SampleSeeding.NrcIfcFileName);
+        return File.Exists(ifc)
+            ? new(NrcBosName, ifc, Path.Combine(dir, SampleSeeding.NrcBosFileName),
+                (input, output) => IfcDuckDbBuild.SaveBos(new FilePath(input), new FilePath(output)))
+            : null;
+    }
+
     /// <summary>Every job for the checkout that contains startDir; empty outside a checkout.</summary>
     public static IReadOnlyList<Job> Jobs(string startDir)
-        => SampleSeeding.FindRepoRoot(startDir) is { } root && NrcDatabase(root) is { } nrc ? [nrc] : [];
+        => SampleSeeding.FindRepoRoot(startDir) is { } root
+            ? new[] { NrcDatabase(root), NrcBos(root) }.Where(j => j is not null).Select(j => j!).ToList()
+            : [];
 
     /// <summary>Why a source name cannot be resolved yet, or null when no stale job owns it.</summary>
     public static Func<string, string?> PendingReason(IReadOnlyList<Job> jobs)

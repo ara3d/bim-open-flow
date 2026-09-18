@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>BimOpenFlow.Nodes.Relations</PackageId>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\submodules\ara3d-dataflow\src\Ara3D.DataFlowEngine.Abstractions\Ara3D.DataFlowEngine.Abstractions.csproj" />
+    <ProjectReference Include="..\BimOpenFlow.Relations\BimOpenFlow.Relations.csproj" />
+    <ProjectReference Include="..\BimOpenFlow.Relations.DuckDb\BimOpenFlow.Relations.DuckDb.csproj" />
+    <ProjectReference Include="..\BimOpenFlow.Nodes.Support\BimOpenFlow.Nodes.Support.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Ara3D.DataFlowEngine.Abstractions" />
+    <Using Include="BimOpenFlow.Nodes.Support" />
+    <Using Include="BimOpenFlow.Relations" />
+  </ItemGroup>
+
+</Project>

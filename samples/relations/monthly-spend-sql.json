@@ -1,5 +1,19 @@
 {
   "formatVersion": "0.1.0",
+  "layout": {
+    "answer": {
+      "x": 370,
+      "y": 40
+    },
+    "feb": {
+      "x": 40,
+      "y": 40
+    },
+    "jan": {
+      "x": 40,
+      "y": 240
+    }
+  },
   "structure": {
     "edges": [
       {

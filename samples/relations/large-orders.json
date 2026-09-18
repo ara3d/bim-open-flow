@@ -1,5 +1,27 @@
 {
   "formatVersion": "0.1.0",
+  "layout": {
+    "answer": {
+      "x": 1360,
+      "y": 40
+    },
+    "big": {
+      "x": 370,
+      "y": 40
+    },
+    "cols": {
+      "x": 1030,
+      "y": 40
+    },
+    "orders": {
+      "x": 40,
+      "y": 40
+    },
+    "sorted": {
+      "x": 700,
+      "y": 40
+    }
+  },
   "structure": {
     "edges": [
       {

@@ -1,5 +1,15 @@
 {
   "formatVersion": "0.1.0",
+  "layout": {
+    "answer": {
+      "x": 370,
+      "y": 40
+    },
+    "orders": {
+      "x": 40,
+      "y": 40
+    }
+  },
   "structure": {
     "edges": [
       {

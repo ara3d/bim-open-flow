@@ -1,5 +1,27 @@
 {
   "formatVersion": "0.1.0",
+  "layout": {
+    "answer": {
+      "x": 1030,
+      "y": 40
+    },
+    "counts": {
+      "x": 700,
+      "y": 40
+    },
+    "customers": {
+      "x": 40,
+      "y": 40
+    },
+    "joined": {
+      "x": 370,
+      "y": 40
+    },
+    "orders": {
+      "x": 40,
+      "y": 240
+    }
+  },
   "structure": {
     "edges": [
       {

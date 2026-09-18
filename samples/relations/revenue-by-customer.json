@@ -1,5 +1,39 @@
 {
   "formatVersion": "0.1.0",
+  "layout": {
+    "answer": {
+      "x": 1690,
+      "y": 40
+    },
+    "customers": {
+      "x": 40,
+      "y": 40
+    },
+    "named": {
+      "x": 1030,
+      "y": 40
+    },
+    "orders": {
+      "x": 40,
+      "y": 240
+    },
+    "priced": {
+      "x": 370,
+      "y": 40
+    },
+    "products": {
+      "x": 40,
+      "y": 440
+    },
+    "revenue": {
+      "x": 700,
+      "y": 40
+    },
+    "totals": {
+      "x": 1360,
+      "y": 40
+    }
+  },
   "structure": {
     "edges": [
       {

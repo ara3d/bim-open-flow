@@ -40,7 +40,7 @@ public static class BimSampleSeeding
     /// /api/models/{id}/bos. Empty outside a repo checkout.</summary>
     public static IReadOnlyList<string> SeededModelRoots(string startDir)
         => SampleSeeding.FindRepoRoot(startDir) is { } root
-            ? new[] { Path.Combine(root, "samples", "bim"), Path.Combine(root, "data"), SampleSeeding.NrcSamplesDir(root) }
+            ? new[] { Path.Combine(root, "samples", "bim"), Path.Combine(root, "data"), SampleSeeding.EnsureNrcDatabase(root) }
                 .Concat(SnowdonPath() is { } snowdon ? [Path.GetDirectoryName(snowdon)!] : Array.Empty<string>()).ToArray()
             : [];
 

@@ -12,6 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\data\Ara3D.Ifc.DuckDb\Ara3D.Ifc.DuckDb.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Host.Api\BimOpenFlow.Host.Api.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Host.Catalog\BimOpenFlow.Host.Catalog.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Host.Store\BimOpenFlow.Host.Store.csproj" />

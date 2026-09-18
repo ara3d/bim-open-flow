@@ -1,4 +1,6 @@
+using Ara3D.Ifc.DuckDb;
 using Ara3D.NodeGraph;
+using Ara3D.Utils;
 using BimOpenFlow.Host.Store;
 
 namespace BimOpenFlow.Host;
@@ -36,11 +38,27 @@ public static class SampleSeeding
     /// "duplex-enriched" (its database), so the tables host can add them to its model
     /// roots. Empty outside a repo checkout.</summary>
     public static IReadOnlyList<string> SeededModelRoots(string startDir)
-        => FindRepoRoot(startDir) is { } root ? [Path.Combine(root, "samples", "tables"), NrcSamplesDir(root)] : [];
+        => FindRepoRoot(startDir) is { } root ? [Path.Combine(root, "samples", "tables"), EnsureNrcDatabase(root)] : [];
 
     /// <summary>samples/nrc: the NRC paper's CSVs and IFC, named as sources "nrc" and "duplex-enriched".</summary>
     public static string NrcSamplesDir(string root)
         => Path.Combine(root, "samples", "nrc");
+
+    public const string NrcIfcFileName = "duplex-enriched.ifc";
+    public const string NrcDatabaseFileName = "duplex-enriched.duckdb";
+
+    /// <summary>samples/nrc with its database built from the committed IFC when absent or older
+    /// than the IFC. The database is gitignored; building it takes about twenty seconds once.
+    /// Must run before the relation registry scans the roots for .duckdb files.</summary>
+    public static string EnsureNrcDatabase(string root)
+    {
+        var dir = NrcSamplesDir(root);
+        var ifc = Path.Combine(dir, NrcIfcFileName);
+        var db = Path.Combine(dir, NrcDatabaseFileName);
+        if (File.Exists(ifc) && (!File.Exists(db) || File.GetLastWriteTimeUtc(db) < File.GetLastWriteTimeUtc(ifc)))
+            IfcDuckDbBuild.Build(new FilePath(ifc), new FilePath(db));
+        return dir;
+    }
 
     /// <summary>The seeding source for samples/nrc-analyses, whose graphs name their sources
     /// and so need no placeholder. Seeded by both host profiles.</summary>

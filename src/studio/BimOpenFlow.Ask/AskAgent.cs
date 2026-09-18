@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Ara3D.MCP;
 
-namespace BimOpenFlow.Studio;
+namespace BimOpenFlow.Ask;
 
 /// <summary>What the agent reports as it works: a tool call it made (with the
 /// arguments, whether it succeeded, and a one-line summary of the result) or

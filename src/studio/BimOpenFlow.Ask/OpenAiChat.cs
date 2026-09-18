@@ -2,7 +2,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json.Nodes;
 
-namespace BimOpenFlow.Studio;
+namespace BimOpenFlow.Ask;
 
 /// <summary>One chat-completions call to the OpenAI API with function tools,
 /// over a plain HttpClient. Requests and responses stay as JSON nodes: the agent

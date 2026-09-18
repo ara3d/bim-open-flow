@@ -31,6 +31,7 @@ import { showToast } from "./toast.js";
 import { buildLiveViewRecipe } from "./liveViewRecipe";
 import { createHostStatus, type HostStatusSource } from "./hostStatus.js";
 import { nodeTitle, upstreamIds } from "./graphPreview";
+import { primaryNodeId, reopenKeepingSelection } from "./selection.js";
 
 export interface App {
   openAnalysis(id: string): Promise<void>;
@@ -42,13 +43,7 @@ export interface App {
 /** Debounce for auto-saving document edits (which also re-evaluates server-side). */
 export const AUTOSAVE_MS = 400;
 
-/** The last selected id that is an actual graph node (panes follow it). */
-export function primaryNodeId(state: State): string | null {
-  const nodeIds = new Set(state.document.structure.nodes.map((n) => n.id));
-  for (let i = state.selection.length - 1; i >= 0; i--)
-    if (nodeIds.has(state.selection[i]!)) return state.selection[i]!;
-  return null;
-}
+export { primaryNodeId } from "./selection.js";
 
 export interface AppOptions {
   tableOnly?: boolean;
@@ -362,11 +357,12 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
 
   // After a host restart the list and the open analysis's server state may be
   // stale, so a reconnect re-reads both; a boot that never completed is retried.
+  // Reopening rebuilds the editor, so the selected node is carried across.
   const resync = async () => {
     if (!booted) return boot();
     try {
       await refreshAnalyses();
-      if (currentId) await openAnalysis(currentId);
+      if (currentId) await reopenKeepingSelection(store, () => openAnalysis(currentId!));
     } catch (e) {
       if (connectedNow()) fail(`Could not refresh after reconnecting: ${e instanceof Error ? e.message : e}`);
     }

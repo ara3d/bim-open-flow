@@ -215,9 +215,9 @@ function mountAsk() {
   editor.querySelector('.bof-app-conn')!.before(form);
   void host.fetch('/api/ask/model').then(async response => {
     if (!response.ok) throw new Error('This host has no /api/ask; start the studio host (npm run duckdb:host).');
-    const info = await response.json() as { model: string; configured: boolean; problem: string | null };
-    input.title = `Model: ${info.model}`;
-    if (!info.configured) { log.hidden = false; line('bad', info.problem ?? 'The OpenAI key is not configured.'); }
+    const info = await response.json() as { model: string; provider?: string; configured: boolean; problem: string | null };
+    input.title = `Model: ${info.model}${info.provider ? ` (${info.provider})` : ''}`;
+    if (!info.configured) { log.hidden = false; line('bad', info.problem ?? 'No model key is configured.'); }
   }).catch(cause => { log.hidden = false; line('bad', `Ask is unavailable: ${cause instanceof Error ? cause.message : String(cause)}`); });
 }
 

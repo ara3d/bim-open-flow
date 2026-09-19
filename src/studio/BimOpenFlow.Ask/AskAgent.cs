@@ -16,7 +16,7 @@ public sealed record AskOutcome(string Text, int Turns, long InputTokens, long O
 /// every call it makes goes through the server's own JSON-RPC handler in
 /// process, and the result text goes back as the tool message. Ends when the
 /// model answers without calling a tool.</summary>
-public sealed class AskAgent(McpServer tools, OpenAiChat chat, int maxTurns = AskAgent.DefaultMaxTurns)
+public sealed class AskAgent(McpServer tools, IChatModel chat, int maxTurns = AskAgent.DefaultMaxTurns)
 {
     public const int DefaultMaxTurns = 60;
     private const int SummaryLength = 160;
@@ -53,7 +53,7 @@ public sealed class AskAgent(McpServer tools, OpenAiChat chat, int maxTurns = As
             input += response["usage"]?["prompt_tokens"]?.GetValue<long>() ?? 0;
             output += response["usage"]?["completion_tokens"]?.GetValue<long>() ?? 0;
             var message = response["choices"]?[0]?["message"] as JsonObject
-                ?? throw new InvalidOperationException("OpenAI returned no message.");
+                ?? throw new InvalidOperationException($"{chat.Provider} returned no message.");
             messages.Add(message.DeepClone());
 
             var text = message["content"]?.GetValue<string>();
@@ -84,7 +84,7 @@ public sealed class AskAgent(McpServer tools, OpenAiChat chat, int maxTurns = As
         throw new InvalidOperationException($"Stopped after {maxTurns} model turns without a final answer.");
     }
 
-    /// <summary>The server's tools/list, reshaped as OpenAI function tools.</summary>
+    /// <summary>The server's tools/list in the loop's tool shape (see <see cref="IChatModel"/>).</summary>
     public JsonArray ListFunctions()
     {
         var listed = Rpc("tools/list", new JsonObject());

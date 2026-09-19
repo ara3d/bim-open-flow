@@ -8,8 +8,9 @@ namespace BimOpenFlow.Ask;
 /// over a plain HttpClient. Requests and responses stay as JSON nodes: the agent
 /// loop appends the assistant message it gets back verbatim, so nothing here
 /// needs to know every field the API might add.</summary>
-public sealed class OpenAiChat(HttpClient http, string apiKey, string model, string? endpoint = null)
+public sealed class OpenAiChat(HttpClient http, string apiKey, string model, string? endpoint = null) : IChatModel
 {
+    public const string ProviderName = "openai";
     public const string DefaultModel = "gpt-5";
     public const string DefaultEndpoint = "https://api.openai.com/v1/chat/completions";
     public const string KeyVariable = "OPENAI_API_KEY";
@@ -17,6 +18,7 @@ public sealed class OpenAiChat(HttpClient http, string apiKey, string model, str
     public const string ModelVariable = "OPENAI_MODEL";
     public const string ReasoningVariable = "OPENAI_REASONING_EFFORT";
 
+    public string Provider => ProviderName;
     public string Model { get; } = model;
 
     /// <summary>Reasoning effort for reasoning models (minimal, low, medium, high);
@@ -35,25 +37,10 @@ public sealed class OpenAiChat(HttpClient http, string apiKey, string model, str
     /// OPENAI_API_KEY_FILE; null when neither is set. The file form keeps the key
     /// out of shell histories and process listings.</summary>
     public static string? ResolveApiKey(Func<string, string?>? environment = null)
-    {
-        var env = environment ?? Environment.GetEnvironmentVariable;
-        var key = env(KeyVariable);
-        if (!string.IsNullOrWhiteSpace(key))
-            return key.Trim();
-        var file = env(KeyFileVariable);
-        if (string.IsNullOrWhiteSpace(file))
-            return null;
-        if (!File.Exists(file))
-            throw new FileNotFoundException($"{KeyFileVariable} points to a missing file: {file}", file);
-        var line = File.ReadLines(file).Select(l => l.Trim()).FirstOrDefault(l => l.Length > 0);
-        return string.IsNullOrEmpty(line) ? null : line;
-    }
+        => ApiKeys.Resolve(KeyVariable, KeyFileVariable, environment);
 
     public static string ResolveModel(Func<string, string?>? environment = null)
-    {
-        var value = (environment ?? Environment.GetEnvironmentVariable)(ModelVariable);
-        return string.IsNullOrWhiteSpace(value) ? DefaultModel : value.Trim();
-    }
+        => ApiKeys.ValueOr(ModelVariable, DefaultModel, environment);
 
     /// <summary>Sends the conversation and tool list; returns the whole response
     /// object (choices, usage). Non-success statuses become exceptions carrying the

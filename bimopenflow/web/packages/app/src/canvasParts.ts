@@ -8,6 +8,7 @@ import {
   calpha,
   Color,
   Element,
+  fitText,
   Free,
   Gesture,
   GNode,
@@ -168,8 +169,21 @@ const GraphNodePart = part<NodeProps, NodeStyle>("bof-node", {
       align: "left",
       size: KIND_SIZE,
     });
-    if (p.status)
-      painter.dot(v(r.right - 12, r.y + 13), 4, canvasColors().status[p.status]);
+    if (p.status) {
+      const statusColor = canvasColors().status[p.status];
+      painter.dot(v(r.right - 12, r.y + 13), 4, statusColor);
+      // Badge text (TKT-10): the state's own hint, or the upstream node
+      // responsible for it, right-aligned under the dot so it never covers
+      // the id/kind lines on the left.
+      if (p.badge) {
+        const maxW = r.w * 0.48;
+        const text = fitText(painter.measure, p.badge.text, maxW, 10);
+        painter.label(text, v(r.right - 12, r.y + NODE_HEADER - 9), statusColor, {
+          align: "right",
+          size: 10,
+        });
+      }
+    }
     p.inputs.forEach((port, i) => {
       const y = portY(r.y, i);
       painter.dot(v(r.x, y), SOCKET_RADIUS, style.socket);

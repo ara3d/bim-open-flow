@@ -5,6 +5,7 @@ import type { NodeDescriptor, NodeStatus, PortType } from "@bimopenflow/contract
 import type { State } from "@bimopenflow/state";
 import { inlineParams, placeSlots, type CanvasParam } from "./canvasSlots.js";
 import { upstreamIds } from "./graphPreview";
+import { nodeBadge, type NodeBadge } from "./nodeBadge.js";
 
 export interface CanvasPort {
   readonly name: string;
@@ -23,6 +24,9 @@ export interface CanvasNode {
   /** Inline-editable params (catalog order, document values applied). */
   readonly params: readonly CanvasParam[];
   readonly status?: NodeStatus;
+  /** Status badge text, and the upstream node responsible when one exists
+   *  (TKT-10). Undefined alongside `status` before the first eval update. */
+  readonly badge?: NodeBadge;
   readonly selected: boolean;
   readonly contributing?: boolean;
 }
@@ -142,6 +146,7 @@ export function buildCanvasModel(
       outputs: outputs.map((p) => ({ name: p.name, type: p.type })),
       params,
       status: state.evalState[n.id]?.status,
+      badge: nodeBadge({ edges: state.document.structure.edges, evalState: state.evalState }, n.id),
       selected: selected.has(n.id),
       contributing: contributing.has(n.id),
     };

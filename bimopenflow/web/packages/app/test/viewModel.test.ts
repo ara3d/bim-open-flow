@@ -94,4 +94,20 @@ describe("buildCanvasModel", () => {
     expect(model.nodes.find((n) => n.id === "b")!.selected).toBe(true);
     expect(model.nodes.find((n) => n.id === "a")!.selected).toBe(false);
   });
+
+  it("carries a status badge naming the eval message; nodes without eval state have none (TKT-10)", () => {
+    const store = createStore();
+    store.dispatch({ type: "addNode", id: "a", kind: "k.a", version: 1 });
+    store.dispatch({ type: "addNode", id: "b", kind: "k.b", version: 1 });
+    store.dispatch({
+      type: "applyServerState",
+      update: {
+        analysisId: "x",
+        nodes: [{ nodeId: "a", status: "Error", error: "boom", warnings: [] }],
+      },
+    });
+    const model = buildCanvasModel(store.getState(), catalog);
+    expect(model.nodes.find((n) => n.id === "a")!.badge).toEqual({ status: "Error", text: "boom" });
+    expect(model.nodes.find((n) => n.id === "b")!.badge).toBeUndefined();
+  });
 });

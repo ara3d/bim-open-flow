@@ -13,4 +13,10 @@ public interface IRelationResults
 
     /// <summary>The relation's columns from its inferred schema, without running it.</summary>
     IReadOnlyList<Suggestion> Columns(RelationValue relation);
+
+    /// <summary>The files a relation reads when it is itself a source read (a table of a DuckDB
+    /// source, or a CSV under a source folder), resolved through the host's source registry. Empty
+    /// for a relation built from other relations and for a source that does not resolve. A run pins
+    /// these by content hash.</summary>
+    IReadOnlyList<string> SourceFiles(RelationValue relation) => [];
 }

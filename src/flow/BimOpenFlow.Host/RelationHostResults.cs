@@ -3,6 +3,7 @@ using BimOpenFlow.Contracts;
 using BimOpenFlow.Host.Api;
 using BimOpenFlow.Nodes.Relations;
 using BimOpenFlow.Relations;
+using BimOpenFlow.Relations.DuckDb;
 
 namespace BimOpenFlow.Host;
 
@@ -21,6 +22,26 @@ public sealed class RelationHostResults(RelationRuntime runtime) : IRelationResu
         => runtime.Schema(PlanOf(relation)).Require().Columns
             .Select(c => new Suggestion(c.Name, c.Type.ToString()))
             .ToList();
+
+    public IReadOnlyList<string> SourceFiles(RelationValue relation)
+    {
+        try
+        {
+            return relation.Payload switch
+            {
+                ReadTable table when runtime.Registry.Resolve(table.Source) is { Type: SourceType.DuckDbFile } location
+                    => [location.Path],
+                ReadCsv csv when runtime.Registry.Resolve(csv.Source) is { Type: SourceType.FileRoot } location
+                    && File.Exists(Path.Combine(location.Path, csv.Path))
+                    => [Path.Combine(location.Path, csv.Path)],
+                _ => [],
+            };
+        }
+        catch (SourcePreparingException)
+        {
+            return [];
+        }
+    }
 
     private static Plan PlanOf(RelationValue relation)
         => relation.Payload as Plan

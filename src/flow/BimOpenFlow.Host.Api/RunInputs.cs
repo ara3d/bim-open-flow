@@ -1,3 +1,4 @@
+using Ara3D.DataFlowEngine;
 using Ara3D.DataFlowEngine.Abstractions;
 using Ara3D.DataFlowEngine.Runs;
 using Ara3D.NodeGraph;
@@ -36,6 +37,29 @@ public static class RunInputs
                 };
                 if (hash is not null)
                     inputs.Add(new(node.Id, param.Name, hash, value));
+            }
+        }
+        return inputs;
+    }
+
+    /// <summary>As the document overload, plus: for every Ok node with a RelationValue output,
+    /// each file relations.SourceFiles returns, recorded as RunInput(node, "source", sha256, path).</summary>
+    public static IReadOnlyList<RunInput> Derive(EvalSnapshot snapshot, INodeRegistry registry,
+        ModelCatalog catalog, IRelationResults? relations)
+    {
+        var inputs = Derive(snapshot.Document, registry, catalog).ToList();
+        if (relations is null)
+            return inputs;
+        foreach (var (nodeId, result) in snapshot.Results)
+        {
+            if (result.Status != NodeStatus.Ok)
+                continue;
+            foreach (var output in result.Outputs)
+            {
+                if (output is not RelationValue relation)
+                    continue;
+                foreach (var file in relations.SourceFiles(relation))
+                    inputs.Add(new(nodeId, "source", ModelCatalog.HashFile(file), file));
             }
         }
         return inputs;

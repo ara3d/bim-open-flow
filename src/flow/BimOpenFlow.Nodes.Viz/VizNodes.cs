@@ -8,5 +8,5 @@ namespace BimOpenFlow.Nodes.Viz;
 public static class VizNodes
 {
     public static IReadOnlyList<IFlowNode> All { get; } =
-        [new ChartBarNode(), new ChartLineNode(), new ViewTableNode()];
+        [new ChartBarNode(), new ChartLineNode(), new ViewTableNode(), new ColorMapNode()];
 }

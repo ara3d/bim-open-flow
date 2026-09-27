@@ -13,6 +13,7 @@ All nodes are version 1 and Pure.
 | `chart.bar` | table | table | labelColumn (Text), valueColumns (Text, comma-separated; empty = every numeric column), title (Text), sort (Enum none/asc/desc, default none) |
 | `chart.line` | table | table | xColumn (Text), yColumns (Text, comma-separated; empty = every numeric column), title (Text) |
 | `view.table` | table | table | title (Text), columns (Text, comma-separated; empty = all) |
+| `view.colormap` | values | legend | valueColumn (Text), colorMap (Enum viridis/category10/redgreen, default viridis), auto (Boolean, default true), min (Number, default 0), max (Number, default 1) |
 
 ## Semantics
 
@@ -24,6 +25,10 @@ All nodes are version 1 and Pure.
 - `chart.bar` sorting by the first value column is stable; numeric columns
   compare numerically, others ordinally.
 - Unknown column names warn and are skipped rather than failing the node.
+- `view.colormap` builds the shared colour scale (`BimOpenFlow.Nodes.Support.ColorScale`)
+  that `view3d.color` and `chart.bar` also consume through an optional `scale`
+  input, so the 3D pane and the chart pane over the same channel show one legend.
+  An unknown `valueColumn` warns and the node emits an empty legend table.
 
 ## Errors
 

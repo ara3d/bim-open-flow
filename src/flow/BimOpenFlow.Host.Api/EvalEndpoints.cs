@@ -21,7 +21,7 @@ internal static class EvalEndpoints
 
     public static void MapEvalEndpoints(this IEndpointRouteBuilder app,
         ModelCatalog catalog, AnalysisStore store, INodeRegistry registry, AnalysisSessions sessions,
-        IRelationResults? relations = null)
+        IRelationResults? relations = null, BimOpenFlow.GraphText.IRelationReader? relationText = null)
     {
         app.MapGet(ApiRoutes.GetAnalysisState, (string id) => ApiResults.Guard(() =>
             store.Exists(id)
@@ -30,7 +30,7 @@ internal static class EvalEndpoints
 
         app.MapGet(ApiRoutes.GetAnalysisText, (string id, string? mode) => ApiResults.Guard(() =>
             store.Exists(id)
-                ? Results.Text(AnalysisText(catalog, registry, sessions.Snapshot(id), id, mode), "text/plain")
+                ? Results.Text(AnalysisText(catalog, registry, sessions.Snapshot(id), id, mode, relationText), "text/plain")
                 : ApiResults.NotFound($"Analysis '{id}' not found")));
 
         app.MapGet(ApiRoutes.GetResult, (string id, string nodeId, string port, int? skip, int? take)
@@ -57,13 +57,16 @@ internal static class EvalEndpoints
     }
 
     /// <summary>The analysis and its latest evaluation as graph text (TKT-57); model roots print
-    /// as {MODELS}. Relations print their plan only, since Host.Api holds no relation reader.</summary>
-    private static string AnalysisText(ModelCatalog catalog, INodeRegistry registry, EvalSnapshot snapshot, string id, string? mode)
+    /// as {MODELS}. Relations print their row count and rows when the composition supplies a
+    /// reader (TKT-83); without one they print their plan only.</summary>
+    private static string AnalysisText(ModelCatalog catalog, INodeRegistry registry, EvalSnapshot snapshot,
+        string id, string? mode, BimOpenFlow.GraphText.IRelationReader? relationText)
         => BimOpenFlow.GraphText.GraphText.Print(snapshot.Document, snapshot, registry, new()
         {
             AnalysisId = id,
             Mode = mode == "debug" ? BimOpenFlow.GraphText.GraphTextMode.Debug : BimOpenFlow.GraphText.GraphTextMode.Golden,
             PathAliases = catalog.Roots.Select(r => new BimOpenFlow.GraphText.PathAlias(r, "{MODELS}")).ToList(),
+            Relations = relationText,
         });
 
     private static IResult GetResult(AnalysisStore store, INodeRegistry registry,

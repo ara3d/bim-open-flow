@@ -8,9 +8,18 @@ using BimOpenFlow.Relations.DuckDb;
 namespace BimOpenFlow.Host;
 
 /// <summary>Answers the API's relation questions from the rel.* pack's runtime: a page of
-/// rows is one limited query plus a count, and columns come from the inferred schema alone.</summary>
-public sealed class RelationHostResults(RelationRuntime runtime) : IRelationResults
+/// rows is one limited query plus a count, and columns come from the inferred schema alone.
+/// Also an <see cref="BimOpenFlow.GraphText.IRelationReader"/>, so the text endpoint can print
+/// a relation's row count and rows the same way the result peek does.</summary>
+public sealed class RelationHostResults(RelationRuntime runtime) : IRelationResults, BimOpenFlow.GraphText.IRelationReader
 {
+    long BimOpenFlow.GraphText.IRelationReader.Count(RelationValue relation)
+        => runtime.Count(PlanOf(relation));
+
+    Ara3D.DataTable.IDataTable BimOpenFlow.GraphText.IRelationReader.Rows(RelationValue relation, long limit)
+        => runtime.Materialize(PlanOf(relation), limit, 0);
+
+
     public TableSlice Slice(RelationValue relation, int skip, int take)
     {
         var plan = PlanOf(relation);

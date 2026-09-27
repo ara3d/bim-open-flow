@@ -33,7 +33,10 @@ public static class ApiServer
         app.MapDocumentEndpoints(catalog, store, registry, sessions);
         app.MapModelBytes(catalog);
         app.MapEntityProperties(catalog);
-        app.MapEvalEndpoints(catalog, store, registry, sessions, relations);
+        // The composition's IRelationResults doubles as a GraphText.IRelationReader when it
+        // knows how to execute relations (RelationHostResults); the text endpoint uses it to
+        // print a relation's row count and rows instead of its plan alone.
+        app.MapEvalEndpoints(catalog, store, registry, sessions, relations, relations as BimOpenFlow.GraphText.IRelationReader);
         app.MapSuggestEndpoints(store, registry, sessions, fileTables, relations);
         app.MapSessionEndpoints(editor);
         return app;

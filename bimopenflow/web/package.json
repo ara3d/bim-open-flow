@@ -20,6 +20,7 @@
     "ifc:mcp-build": "dotnet build ../../src/mcp/BimOpenMcp.Ifc -o ../../artifacts/bim-flow-ifc/mcp --verbosity quiet",
     "ifc:mcp-demo": "node ../../scripts/demo-ifc-mcp.mjs",
     "ifc:ask-build": "dotnet build ../../src/studio/BimOpenMcp.Ifc.Ask -o ../../artifacts/bim-flow-ifc/ask --verbosity quiet",
-    "nrc:walkthrough": "node ../../scripts/nrc-walkthrough.mjs"
+    "nrc:walkthrough": "node ../../scripts/nrc-walkthrough.mjs",
+    "nrc:walkthrough:duplex": "node ../../scripts/nrc-walkthrough.mjs --skip-snowdon"
   }
 }

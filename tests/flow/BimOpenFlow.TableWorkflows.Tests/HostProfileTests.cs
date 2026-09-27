@@ -36,6 +36,9 @@ public sealed class HostProfileTests
         // Relations pack
         "rel.csv", "rel.table", "rel.fromTable", "rel.sql", "rel.select", "rel.filter", "rel.derive",
         "rel.sort", "rel.limit", "rel.aggregate", "rel.join", "rel.materialize",
+        // Spatial pack
+        "spatial.contains", "spatial.footprint", "spatial.intersects", "spatial.nearest",
+        "spatial.polygonContains", "spatial.polygonIntersects", "spatial.polygon", "spatial.within",
     ];
 
     [Test]

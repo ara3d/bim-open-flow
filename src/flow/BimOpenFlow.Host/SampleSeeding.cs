@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Ara3D.DataFlowEngine.Abstractions;
 using Ara3D.NodeGraph;
 using BimOpenFlow.Host.Store;
@@ -86,6 +87,11 @@ public static class SampleSeeding
             ? []
             : sources.SelectMany(s => Seed(store, s.AnalysesDir, s.Placeholder, s.TargetDir, registry, log ?? TextWriter.Null)).ToList();
 
+    /// <summary>A {WORD} placeholder still literally present in a parameter value: the profile
+    /// named no target directory for it (e.g. {FEDERATION_CONFIRMATIONS}), so any node reading
+    /// that parameter fails with "file not found" against the placeholder text itself.</summary>
+    private static readonly Regex UnresolvedPlaceholder = new("\\{[A-Z_]+\\}", RegexOptions.Compiled);
+
     private static IEnumerable<string> Seed(AnalysisStore store, string analysesDir, string placeholder, string targetDir,
         INodeRegistry? registry, TextWriter log)
     {
@@ -95,6 +101,11 @@ public static class SampleSeeding
         {
             var id = Path.GetFileNameWithoutExtension(file);
             var doc = RewritePaths(GraphDocumentIO.Load(file), placeholder, targetDir);
+            if (FirstUnresolvedPlaceholder(doc) is { } unresolved)
+            {
+                log.WriteLine($"  skipped sample analysis {id}: parameter still holds unresolved placeholder {unresolved}");
+                continue;
+            }
             var errors = registry is null ? [] : doc.Validate(registry);
             if (errors.Count > 0)
             {
@@ -105,6 +116,15 @@ public static class SampleSeeding
             yield return id;
         }
     }
+
+    /// <summary>The first {WORD} placeholder any parameter value still holds after rewriting,
+    /// or null when every placeholder the graph names resolved to a real path.</summary>
+    private static string? FirstUnresolvedPlaceholder(GraphDocument doc)
+        => doc.Values.Values
+            .SelectMany(p => p.Values)
+            .Select(v => UnresolvedPlaceholder.Match(v))
+            .FirstOrDefault(m => m.Success)
+            ?.Value;
 
     /// <summary>A copy of the document with {SAMPLES} in every parameter value
     /// replaced by the given directory (forward slashes, no trailing slash).</summary>

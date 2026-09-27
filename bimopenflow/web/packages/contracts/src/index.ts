@@ -168,6 +168,13 @@ export interface NodeState {
 export interface EvalUpdate {
   analysisId: string;
   nodes: NodeState[];
+  graphHash?: string | undefined;
+}
+
+export interface EditorSession {
+  analysisId?: string | undefined;
+  selection: string[];
+  updatedUtc?: string | undefined;
 }
 
 export interface TableSlice {

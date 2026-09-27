@@ -112,6 +112,7 @@ for (const e of endpoints) {
   const pp = pathParams(e.path);
   const args = pp.map((p) => `${p}: string`);
   if (e.body === "text") args.push(`body: string`);
+  else if (e.body) args.push(`body: ${tsType(e.body)}`);
   const queryKeys = Object.keys(e.query ?? {});
   for (const [k, t] of Object.entries(e.query ?? {})) args.push(`${k}?: ${tsType(t.replace(/\?$/, ""))}`);
   const pathExpr = "`" + e.path.replace(/\{(\w+)\}/g, "${encodeURIComponent($1)}") + "`";
@@ -139,7 +140,7 @@ for (const e of endpoints) {
 `;
     continue;
   }
-  const bodyArg = e.body === "text" ? "body" : "undefined";
+  const bodyArg = e.body === "text" ? "body" : e.body ? "JSON.stringify(body)" : "undefined";
   const retType = e.response === "text" ? "string" : tsType(e.response);
   const parse = e.response === "text" ? "res.text()" : `res.json() as Promise<${retType}>`;
   tsEp += `  async ${e.name}(${args.join(", ")}): Promise<${retType}> {
@@ -153,7 +154,7 @@ tsEp += `}\n`;
 
 const tsClient = `// Generated from contracts/contracts.json v${idl.version} by contracts/generate.mjs.
 // Do not edit by hand.
-import type { ${[...new Set(endpoints.flatMap((e) => [e.response, e.sse].filter((t) => t && t !== "text" && t !== "bytes").map((t) => parseType(t).core)))].join(", ")} } from "@bimopenflow/contracts";
+import type { ${[...new Set(endpoints.flatMap((e) => [e.response, e.sse, e.body].filter((t) => t && t !== "text" && t !== "bytes").map((t) => parseType(t).core)))].join(", ")} } from "@bimopenflow/contracts";
 
 ${tsEp}`;
 

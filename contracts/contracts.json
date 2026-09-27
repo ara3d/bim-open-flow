@@ -104,7 +104,13 @@
     },
     "EvalUpdate": {
       "analysisId": "string",
-      "nodes": "NodeState[]"
+      "nodes": "NodeState[]",
+      "graphHash": "string?"
+    },
+    "EditorSession": {
+      "analysisId": "string?",
+      "selection": "string[]",
+      "updatedUtc": "string?"
     },
     "TableSlice": {
       "columns": "ColumnSchema[]",
@@ -140,6 +146,8 @@
     { "name": "listRuns", "method": "GET", "path": "/api/analyses/{id}/runs", "response": "RunSummary[]" },
     { "name": "createRun", "method": "POST", "path": "/api/analyses/{id}/runs", "response": "RunSummary" },
     { "name": "getRun", "method": "GET", "path": "/api/analyses/{id}/runs/{fileName}", "response": "text" },
-    { "name": "analysisEvents", "method": "GET", "path": "/api/analyses/{id}/events", "sse": "EvalUpdate" }
+    { "name": "analysisEvents", "method": "GET", "path": "/api/analyses/{id}/events", "sse": "EvalUpdate" },
+    { "name": "getSession", "method": "GET", "path": "/api/session", "response": "EditorSession" },
+    { "name": "putSession", "method": "PUT", "path": "/api/session", "body": "EditorSession", "response": "EditorSession" }
   ]
 }

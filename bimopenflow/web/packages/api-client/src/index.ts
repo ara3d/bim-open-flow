@@ -1,6 +1,6 @@
 // Generated from contracts/contracts.json v0.1.0 by contracts/generate.mjs.
 // Do not edit by hand.
-import type { ModelSummary, EntityProperties, AnalysisSummary, AnalysisVersion, NodeCatalog, EvalUpdate, TableSlice, SuggestionList, RunSummary } from "@bimopenflow/contracts";
+import type { ModelSummary, EntityProperties, AnalysisSummary, AnalysisVersion, NodeCatalog, EvalUpdate, TableSlice, SuggestionList, RunSummary, EditorSession } from "@bimopenflow/contracts";
 
 export interface ApiClientOptions {
   baseUrl?: string;
@@ -104,6 +104,16 @@ export class ApiClient {
     source.onmessage = (m) => onEvent(JSON.parse(m.data) as EvalUpdate);
     if (onError) source.onerror = onError;
     return () => source.close();
+  }
+
+  async getSession(): Promise<EditorSession> {
+    const res = await this.request("GET", `/api/session`, undefined, undefined);
+    return res.json() as Promise<EditorSession>;
+  }
+
+  async putSession(body: EditorSession): Promise<EditorSession> {
+    const res = await this.request("PUT", `/api/session`, undefined, JSON.stringify(body));
+    return res.json() as Promise<EditorSession>;
   }
 
 }

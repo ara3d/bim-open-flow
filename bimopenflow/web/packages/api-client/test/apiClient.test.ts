@@ -36,6 +36,8 @@ const calls: Record<string, { args: string[]; invoke: (api: ApiClient) => Promis
     args: ["m 1", "1234"],
     invoke: (api) => api.getEntityProperties("m 1", "1234"),
   },
+  getSession: { args: [], invoke: (api) => api.getSession() },
+  putSession: { args: [], invoke: (api) => api.putSession({ selection: [] }) },
 };
 
 function clientWith(body: string, status = 200) {
@@ -65,6 +67,15 @@ describe("ApiClient against contracts.json", () => {
     expect(fetchFn.mock.calls[0]![1]).toMatchObject({ body: '{"a":1}', headers: { "content-type": "application/json" } });
     await api.listModels();
     expect(fetchFn.mock.calls[1]![1]?.body).toBeUndefined();
+  });
+
+  it("sends a typed body as a JSON-stringified object", async () => {
+    const { api, fetchFn } = clientWith("{}");
+    await api.putSession({ analysisId: "a", selection: [] });
+    expect(fetchFn.mock.calls[0]![1]).toMatchObject({
+      body: '{"analysisId":"a","selection":[]}',
+      headers: { "content-type": "application/json" },
+    });
   });
 
   it("appends only the query parameters that are set", async () => {

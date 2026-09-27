@@ -2,6 +2,7 @@ using System.Globalization;
 using Ara3D.DataFlowEngine;
 using Ara3D.DataFlowEngine.Abstractions;
 using Ara3D.DataTable;
+using Ara3D.NodeGraph;
 using BimOpenFlow.Contracts;
 using BimOpenFlow.Host.Catalog;
 using ModelKind = BimOpenFlow.Contracts.ModelKind;
@@ -37,7 +38,8 @@ public static class ApiMapping
         => new(analysisId, snapshot.Results.Values
             .OrderBy(r => r.NodeId, StringComparer.Ordinal)
             .Select(ToNodeState)
-            .ToList());
+            .ToList(),
+            snapshot.Document.ComputeGraphHash());
 
     public static NodeState ToNodeState(this NodeResult result)
         => new(result.NodeId, result.Status.ByName<NodeStatus>(), result.Error, result.Warnings);

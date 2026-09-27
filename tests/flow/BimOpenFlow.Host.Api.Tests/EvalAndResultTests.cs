@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Ara3D.NodeGraph;
 using static BimOpenFlow.Host.Api.Tests.TestGraphs;
 
 namespace BimOpenFlow.Host.Api.Tests;
@@ -17,6 +18,18 @@ public sealed class EvalAndResultTests
         var nodes = doc.RootElement.GetProperty("nodes").EnumerateArray().ToList();
         Assert.That(nodes.Select(n => n.GetProperty("nodeId").GetString()), Is.EqualTo(new[] { "c", "n" }));
         Assert.That(nodes.Select(n => n.GetProperty("status").GetString()), Has.All.EqualTo("Ok"));
+    }
+
+    [Test]
+    public async Task State_GraphHashMatchesThePutResponse()
+    {
+        var putResponse = await PutText("/api/analyses/graphhash-case", ConstNegate().ToCanonicalJson());
+        Assert.That((int)putResponse.StatusCode, Is.EqualTo(200));
+        using var putBody = JsonDocument.Parse(await putResponse.Content.ReadAsStringAsync());
+        var putHash = putBody.RootElement.GetProperty("graphHash").GetString();
+
+        using var state = await GetJson("/api/analyses/graphhash-case/state");
+        Assert.That(state.RootElement.GetProperty("graphHash").GetString(), Is.EqualTo(putHash));
     }
 
     [Test]

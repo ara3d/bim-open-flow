@@ -175,7 +175,13 @@ public sealed record NodeState(
 
 public sealed record EvalUpdate(
     string AnalysisId,
-    IReadOnlyList<NodeState> Nodes);
+    IReadOnlyList<NodeState> Nodes,
+    string? GraphHash);
+
+public sealed record EditorSession(
+    string? AnalysisId,
+    IReadOnlyList<string> Selection,
+    string? UpdatedUtc);
 
 public sealed record TableSlice(
     IReadOnlyList<ColumnSchema> Columns,
@@ -212,5 +218,7 @@ public static class ApiRoutes
     public const string CreateRun = "/api/analyses/{id}/runs";
     public const string GetRun = "/api/analyses/{id}/runs/{fileName}";
     public const string AnalysisEvents = "/api/analyses/{id}/events";
+    public const string GetSession = "/api/session";
+    public const string PutSession = "/api/session";
 }
 

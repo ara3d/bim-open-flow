@@ -194,6 +194,60 @@ describe("BarChart", () => {
     expect(bars[0].getAttribute("data-value")).toBe("5");
   });
 
+  it("fills bars from barColors, leaving null entries on the default", () => {
+    const { container } = mountChart(data, {
+      barColors: ["rgb(1,2,3)", null, "rgb(4,5,6)"],
+    });
+    const bars = [...container.querySelectorAll("rect.bof-viz-bar")];
+    expect(bars).toHaveLength(3);
+    expect(bars[0].getAttribute("style")).toBe("fill: rgb(1,2,3)");
+    expect(bars[1].getAttribute("style")).toBeNull();
+    expect(bars[2].getAttribute("style")).toBe("fill: rgb(4,5,6)");
+  });
+
+  it("keeps barColors indexed by source row when a non-finite row is skipped", () => {
+    const withGap: TableData = {
+      columns: [
+        { name: "Category", type: "Text" },
+        { name: "Value", type: "Number" },
+      ],
+      rows: [
+        ["A", 5],
+        ["B", NaN],
+        ["C", 2],
+      ],
+    };
+    const { container } = mountChart(withGap, {
+      barColors: ["rgb(1,2,3)", "rgb(9,9,9)", "rgb(4,5,6)"],
+    });
+    const bars = [...container.querySelectorAll("rect.bof-viz-bar")];
+    expect(bars).toHaveLength(2);
+    expect(bars[0].getAttribute("style")).toBe("fill: rgb(1,2,3)");
+    expect(bars[1].getAttribute("style")).toBe("fill: rgb(4,5,6)");
+  });
+
+  it("ignores barColors for multi-series charts", () => {
+    const multi: TableData = {
+      columns: [
+        { name: "Category", type: "Text" },
+        { name: "a", type: "Number" },
+        { name: "b", type: "Number" },
+      ],
+      rows: [
+        ["A", 1, 2],
+        ["B", 3, 4],
+      ],
+    };
+    const { container } = mountChart(multi, {
+      seriesColumns: ["a", "b"],
+      barColors: ["rgb(1,2,3)", "rgb(4,5,6)"],
+    });
+    const bars = [...container.querySelectorAll("rect.bof-viz-bar")];
+    expect(bars).toHaveLength(4);
+    expect(bars[0].getAttribute("style")).toContain("--bof-viz-series-0");
+    expect(bars[1].getAttribute("style")).toContain("--bof-viz-series-1");
+  });
+
   it("respects explicit column options", () => {
     const swapped: TableData = {
       columns: [

@@ -28,6 +28,8 @@ export interface BarChartOptions {
    * category column (falls back to valueColumn when that is set).
    */
   seriesColumns?: string[];
+  /** CSS fill per row for single-series charts; null or missing entries keep the default. Ignored with several series. */
+  barColors?: readonly (string | null)[];
 }
 
 const MARGIN = { top: 16, right: 12, bottom: 28, left: 48 };
@@ -188,6 +190,9 @@ export const BarChart = defineComponent<TableData, BarChartOptions>(
           if (!single) {
             attrs.style = `fill: var(--bof-viz-series-${k % 8})`;
             attrs["data-series"] = data.columns[s].name;
+          } else {
+            const barColor = options?.barColors?.[i];
+            if (barColor) attrs.style = `fill: ${barColor}`;
           }
           svg.appendChild(svgEl(doc, "rect", attrs));
           if (single)

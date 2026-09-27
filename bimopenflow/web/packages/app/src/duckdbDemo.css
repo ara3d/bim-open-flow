@@ -7,7 +7,13 @@
 .duck-ask { display: flex; gap: 6px; align-items: center; margin: 0 8px; }
 .duck-ask input { width: 380px; max-width: 40vw; padding: 3px 8px; font: 13px Inter, 'Segoe UI', system-ui, sans-serif; border: 1px solid #b9c3bd; border-radius: 4px; }
 .duck-ask input:disabled, .duck-ask button:disabled { opacity: 0.6; }
-#duck-ask-log:not([hidden]) { max-height: 180px; overflow: auto; padding: 6px 16px; background: #f4f7f5; border-bottom: 1px solid #d5ddd8; font: 12px/1.5 ui-monospace, Consolas, 'Cascadia Mono', monospace; color: #2b3b32; }
+/* A fixed height (not max-height) so the log's flex-basis never depends on
+   how many lines have streamed in: with max-height, the box grew toward
+   180px one event at a time and shrank the editor above it on every event.
+   Reserved at this size as soon as the log is shown; overflow-y scrolls the
+   transcript internally and stays pinned to the newest line (see the
+   scrollTop assignment beside every appended line in duckdbDemo.ts). */
+#duck-ask-log:not([hidden]) { height: 180px; overflow-y: auto; padding: 6px 16px; background: #f4f7f5; border-bottom: 1px solid #d5ddd8; font: 12px/1.5 ui-monospace, Consolas, 'Cascadia Mono', monospace; color: #2b3b32; }
 .duck-ask-line { white-space: pre-wrap; word-break: break-word; }
 .duck-ask-you { font-weight: 600; }
 .duck-ask-note, .duck-ask-tool { color: #4b5d53; }

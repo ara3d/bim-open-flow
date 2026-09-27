@@ -86,7 +86,7 @@ interface AskEvent {
   outputTokens?: number;
 }
 
-function line(kind: string, text: string): HTMLElement {
+export function appendAskLine(kind: string, text: string): HTMLElement {
   const item = document.createElement('div');
   item.className = `duck-ask-line duck-ask-${kind}`;
   item.textContent = text;
@@ -126,7 +126,7 @@ async function ask(request: string, form: HTMLFormElement, followUp: HTMLInputEl
   const continuing = followUp.checked && lastAskId ? lastAskId : undefined;
   log.hidden = false;
   if (!continuing) log.replaceChildren();
-  line('you', `You: ${request}`);
+  appendAskLine('you', `You: ${request}`);
   let analysisId: string | undefined;
   try {
     const response = await host.fetch('/api/ask', {
@@ -140,20 +140,20 @@ async function ask(request: string, form: HTMLFormElement, followUp: HTMLInputEl
         case 'start':
           analysisId = event.analysisId;
           lastAskId = event.analysisId;
-          line('note', `${continuing ? 'Continuing' : 'Building'} "${event.analysisId}" with ${event.model}…`);
+          appendAskLine('note', `${continuing ? 'Continuing' : 'Building'} "${event.analysisId}" with ${event.model}…`);
           break;
         case 'tool':
-          line(event.ok ? 'tool' : 'bad', `→ ${event.name}(${shortArgs(event.args)})${event.summary ? `  · ${event.summary}` : ''}`);
+          appendAskLine(event.ok ? 'tool' : 'bad', `→ ${event.name}(${shortArgs(event.args)})${event.summary ? `  · ${event.summary}` : ''}`);
           break;
         case 'text':
-          line('agent', `Agent: ${event.text}`);
+          appendAskLine('agent', `Agent: ${event.text}`);
           break;
         case 'check':
-          line('bad', `Check: ${event.summary}`);
+          appendAskLine('bad', `Check: ${event.summary}`);
           break;
         case 'done': {
           const verdict = event.built ? (event.verified ? 'Done, checked' : `Done, unverified (${event.problem ?? 'see above'})`) : 'Answered';
-          line(event.built && !event.verified ? 'bad' : 'done', `${verdict} in ${event.turns} turns (${event.inputTokens} in, ${event.outputTokens} out): ${event.text}`);
+          appendAskLine(event.built && !event.verified ? 'bad' : 'done', `${verdict} in ${event.turns} turns (${event.inputTokens} in, ${event.outputTokens} out): ${event.text}`);
           if (event.built && event.analysisId && app) {
             await app.refreshAnalyses();
             await app.openAnalysis(event.analysisId);
@@ -161,12 +161,12 @@ async function ask(request: string, form: HTMLFormElement, followUp: HTMLInputEl
           break;
         }
         case 'error':
-          line('bad', `Error: ${event.message}`);
+          appendAskLine('bad', `Error: ${event.message}`);
           break;
       }
     });
   } catch (cause) {
-    line('bad', `Error: ${String(cause)}${analysisId ? ` (graph ${analysisId} may be partial)` : ''}`);
+    appendAskLine('bad', `Error: ${String(cause)}${analysisId ? ` (graph ${analysisId} may be partial)` : ''}`);
   } finally {
     controls.forEach(control => { control.disabled = false; });
     followUp.disabled = !lastAskId;
@@ -217,8 +217,8 @@ function mountAsk() {
     if (!response.ok) throw new Error('This host has no /api/ask; start the studio host (npm run duckdb:host).');
     const info = await response.json() as { model: string; provider?: string; configured: boolean; problem: string | null };
     input.title = `Model: ${info.model}${info.provider ? ` (${info.provider})` : ''}`;
-    if (!info.configured) { log.hidden = false; line('bad', info.problem ?? 'No model key is configured.'); }
-  }).catch(cause => { log.hidden = false; line('bad', `Ask is unavailable: ${cause instanceof Error ? cause.message : String(cause)}`); });
+    if (!info.configured) { log.hidden = false; appendAskLine('bad', info.problem ?? 'No model key is configured.'); }
+  }).catch(cause => { log.hidden = false; appendAskLine('bad', `Ask is unavailable: ${cause instanceof Error ? cause.message : String(cause)}`); });
 }
 
 async function start() {

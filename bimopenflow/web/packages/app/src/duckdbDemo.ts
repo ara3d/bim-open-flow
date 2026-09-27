@@ -4,12 +4,17 @@
 // MCP tools; the transcript streams in below the top bar and the new graph
 // opens when it is done.
 import { ApiClient } from '@bimopenflow/api-client';
-import { createApp, type App } from './app.js';
+import type { App } from './app.js';
 import { watchHost } from './hostStatus.js';
 import { mountHostBanner } from './topbar.js';
 import { startOnce } from './startOnce.js';
-import workflows from '../../../../../samples/duckdb-analyses/workflows.json';
 import './duckdbDemo.css';
+
+/** One entry of samples/duckdb-analyses/workflows.json, loaded lazily below. */
+interface Workflow {
+  id: string;
+  title: string;
+}
 
 const START = 'Run `npm run duckdb:host --prefix bimopenflow/web`, then reload this page.';
 const EXAMPLES = [
@@ -33,7 +38,9 @@ let app: App | undefined;
 let downloadUrl: string | undefined;
 /** The graph the last Ask built; a follow-up continues its conversation. */
 let lastAskId: string | undefined;
-const titles = new Map(workflows.map(workflow => [workflow.id, workflow.title]));
+// Populated once `start` loads the workflow list and the graph editor; until
+// then the topbar shows flow ids, which relabel() leaves alone.
+let titles = new Map<string, string>();
 
 function fail(message: string) {
   error.hidden = false;
@@ -224,8 +231,17 @@ function mountAsk() {
 async function start() {
   try {
     const available = await api.listAnalyses();
+    // The graph editor (app.js) and the sample workflow list are the heavy
+    // part of this page; loading them only once the host answers keeps an
+    // offline load (and a test that stubs a failing fetch) from paying for
+    // code neither one will use.
+    const [{ createApp }, { default: workflows }] = await Promise.all([
+      import('./app.js'),
+      import('../../../../../samples/duckdb-analyses/workflows.json') as Promise<{ default: Workflow[] }>,
+    ]);
     if (workflows.some(workflow => !available.some(item => item.id === workflow.id)))
       throw new Error('Demo workflows are missing.');
+    titles = new Map(workflows.map(workflow => [workflow.id, workflow.title]));
     app = createApp(editor, api, { graphDemo: true, tableOnly: true, autoLayout: true, initialAnalysis: workflows[0]!.id, heading: 'BimOpenFlow · Snowdon DuckDB', host });
     error.hidden = true;
     mountAsk();

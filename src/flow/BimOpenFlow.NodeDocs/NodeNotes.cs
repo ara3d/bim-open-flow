@@ -53,7 +53,38 @@ public static class NodeNotes
             + "min..max range; text values map categorically, with palette indices assigned by "
             + "sorted distinct value so colors are stable under row reordering. A non-numeric "
             + "value column with a gradient colorMap warns and falls back to category10. "
-            + "Instance rows with no match in the value table get gray; alpha is always 1.",
+            + "Instance rows with no match in the value table get gray; alpha is always 1. "
+            + "With `auto` false, the gradient's domain is the manual `min`..`max` instead of "
+            + "the column's own range; values outside it take the end colours and are counted "
+            + "in the `legend` output's below/above rows, with one warning naming the count. "
+            + "`min >= max` warns and falls back to the automatic domain. An optional `scale` "
+            + "input (typically `view.colormap`'s `legend`, so this pane and a chart share one "
+            + "domain) replaces the node's own scale entirely — `auto`/`min`/`max`/`colorMap` "
+            + "are ignored (with a warning when `auto` is false) and the scale's own value "
+            + "column is used, with a warning if `valueColumn` names a different one. Either "
+            + "way, `legend` reports the domain actually used — `auto`, `manual`, or "
+            + "`categorical` — so a clamped manual domain is visible instead of silent.",
+
+        // ── Viz ─────────────────────────────────────────────────────────────
+
+        ["view.colormap"] =
+            "`ColorScale.Build` exposed as its own node, so a 3D pane and a chart pane over "
+            + "the same column share one colour scale: wire this node's `legend` output into "
+            + "both consumers' `scale` inputs and they colour identically and report the same "
+            + "domain. An unknown `valueColumn` warns and emits the empty legend table rather "
+            + "than failing the graph. `auto`/`min`/`max`/`colorMap` behave exactly as they do "
+            + "on `view3d.color`, including the clamp warning and the fallback to the "
+            + "automatic domain when `min >= max`.",
+
+        ["chart.bar"] =
+            "With a `scale` input, colours each bar by looking up the scale's column (or, if "
+            + "the projection dropped it, the first value column, with a warning) in the "
+            + "source table and appending `r g b` columns; pre-existing `r`, `g`, or `b` "
+            + "columns from the projection are dropped first, with a warning naming them. "
+            + "Bars outside the scale's domain warn once, by count. The scale is passed "
+            + "through unchanged on `legend`, so the chart and its source scale (or a 3D pane "
+            + "sharing it) report the same domain. Without a `scale` input, `legend` is the "
+            + "empty legend table and bars keep their default fill.",
 
         ["view3d.isolate"] =
             "The ids table is matched on its column with the same name as `joinColumn`, or its "

@@ -33,6 +33,10 @@ export interface CanvasExtraColors {
   readonly wireShadow: Color;
   /** Rubber wire once snapped to a valid socket. */
   readonly rubberSnap: Color;
+  /** The travelling highlight (or, under reduced motion, the static
+   *  highlight) painted on wires that feed the selected node, or a node the
+   *  host is currently evaluating. */
+  readonly wireFlow: Color;
   /** Background grid dot (alpha included). */
   readonly gridDot: Color;
 }
@@ -86,6 +90,7 @@ export const canvasThemes: Record<CanvasThemeName, CanvasTheme> = {
       wireSelected: rgb(191, 131, 26),
       wireShadow: calpha(rgb(0, 0, 0), 0.1),
       rubberSnap: rgb(34, 160, 80),
+      wireFlow: rgb(64, 140, 224),
       gridDot: calpha(rgb(190, 186, 178), 0.9),
     },
   },
@@ -103,6 +108,7 @@ export const canvasThemes: Record<CanvasThemeName, CanvasTheme> = {
       wireSelected: rgb(255, 200, 80),
       wireShadow: calpha(rgb(0, 0, 0), 0.25),
       rubberSnap: rgb(90, 220, 130),
+      wireFlow: rgb(120, 210, 255),
       gridDot: calpha(darkPalette.muted, 0.3),
     },
   },

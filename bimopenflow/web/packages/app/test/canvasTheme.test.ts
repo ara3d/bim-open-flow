@@ -18,7 +18,7 @@ const tokenKeys = [
 
 const statusKeys: NodeStatus[] = ["Ok", "Unready", "EffectPending", "Unavailable", "Error"];
 
-const extraKeys = ["status", "wire", "wireSelected", "wireShadow", "rubberSnap", "gridDot"] as const;
+const extraKeys = ["status", "wire", "wireSelected", "wireShadow", "rubberSnap", "wireFlow", "gridDot"] as const;
 
 const isColor = (c: unknown): c is Color =>
   typeof c === "object" && c !== null &&

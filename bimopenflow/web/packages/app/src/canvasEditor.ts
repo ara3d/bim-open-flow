@@ -39,6 +39,10 @@ export function createCanvasEditor(
   // after a doc swap (boot, flow open), freezing the canvas on ghost-faint
   // nodes until the next interaction. `ambient` holds the loop awake briefly
   // after every sync so entrances and theme fades always run to completion.
+  // The same clause also keeps it awake while a node is selected: that is
+  // exactly when the selection-border pulse and the TKT-24 wire-flow
+  // animation (upstreamEdges in canvasParts.ts) are both running, and both
+  // fall back to a static look under prefers-reduced-motion.
   let awakeUntil = 0;
   let holdRequested = true; // cover the very first frames after mount
   const runtime: Runtime<CanvasModel, CanvasIntent> = mount(canvas, {

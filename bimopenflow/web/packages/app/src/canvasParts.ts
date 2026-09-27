@@ -21,6 +21,7 @@ import {
   v,
   Vec,
   vdist,
+  wireAt,
   wireDist,
   withExt,
 } from "gratify";
@@ -32,6 +33,7 @@ import { slotElement } from "./slotRegistry.js";
 import { canvasColors } from "./canvasTheme.js";
 import { nodeTitle } from "./graphPreview";
 import { animateSelection, selectionBorder } from "./selectionBorder";
+import { upstreamEdges } from "./upstreamEdges.js";
 const selectedBorder = selectionBorder(() => canvasColors().wireSelected, animateSelection);
 import { anchorId, canConnect, parseAnchorId, type CanvasIntent } from "./canvasIntents.js";
 
@@ -251,7 +253,15 @@ interface WireProps {
   to: string;
   states?: Record<string, boolean>;
   contributing?: boolean;
+  /** On the upstream path that feeds the selected node, or a node the host
+   *  is currently evaluating (TKT-24). Painted as a travelling highlight, or
+   *  a static one under prefers-reduced-motion. */
+  flowing?: boolean;
 }
+
+/** How far along the wire (0..1) the travelling highlight sits at `time`,
+ *  looping every second so the eye reads it as flowing a -> b. */
+const flowT = (time: number): number => time - Math.floor(time);
 
 const Wire = part<WireProps, { color: Color; selected: number }>("bof-wire", {
   style: (t, channels) => {
@@ -275,6 +285,16 @@ const Wire = part<WireProps, { color: Color; selected: number }>("bof-wire", {
     if (!a || !b) return;
     painter.wire(a, b, canvasColors().wireShadow, 4);
     painter.wire(a, b, node.props.contributing ? canvasColors().wireSelected : calpha(style.color, 0.9), node.props.contributing ? 3 : 2 + 1.4 * style.selected + 0.8 * node.ch.hover);
+    if (node.props.flowing) {
+      const flow = canvasColors().wireFlow;
+      if (animateSelection()) {
+        const t = flowT((node.time ?? 0) / 1.4);
+        painter.dot(wireAt(a, b, t), 3.4, flow);
+        painter.dot(wireAt(a, b, flowT(t + 0.5)), 3.4, calpha(flow, 0.55));
+      } else {
+        painter.wire(a, b, calpha(flow, 0.85), 3);
+      }
+    }
   },
 
   on: [
@@ -308,6 +328,12 @@ const wireAnchorIds = (edge: CanvasEdge) => {
 };
 
 export function canvasView(model: CanvasModel): Element {
+  // The animated path (TKT-24): every wire feeding the selected node, so the
+  // owner can see at a glance what flows into it. Wired off `selected`, the
+  // same per-node flag selectionBorder pulses, not the 3D-view "contributing"
+  // preview above (a different, pre-existing highlight).
+  const selectedId = model.nodes.find((n) => n.selected)?.id ?? null;
+  const flowing = upstreamEdges(model, selectedId);
   return Surface("root", { selectedEdgeId: model.selectedEdgeId }, [
     Free("graph", {}, [
       ...model.edges.map((edge) => {
@@ -317,6 +343,7 @@ export function canvasView(model: CanvasModel): Element {
           from,
           to,
           contributing: edge.contributing,
+          flowing: flowing.has(edge.id),
           states: { sel: model.selectedEdgeId === edge.id },
         });
       }),

@@ -29,6 +29,7 @@ html, body { margin: 0; height: 100%; }
 .bof-app-main {
   display: grid;
   grid-template-columns: var(--bof-app-left) 6px minmax(0, 1fr) 6px var(--bof-app-right);
+  grid-template-rows: minmax(0, 1fr);
   min-height: 0;
 }
 .bof-app-topbar {
@@ -66,7 +67,7 @@ html, body { margin: 0; height: 100%; }
   margin: 8px 0 2px; font-size: 10px; text-transform: uppercase;
   letter-spacing: 0.06em; color: var(--bof-app-dim); flex: none;
 }
-.bof-app-canvas-host { position: relative; min-width: 0; }
+.bof-app-canvas-host { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
 .bof-app-canvas-host canvas { display: block; width: 100%; height: 100%; }
 .bof-app-graph-demo .bof-app-main { grid-template-columns: minmax(0, 1fr) 6px var(--bof-app-right); position: relative; }
 .bof-app-graph-demo .bof-app-sidebar { display: none; }

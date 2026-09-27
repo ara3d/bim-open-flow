@@ -11,12 +11,12 @@
 
 import { afterEach, describe, expect, it } from "vitest";
 import { rect, type Element, type GNode } from "gratify";
-import type { NodeDescriptor } from "@bimopenflow/contracts";
+import type { NodeDescriptor, ParamKind } from "@bimopenflow/contracts";
 import { createStore } from "@bimopenflow/state";
 import { makeCanvasUpdate, type CanvasIntent } from "../src/canvasIntents.js";
 import { buildCanvasModel, type CanvasModel } from "../src/viewModel.js";
-import { KIND_CONTROL, slotControl, type SlotContext } from "../src/canvasSlots.js";
-import { disposeSlots, slotElement, SLOT_FACTORIES } from "../src/slotRegistry.js";
+import { KIND_CONTROL, slotControl, type SlotContext, type CanvasParam } from "../src/canvasSlots.js";
+import { disposeSlots, slotElement } from "../src/slotRegistry.js";
 import { setInlineControlDispatch } from "../src/slotShared.js";
 
 afterEach(() => {
@@ -232,10 +232,26 @@ describe("disposeSlots", () => {
   });
 });
 
-describe("SLOT_FACTORIES", () => {
-  it("has a live factory for the control every ParamKind defaults to", () => {
-    for (const kind of Object.keys(KIND_CONTROL) as (keyof typeof KIND_CONTROL)[]) {
-      expect(typeof SLOT_FACTORIES[KIND_CONTROL[kind]]).toBe("function");
-    }
+describe("Unknown kinds", () => {
+  it("an unknown ParamKind falls back to field through slotElement", () => {
+    const { model } = setup();
+    const doc = model();
+
+    const unknownParam: CanvasParam = {
+      name: "color",
+      kind: "Color" as unknown as ParamKind,
+      value: "#ff8800",
+    };
+    const ctx: SlotContext = {
+      nodeId: "n1",
+      param: unknownParam,
+      w: 240,
+      open: false,
+    };
+
+    expect(slotControl(unknownParam)).toBe("field");
+    const element = slotElement(ctx);
+    const input = islandOf(element) as HTMLInputElement;
+    expect(input.type).toBe("text");
   });
 });

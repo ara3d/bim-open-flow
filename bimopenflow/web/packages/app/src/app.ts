@@ -33,6 +33,7 @@ import { createHostStatus, type HostStatusSource } from "./hostStatus.js";
 import { nodeTitle, upstreamIds } from "./graphPreview";
 import { primaryNodeId, reopenKeepingSelection, selectedNodeIds } from "./selection.js";
 import { createSessionReporter } from "./editorSession.js";
+import { defaultShownNode } from "./defaultShown.js";
 
 export interface App {
   openAnalysis(id: string): Promise<void>;
@@ -183,7 +184,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   let lastEval = store.getState().evalState;
   let lastDirty = false;
 
-  const shownFor = (state: State, nodeId: string) => ({
+  const shownFor = (state: State, nodeId: string, isDefault: boolean) => ({
     nodeId,
     desc: catalog.get(
       state.document.structure.nodes.find((n) => n.id === nodeId)?.kind ?? "",
@@ -197,15 +198,18 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       const node = state.document.structure.nodes.find(n=>n.id===id);
       return node ? nodeTitle(node.kind) : id;
     }).join(" → "),
+    default: isDefault,
   });
 
   const unsubscribe = store.subscribe(() => {
     const state = store.getState();
     topbar.setDirty(state.dirty);
     if (state.evalState !== lastEval) refreshColumnOptions();
-    // Keep the last preview visible while panning or clearing graph selection.
-    const primary = primaryNodeId(state) ?? (options.graphDemo &&
-      state.document.structure.nodes.some(n => n.id === lastPrimary) ? lastPrimary : null);
+    // Nothing selected: fall back to the graph's answer node (TKT-46) so the
+    // pane area shows an answer instead of going blank; selection stays
+    // empty either way (no dispatch here), so this is display only.
+    const selected = primaryNodeId(state);
+    const shownId = selected ?? defaultShownNode(state.document, state.evalState, catalog, lastPrimary);
     const dataChanged = state.document !== lastDoc || state.evalState !== lastEval || state.dirty !== lastDirty;
     if (options.graphDemo && state.document !== lastDoc) {
       preview.replaceChildren(...state.document.structure.nodes.map(n => {
@@ -215,17 +219,17 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
         return option;
       }));
     }
-    preview.value = primary ?? "";
-    if (primary === null) {
+    preview.value = shownId ?? "";
+    if (shownId === null) {
       if (lastPrimary !== null) paneArea.showNode(null);
-    } else if (primary !== lastPrimary || dataChanged) {
-      paneArea.showNode(shownFor(state, primary));
+    } else if (shownId !== lastPrimary || dataChanged) {
+      paneArea.showNode(shownFor(state, shownId, selected === null));
     } else {
       paneArea.updateSelection(resultSelection);
     }
     lastDoc = state.document;
     lastEval = state.evalState;
-    lastPrimary = primary;
+    lastPrimary = shownId;
     lastDirty = state.dirty;
     // Report whenever the selected nodes or the open analysis changed
     // (openAnalysis itself reports too, for the case the store does not fire).

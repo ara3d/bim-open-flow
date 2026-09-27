@@ -57,6 +57,9 @@ interface ShownNode {
   pending?: boolean;
   live?: LiveViewRecipe;
   lineage?: string;
+  /** True when this node is shown because nothing is selected (TKT-46):
+   *  the panes display it, but the selection stays empty. */
+  default?: boolean;
 }
 
 export interface PaneAreaDeps {
@@ -231,7 +234,13 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
       shown = next;
       const live = next?.live;
       const error = live?.kind === "invalid" ? live.message : live?.kind === "ready" ? null : next?.state && !hasResults(next.state) ? next.state.error ?? next.state.status : null;
-      source.textContent = next ? `Preview: ${nodeTitle(next.desc?.kind ?? "")} (${next.nodeId}) · ${error ?? (next.pending ? "live · saving…" : "live graph output")}${next.lineage ? `\n${next.lineage}` : ""}` : "";
+      // Shown by default (nothing selected): a quiet one-line header naming
+      // the node, not the detailed preview/lineage line a selection gets.
+      source.textContent = !next
+        ? ""
+        : next.default
+        ? `Showing ${nodeTitle(next.desc?.kind ?? "")} (${next.nodeId}) · nothing selected`
+        : `Preview: ${nodeTitle(next.desc?.kind ?? "")} (${next.nodeId}) · ${error ?? (next.pending ? "live · saving…" : "live graph output")}${next.lineage ? `\n${next.lineage}` : ""}`;
       source.setAttribute("role", error ? "alert" : "status");
       body.style.visibility = error ? "hidden" : "";
       if (!next) {

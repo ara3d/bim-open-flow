@@ -223,3 +223,31 @@ describe("createPaneArea chart wiring", () => {
     area.dispose();
   });
 });
+
+describe("createPaneArea default-shown header (TKT-46)", () => {
+  it("shows a quiet header naming the node when shown by default", async () => {
+    const { root, area } = makeArea();
+    area.showNode({
+      nodeId: "n1",
+      desc: desc("table.select"),
+      values: {},
+      state: okState,
+      default: true,
+    });
+    await settle();
+    expect(root.querySelector(".bof-app-preview-source")?.textContent).toBe(
+      "Showing table.select (n1) · nothing selected",
+    );
+    area.dispose();
+  });
+
+  it("shows the detailed preview line, not the default header, once selected", async () => {
+    const { root, area } = makeArea();
+    area.showNode({ nodeId: "n1", desc: desc("table.select"), values: {}, state: okState });
+    await settle();
+    const text = root.querySelector(".bof-app-preview-source")?.textContent ?? "";
+    expect(text.startsWith("Preview:")).toBe(true);
+    expect(text).not.toContain("nothing selected");
+    area.dispose();
+  });
+});

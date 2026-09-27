@@ -58,6 +58,9 @@ npm run -w @bimopenflow/app build   # vite production build
   node kind, the tab strip + single active pane, and the `PaneContext`
   bridging `requestTable` to `getResult`. Full docking is deferred by design
   (its right home is gratify — see `docs/bimopenflow-structure.md`).
+- `defaultShown.ts` — which node the panes show when nothing is selected
+  (TKT-46): the last shown node if it still exists, else the best terminal
+  node in the document.
 - `sidebar.ts` / `topbar.ts` / `toast.ts` — chrome: analysis list, catalog
   search, picker/save/run/connection status, notifications.
 - `app.ts` — the controller wiring all of the above around one `ApiClient`.

@@ -4,6 +4,7 @@
 
 import { afterEach, describe, expect, it } from "vitest";
 import { fitText, rect, tokens, v, type Element, type GNode } from "gratify";
+import { canvasThemes, currentCanvasTheme } from "../src/canvasTheme.js";
 import { longTextSlot, pruneLongValueEditors } from "../src/canvasLongSlot.js";
 import type { CanvasIntent } from "../src/canvasIntents.js";
 import type { SlotContext } from "../src/canvasSlots.js";
@@ -136,6 +137,27 @@ describe("longTextSlot (headless)", () => {
     textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
 
     expect(intents).toEqual([{ kind: "closeEditor" }]);
+  });
+
+  it("styles the textarea from the canvas theme without breaking its flex layout", () => {
+    // Regression for design note 3: the editor's textarea used to keep
+    // longValueEditor.ts's fixed dark palette instead of following the
+    // canvas theme (light/dark), because nothing ever called styleIsland on
+    // it. styleIsland replaces the whole cssText, so the flex sizing the
+    // wrapper's layout depends on must survive the call.
+    const element = longTextSlot(ctx(true));
+    const island = element.part.island!(slotNode(element))!;
+    const textarea = (island.el as HTMLElement).querySelector("textarea") as HTMLTextAreaElement;
+
+    // longValueEditor.ts's own fixed dark border (#5b6472, i.e. rgb(91, 100,
+    // 114)) would still pass a mere "is a border set" check, so compare
+    // against the theme's actual muted color instead of the editor's
+    // built-in default. jsdom re-serializes the color, so compare the parsed
+    // rgb() triple rather than the exact css() string.
+    const muted = canvasThemes[currentCanvasTheme()].palette.muted;
+    expect(textarea.style.borderColor).toBe(`rgb(${muted.r}, ${muted.g}, ${muted.b})`);
+    expect(textarea.style.flex).toBe("1 1 auto");
+    expect(textarea.style.resize).toBe("none");
   });
 
   it("prune disposes a row that is no longer live", () => {

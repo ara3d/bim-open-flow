@@ -12,12 +12,13 @@
 // the transition into "open" — calling it every frame would overwrite
 // whatever the user is mid-typing.
 
-import { Element, GNode, Press, part, rect, v, Color, fitText } from "gratify";
+import { Element, GNode, Press, part, rect, v, Color, fitText, themeVersion } from "gratify";
 import type { CanvasIntent } from "./canvasIntents.js";
 import { FIELD_SLOT_H, previewText, type SlotContext } from "./canvasSlots.js";
+import { canvasThemes, currentCanvasTheme } from "./canvasTheme.js";
 import { createLongValueEditor, type LongValueEditor } from "./longValueEditor.js";
 import { paramLabel } from "./numericParam.js";
-import { dispatchInline, islandKey } from "./slotShared.js";
+import { dispatchInline, islandKey, styleIsland } from "./slotShared.js";
 
 const LABEL_SIZE = 14;
 const VALUE_SIZE = 14;
@@ -36,6 +37,23 @@ interface LongSlotStyle {
 /** One editor per row key, same lifetime rule as canvasControls.ts's islands. */
 const editors = new Map<string, LongValueEditor>();
 
+/** The theme version last applied to each editor's textarea, the same
+ *  restyle-on-change rule canvasControls.ts's inline islands use. */
+const editorThemeV = new Map<string, number>();
+
+/** styleIsland replaces the textarea's whole cssText with the theme's border,
+ *  background, and text colour, so the flex sizing longValueEditor.ts's
+ *  layout depends on, and the monospace font a JSON or expression value
+ *  reads better in, have to be reapplied after it, not instead of it. */
+function styleEditorTextarea(editor: LongValueEditor): void {
+  const ta = editor.textarea;
+  styleIsland(ta, canvasThemes[currentCanvasTheme()].palette);
+  ta.style.flex = "1 1 auto";
+  ta.style.resize = "none";
+  ta.style.fontFamily = "ui-monospace, 'Cascadia Code', monospace";
+  ta.style.fontSize = "13px";
+}
+
 /** Lazily creates the row's editor and opens it exactly once per opening. */
 function editorFor(ctx: SlotContext): LongValueEditor {
   const key = islandKey(ctx.nodeId, ctx.param.name);
@@ -43,6 +61,10 @@ function editorFor(ctx: SlotContext): LongValueEditor {
   if (!editor) {
     editor = createLongValueEditor(document);
     editors.set(key, editor);
+  }
+  if (editorThemeV.get(key) !== themeVersion) {
+    editorThemeV.set(key, themeVersion);
+    styleEditorTextarea(editor);
   }
   if (!editor.isOpen()) {
     const { nodeId, param } = ctx;
@@ -118,6 +140,7 @@ export function pruneLongValueEditors(liveKeys: ReadonlySet<string>): void {
     if (!liveKeys.has(key)) {
       editor.dispose();
       editors.delete(key);
+      editorThemeV.delete(key);
     }
   }
 }

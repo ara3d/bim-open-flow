@@ -81,7 +81,7 @@ public sealed class AskAgent(McpServer tools, IChatModel chat, int maxTurns = As
                 });
             }
         }
-        throw new InvalidOperationException($"Stopped after {maxTurns} model turns without a final answer.");
+        throw new InvalidOperationException(TurnLimitMessage(maxTurns));
     }
 
     /// <summary>The server's tools/list in the loop's tool shape (see <see cref="IChatModel"/>).</summary>
@@ -126,6 +126,13 @@ public sealed class AskAgent(McpServer tools, IChatModel chat, int maxTurns = As
             return (false, $"{{\"ok\":false,\"error\":{JsonSerializer.Serialize(message)}}}", message);
         }
         var text = response["result"]?["content"]?[0]?["text"]?.GetValue<string>() ?? "";
+        return ReadResult(name, text);
+    }
+
+    /// <summary>Reads a tool's result text as the loop does: the envelope compacted when it parses,
+    /// ok from its 'ok' flag, and Summarize's one line; text that is not an envelope is a failure.</summary>
+    public static (bool Ok, string Result, string Summary) ReadResult(string name, string text)
+    {
         var envelope = TryParse(text);
         if (envelope is null)
             return (false, text, Truncate(text, SummaryLength));
@@ -133,6 +140,11 @@ public sealed class AskAgent(McpServer tools, IChatModel chat, int maxTurns = As
         // Compact: the server pretty-prints, and the model pays per token.
         return (ok, envelope.ToJsonString(), ok ? Summarize(name, envelope["data"]) : envelope["error"]?.GetValue<string>() ?? text);
     }
+
+    /// <summary>The exact wording the in-process loop throws when the model never
+    /// finishes within the turn budget, so the Claude Code backend can match it.</summary>
+    public static string TurnLimitMessage(int maxTurns)
+        => $"Stopped after {maxTurns} model turns without a final answer.";
 
     private JsonObject Rpc(string method, JsonObject parameters)
     {

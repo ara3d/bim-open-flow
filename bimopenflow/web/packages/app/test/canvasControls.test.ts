@@ -91,6 +91,36 @@ describe("inline node controls (headless)", () => {
     expect(intents.at(-1)).toMatchObject({value:"world"});
   });
 
+  it("a FilePath field shows the file name, the full path on hover, and the full path once focused", () => {
+    const path = "C:/Users/cdigg/git/bim-open-toolkit/samples/duplex-enriched.ifc";
+    const element = slotElement({ nodeId: "f", param: { name: "path", kind: "FilePath", value: path }, w: 240, open: false });
+    const input = inputFor(element)!;
+
+    expect(input.value).toBe("duplex-enriched.ifc");
+    expect(input.title).toBe(path);
+
+    input.dispatchEvent(new Event("focus"));
+    expect(input.value).toBe(path);
+
+    input.dispatchEvent(new Event("blur"));
+    expect(input.value).toBe("duplex-enriched.ifc");
+  });
+
+  it("committing a FilePath edit dispatches the full path and redisplays the file name", () => {
+    const intents: CanvasIntent[] = [];
+    setInlineControlDispatch((intent) => intents.push(intent));
+    const element = slotElement({ nodeId: "f", param: { name: "path", kind: "FilePath", value: "old.ifc" }, w: 240, open: false });
+    const input = inputFor(element)!;
+
+    input.dispatchEvent(new Event("focus"));
+    input.value = "C:/models/new.ifc";
+    input.dispatchEvent(new Event("change"));
+
+    expect(intents.at(-1)).toEqual({ kind: "setParam", nodeId: "f", name: "path", value: "C:/models/new.ifc" });
+    expect(input.value).toBe("new.ifc");
+    expect(input.title).toBe("C:/models/new.ifc");
+  });
+
   it("replacing an open enum under the same key restores native input islands", () => {
     const dropdown = slotElement({nodeId:"same", param:{name:"value",kind:"Enum",value:"a",enumValues:["a","b"]}, w:240, open:false});
     dropdown.part.reduce!({open:false},{kind:"toggle"},slotNode(dropdown));

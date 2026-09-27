@@ -34,3 +34,13 @@ export function fromDatetimeLocal(value: string): string {
   const m = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})(:\d{2})?$/.exec(value);
   return m ? `${m[1]}${m[2] ?? ":00"}` : "";
 }
+
+/** A FilePath canonical value's last path segment (either separator); the
+ *  whole value, unchanged, when it holds no separator. Used to keep a node
+ *  card readable — "duplex-enriched.ifc" instead of the machine-local
+ *  "C:/Users/.../samples/duplex-enriched.ifc" prefix — while the full path
+ *  stays the value edited and the title shown on hover. */
+export function fileName(path: string): string {
+  const cut = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
+  return cut === -1 ? path : path.slice(cut + 1);
+}

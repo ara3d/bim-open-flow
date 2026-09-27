@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  fileName,
   fromDatetimeLocal,
   normalizeInteger,
   normalizeNumber,
@@ -40,5 +41,19 @@ describe("DateTime round trip", () => {
   it("empty means unset in both directions", () => {
     expect(toDatetimeLocal("")).toBe("");
     expect(fromDatetimeLocal("")).toBe("");
+  });
+});
+
+describe("fileName", () => {
+  it("keeps the last segment of a forward-slash path", () => {
+    expect(fileName("C:/Users/cdigg/git/bim-open-toolkit/samples/duplex-enriched.ifc")).toBe("duplex-enriched.ifc");
+  });
+
+  it("keeps the last segment of a backslash path", () => {
+    expect(fileName("C:\\data\\snowdon.bos")).toBe("snowdon.bos");
+  });
+
+  it("returns a value with no separator unchanged", () => {
+    expect(fileName("duplex.ifc")).toBe("duplex.ifc");
   });
 });

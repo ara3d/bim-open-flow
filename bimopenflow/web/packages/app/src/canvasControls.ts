@@ -32,6 +32,7 @@ import { canvasThemes, currentCanvasTheme } from "./canvasTheme.js";
 import type { CanvasIntent } from "./canvasIntents.js";
 import { dispatchInline, islandKey, styleIsland } from "./slotShared.js";
 import {
+  fileName,
   fromDatetimeLocal,
   normalizeInteger,
   normalizeNumber,
@@ -303,8 +304,13 @@ export function disposeInlineControls(): void {
   pruneInlineControls(new Set());
 }
 
+/** Blurred display for a canonical value: DateTime formats for the native
+ *  picker, FilePath shows only the file name (title carries the rest, and
+ *  focusing the field switches it to the full path for editing). */
 const toInputValue = (kind: ParamKind, canonical: string): string =>
-  kind === "DateTime" ? toDatetimeLocal(canonical) : canonical;
+  kind === "DateTime" ? toDatetimeLocal(canonical)
+    : kind === "FilePath" ? fileName(canonical)
+    : canonical;
 
 /** Input text -> canonical form, or null when invalid (revert). */
 function toCanonical(kind: ParamKind, text: string): string | null {
@@ -347,6 +353,7 @@ function islandFor(props: IslandSlotProps): IslandEntry {
     if (props.paramKind === "Integer" || props.paramKind === "Number")
       el.inputMode = "decimal";
     el.spellcheck = false;
+    if (props.paramKind === "FilePath") el.title = props.value;
     const display = (value: string) => isNumericParam(props.paramKind) ? numericDisplay(value,props.control) : toInputValue(props.paramKind,value);
     el.value = display(props.value);
     entry = { el, themeV: -1, descriptor, canonical: props.value, paramKind: props.paramKind };
@@ -357,10 +364,21 @@ function islandFor(props: IslandSlotProps): IslandEntry {
         return;
       }
       el.value = display(canonical);
+      if (props.paramKind === "FilePath") el.title = canonical;
       entry!.canonical = canonical;
       dispatchInline({ kind: "setParam", nodeId: props.nodeId, name: props.name, value: canonical });
     };
     el.addEventListener("change", commit);
+    if (props.paramKind === "FilePath") {
+      // Editing needs the full path, not the shortened display; expand on
+      // focus and let commit (fired by "change" on blur) shorten it back.
+      el.addEventListener("focus", () => {
+        el.value = entry!.canonical;
+      });
+      el.addEventListener("blur", () => {
+        el.value = display(entry!.canonical);
+      });
+    }
     if (props.suggest && el.type === "text")
       entry.detachSuggest = attachSuggestions(el, `bof-suggest-${key}`, () =>
         suggestionProvider
@@ -380,6 +398,7 @@ function islandFor(props: IslandSlotProps): IslandEntry {
   if (entry.el.ownerDocument.activeElement !== entry.el && entry.canonical !== props.value) {
     entry.canonical = props.value;
     entry.el.value = isNumericParam(props.paramKind) ? numericDisplay(props.value,props.control) : toInputValue(props.paramKind, props.value);
+    if (props.paramKind === "FilePath") entry.el.title = props.value;
   }
   if (entry.themeV !== themeVersion) {
     entry.themeV = themeVersion;

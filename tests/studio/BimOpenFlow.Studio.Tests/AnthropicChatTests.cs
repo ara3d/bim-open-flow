@@ -201,11 +201,14 @@ public sealed class AnthropicChatTests
 
 public sealed class ChatSelectionTests
 {
+    // These tests never let ClaudeCliLocator.Find see a real PATH or APPDATA: Env() answers null for
+    // any name not listed, so "both keys set, no executable" (the pre-claude-cli order) still exercises
+    // the API-key fallback the way the old key-first tests did.
     private static Func<string, string?> Env(params (string Name, string Value)[] values)
         => name => values.FirstOrDefault(v => v.Name == name).Value;
 
     [Test]
-    public void AnthropicWinsWhenBothKeysExist()
+    public void AnthropicWinsWhenBothKeysExistAndNoExecutableIsFound()
     {
         var selection = ChatSelection.Resolve(Env(("ANTHROPIC_API_KEY", "a"), ("OPENAI_API_KEY", "o")));
         Assert.That((selection.Provider, selection.Model, selection.Configured),
@@ -229,16 +232,20 @@ public sealed class ChatSelectionTests
     }
 
     [Test]
-    public void NoKeyIsReportedNotThrown()
+    public void NoProviderIsReportedNotThrown()
     {
         var selection = ChatSelection.Resolve(_ => null);
-        Assert.That(selection.Problem, Is.EqualTo(ChatSelection.NoKey));
+        Assert.That(selection.Problem, Is.EqualTo(ChatSelection.NoProvider));
         Assert.Throws<InvalidOperationException>(() => selection.Create(new HttpClient()));
     }
 
     [Test]
     public void AnUnknownProviderIsReported()
-        => Assert.That(ChatSelection.Resolve(Env(("ASK_PROVIDER", "gemini"))).Problem, Does.Contain("gemini"));
+    {
+        var problem = ChatSelection.Resolve(Env(("ASK_PROVIDER", "gemini"))).Problem;
+        Assert.That(problem, Does.Contain("gemini"));
+        Assert.That(problem, Does.Contain("claude-cli"));
+    }
 
     [Test]
     public void CreateReturnsTheMatchingClient()
@@ -248,4 +255,103 @@ public sealed class ChatSelectionTests
         Assert.That(chat, Is.InstanceOf<AnthropicChat>());
         Assert.That(chat.Model, Is.EqualTo("claude-x"));
     }
+
+    [Test]
+    public void EffortComesFromTheApiProviderVariables()
+    {
+        var anthropic = ChatSelection.Resolve(Env(("ANTHROPIC_API_KEY", "a"), ("ANTHROPIC_EFFORT", "high")));
+        Assert.That(anthropic.Effort, Is.EqualTo("high"));
+        var openai = ChatSelection.Resolve(Env(("OPENAI_API_KEY", "o"), ("OPENAI_REASONING_EFFORT", "low")));
+        Assert.That(openai.Effort, Is.EqualTo("low"));
+    }
+
+    [Test]
+    public void ClaudeCliComesFirstWheneverItsExecutableIsFound()
+    {
+        var env = Env(("ASK_PROVIDER", "claude-cli"), ("ASK_CLAUDE_CLI", ExistingClaudeCli()));
+        var selection = ChatSelection.Resolve(NeverAnthropic(env));
+        Assert.That((selection.Provider, selection.Model, selection.Effort, selection.Problem),
+            Is.EqualTo((ClaudeCliBackend.ProviderName, ClaudeCliSettings.DefaultModel, ClaudeCliSettings.DefaultEffort, (string?)null)));
+        Assert.That(selection.Executable, Is.EqualTo(ExistingClaudeCli()));
+    }
+
+    [Test]
+    public void ClaudeModelAndEffortVariablesOverrideTheDefaults()
+    {
+        var env = Env(("ASK_PROVIDER", "claude-cli"), ("ASK_CLAUDE_CLI", ExistingClaudeCli()),
+            ("ASK_CLAUDE_MODEL", "claude-x"), ("ASK_CLAUDE_EFFORT", "high"));
+        var selection = ChatSelection.Resolve(env);
+        Assert.That((selection.Model, selection.Effort), Is.EqualTo(("claude-x", "high")));
+    }
+
+    [Test]
+    public void ClaudeCliWinsOverBothApiKeysWhenAnExecutableIsFound()
+    {
+        var env = Env(("ASK_CLAUDE_CLI", ExistingClaudeCli()), ("ANTHROPIC_API_KEY", "a"), ("OPENAI_API_KEY", "o"));
+        var selection = ChatSelection.Resolve(env);
+        Assert.That(selection.Provider, Is.EqualTo(ClaudeCliBackend.ProviderName));
+    }
+
+    [Test]
+    public void RequestingClaudeCliWithNothingFoundGivesClaudeCliMissing()
+    {
+        var selection = ChatSelection.Resolve(Env(("ASK_PROVIDER", "claude-cli")));
+        Assert.That(selection.Problem, Is.EqualTo(ChatSelection.ClaudeCliMissing));
+    }
+
+    [Test]
+    public void CreateThrowsForClaudeCli()
+    {
+        var env = Env(("ASK_CLAUDE_CLI", ExistingClaudeCli()));
+        var selection = ChatSelection.Resolve(env);
+        Assert.Throws<InvalidOperationException>(() => selection.Create(new HttpClient()));
+    }
+
+    [Test]
+    public void CreateBackendReturnsTheMatchingBackend()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "bof-chatselection-backend-" + Guid.NewGuid().ToString("N"));
+        var models = Path.Combine(root, "models");
+        Directory.CreateDirectory(models);
+        var services = FlowServices.Create(new HostConfig(
+            [models], Path.Combine(root, "cache"), Path.Combine(root, "analyses"), Port: 0, Profile: HostConfig.TablesProfile));
+        var flow = FlowMcpServer.RegisterTools(
+            new McpServer(LoopbackPorts.Free(), "test", "0", transport: McpTransport.Http), services);
+        try
+        {
+            var setup = new AskSetup(flow, "bimopenflow", new HashSet<string>(), 60);
+            var claudeCli = ChatSelection.Resolve(Env(("ASK_CLAUDE_CLI", ExistingClaudeCli())))
+                .CreateBackend(setup, new HttpClient());
+            Assert.That(claudeCli, Is.InstanceOf<ClaudeCliBackend>());
+
+            var api = ChatSelection.Resolve(Env(("ANTHROPIC_API_KEY", "a"))).CreateBackend(setup, new HttpClient());
+            Assert.That(api, Is.InstanceOf<ChatBackend>());
+        }
+        finally
+        {
+            flow.Dispose();
+            try
+            {
+                Directory.Delete(root, recursive: true);
+            }
+            catch (IOException)
+            {
+            }
+        }
+    }
+
+    private static string ExistingClaudeCli()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "bof-chatselection-tests-claude.cmd");
+        if (!File.Exists(path))
+            File.WriteAllText(path, "@echo off");
+        return path;
+    }
+
+    /// <summary>Wraps an environment function so an ANTHROPIC_* name fails the test, proving
+    /// resolution short-circuits once claude-cli is found.</summary>
+    private static Func<string, string?> NeverAnthropic(Func<string, string?> env)
+        => name => name.StartsWith("ANTHROPIC_", StringComparison.Ordinal)
+            ? throw new Exception($"environment('{name}') should not be called once claude-cli is found")
+            : env(name);
 }

@@ -119,6 +119,7 @@ public static class ReportGenerator
             IntegerValue i => i.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
             NumberValue n => HtmlTables.FormatCell(n.Value),
             TextValue t => t.Value,
+            RelationValue r => r.Text,
             _ => throw new ArgumentException($"Unexpected scalar value {value.Kind}"),
         };
 

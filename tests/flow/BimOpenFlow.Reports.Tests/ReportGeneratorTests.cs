@@ -56,6 +56,13 @@ public class ReportGeneratorTests
     }
 
     [Test]
+    public void FromRun_RelationOutputRendersAsPlanTextWithoutThrowing()
+    {
+        var html = ReportGenerator.FromRun(TestRuns.WithRelationOutput(), Options);
+        Assert.That(html, Does.Contain("<p>Relation: <code>scan db.t</code></p>"));
+    }
+
+    [Test]
     public void FromRun_IsDeterministic()
     {
         var first = ReportGenerator.FromRun(TestRuns.WithVerdicts(), Options);

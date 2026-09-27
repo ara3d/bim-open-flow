@@ -68,6 +68,23 @@ public static class TestRuns
             }
             """);
 
+    /// <summary>A run whose only recorded output is a terminal relation.</summary>
+    public static RunRecord WithRelationOutput()
+        => RunRecordJson.Parse($$"""
+            {
+              "runVersion": "0.1.0",
+              "graphHash": "{{GraphHash}}",
+              "engineVersion": "1.0.0",
+              "timestampUtc": "2026-08-31T00:00:00.000Z",
+              "inputs": [],
+              "nodeOutputs": { "q.relation": "{{OutputHash}}" },
+              "recordedOutputs": {
+                "q.relation": { "kind": "Relation", "text": "scan db.t", "hash": "{{OutputHash}}" }
+              },
+              "effects": []
+            }
+            """);
+
     /// <summary>A table with the four verdict columns but an unknown verdict string.</summary>
     public static RunRecord WithBadVerdictText()
         => RunRecordJson.Parse($$"""

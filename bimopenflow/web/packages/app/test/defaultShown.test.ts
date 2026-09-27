@@ -63,6 +63,13 @@ describe("defaultShownNode", () => {
     expect(defaultShownNode(d, evalState, catalog, null)).toBe("sink");
   });
 
+  it("never picks a note, which has no ports", () => {
+    const noteDesc: NodeDescriptor = { ...relationDesc, kind: "view.note", inputs: [], outputs: [] };
+    const d = doc({ source: "source.relation", sink: "table.select", about: "view.note" }, [["source.out", "sink.in"]]);
+    const catalog = catalogOf({ "source.relation": relationDesc, "table.select": tableDesc, "view.note": noteDesc });
+    expect(defaultShownNode(d, { source: ok, sink: ok, about: ok }, catalog, null)).toBe("sink");
+  });
+
   it("prefers a viewer/sink terminal over a plain relation terminal", () => {
     // source feeds both a table terminal and a viewer terminal.
     const d = doc(

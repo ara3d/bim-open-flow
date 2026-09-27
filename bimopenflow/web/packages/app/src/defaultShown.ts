@@ -81,7 +81,12 @@ export function defaultShownNode(
 
   const withOutgoing = new Set<string>();
   for (const edge of document.structure.edges) withOutgoing.add(nodeIdOf(edge.from));
-  const terminals = document.structure.nodes.filter((n) => !withOutgoing.has(n.id));
+  // A node with no ports at all (a view.note) computes nothing, so it is never the answer.
+  const hasPorts = (kind: string) => {
+    const desc = catalog.get(kind);
+    return !desc || desc.inputs.length + desc.outputs.length > 0;
+  };
+  const terminals = document.structure.nodes.filter((n) => !withOutgoing.has(n.id) && hasPorts(n.kind));
   if (terminals.length === 0) return null;
 
   const depths = upstreamDepths(document);

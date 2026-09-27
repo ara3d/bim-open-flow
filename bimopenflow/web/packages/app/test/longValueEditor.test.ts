@@ -204,6 +204,27 @@ describe("createLongValueEditor", () => {
     editor.dispose();
   });
 
+  it("a focusout while the document itself has lost focus (window switch) does not commit", () => {
+    // Regression for design note 2: Alt+Tab or opening DevTools fires a
+    // focusout with no relatedTarget, the same shape onFocusOut otherwise
+    // treats as "outside".
+    const editor = makeEditor();
+    const onCommit = vi.fn();
+    const onClose = vi.fn();
+    editor.open({ label: "Expr", value: "area > 10", onCommit, onClose });
+    editor.textarea.value = "area > 999";
+
+    const hasFocus = vi.spyOn(document, "hasFocus").mockReturnValue(false);
+    editor.textarea.dispatchEvent(new FocusEvent("focusout", { relatedTarget: null, bubbles: true }));
+
+    expect(onCommit).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(editor.isOpen()).toBe(true);
+
+    hasFocus.mockRestore();
+    editor.dispose();
+  });
+
   it("focusout to an element outside the wrapper commits", () => {
     const editor = makeEditor();
     const outside = document.createElement("input");

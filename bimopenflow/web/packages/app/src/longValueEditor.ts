@@ -101,6 +101,13 @@ export function createLongValueEditor(doc: Document): LongValueEditor {
   }
 
   function onFocusOut(e: FocusEvent): void {
+    // A window switch (Alt+Tab, DevTools, another application) fires a
+    // focusout with no relatedTarget, the same shape as a click on an
+    // element outside the wrapper. Treating it as "outside" would commit a
+    // half-typed value the moment the user's attention moves away from the
+    // browser. doc.hasFocus() tells the two apart: the editor stays open and
+    // the mousedown handler above still catches clicks inside the wrapper.
+    if (!doc.hasFocus()) return;
     const next = e.relatedTarget as Node | null;
     if (next && el.contains(next)) return;
     finish(true);

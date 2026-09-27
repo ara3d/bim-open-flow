@@ -83,6 +83,62 @@ describe("createLongValueEditor", () => {
     editor.dispose();
   });
 
+  it("mousedown on the label or padding keeps focus, so it never commits", () => {
+    // Regression for defect 2: a blur with no relatedTarget (clicking the
+    // label or the wrapper's padding) used to look "outside" to onFocusOut
+    // and commit the draft.
+    const editor = makeEditor();
+    const onCommit = vi.fn();
+    const onClose = vi.fn();
+    editor.open({ label: "Expr", value: "area > 10", onCommit, onClose });
+    editor.textarea.value = "area > 999";
+
+    const label = editor.el.firstElementChild as HTMLElement;
+    const mousedown = new MouseEvent("mousedown", { bubbles: true, cancelable: true });
+    const prevented = !label.dispatchEvent(mousedown);
+
+    expect(prevented).toBe(true);
+    expect(onCommit).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(editor.isOpen()).toBe(true);
+
+    editor.dispose();
+  });
+
+  it("mousedown on Cancel does not prevent its click from discarding", () => {
+    // On Safari and Firefox on macOS, clicking a button does not focus it,
+    // so mousedown on Cancel must not swallow the click that follows.
+    const editor = makeEditor();
+    const onCommit = vi.fn();
+    const onClose = vi.fn();
+    editor.open({ label: "Expr", value: "area > 10", onCommit, onClose });
+    editor.textarea.value = "area > 999";
+
+    const cancel = editor.el.querySelector("button:first-of-type") as HTMLButtonElement;
+    cancel.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+    cancel.click();
+
+    expect(onCommit).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(editor.isOpen()).toBe(false);
+
+    editor.dispose();
+  });
+
+  it("mousedown on the textarea itself does not prevent default", () => {
+    const editor = makeEditor();
+    const onCommit = vi.fn();
+    const onClose = vi.fn();
+    editor.open({ label: "Expr", value: "area > 10", onCommit, onClose });
+
+    const mousedown = new MouseEvent("mousedown", { bubbles: true, cancelable: true });
+    const prevented = !editor.textarea.dispatchEvent(mousedown);
+
+    expect(prevented).toBe(false);
+
+    editor.dispose();
+  });
+
   it("Cancel button discards", () => {
     const editor = makeEditor();
     const onCommit = vi.fn();

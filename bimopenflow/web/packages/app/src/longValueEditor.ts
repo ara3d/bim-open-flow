@@ -114,8 +114,20 @@ export function createLongValueEditor(doc: Document): LongValueEditor {
     finish(false);
   }
 
+  // Clicking the label, the padding, or (on Safari and Firefox on macOS) the
+  // Cancel button blurs the textarea with no relatedTarget, which onFocusOut
+  // treats as "outside" and commits. A mousedown on anything but the textarea
+  // itself would move focus without leaving the wrapper, so prevent the
+  // default there: the textarea keeps focus and no focusout fires at all.
+  // Apply and Cancel still work because their click handlers run regardless
+  // of focus.
+  function onMouseDown(e: MouseEvent): void {
+    if (e.target !== textarea) e.preventDefault();
+  }
+
   textarea.addEventListener("keydown", onKeyDown);
   el.addEventListener("focusout", onFocusOut);
+  el.addEventListener("mousedown", onMouseDown);
   applyButton.addEventListener("click", onApply);
   cancelButton.addEventListener("click", onCancel);
 
@@ -155,6 +167,7 @@ export function createLongValueEditor(doc: Document): LongValueEditor {
       current = null;
       textarea.removeEventListener("keydown", onKeyDown);
       el.removeEventListener("focusout", onFocusOut);
+      el.removeEventListener("mousedown", onMouseDown);
       applyButton.removeEventListener("click", onApply);
       cancelButton.removeEventListener("click", onCancel);
       el.remove();

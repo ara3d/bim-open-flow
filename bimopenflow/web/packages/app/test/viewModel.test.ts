@@ -7,6 +7,9 @@ import {
   edgeId,
   NODE_HEADER,
   nodeHeight,
+  noteHeight,
+  NOTE_KIND,
+  NOTE_WIDTH,
   PORT_SPACING,
 } from "../src/viewModel.js";
 
@@ -32,6 +35,18 @@ describe("nodeHeight", () => {
   it("header fits the 13px id and 10px kind lines stacked", () => {
     expect(NODE_HEADER).toBeGreaterThanOrEqual(32);
     expect(PORT_SPACING).toBeGreaterThanOrEqual(16);
+  });
+});
+
+describe("noteHeight", () => {
+  it("grows with an approximate wrap of the text, capped past a dozen lines", () => {
+    expect(noteHeight("")).toBe(noteHeight("one short line"));
+    expect(noteHeight("a".repeat(200))).toBeGreaterThan(noteHeight("a short note"));
+    expect(noteHeight("a".repeat(2000))).toBe(noteHeight("a".repeat(20000))); // both hit the cap
+  });
+
+  it("an explicit line break counts as its own line even when short", () => {
+    expect(noteHeight("a\nb\nc")).toBeGreaterThan(noteHeight("a"));
   });
 });
 
@@ -93,6 +108,36 @@ describe("buildCanvasModel", () => {
     expect(model.nodes.find((n) => n.id === "a")!.status).toBe("Error");
     expect(model.nodes.find((n) => n.id === "b")!.selected).toBe(true);
     expect(model.nodes.find((n) => n.id === "a")!.selected).toBe(false);
+  });
+
+  it("draws a view.note with no ports or params, at the fixed note width, holding its text", () => {
+    const noteDesc: NodeDescriptor = {
+      kind: NOTE_KIND, version: 1, capability: "Pure",
+      inputs: [], outputs: [], params: [{ name: "text", kind: "Text", default: "" }], description: "",
+    };
+    const store = createStore();
+    store.dispatch({ type: "addNode", id: "n1", kind: NOTE_KIND, version: 1 });
+    store.dispatch({ type: "setParam", nodeId: "n1", name: "text", value: "Check the storey mapping." });
+    const model = buildCanvasModel(store.getState(), new Map([[NOTE_KIND, noteDesc]]));
+
+    const note = model.nodes[0]!;
+    expect(note.inputs).toEqual([]);
+    expect(note.outputs).toEqual([]);
+    expect(note.params).toEqual([]);
+    expect(note.w).toBe(NOTE_WIDTH);
+    expect(note.h).toBe(noteHeight("Check the storey mapping."));
+    expect(note.noteText).toBe("Check the storey mapping.");
+  });
+
+  it("a view.note with no value falls back to its param's default", () => {
+    const noteDesc: NodeDescriptor = {
+      kind: NOTE_KIND, version: 1, capability: "Pure",
+      inputs: [], outputs: [], params: [{ name: "text", kind: "Text", default: "" }], description: "",
+    };
+    const store = createStore();
+    store.dispatch({ type: "addNode", id: "n1", kind: NOTE_KIND, version: 1 });
+    const model = buildCanvasModel(store.getState(), new Map([[NOTE_KIND, noteDesc]]));
+    expect(model.nodes[0]!.noteText).toBe("");
   });
 
   it("carries a status badge naming the eval message; nodes without eval state have none (TKT-10)", () => {

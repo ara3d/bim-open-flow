@@ -30,6 +30,10 @@ export interface CanvasNode {
   readonly badge?: NodeBadge;
   readonly selected: boolean;
   readonly contributing?: boolean;
+  /** The `text` param's value, only for a `view.note` node (TKT-82): drawn as
+   *  a sticky note instead of the normal ports/params card, so its text does
+   *  not also travel through CanvasParam. */
+  readonly noteText?: string;
 }
 
 export interface CanvasEdge {
@@ -64,6 +68,30 @@ export const NODE_HEADER = 46;
 
 export function nodeWidth(params: readonly CanvasParam[]): number {
   return params.length > 0 ? WIDE_NODE_WIDTH : NODE_WIDTH;
+}
+
+/** A comment pinned to the canvas (see NoteNode in BimOpenFlow.Nodes.Viz): no
+ *  ports, one text param drawn as the whole card rather than a labelled row. */
+export const NOTE_KIND = "view.note";
+export const NOTE_WIDTH = 300;
+export const NOTE_LINE_H = 18;
+export const NOTE_MAX_LINES = 12;
+export const NOTE_PAD = 16;
+/** Rough characters per wrapped line at the note's width and font size; only
+ *  used to size the card. canvasParts wraps the actual text precisely for
+ *  painting, so a note is always at least as tall as it needs and at most
+ *  NOTE_MAX_LINES tall (canvasParts then ellipsizes past that). */
+const NOTE_CHARS_PER_LINE = 34;
+
+/** Fixed width, height from an approximate wrap of `text` up to
+ *  NOTE_MAX_LINES lines (one more line for an explicit line break). */
+export function noteHeight(text: string): number {
+  const paragraphs = text.split("\n");
+  const lines = paragraphs.reduce(
+    (sum, p) => sum + Math.max(1, Math.ceil(p.length / NOTE_CHARS_PER_LINE)),
+    0,
+  );
+  return NOTE_PAD * 2 + Math.min(Math.max(lines, 1), NOTE_MAX_LINES) * NOTE_LINE_H;
 }
 
 /** Node height grows with its densest port side, then with its param slots —
@@ -141,6 +169,25 @@ export function buildCanvasModel(
     const params = inlineParams(desc?.params ?? [], state.document.values[n.id] ?? {});
     const layout = state.document.layout[n.id];
     const pos = layout ?? defaultPosition(unplaced++);
+    if (n.kind === NOTE_KIND) {
+      const noteText = state.document.values[n.id]?.["text"]
+        ?? desc?.params.find((p) => p.name === "text")?.default
+        ?? "";
+      return {
+        id: n.id,
+        kind: n.kind,
+        x: pos.x,
+        y: pos.y,
+        w: layout?.w ?? NOTE_WIDTH,
+        h: layout?.h ?? noteHeight(noteText),
+        inputs: [],
+        outputs: [],
+        params: [],
+        selected: selected.has(n.id),
+        contributing: contributing.has(n.id),
+        noteText,
+      };
+    }
     return {
       id: n.id,
       kind: n.kind,

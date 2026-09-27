@@ -39,6 +39,12 @@ export interface CanvasExtraColors {
   readonly wireFlow: Color;
   /** Background grid dot (alpha included). */
   readonly gridDot: Color;
+  /** A view.note card's fill, border, and text (TKT-82): pale yellow in
+   *  light, a muted warm yellow in dark, so a comment reads as paper pinned
+   *  to the canvas rather than another node. */
+  readonly noteFill: Color;
+  readonly noteEdge: Color;
+  readonly noteText: Color;
 }
 
 export interface CanvasTheme {
@@ -92,6 +98,9 @@ export const canvasThemes: Record<CanvasThemeName, CanvasTheme> = {
       rubberSnap: rgb(34, 160, 80),
       wireFlow: rgb(64, 140, 224),
       gridDot: calpha(rgb(190, 186, 178), 0.9),
+      noteFill: rgb(252, 240, 180),
+      noteEdge: rgb(214, 196, 120),
+      noteText: rgb(64, 56, 24),
     },
   },
   dark: {
@@ -110,6 +119,9 @@ export const canvasThemes: Record<CanvasThemeName, CanvasTheme> = {
       rubberSnap: rgb(90, 220, 130),
       wireFlow: rgb(120, 210, 255),
       gridDot: calpha(darkPalette.muted, 0.3),
+      noteFill: rgb(74, 66, 34),
+      noteEdge: rgb(120, 104, 48),
+      noteText: rgb(232, 220, 176),
     },
   },
 };

@@ -25,6 +25,13 @@ export const COMPACT_SLOT_H = 32;
 /** Caption line + full-width input. */
 export const FIELD_SLOT_H = 50;
 export const WIDGET_SLOT_H = 70;
+/** Wrapped lines a long-text row (SQL, Expression, long plain Text) shows
+ *  before cutting the last one with an ellipsis (TKT-82: one truncated line
+ *  read as broken for a multi-line SELECT). */
+export const LONG_TEXT_LINES = 6;
+const LONG_TEXT_LINE_H = 16;
+/** Caption line + up to LONG_TEXT_LINES wrapped lines + padding. */
+export const LONG_TEXT_SLOT_H = 22 + LONG_TEXT_LINES * LONG_TEXT_LINE_H + 8;
 
 /** The control a parameter row shows. TKT-23 adds members (swatch, typed slider, column picker). */
 export type SlotControl =
@@ -52,7 +59,7 @@ export const CONTROL_HEIGHT: Readonly<Record<SlotControl, number>> = {
   number: COMPACT_SLOT_H,
   columnSelect: COMPACT_SLOT_H,
   field: FIELD_SLOT_H,
-  longText: FIELD_SLOT_H,
+  longText: LONG_TEXT_SLOT_H,
   slider: WIDGET_SLOT_H,
   range: WIDGET_SLOT_H,
 };

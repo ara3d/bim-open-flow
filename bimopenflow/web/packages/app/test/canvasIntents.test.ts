@@ -171,4 +171,23 @@ describe("makeCanvasUpdate", () => {
     doc = update(doc, { kind: "sync", model: fieldModel() });
     expect(doc.openEditor).toBeNull();
   });
+
+  it("keeps a view.note's editor open across sync, though it has no params to find", () => {
+    // A view.note has no CanvasParam ("text" is drawn as the whole card, not
+    // a row), so the ordinary param+slotControl check would always miss and
+    // close the editor on the very next sync.
+    const noteDesc: NodeDescriptor = {
+      kind: "view.note", version: 1, capability: "Pure",
+      inputs: [], outputs: [], params: [{ name: "text", kind: "Text", default: "" }], description: "",
+    };
+    const catalog = new Map([["view.note", noteDesc]]);
+    const store = createStore();
+    store.dispatch({ type: "addNode", id: "n1", kind: "view.note", version: 1 });
+    const update = makeCanvasUpdate(store, () => {});
+    const model = () => buildCanvasModel(store.getState(), catalog);
+
+    let doc = update(model(), { kind: "openEditor", nodeId: "n1", name: "text" });
+    doc = update(doc, { kind: "sync", model: model() });
+    expect(doc.openEditor).toEqual({ nodeId: "n1", name: "text" });
+  });
 });

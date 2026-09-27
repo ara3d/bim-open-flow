@@ -19,6 +19,7 @@ import {
   Press,
   rect,
   Stack,
+  themeVersion,
   v,
   Vec,
   vdist,
@@ -29,10 +30,10 @@ import {
 import type { PortType } from "@bimopenflow/contracts";
 import type { CanvasEdge, CanvasModel, CanvasNode } from "./viewModel.js";
 import type { WireRows } from "./portResults.js";
-import { NODE_HEADER, PORT_SPACING } from "./viewModel.js";
+import { NODE_HEADER, NOTE_KIND, NOTE_LINE_H, NOTE_MAX_LINES, NOTE_PAD, NOTE_WIDTH, PORT_SPACING } from "./viewModel.js";
 import { placeSlots, SLOT_X_PAD } from "./canvasSlots.js";
 import { slotElement } from "./slotRegistry.js";
-import { canvasColors } from "./canvasTheme.js";
+import { canvasColors, canvasThemes, currentCanvasTheme } from "./canvasTheme.js";
 import { nodeTitle } from "./graphPreview";
 import { animateSelection, selectionBorder } from "./selectionBorder";
 import { upstreamEdges } from "./upstreamEdges.js";
@@ -40,6 +41,9 @@ const selectedBorder = selectionBorder(() => canvasColors().wireSelected, animat
 import { anchorId, canConnect, parseAnchorId, type CanvasIntent } from "./canvasIntents.js";
 import { portY, SOCKET_GRAB_RADIUS, WIRE_HIT_DISTANCE } from "./portGeometry.js";
 import { peekAdorn, rowCountText } from "./peekCard.js";
+import { wrapParagraphs } from "./canvasLongSlot.js";
+import { createLongValueEditor, type LongValueEditor } from "./longValueEditor.js";
+import { dispatchInline, styleIsland } from "./slotShared.js";
 
 const SOCKET_RADIUS = 4.5;
 
@@ -82,9 +86,64 @@ const Surface = part<SurfaceProps, { gridDot: Color }>("bof-surface", {
   ],
 });
 
+// ── Note (view.note) ────────────────────────────────────────────────────────
+// A view.note card skips ports, the status dot, and the kind/id header the
+// way every other node draws them: it is the note's whole text, pale yellow,
+// wrapped over up to NOTE_MAX_LINES lines. Editing reuses longValueEditor.ts
+// the same way canvasLongSlot.ts's row editor does, but the island covers the
+// whole card (there is no separate label row to click) and its lifetime is
+// keyed by nodeId alone, pruned every render from the live note ids — a
+// view.note has no params, so it never appears in canvasEditor's per-param
+// liveKeys set that prunes ordinary rows.
+
+const noteEditors = new Map<string, LongValueEditor>();
+const noteEditorThemeV = new Map<string, number>();
+
+function styleNoteTextarea(editor: LongValueEditor): void {
+  const ta = editor.textarea;
+  styleIsland(ta, canvasThemes[currentCanvasTheme()].palette);
+  ta.style.flex = "1 1 auto";
+  ta.style.resize = "none";
+}
+
+function noteEditorFor(node: CanvasNode): LongValueEditor {
+  let editor = noteEditors.get(node.id);
+  if (!editor) {
+    editor = createLongValueEditor(document);
+    noteEditors.set(node.id, editor);
+  }
+  if (noteEditorThemeV.get(node.id) !== themeVersion) {
+    noteEditorThemeV.set(node.id, themeVersion);
+    styleNoteTextarea(editor);
+  }
+  if (!editor.isOpen()) {
+    editor.open({
+      label: "Note",
+      value: node.noteText ?? "",
+      onCommit: (value) =>
+        dispatchInline({ kind: "setParam", nodeId: node.id, name: "text", value } satisfies CanvasIntent),
+      onClose: () => dispatchInline({ kind: "closeEditor" } satisfies CanvasIntent),
+    });
+  }
+  return editor;
+}
+
+/** Disposes note editors for ids no longer on the canvas; called from
+ *  canvasView every render (see the comment above) rather than from
+ *  canvasEditor's per-param pruning. */
+function pruneNoteEditors(liveIds: ReadonlySet<string>): void {
+  for (const [id, editor] of noteEditors) {
+    if (!liveIds.has(id)) {
+      editor.dispose();
+      noteEditors.delete(id);
+      noteEditorThemeV.delete(id);
+    }
+  }
+}
+
 // ── Node ─────────────────────────────────────────────────────────────────────
 
-type NodeProps = CanvasNode & { pos: Vec; states?: Record<string, boolean> };
+type NodeProps = CanvasNode & { pos: Vec; states?: Record<string, boolean>; noteOpen?: boolean };
 
 interface NodeStyle {
   fill: Color;
@@ -146,17 +205,40 @@ const GraphNodePart = part<NodeProps, NodeStyle>("bof-node", {
     });
   },
 
-  style: (t, channels) => ({
-    fill: t.mix(t.surface, t.surfaceHi, 0.4 * channels.hover + 0.6 * channels.drag),
-    edge: t.mix(t.muted, t.accent, (channels.sel || 0) + 0.5 * channels.hover),
-    text: t.mix(t.text, t.textBright, 0.4 + 0.6 * channels.hover),
-    dim: t.textDim,
-    socket: t.accent,
-  }),
+  style: (t, channels, props) => {
+    if (props.kind === NOTE_KIND) {
+      const c = canvasColors();
+      return {
+        fill: c.noteFill,
+        edge: t.mix(c.noteEdge, t.accent, channels.sel || 0),
+        text: c.noteText,
+        dim: c.noteText,
+        socket: c.noteText,
+      };
+    }
+    return {
+      fill: t.mix(t.surface, t.surfaceHi, 0.4 * channels.hover + 0.6 * channels.drag),
+      edge: t.mix(t.muted, t.accent, (channels.sel || 0) + 0.5 * channels.hover),
+      text: t.mix(t.text, t.textBright, 0.4 + 0.6 * channels.hover),
+      dim: t.textDim,
+      socket: t.accent,
+    };
+  },
 
   render(node, painter, style) {
     const r = node.rect;
     const p = node.props;
+    if (p.kind === NOTE_KIND) {
+      painter.box(r, 6, style.fill, style.edge, p.contributing ? 2 : 1.2);
+      const lines = wrapParagraphs(painter.measure, p.noteText ?? "", r.w - 2 * NOTE_PAD, 14, NOTE_MAX_LINES);
+      lines.forEach((line, i) => {
+        painter.label(line, v(r.x + NOTE_PAD, r.y + NOTE_PAD + NOTE_LINE_H * (i + 0.7)), style.text, {
+          align: "left",
+          size: 14,
+        });
+      });
+      return;
+    }
     painter.box(r, 8, style.fill, p.contributing ? canvasColors().wireSelected : style.edge, p.contributing ? 2 : 1.2);
     // Header (NODE_HEADER tall) holds id + kind; port rows start below it.
     painter.label(nodeTitle(p.kind), v(r.x + 12, r.y + 16), style.text, {
@@ -253,9 +335,24 @@ const GraphNodePart = part<NodeProps, NodeStyle>("bof-node", {
         }) satisfies CanvasIntent,
       up: (state, node) => [vdist(state.start,node.props.pos) > 3
         ? { kind: "moveEnd", id: node.props.id }
-        : { kind: "selectNode", id: node.props.id }] satisfies CanvasIntent[],
+        // A click (not a drag) on a note opens its editor directly — there is
+        // no separate label row to press, the way a long-text param has.
+        : node.props.kind === NOTE_KIND
+          ? { kind: "openEditor", nodeId: node.props.id, name: "text" }
+          : { kind: "selectNode", id: node.props.id }] satisfies CanvasIntent[],
     }),
   ],
+
+  island(node) {
+    if (node.props.kind !== NOTE_KIND) return null;
+    if (!node.props.noteOpen) {
+      noteEditors.get(node.props.id)?.close();
+      return null;
+    }
+    const editor = noteEditorFor(node.props);
+    const r = node.rect;
+    return { el: editor.el, rect: rect(r.x, r.y, r.w, r.h) };
+  },
 });
 
 // ── Wires ────────────────────────────────────────────────────────────────────
@@ -358,6 +455,7 @@ export function canvasView(model: CanvasModel): Element {
   // preview above (a different, pre-existing highlight).
   const selectedId = model.nodes.find((n) => n.selected)?.id ?? null;
   const flowing = upstreamEdges(model, selectedId);
+  pruneNoteEditors(new Set(model.nodes.filter((n) => n.kind === NOTE_KIND).map((n) => n.id)));
   return Surface("root", { selectedEdgeId: model.selectedEdgeId }, [
     Free("graph", {}, [
       ...model.edges.map((edge) => {
@@ -375,7 +473,12 @@ export function canvasView(model: CanvasModel): Element {
       ...model.nodes.map((n) =>
         withExt(GraphNodePart(
           n.id,
-          { ...n, pos: v(n.x, n.y), states: { sel: n.selected } },
+          {
+            ...n,
+            pos: v(n.x, n.y),
+            states: { sel: n.selected },
+            noteOpen: model.openEditor?.nodeId === n.id && model.openEditor.name === "text",
+          },
           n.params.map((param) => slotElement({
             nodeId: n.id,
             param,

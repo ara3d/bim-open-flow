@@ -7,6 +7,7 @@ import {
   inlineParams,
   KIND_CONTROL,
   LONG_TEXT_CHARS,
+  LONG_TEXT_SLOT_H,
   placeSlots,
   previewText,
   SLOT_GAP,
@@ -30,7 +31,7 @@ describe("inline slot vocabulary", () => {
     expect(slotHeight({ kind: "Text", value: "" })).toBe(FIELD_SLOT_H);
     expect(slotHeight({ kind: "FilePath", value: "" })).toBe(FIELD_SLOT_H);
     expect(slotHeight({ kind: "DateTime", value: "" })).toBe(FIELD_SLOT_H);
-    expect(slotHeight({ kind: "Json", value: "" })).toBe(FIELD_SLOT_H);
+    expect(slotHeight({ kind: "Json", value: "" })).toBe(LONG_TEXT_SLOT_H);
   });
 });
 
@@ -79,7 +80,7 @@ describe("slotControl", () => {
     expect(CONTROL_HEIGHT.number).toBe(COMPACT_SLOT_H);
     expect(CONTROL_HEIGHT.columnSelect).toBe(COMPACT_SLOT_H);
     expect(CONTROL_HEIGHT.field).toBe(FIELD_SLOT_H);
-    expect(CONTROL_HEIGHT.longText).toBe(FIELD_SLOT_H);
+    expect(CONTROL_HEIGHT.longText).toBe(LONG_TEXT_SLOT_H);
     expect(CONTROL_HEIGHT.slider).toBe(WIDGET_SLOT_H);
     expect(CONTROL_HEIGHT.range).toBe(WIDGET_SLOT_H);
   });

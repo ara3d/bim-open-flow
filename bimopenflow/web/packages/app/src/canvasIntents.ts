@@ -5,7 +5,7 @@
 
 import type { PortType } from "@bimopenflow/contracts";
 import type { Store } from "@bimopenflow/state";
-import type { CanvasModel } from "./viewModel.js";
+import { NOTE_KIND, type CanvasModel } from "./viewModel.js";
 import { previewAfterEdit } from "./graphPreview";
 import { slotControl } from "./canvasSlots.js";
 
@@ -90,8 +90,11 @@ export function makeCanvasUpdate(
         // suggest source (a catalog reload, a descriptor change) and stop it
         // being long text. longTextSlot is the only row the editor is placed
         // under, so once the row is a different control, keeping the editor
-        // open would anchor it under a row that no longer renders it.
-        const stillOpen = param !== undefined && slotControl(param) === "longText";
+        // open would anchor it under a row that no longer renders it. A
+        // view.note's "text" editor covers the whole card instead of a row,
+        // so it stays open for as long as the note itself does.
+        const stillOpen = (node?.kind === NOTE_KIND && name === "text")
+          || (param !== undefined && slotControl(param) === "longText");
         return stillOpen ? { ...intent.model, openEditor: doc.openEditor } : intent.model;
       }
 

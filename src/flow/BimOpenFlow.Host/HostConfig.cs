@@ -16,7 +16,9 @@ public sealed record HostConfig(
     int Port,
     string Profile = HostConfig.BimProfile)
 {
-    public const int DefaultPort = 5210;
+    // Matches the web editor's default proxy target (bimopenflow/web/packages/app/vite.config.ts),
+    // so the host and the editor agree on a port without either side passing --port or BOF_HOST.
+    public const int DefaultPort = 5214;
     public const string SettingsFileName = "appsettings.json";
     public const char RootSeparator = ';';
     public const string BimProfile = "bim";

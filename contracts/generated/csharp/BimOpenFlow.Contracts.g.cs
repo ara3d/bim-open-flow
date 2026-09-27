@@ -212,6 +212,7 @@ public static class ApiRoutes
     public const string GetAnalysisHistory = "/api/analyses/{id}/history";
     public const string GetNodeCatalog = "/api/catalog/nodes";
     public const string GetAnalysisState = "/api/analyses/{id}/state";
+    public const string GetAnalysisText = "/api/analyses/{id}/text";
     public const string GetResult = "/api/analyses/{id}/results/{nodeId}/{port}";
     public const string GetSuggestions = "/api/analyses/{id}/suggestions/{nodeId}/{param}";
     public const string ListRuns = "/api/analyses/{id}/runs";

@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\BimOpenFlow.GraphText\BimOpenFlow.GraphText.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Contracts\BimOpenFlow.Contracts.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Host.Catalog\BimOpenFlow.Host.Catalog.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Host.Store\BimOpenFlow.Host.Store.csproj" />

@@ -28,6 +28,11 @@ internal static class EvalEndpoints
                 ? ApiResults.Json(sessions.Snapshot(id).ToEvalUpdate(id))
                 : ApiResults.NotFound($"Analysis '{id}' not found")));
 
+        app.MapGet(ApiRoutes.GetAnalysisText, (string id, string? mode) => ApiResults.Guard(() =>
+            store.Exists(id)
+                ? Results.Text(AnalysisText(catalog, registry, sessions.Snapshot(id), id, mode), "text/plain")
+                : ApiResults.NotFound($"Analysis '{id}' not found")));
+
         app.MapGet(ApiRoutes.GetResult, (string id, string nodeId, string port, int? skip, int? take)
             => ApiResults.Guard(() =>
                 GetResult(store, registry, sessions, relations, id, nodeId, port, skip ?? 0, take ?? DefaultTake)));
@@ -50,6 +55,16 @@ internal static class EvalEndpoints
         app.MapGet(ApiRoutes.AnalysisEvents, (HttpContext context, string id)
             => StreamEvents(context, store, sessions, id));
     }
+
+    /// <summary>The analysis and its latest evaluation as graph text (TKT-57); model roots print
+    /// as {MODELS}. Relations print their plan only, since Host.Api holds no relation reader.</summary>
+    private static string AnalysisText(ModelCatalog catalog, INodeRegistry registry, EvalSnapshot snapshot, string id, string? mode)
+        => BimOpenFlow.GraphText.GraphText.Print(snapshot.Document, snapshot, registry, new()
+        {
+            AnalysisId = id,
+            Mode = mode == "debug" ? BimOpenFlow.GraphText.GraphTextMode.Debug : BimOpenFlow.GraphText.GraphTextMode.Golden,
+            PathAliases = catalog.Roots.Select(r => new BimOpenFlow.GraphText.PathAlias(r, "{MODELS}")).ToList(),
+        });
 
     private static IResult GetResult(AnalysisStore store, INodeRegistry registry,
         AnalysisSessions sessions, IRelationResults? relations, string id, string nodeId, string port, int skip, int take)

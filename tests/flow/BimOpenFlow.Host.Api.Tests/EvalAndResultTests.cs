@@ -21,6 +21,17 @@ public sealed class EvalAndResultTests
     }
 
     [Test]
+    public async Task Text_PrintsEveryBindingWithItsStatus()
+    {
+        await PutAnalysis("text-case", ConstNegate());
+        var text = await GetOk("/api/analyses/text-case/text");
+        Assert.That(text, Does.StartWith("dfg "));
+        Assert.That(text, Does.Contain("// text-case"));
+        Assert.That(text, Does.Contain("c = ").And.Contain("n = "));
+        Assert.That(text, Does.Contain("// Ok"));
+    }
+
+    [Test]
     public async Task State_GraphHashMatchesThePutResponse()
     {
         var putResponse = await PutText("/api/analyses/graphhash-case", ConstNegate().ToCanonicalJson());

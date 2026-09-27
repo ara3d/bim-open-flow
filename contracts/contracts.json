@@ -141,6 +141,7 @@
     { "name": "getAnalysisHistory", "method": "GET", "path": "/api/analyses/{id}/history", "response": "AnalysisVersion[]" },
     { "name": "getNodeCatalog", "method": "GET", "path": "/api/catalog/nodes", "response": "NodeCatalog" },
     { "name": "getAnalysisState", "method": "GET", "path": "/api/analyses/{id}/state", "response": "EvalUpdate" },
+    { "name": "getAnalysisText", "method": "GET", "path": "/api/analyses/{id}/text", "query": { "mode": "string?" }, "response": "text" },
     { "name": "getResult", "method": "GET", "path": "/api/analyses/{id}/results/{nodeId}/{port}", "query": { "skip": "int?", "take": "int?" }, "response": "TableSlice" },
     { "name": "getSuggestions", "method": "GET", "path": "/api/analyses/{id}/suggestions/{nodeId}/{param}", "response": "SuggestionList" },
     { "name": "listRuns", "method": "GET", "path": "/api/analyses/{id}/runs", "response": "RunSummary[]" },

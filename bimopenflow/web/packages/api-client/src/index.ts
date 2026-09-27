@@ -73,6 +73,11 @@ export class ApiClient {
     return res.json() as Promise<EvalUpdate>;
   }
 
+  async getAnalysisText(id: string, mode?: string): Promise<string> {
+    const res = await this.request("GET", `/api/analyses/${encodeURIComponent(id)}/text`, { mode }, undefined);
+    return res.text();
+  }
+
   async getResult(id: string, nodeId: string, port: string, skip?: number, take?: number): Promise<TableSlice> {
     const res = await this.request("GET", `/api/analyses/${encodeURIComponent(id)}/results/${encodeURIComponent(nodeId)}/${encodeURIComponent(port)}`, { skip, take }, undefined);
     return res.json() as Promise<TableSlice>;

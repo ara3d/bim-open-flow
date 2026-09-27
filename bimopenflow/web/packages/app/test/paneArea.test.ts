@@ -251,3 +251,49 @@ describe("createPaneArea default-shown header (TKT-46)", () => {
     area.dispose();
   });
 });
+
+describe("createPaneArea result reads", () => {
+  it("shows a failed result read on the header line, not as an error", async () => {
+    const root = document.createElement("div");
+    document.body.appendChild(root);
+    const errors: string[] = [];
+    const area = createPaneArea(root, {
+      ctx: {
+        requestTable: async () => {
+          throw new Error(`GET /api/analyses/a/results/n1/out -> 404: {"error":"Node 'n1' not in analysis 'a'"}`);
+        },
+        resolveAsset: (url) => url,
+      },
+      onSelect: () => {},
+      onError: (m) => { errors.push(m); },
+    });
+    area.showNode({ nodeId: "n1", desc: desc("table.filter"), values: {}, state: okState });
+    await settle();
+    expect(errors).toEqual([]);
+    expect(root.querySelector(".bof-app-preview-source")?.textContent)
+      .toContain("No rows to show: Node 'n1' not in analysis 'a'");
+    area.dispose();
+  });
+
+  it("drops a failed read that a newer node selection superseded", async () => {
+    const root = document.createElement("div");
+    document.body.appendChild(root);
+    let rejectFirst: (e: Error) => void = () => {};
+    const area = createPaneArea(root, {
+      ctx: {
+        requestTable: (nodeId) => nodeId === "n1"
+          ? new Promise((_, reject) => { rejectFirst = reject; })
+          : Promise.resolve(slice),
+        resolveAsset: (url) => url,
+      },
+      onSelect: () => {},
+      onError: (m) => { throw new Error(m); },
+    });
+    area.showNode({ nodeId: "n1", desc: desc("table.filter"), values: {}, state: okState });
+    area.showNode({ nodeId: "n2", desc: desc("table.filter"), values: {}, state: { ...okState, nodeId: "n2" } });
+    rejectFirst(new Error("GET ... -> 404: gone"));
+    await settle();
+    expect(root.querySelector(".bof-app-preview-source")?.textContent).not.toContain("No rows");
+    area.dispose();
+  });
+});

@@ -32,6 +32,9 @@ export interface ConnectOptions {
   onSaveError?: (err: unknown) => void;
   /** Called when the evaluation-update stream errors (the browser retries it by itself). */
   onStreamError?: (err: unknown) => void;
+  /** Aborting it before the load finishes leaves the store untouched and rejects
+   *  with the signal's reason, so a superseded open never overwrites a newer one. */
+  signal?: AbortSignal;
 }
 
 /**
@@ -44,8 +47,11 @@ export async function connectAnalysis(
   analysisId: string,
   options: ConnectOptions = {},
 ): Promise<AnalysisConnection> {
-  store.dispatch({ type: "setDocument", json: await api.getAnalysis(analysisId) });
-  store.dispatch({ type: "applyServerState", update: await api.getAnalysisState(analysisId) });
+  const json = await api.getAnalysis(analysisId);
+  const update = await api.getAnalysisState(analysisId);
+  options.signal?.throwIfAborted();
+  store.dispatch({ type: "setDocument", json });
+  store.dispatch({ type: "applyServerState", update });
   const unsubscribe = api.analysisEvents(analysisId, (update) =>
     store.dispatch({ type: "applyServerState", update }), options.onStreamError);
 

@@ -61,6 +61,17 @@ describe("connectAnalysis", () => {
     expect(store.getState().dirty).toBe(false);
   });
 
+  it("leaves the store untouched and subscribes nothing when aborted during the load", async () => {
+    const { api, calls } = fakeApi();
+    const store = createStore();
+    const opening = new AbortController();
+    const connecting = connectAnalysis(store, api, "an1", { signal: opening.signal });
+    opening.abort();
+    await expect(connecting).rejects.toThrow();
+    expect(store.getState().document.structure.nodes).toEqual([]);
+    expect(calls).not.toContain("analysisEvents:an1");
+  });
+
   it("dispatches streamed updates into evalState", async () => {
     const fake = fakeApi();
     const store = createStore();

@@ -46,6 +46,20 @@ const paneFactory = (kind: PaneKind, chartOptions: ChartPaneOptions): Pane => {
   }
 };
 
+/** The host's own sentence from an ApiClient error ("GET <path> -> 404: {"error":"..."}"),
+ *  or the whole message when it carries none. */
+export function hostMessage(e: unknown): string {
+  const message = e instanceof Error ? e.message : String(e);
+  const body = message.indexOf("{");
+  if (body < 0) return message;
+  try {
+    const parsed = JSON.parse(message.slice(body)) as { error?: unknown };
+    return typeof parsed.error === "string" ? parsed.error : message;
+  } catch {
+    return message;
+  }
+}
+
 interface ShownNode {
   nodeId: string;
   desc: NodeDescriptor | undefined;
@@ -174,12 +188,23 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
       if (shown.pending) return; // Wait for autosave/evaluation, not the previous result.
       if (!hasResults(state)) return; // no result on the host yet; pane stays empty
       const token = ++fetchToken;
+      const current = () => token === fetchToken && pane === activePane;
       if (activeKind === "view3d") await feedModel(pane, token);
-      const data = activeKind === "view3d"
-        ? await completeTable(deps.ctx, nodeId, port.name, () => token === fetchToken && pane === activePane)
-        : await deps.ctx.requestTable(nodeId, port.name);
+      let data;
+      try {
+        data = activeKind === "view3d"
+          ? await completeTable(deps.ctx, nodeId, port.name, current)
+          : await deps.ctx.requestTable(nodeId, port.name);
+      } catch (e) {
+        // A result read that fails is about this node's data, not the app:
+        // the host re-evaluated or the node went away between the evaluation
+        // update and this request, and the next update re-feeds the pane.
+        // Say so on the pane's header line instead of raising an error box.
+        if (current()) source.textContent += `\nNo rows to show: ${hostMessage(e)}`;
+        return;
+      }
       if (!data) return;
-      if (token !== fetchToken || pane !== activePane) return; // stale
+      if (!current()) return; // stale
       if (activeKind === "view3d") {
         // The pane queues an instances slice that arrives before the model
         // finishes loading, so pushing the table right after is safe.

@@ -69,6 +69,8 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   let analyses: AnalysisSummary[] = [];
   let currentId: string | null = null;
   let connection: AnalysisConnection | null = null;
+  /** The open in progress; a newer open aborts it. */
+  let opening: AbortController | null = null;
   let resultSelection: string[] = [];
   let lastPrimary: string | null = null;
   let currentSession: EditorSession = { analysisId: undefined, selection: [] };
@@ -255,13 +257,21 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     paneArea.showNode(null);
     connection?.dispose();
     connection = null;
+    opening?.abort();
+    const thisOpen = new AbortController();
+    opening = thisOpen;
+    // Panes read results by (currentId, node id). The new document enters the
+    // store inside connectAnalysis, and the first pane read follows at once, so
+    // the id must name this analysis before then, or the read asks the previous
+    // analysis for a node it does not have.
+    currentId = id;
     try {
       connection = await connectAnalysis(store, api, id, {
         autosaveMs: AUTOSAVE_MS,
         onSaveError: (e) => fail(`Autosave failed: ${e instanceof Error ? e.message : e}`),
         onStreamError: () => host.reportFailure("evaluation stream lost"),
+        signal: thisOpen.signal,
       });
-      currentId = id;
       reportSession();
       refreshColumnOptions();
       sidebar.setAnalyses(analyses, id);
@@ -279,6 +289,8 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
         else canvasEditor.focus(initial?.id);
       }
     } catch (e) {
+      if (thisOpen.signal.aborted) return; // a newer open replaced this one
+      currentId = null;
       if (connectedNow()) fail(`Could not open flow '${id}': ${e instanceof Error ? e.message : e}`);
     }
   }
@@ -426,6 +438,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       unsubscribeHost();
       if (!options.host) host.dispose();
       setSuggestionProvider(null);
+      opening?.abort();
       connection?.dispose();
       canvasEditor.dispose();
       paneArea.dispose();

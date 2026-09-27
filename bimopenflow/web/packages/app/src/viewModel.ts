@@ -6,6 +6,7 @@ import type { State } from "@bimopenflow/state";
 import { inlineParams, placeSlots, type CanvasParam } from "./canvasSlots.js";
 import { upstreamIds } from "./graphPreview";
 import { nodeBadge, type NodeBadge } from "./nodeBadge.js";
+import { NO_PORT_RESULTS, type PortPeekView, type PortResultsView, type WireRows } from "./portResults.js";
 
 export interface CanvasPort {
   readonly name: string;
@@ -36,6 +37,8 @@ export interface CanvasEdge {
   readonly from: string; // "nodeId.port"
   readonly to: string;
   readonly contributing?: boolean;
+  /** Row count of the table or relation leaving `from`; absent when uncounted. */
+  readonly rows?: WireRows;
 }
 
 /** The parameter whose long-value editor is open; at most one. */
@@ -49,6 +52,8 @@ export interface CanvasModel {
   readonly edges: readonly CanvasEdge[];
   readonly selectedEdgeId: string | null;
   readonly openEditor: OpenEditor | null;
+  /** The one open peek card, if any port is hovered or pinned. */
+  readonly peek?: PortPeekView;
 }
 
 export const NODE_WIDTH = 184;
@@ -124,6 +129,7 @@ export function buildCanvasModel(
   state: State,
   catalog: ReadonlyMap<string, NodeDescriptor>,
   preview: string | null = state.selection.at(-1) ?? null,
+  results: PortResultsView = NO_PORT_RESULTS,
 ): CanvasModel {
   const selected = new Set(state.selection);
   const contributing = upstreamIds(state.document,preview);
@@ -151,11 +157,21 @@ export function buildCanvasModel(
       contributing: contributing.has(n.id),
     };
   });
-  const edges = state.document.structure.edges.map((e) => ({
-    id: edgeId(e.from, e.to),
-    from: e.from,
-    to: e.to,
-    contributing: contributing.has(e.from.split(".")[0]!) && contributing.has(e.to.split(".")[0]!),
-  }));
-  return { nodes, edges, selectedEdgeId: null, openEditor: null };
+  const edges = state.document.structure.edges.map((e) => {
+    const rows = results.counts.get(e.from);
+    return {
+      id: edgeId(e.from, e.to),
+      from: e.from,
+      to: e.to,
+      contributing: contributing.has(e.from.split(".")[0]!) && contributing.has(e.to.split(".")[0]!),
+      ...(rows ? { rows: state.dirty ? { rows: rows.rows, current: false } : rows } : {}),
+    };
+  });
+  return {
+    nodes,
+    edges,
+    selectedEdgeId: null,
+    openEditor: null,
+    ...(results.peek ? { peek: results.peek } : {}),
+  };
 }

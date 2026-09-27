@@ -21,7 +21,7 @@ namespace BimOpenFlow.Host;
 
 /// <summary>The wired core: everything the host (or another front end, e.g. the
 /// MCP server) needs, with no HTTP attached.</summary>
-public sealed record HostServices(ModelCatalog Catalog, AnalysisStore Store, NodeRegistry Registry, RelationRuntime Relations, AnalysisSessions Sessions);
+public sealed record HostServices(ModelCatalog Catalog, AnalysisStore Store, NodeRegistry Registry, RelationRuntime Relations, AnalysisSessions Sessions, EditorSessions Editor);
 
 /// <summary>The full host: services plus the composed HTTP application.</summary>
 public sealed record HostApp(HostConfig Config, HostServices Services, WebApplication App);
@@ -70,14 +70,16 @@ public static class HostComposition
             store,
             registry,
             relations,
-            new AnalysisSessions(store, registry));
+            new AnalysisSessions(store, registry),
+            new EditorSessions(store));
     }
 
     public static HostApp Build(HostConfig config, IReadOnlyList<SamplePreparation.Job>? preparing = null)
     {
         var services = BuildServices(config, preparing);
         var app = ApiServer.Create(services.Catalog, services.Store, services.Registry,
-            DuckDbTableProbe.Tables, relations: new RelationHostResults(services.Relations), sessions: services.Sessions);
+            DuckDbTableProbe.Tables, relations: new RelationHostResults(services.Relations), sessions: services.Sessions,
+            editor: services.Editor);
         app.Urls.Add($"http://127.0.0.1:{config.Port}");
         return new(config, services, app);
     }

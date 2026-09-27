@@ -9,7 +9,7 @@ namespace BimOpenFlow.Host.Store;
 /// directory, then moves into place. Readers see the old bytes or the new
 /// bytes, never a partial write.
 /// </summary>
-internal static class AtomicFile
+public static class AtomicFile
 {
     public static void WriteAllText(string filePath, string content, Encoding encoding)
         => WriteVia(filePath, content, encoding, overwrite: true);

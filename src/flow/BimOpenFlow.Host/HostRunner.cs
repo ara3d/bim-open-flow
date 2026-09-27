@@ -22,6 +22,7 @@ public static class HostRunner
         foreach (var id in seeded)
             Console.WriteLine($"  seeded sample analysis: {id}");
 
+        host.Services.Editor.Clear();
         configure?.Invoke(host);
         await host.App.StartAsync();
 

@@ -21,6 +21,8 @@ public sealed class CompositionTests
                 Assert.That(services.Catalog.Roots, Has.Count.EqualTo(1));
                 Assert.That(services.Store.RootDir, Does.EndWith("analyses"));
                 Assert.That(services.Registry.Nodes, Is.Not.Empty);
+                Assert.That(services.Editor.FilePath,
+                    Is.EqualTo(Path.Combine(services.Store.RootDir, ".editor-session.json")));
             });
         }
         finally

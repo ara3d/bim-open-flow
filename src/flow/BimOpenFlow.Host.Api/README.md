@@ -36,6 +36,13 @@ TypeScript contracts exactly.
   connect, keep-alive comment every 15 s).
 - `ApiMapping` — pure host/engine → contract mapping; enum crossings by name.
 - `RunInputs` — pins ModelRef/FilePath params by content hash when freezing runs.
+- `EditorSessions` / `SessionEndpoints` — the one editor session record per
+  store (which analysis is open, which nodes are selected), kept as
+  `.editor-session.json` at the store root (`AnalysisStore.List` ignores it)
+  and written atomically through `AtomicFile`. Served at `GET`/`PUT
+  /api/session`. Because it lives on the store folder, not in memory, a
+  second process on the same store — the stdio MCP server — reads what the
+  host wrote. `HostRunner` clears it when the host starts.
 
 ## Errors
 

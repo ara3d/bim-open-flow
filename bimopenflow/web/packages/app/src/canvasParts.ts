@@ -28,6 +28,7 @@ import {
 } from "gratify";
 import type { PortType } from "@bimopenflow/contracts";
 import type { CanvasEdge, CanvasModel, CanvasNode } from "./viewModel.js";
+import type { WireRows } from "./portResults.js";
 import { NODE_HEADER, PORT_SPACING } from "./viewModel.js";
 import { placeSlots, SLOT_X_PAD } from "./canvasSlots.js";
 import { slotElement } from "./slotRegistry.js";
@@ -37,9 +38,10 @@ import { animateSelection, selectionBorder } from "./selectionBorder";
 import { upstreamEdges } from "./upstreamEdges.js";
 const selectedBorder = selectionBorder(() => canvasColors().wireSelected, animateSelection);
 import { anchorId, canConnect, parseAnchorId, type CanvasIntent } from "./canvasIntents.js";
+import { portY, SOCKET_GRAB_RADIUS, WIRE_HIT_DISTANCE } from "./portGeometry.js";
+import { peekAdorn, rowCountText } from "./peekCard.js";
 
 const SOCKET_RADIUS = 4.5;
-const SOCKET_GRAB_RADIUS = 12;
 
 // Type sizes: id must read at a glance, kind and port labels stay secondary
 // but never below 10px.
@@ -91,9 +93,6 @@ interface NodeStyle {
   dim: Color;
   socket: Color;
 }
-
-const portY = (top: number, index: number): number =>
-  top + NODE_HEADER + (index + 0.5) * PORT_SPACING;
 
 /** Bottom of the port rows, relative to the node top. */
 const portsBottom = (p: { inputs: readonly unknown[]; outputs: readonly unknown[] }): number =>
@@ -271,26 +270,32 @@ interface WireProps {
    *  is currently evaluating (TKT-24). Painted as a travelling highlight, or
    *  a static one under prefers-reduced-motion. */
   flowing?: boolean;
+  /** Row count of the table or relation leaving this wire's source port;
+   *  absent draws no label. `current: false` dims the label while a new
+   *  count is in flight or the document is dirty (TKT-11). */
+  rows?: WireRows;
 }
 
 /** How far along the wire (0..1) the travelling highlight sits at `time`,
  *  looping every second so the eye reads it as flowing a -> b. */
 const flowT = (time: number): number => time - Math.floor(time);
 
-const Wire = part<WireProps, { color: Color; selected: number }>("bof-wire", {
+const Wire = part<WireProps, { color: Color; selected: number; label: Color; labelDim: Color }>("bof-wire", {
   style: (t, channels) => {
     const selected = channels.sel || 0;
     const c = canvasColors();
     return {
       color: selected > 0.02 ? t.mix(c.wire, c.wireSelected, selected) : c.wire,
       selected,
+      label: t.textDim,
+      labelDim: calpha(t.textDim, 0.5),
     };
   },
 
   hit(node, pointer) {
     const a = node.anchor?.(node.props.from);
     const b = node.anchor?.(node.props.to);
-    return !!a && !!b && wireDist(a, b, pointer) < 8;
+    return !!a && !!b && wireDist(a, b, pointer) < WIRE_HIT_DISTANCE;
   },
 
   render(node, painter, style) {
@@ -308,6 +313,11 @@ const Wire = part<WireProps, { color: Color; selected: number }>("bof-wire", {
       } else {
         painter.wire(a, b, calpha(flow, 0.85), 3);
       }
+    }
+    if (node.props.rows) {
+      const mid = v((a.x + b.x) / 2, (a.y + b.y) / 2);
+      const color = node.props.rows.current ? style.label : style.labelDim;
+      painter.label(rowCountText(node.props.rows.rows), mid, color, { size: 10 });
     }
   },
 
@@ -358,6 +368,7 @@ export function canvasView(model: CanvasModel): Element {
           to,
           contributing: edge.contributing,
           flowing: flowing.has(edge.id),
+          rows: edge.rows,
           states: { sel: model.selectedEdgeId === edge.id },
         });
       }),
@@ -371,7 +382,7 @@ export function canvasView(model: CanvasModel): Element {
             w: n.w - 2 * SLOT_X_PAD,
             open: model.openEditor?.nodeId === n.id && model.openEditor.name === param.name,
           })),
-        ), selectedBorder)),
+        ), selectedBorder, peekAdorn(model.peek))),
     ]),
     onScreenLayer(
       Stack("hud", { pad: 10 }, [

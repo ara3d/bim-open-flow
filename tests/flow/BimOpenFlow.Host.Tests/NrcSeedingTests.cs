@@ -12,6 +12,7 @@ public sealed class NrcSeedingTests
     [
         "nrc-q1-building-total", "nrc-q3-top-elements", "nrc-q5-by-category", "nrc-q7-absence",
         "nrc-q8-per-storey", "nrc-storey-of-element", "nrc-storey-carbon-chart", "nrc-property-values",
+        "nrc-element-psets", "nrc-rollup",
     ];
 
     /// <summary>check.rule, view3d.instances, view3d.color, and sink.writePsets exist only in the bim profile.</summary>

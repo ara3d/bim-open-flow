@@ -4,7 +4,7 @@ using Ara3D.Utils;
 namespace BimOpenFlow.Host;
 
 /// <summary>Generated sample data that takes longer than a start-up may: today the NRC
-/// DuckDB built from samples/nrc/duplex-enriched.ifc, about 30 s cold. The host opens its
+/// DuckDBs built from samples/nrc/duplex-enriched.ifc and duplex-base.ifc, about 30 s each cold. The host opens its
 /// port first and runs these jobs afterwards; until a job lands, the relation registry
 /// answers "not ready yet" for its source name, and when it lands the caller re-evaluates
 /// every open analysis so the waiting nodes recover without a reload.</summary>
@@ -40,13 +40,23 @@ public static class SamplePreparation
         }
     }
 
+    /// <summary>The source name of the database built from samples/nrc/duplex-base.ifc.</summary>
+    public const string NrcBaseSourceName = "duplex-base";
+
     /// <summary>The NRC database job for a repo root, or null when the IFC is not there.</summary>
     public static Job? NrcDatabase(string root)
+        => DatabaseJob(root, NrcSourceName, SampleSeeding.NrcIfcFileName, SampleSeeding.NrcDatabaseFileName);
+
+    /// <summary>The database job for the unenriched Duplex, or null when its IFC is not there.</summary>
+    public static Job? NrcBaseDatabase(string root)
+        => DatabaseJob(root, NrcBaseSourceName, SampleSeeding.NrcBaseIfcFileName, SampleSeeding.NrcBaseDatabaseFileName);
+
+    private static Job? DatabaseJob(string root, string source, string ifcName, string databaseName)
     {
         var dir = SampleSeeding.NrcSamplesDir(root);
-        var ifc = Path.Combine(dir, SampleSeeding.NrcIfcFileName);
+        var ifc = Path.Combine(dir, ifcName);
         return File.Exists(ifc)
-            ? new(NrcSourceName, ifc, Path.Combine(dir, SampleSeeding.NrcDatabaseFileName),
+            ? new(source, ifc, Path.Combine(dir, databaseName),
                 (input, output) => IfcDuckDbBuild.Build(new FilePath(input), new FilePath(output)))
             : null;
     }
@@ -66,7 +76,7 @@ public static class SamplePreparation
     /// <summary>Every job for the checkout that contains startDir; empty outside a checkout.</summary>
     public static IReadOnlyList<Job> Jobs(string startDir)
         => SampleSeeding.FindRepoRoot(startDir) is { } root
-            ? new[] { NrcDatabase(root), NrcBos(root) }.Where(j => j is not null).Select(j => j!).ToList()
+            ? new[] { NrcDatabase(root), NrcBaseDatabase(root), NrcBos(root) }.Where(j => j is not null).Select(j => j!).ToList()
             : [];
 
     /// <summary>Why a source name cannot be resolved yet, or null when no stale job owns it.</summary>

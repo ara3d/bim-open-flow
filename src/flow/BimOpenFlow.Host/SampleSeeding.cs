@@ -51,6 +51,12 @@ public static class SampleSeeding
     public const string NrcDatabaseFileName = "duplex-enriched.duckdb";
     public const string NrcBosFileName = "duplex-enriched.bos";
 
+    /// <summary>The unenriched Duplex that nrc-enrich-run writes into; its database is the
+    /// "duplex-base" source the NRC graphs read StepIds and storeys from, so no graph reads the
+    /// output of its own last Run.</summary>
+    public const string NrcBaseIfcFileName = "duplex-base.ifc";
+    public const string NrcBaseDatabaseFileName = "duplex-base.duckdb";
+
     /// <summary>The seeding source for samples/nrc-analyses, whose graphs name their sources
     /// and so need no placeholder. Seeded by both host profiles.</summary>
     public static (string AnalysesDir, string Placeholder, string TargetDir) NrcAnalyses(string root)

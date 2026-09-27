@@ -17,6 +17,7 @@ depend on the Windows-only DuckDB project; one-table SQL lives in the data layer
 | `TableRows.cs` | `KeepRows`: a copy of a table holding only the given rows, for filters that select without SQL |
 | `MemoryTable.cs` | `MemoryTable`, `MemoryColumn`, `MemoryRow`: a minimal immutable in-memory `IDataTable` for summary rows and verdict tables |
 | `FileHashes.cs` | `HashFile`: uppercase hex SHA-256 of a file's bytes, the key of the in-memory read caches |
+| `ColorMaps.cs` | `Rgb`, `ColorMaps`: gradients (viridis, redgreen) and the category10 palette, moved here unchanged from `Nodes.Geometry` so both Geometry and Viz can reach it without referencing each other |
 
 ## Conventions
 

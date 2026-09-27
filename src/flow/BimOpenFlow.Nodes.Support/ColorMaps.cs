@@ -1,4 +1,4 @@
-namespace BimOpenFlow.Nodes.Geometry;
+namespace BimOpenFlow.Nodes.Support;
 
 public readonly record struct Rgb(double R, double G, double B);
 

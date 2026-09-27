@@ -47,4 +47,16 @@ export {
   type InstanceLegend,
 } from "./instanceLegend";
 export { isBoxTable, parseBoxTable, UNIT_CUBE, type BoxPlan } from "./boxTable";
+export {
+  entriesLegendView,
+  parseScaleLegend,
+  renderLegendView,
+  scaleLegendView,
+  type LegendView,
+  type Rgb3,
+  type ScaleDomain,
+  type ScaleLegend,
+  type ScaleRole,
+  type ScaleRow,
+} from "./scaleLegend";
 export { defaultView3DDeps, type View3DDeps, type ViewerRig } from "./viewerDeps";

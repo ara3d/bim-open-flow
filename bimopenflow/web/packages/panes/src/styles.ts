@@ -35,6 +35,10 @@ export const panesCss = `
 .bof-panes-legend[hidden] { display: none; }
 .bof-panes-legend i { display: inline-block; width: 9px; height: 9px; margin-right: 5px; border-radius: 2px; }
 .bof-panes-legend-more { color: var(--bof-panes-muted); }
+.bof-panes-legend-caption { flex-basis: 100%; color: var(--bof-panes-muted); }
+.bof-panes-legend-ramp { display: flex; flex-direction: column; gap: 2px; flex-basis: 100%; }
+.bof-panes-legend-ramp-bar { height: 10px; border-radius: 2px; }
+.bof-panes-legend-ramp-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--bof-panes-muted); }
 .bof-panes-title { font-weight: 600; margin: 4px 0; }
 .bof-panes-section { color: var(--bof-panes-muted); margin: 8px 0 2px; font-size: 11px; text-transform: uppercase; }
 .bof-panes-dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 4px 0; }

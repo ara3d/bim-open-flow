@@ -64,7 +64,9 @@ export type PaneInput =
   /** A bounded, ordered visualization recipe from view3d.scene and its downstream nodes. */
   | { kind: "view"; data: TableSlice }
   /** A boxes table: axis-aligned boxes rendered as instanced unit cubes (3D pane). */
-  | { kind: "boxes"; data: TableSlice };
+  | { kind: "boxes"; data: TableSlice }
+  /** A legend table (view.colormap, view3d.color, chart.bar `legend` port); 3D and chart panes render it. */
+  | { kind: "legend"; data: TableSlice };
 
 /** Events a pane emits. Serializable; the host decides what they mean. */
 export type PaneEvent =

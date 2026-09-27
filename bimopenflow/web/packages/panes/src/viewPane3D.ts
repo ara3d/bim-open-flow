@@ -212,7 +212,9 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
       loading = true;
       status.setAttribute("role", "status");
       status.textContent = "Loading model…";
-      rig.load(ctx.resolveAsset(url), format).then(loaded => {
+      rig.load(ctx.resolveAsset(url), format, () => {
+        if (!disposed && token === loadToken) status.textContent = "Coarse preview · loading full detail…";
+      }).then(loaded => {
         if (disposed || token !== loadToken) return;
         maps = loaded;
         loading = false;

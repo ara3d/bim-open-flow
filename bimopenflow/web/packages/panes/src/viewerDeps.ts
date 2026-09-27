@@ -1,7 +1,6 @@
 import { InstancedGroup, groupBounds } from "@ara3d/viewer-core";
 import { fitBounds } from "@bim-open-toolkit/interact";
-import { loadModel } from "@bim-open-toolkit/formats";
-import { createViewer, defaultFeatures, webglRenderer } from "@bim-open-toolkit/viewer";
+import { createViewer, defaultFeatures, loadWithPreview, webglRenderer } from "@bim-open-toolkit/viewer";
 import type { TableSlice } from "@bimopenflow/contracts";
 import type { ModelFormat } from "./pane";
 import type { GroupEntityMap } from "./instanceTable";
@@ -13,7 +12,7 @@ import { startupTrace } from "./startupTrace";
 import { entityKeyOf, entityKeysByObjectId } from "./entityKeys";
 
 export interface ViewerRig {
-  load(url: string, format: ModelFormat): Promise<readonly GroupEntityMap[]>;
+  load(url: string, format: ModelFormat, onPreview?: () => void): Promise<readonly GroupEntityMap[]>;
   setBoxes(transforms: Float32Array, colors: Float32Array): void;
   clearBoxes(): void;
   requestRender(): void;
@@ -86,14 +85,20 @@ export const defaultView3DDeps: View3DDeps = {
       } else requireResult(viewer.run("view.fit"));
     };
     return {
-      async load(url, format) {
+      async load(url, format, onPreview) {
         const token = ++generation;
         abort?.abort();
         abort = new AbortController();
         // Load without binding. A cancelled or superseded request cannot enter the scene.
         // BOS endpoints may serve verified prepared BFAST; detect their byte signature.
         let phase = "fetch", phaseStart = performance.now();
-        const decoded = requireResult(await loadModel(url, { format: format === "bos" ? undefined : format, signal: abort.signal,
+        let previewed = false;
+        const decoded = requireResult(await loadWithPreview(viewer, url, { format: format === "bos" ? undefined : format, signal: abort.signal,
+          onPreview: () => {
+            previewed = true;
+            if (trace.enabled) performance.mark("bimflow:coarse-frame-submitted");
+            onPreview?.();
+          },
           ...(trace.enabled ? { onProgress: (progress: { phase: string }) => {
             if (phase !== progress.phase) { trace.record(`load-${phase}`, phaseStart); phase = progress.phase; phaseStart = performance.now(); }
           } } : {}),
@@ -115,7 +120,9 @@ export const defaultView3DDeps: View3DDeps = {
           const current = view.camera();
           view.setCamera({ ...current, coordinates: loaded.data.coordinates,
             camera: { ...current.camera, up: loaded.data.coordinates.up === "z" ? [0,0,1] : [0,1,0] } });
-          trace.span("initial-fit", () => requireResult(viewer.run("view.fit")));
+          // A drawn preview already framed these bounds in this up-axis convention; skipping keeps
+          // any camera move the user made while the coarse preview was on screen.
+          if (!previewed) trace.span("initial-fit", () => requireResult(viewer.run("view.fit")));
         }
         const restore = () => restoreSourceColors(loaded, table);
         trace.span("source-colors", restore);

@@ -419,6 +419,34 @@ describe("ViewPane3D", () => {
     pane.destroy();
   });
 
+  it("shows the coarse preview status, then the full-readiness status, as the rig's load reports each", async () => {
+    const { group } = recordingGroup([1, 1, 1, 1]);
+    let resolveLoad: ((maps: readonly GroupEntityMap[]) => void) | undefined;
+    const deps: View3DDeps = {
+      createRig: () => ({
+        load: (_url, _format, onPreview) => {
+          onPreview?.();
+          return new Promise((resolve) => { resolveLoad = resolve; });
+        },
+        setBoxes: () => {},
+        clearBoxes: () => {},
+        requestRender: () => {},
+        dispose: () => {},
+      }),
+    };
+    const host = document.createElement("div");
+    const pane = createViewPane3D({ deps });
+    pane.mount(host, fakeCtx());
+    pane.update({ kind: "model", url: "model.bos" });
+    await settle();
+    const status = () => host.querySelector(".bof-panes-viewstatus")?.textContent;
+    expect(status()).toBe("Coarse preview · loading full detail…");
+    resolveLoad?.([{ group, entities: [7] }]);
+    await settle();
+    expect(status()).toBe("1 instances · orbit / pan / zoom");
+    pane.destroy();
+  });
+
   it("mounts and destroys the real default rig headless (no WebGL attach)", () => {
     const warn = vi.spyOn(console, "error").mockImplementation(() => {});
     const host = document.createElement("div");

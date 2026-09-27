@@ -1,8 +1,8 @@
 // Headless coverage for the kinds that used to live only in the properties
 // pane — Json, Expression, and ModelRef — plus a Text parameter with a
 // ColumnsOf suggestion and a Fraction parameter with a range control. This
-// replaces paramsPane.test.ts: after this chunk every kind is editable from
-// slotElement, so the pane (deleted in C8) has no caller left. Each case
+// replaces the pane's test: every kind is editable from slotElement now, so
+// the pane (deleted in C8) has no caller left. Each case
 // drives the real factory the way a user would (an island's DOM events, or
 // the long-text row's press-then-type-then-commit), feeds the resulting
 // intent(s) through makeCanvasUpdate into a real store, and checks the

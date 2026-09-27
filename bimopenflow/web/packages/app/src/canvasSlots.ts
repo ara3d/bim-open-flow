@@ -33,23 +33,77 @@ export const COMPACT_SLOT_H = 32;
 export const FIELD_SLOT_H = 50;
 export const WIDGET_SLOT_H = 70;
 
-export const slotHeight = (kind: ParamKind): number => {
-  switch (kind) {
-    case "Boolean":
-    case "Enum":
-    case "Integer":
-    case "Number":
-    case "Fraction":
-    case "Percent":
-      return COMPACT_SLOT_H;
-    case "Text":
-    case "FilePath":
-    case "DateTime":
-      return FIELD_SLOT_H;
-    default:
-      return 0;
-  }
+/** The control a parameter row shows. TKT-23 adds members (swatch, typed slider, column picker). */
+export type SlotControl =
+  | "toggle" | "dropdown" | "number" | "slider" | "range" | "columnSelect" | "field" | "longText";
+
+/** Default control per kind. The Record forces a row for every ParamKind. */
+export const KIND_CONTROL = {
+  Boolean: "toggle", Enum: "dropdown",
+  Integer: "number", Number: "number", Fraction: "number", Percent: "number",
+  Text: "field", FilePath: "field", DateTime: "field", ModelRef: "field",
+  Json: "longText", Expression: "longText",
+} as const satisfies Record<ParamKind, SlotControl>;
+
+/** Row height per control: compact 32, field 50, widget 70. */
+export const CONTROL_HEIGHT: Readonly<Record<SlotControl, number>> = {
+  toggle: COMPACT_SLOT_H,
+  dropdown: COMPACT_SLOT_H,
+  number: COMPACT_SLOT_H,
+  columnSelect: COMPACT_SLOT_H,
+  field: FIELD_SLOT_H,
+  longText: FIELD_SLOT_H,
+  slider: WIDGET_SLOT_H,
+  range: WIDGET_SLOT_H,
 };
+
+/** Plain Text longer than this, or with a line break, gets the long-text row. */
+export const LONG_TEXT_CHARS = 60;
+
+/** Descriptor control first (sortColumn -> columnSelect, slider, range), then
+ *  the long-Text rule (Text, no suggest, no control), then KIND_CONTROL.
+ *  Unknown kind -> "field". */
+export function slotControl(
+  param: Pick<CanvasParam, "kind" | "value" | "control" | "suggest">,
+): SlotControl {
+  const controlKind = param.control?.kind;
+  if (controlKind === "sortColumn") return "columnSelect";
+  if (controlKind === "slider") return "slider";
+  if (controlKind === "range") return "range";
+  if (
+    param.kind === "Text" &&
+    !param.suggest &&
+    !param.control &&
+    (param.value.includes("\n") || param.value.length > LONG_TEXT_CHARS)
+  )
+    return "longText";
+  return (KIND_CONTROL as Readonly<Partial<Record<ParamKind, SlotControl>>>)[param.kind] ?? "field";
+}
+
+/** Replaces slotHeight(kind). */
+export function slotHeight(
+  param: Pick<CanvasParam, "kind" | "value" | "control" | "suggest">,
+): number {
+  return CONTROL_HEIGHT[slotControl(param)];
+}
+
+/** Whitespace runs (including line breaks) collapsed to one space, trimmed,
+ *  cut to maxChars with a trailing "…". */
+export function previewText(value: string, maxChars: number): string {
+  const collapsed = value.replace(/\s+/g, " ").trim();
+  if (collapsed.length <= maxChars) return collapsed;
+  return collapsed.slice(0, maxChars - 1) + "…";
+}
+
+/** What a slot factory receives for one parameter row. */
+export interface SlotContext {
+  readonly nodeId: string;
+  readonly param: CanvasParam;
+  /** Row width in world pixels (node width minus side padding). */
+  readonly w: number;
+  /** True when CanvasModel.openEditor names this row. */
+  readonly open: boolean;
+}
 
 export const SLOT_GAP = 4;
 export const SLOTS_PAD_TOP = 8;
@@ -89,7 +143,7 @@ export function placeSlots(
   if (params.length === 0) return { slots: [], bottom: topOffset };
   let y = topOffset + SLOTS_PAD_TOP;
   const slots = params.map((param) => {
-    const h = param.control?.kind === "sortColumn" ? COMPACT_SLOT_H : param.control?.kind === "slider" || param.control?.kind === "range" ? WIDGET_SLOT_H : slotHeight(param.kind);
+    const h = CONTROL_HEIGHT[slotControl(param)];
     const placed = { param, y, h };
     y += h + SLOT_GAP;
     return placed;

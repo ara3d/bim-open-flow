@@ -6,6 +6,7 @@
 
 import type { Element } from "gratify";
 import { slotControl, type SlotContext, type SlotControl } from "./canvasSlots.js";
+import { longTextSlot, pruneLongValueEditors } from "./canvasLongSlot.js";
 import { rangeSlot, sliderSlot } from "./graphWidgets.js";
 import {
   clearOpenDropdown,
@@ -25,14 +26,14 @@ const sliderFactory: SlotFactory = (ctx) =>
 
 const rangeFactory: SlotFactory = (ctx) => rangeSlot(ctx.nodeId, ctx.param, ctx.w);
 
-/** One factory per control. C6 maps longText -> fieldSlot; C7 maps it to longTextSlot. */
+/** One factory per control. */
 export const SLOT_FACTORIES: Readonly<Record<SlotControl, SlotFactory>> = {
   toggle: toggleSlot,
   dropdown: dropdownSlot,
   number: numberSlot,
   columnSelect: columnSlot,
   field: fieldSlot,
-  longText: fieldSlot,
+  longText: longTextSlot,
   slider: sliderFactory,
   range: rangeFactory,
 };
@@ -44,9 +45,10 @@ export function slotElement(ctx: SlotContext): Element {
   return SLOT_FACTORIES[control](ctx);
 }
 
-/** pruneInlineControls, plus pruneLongValueEditors from C7 on. */
+/** pruneInlineControls, plus pruneLongValueEditors. */
 export function pruneSlots(liveKeys: ReadonlySet<string>): void {
   pruneInlineControls(liveKeys);
+  pruneLongValueEditors(liveKeys);
 }
 
 export function disposeSlots(): void {

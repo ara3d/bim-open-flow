@@ -19,14 +19,6 @@ export interface CanvasParam {
   readonly control?: ControlDescriptor;
 }
 
-/** Kinds edited inline on the node. Json/Expression/ModelRef stay in the
- *  params pane: they need more room than a node slot can honestly give. */
-const INLINE: ReadonlySet<ParamKind> = new Set([
-  "Boolean", "Enum", "Integer", "Number", "Fraction", "Percent", "Text", "FilePath", "DateTime",
-]);
-
-export const isInlineKind = (kind: ParamKind): boolean => INLINE.has(kind);
-
 /** Single compact row: label left, control right. */
 export const COMPACT_SLOT_H = 32;
 /** Caption line + full-width input. */
@@ -117,13 +109,17 @@ export interface SlotPlacement {
   readonly h: number;
 }
 
-/** Inline params of a node, in catalog order, with document values applied. */
+/** Inline params of a node, in catalog order, with document values applied.
+ *  Every kind shows on the card; only a `hidden` control descriptor holds a
+ *  parameter off it (open question 1 in the plan: agents, MCP, and the
+ *  document can still change it, but only the node author's own controls
+ *  edit it on the canvas). */
 export function inlineParams(
   params: readonly ParamDescriptor[],
   values: Readonly<Record<string, string>>,
 ): CanvasParam[] {
   return params
-    .filter((p) => isInlineKind(p.kind) && p.control?.kind !== "hidden")
+    .filter((p) => p.control?.kind !== "hidden")
     .map((p) => ({
       name: p.name,
       kind: p.kind,

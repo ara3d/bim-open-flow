@@ -5,7 +5,6 @@ import {
   CONTROL_HEIGHT,
   FIELD_SLOT_H,
   inlineParams,
-  isInlineKind,
   KIND_CONTROL,
   LONG_TEXT_CHARS,
   placeSlots,
@@ -25,13 +24,6 @@ const p = (name: string, kind: ParamDescriptor["kind"], def = ""): ParamDescript
 });
 
 describe("inline slot vocabulary", () => {
-  it("simple kinds are inline; heavy kinds stay in the pane", () => {
-    for (const kind of ["Boolean", "Enum", "Integer", "Number", "Text", "FilePath", "DateTime"] as const)
-      expect(isInlineKind(kind)).toBe(true);
-    for (const kind of ["Json", "Expression", "ModelRef"] as const)
-      expect(isInlineKind(kind)).toBe(false);
-  });
-
   it("heights vary by kind: compact rows vs caption+field", () => {
     expect(slotHeight({ kind: "Boolean", value: "" })).toBe(COMPACT_SLOT_H);
     expect(slotHeight({ kind: "Enum", value: "" })).toBe(COMPACT_SLOT_H);
@@ -113,14 +105,25 @@ describe("previewText", () => {
 });
 
 describe("inlineParams", () => {
-  it("keeps catalog order, applies values over defaults, drops pane-only kinds", () => {
+  it("keeps catalog order, applies values over defaults, and shows every kind", () => {
     const params = inlineParams(
       [p("header", "Boolean", "true"), p("rows", "Json"), p("path", "FilePath")],
       { path: "data.csv" },
     );
-    expect(params.map((x) => x.name)).toEqual(["header", "path"]);
+    expect(params.map((x) => x.name)).toEqual(["header", "rows", "path"]);
     expect(params[0]!.value).toBe("true");
-    expect(params[1]!.value).toBe("data.csv");
+    expect(params[2]!.value).toBe("data.csv");
+  });
+
+  it("drops a parameter whose descriptor sets control.kind 'hidden'", () => {
+    const hidden: ParamDescriptor = {
+      name: "sortBy",
+      kind: "Text",
+      default: "",
+      control: { kind: "hidden" },
+    };
+    const params = inlineParams([p("header", "Boolean", "true"), hidden], {});
+    expect(params.map((x) => x.name)).toEqual(["header"]);
   });
 
   it("carries enum options through", () => {

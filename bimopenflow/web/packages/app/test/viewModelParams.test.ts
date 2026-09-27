@@ -31,14 +31,30 @@ const catalog = new Map([
 ]);
 
 describe("view model with inline params", () => {
-  it("threads document values into the node's inline params, pane-only kinds excluded", () => {
+  it("threads document values into the node's inline params; every kind shows", () => {
     const store = createStore();
     store.dispatch({ type: "addNode", id: "a", kind: "csv.read", version: 1 });
     store.dispatch({ type: "setParam", nodeId: "a", name: "path", value: "x.csv" });
     const n = buildCanvasModel(store.getState(), catalog).nodes[0]!;
-    expect(n.params.map((p) => p.name)).toEqual(["path", "header"]);
+    expect(n.params.map((p) => p.name)).toEqual(["path", "header", "rows"]);
     expect(n.params[0]!.value).toBe("x.csv");
     expect(n.params[1]!.value).toBe("true"); // default applied
+    expect(n.params[2]!.kind).toBe("Json");
+  });
+
+  it("still excludes a parameter whose descriptor sets control.kind 'hidden'", () => {
+    const withHidden: NodeDescriptor = {
+      ...withParams,
+      kind: "hidden.node",
+      params: [
+        ...withParams.params,
+        { name: "sortBy", kind: "Text", default: "", control: { kind: "hidden" } },
+      ],
+    };
+    const store = createStore();
+    store.dispatch({ type: "addNode", id: "a", kind: "hidden.node", version: 1 });
+    const n = buildCanvasModel(store.getState(), new Map([["hidden.node", withHidden]])).nodes[0]!;
+    expect(n.params.map((p) => p.name)).toEqual(["path", "header", "rows"]);
   });
 
   it("nodes with inline params are taller and wider; bare nodes keep the classic size", () => {

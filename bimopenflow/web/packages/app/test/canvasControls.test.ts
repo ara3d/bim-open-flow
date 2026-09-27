@@ -9,7 +9,8 @@ import { makeCanvasUpdate, type CanvasIntent } from "../src/canvasIntents.js";
 import { canvasView } from "../src/canvasParts.js";
 import { buildCanvasModel, NODE_HEADER, PORT_SPACING, type CanvasModel } from "../src/viewModel.js";
 import { COMPACT_SLOT_H, SLOT_GAP, SLOT_X_PAD, SLOTS_PAD_TOP } from "../src/canvasSlots.js";
-import { disposeInlineControls, setInlineControlDispatch, slotElement } from "../src/canvasControls.js";
+import { disposeInlineControls, slotElement } from "../src/canvasControls.js";
+import { setInlineControlDispatch } from "../src/slotShared.js";
 
 afterEach(() => disposeInlineControls());
 

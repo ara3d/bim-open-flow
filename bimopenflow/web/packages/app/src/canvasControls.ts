@@ -19,7 +19,6 @@ import {
   at,
   calpha,
   Color,
-  css,
   Element,
   GNode,
   Local,
@@ -28,7 +27,6 @@ import {
   Press,
   rect,
   themeVersion,
-  Tokens,
   v,
 } from "gratify";
 import type { ControlDescriptor, ParamKind, SuggestDescriptor, SuggestionList } from "@bimopenflow/contracts";
@@ -40,6 +38,7 @@ import type { CanvasParam } from "./canvasSlots.js";
 import { COMPACT_SLOT_H, FIELD_SLOT_H } from "./canvasSlots.js";
 import { canvasThemes, currentCanvasTheme } from "./canvasTheme.js";
 import type { CanvasIntent } from "./canvasIntents.js";
+import { dispatchInline, islandKey, styleIsland } from "./slotShared.js";
 import {
   fromDatetimeLocal,
   normalizeInteger,
@@ -251,20 +250,12 @@ interface IslandSlotProps {
   states?: Record<string, boolean>;
 }
 
-let dispatchIntent: (intent: CanvasIntent) => void = () => {};
-
-/** canvasEditor registers the live runtime's dispatch here after mount;
- *  island DOM events flow through it into the normal intent path. */
-export function setInlineControlDispatch(fn: (intent: CanvasIntent) => void): void {
-  dispatchIntent = fn;
-}
-
 export type SuggestionProvider = (nodeId: string, param: string) => Promise<SuggestionList>;
 
 let suggestionProvider: SuggestionProvider | null = null;
 const columnSelects = new ColumnSelects(
   (node, param) => suggestionProvider ? suggestionProvider(node, param) : Promise.reject(new Error('No open flow')),
-  (nodeId, name, value) => dispatchIntent({ kind: 'setParam', nodeId, name, value }));
+  (nodeId, name, value) => dispatchInline({ kind: 'setParam', nodeId, name, value }));
 export const refreshColumnOptions = () => columnSelects.refresh();
 
 /** The app registers how suggest-annotated params fetch their live values
@@ -284,8 +275,6 @@ interface IslandEntry {
 }
 
 const islands = new Map<string, IslandEntry>();
-
-export const islandKey = (nodeId: string, name: string): string => `${nodeId}::${name}`;
 
 /** Drops island elements for (node, param) keys no longer on the canvas. */
 export function pruneInlineControls(liveKeys: ReadonlySet<string>): void {
@@ -319,17 +308,6 @@ function toCanonical(kind: ParamKind, text: string): string | null {
     default:
       return text;
   }
-}
-
-function styleIsland(el: HTMLInputElement, palette: Omit<Tokens, "mix">): void {
-  el.style.cssText =
-    "box-sizing:border-box;width:100%;height:100%;border-radius:5px;" +
-    "padding:0 7px;font:14px system-ui,'Segoe UI',sans-serif;outline:none;" +
-    `border:1px solid ${css(palette.muted)};` +
-    `background:${css(palette.bg)};color:${css(palette.text)};`;
-  el.style.colorScheme = currentCanvasTheme().includes("light") ? "light" : "dark";
-  el.onfocus = () => (el.style.borderColor = css(palette.accent));
-  el.onblur = () => (el.style.borderColor = css(palette.muted));
 }
 
 function islandFor(props: IslandSlotProps): IslandEntry {
@@ -370,7 +348,7 @@ function islandFor(props: IslandSlotProps): IslandEntry {
       }
       el.value = display(canonical);
       entry!.canonical = canonical;
-      dispatchIntent({ kind: "setParam", nodeId: props.nodeId, name: props.name, value: canonical });
+      dispatchInline({ kind: "setParam", nodeId: props.nodeId, name: props.name, value: canonical });
     };
     el.addEventListener("change", commit);
     if (props.suggest && el.type === "text")

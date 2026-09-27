@@ -2,7 +2,7 @@
 // and pane area together around one ApiClient. Every graph mutation flows
 // through store.dispatch; this module owns no graph logic.
 
-import type { AnalysisSummary, NodeDescriptor } from "@bimopenflow/contracts";
+import type { AnalysisSummary, EditorSession, NodeDescriptor } from "@bimopenflow/contracts";
 import type { ApiClient } from "@bimopenflow/api-client";
 import {
   connectAnalysis,
@@ -31,12 +31,15 @@ import { showToast } from "./toast.js";
 import { buildLiveViewRecipe } from "./liveViewRecipe";
 import { createHostStatus, type HostStatusSource } from "./hostStatus.js";
 import { nodeTitle, upstreamIds } from "./graphPreview";
-import { primaryNodeId, reopenKeepingSelection } from "./selection.js";
+import { primaryNodeId, reopenKeepingSelection, selectedNodeIds } from "./selection.js";
+import { createSessionReporter } from "./editorSession.js";
 
 export interface App {
   openAnalysis(id: string): Promise<void>;
   /** Re-reads the analysis list from the host (for graphs created outside the editor). */
   refreshAnalyses(): Promise<void>;
+  /** The session last reported (or queued) to the host. */
+  session(): EditorSession;
   dispose(): void;
 }
 
@@ -67,10 +70,22 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   let connection: AnalysisConnection | null = null;
   let resultSelection: string[] = [];
   let lastPrimary: string | null = null;
+  let currentSession: EditorSession = { analysisId: undefined, selection: [] };
 
   const fail = (message: string) => showToast(message, "error");
   const host = options.host ?? createHostStatus();
   if (!options.host) host.start(() => api.listModels());
+
+  // Reports which analysis is open and which nodes are selected, so a
+  // separate process (the stdio MCP server) reading the same store can see
+  // what the studio shows. See Design: "The editor keeps the record current".
+  const sessionReporter = createSessionReporter(api, {
+    onError: (e) => fail(`Could not report the open session: ${e instanceof Error ? e.message : e}`),
+  });
+  const reportSession = () => {
+    currentSession = { analysisId: currentId ?? undefined, selection: selectedNodeIds(store.getState()) };
+    sessionReporter.report(currentSession);
+  };
 
   const dispatch = (action: Action) => {
     try {
@@ -212,6 +227,13 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     lastEval = state.evalState;
     lastPrimary = primary;
     lastDirty = state.dirty;
+    // Report whenever the selected nodes or the open analysis changed
+    // (openAnalysis itself reports too, for the case the store does not fire).
+    const selection = selectedNodeIds(state);
+    const sessionChanged = currentSession.analysisId !== (currentId ?? undefined) ||
+      selection.length !== currentSession.selection.length ||
+      selection.some((id, i) => id !== currentSession.selection[i]);
+    if (sessionChanged) reportSession();
   });
 
   paneArea.showNode(null);
@@ -236,6 +258,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
         onStreamError: () => host.reportFailure("evaluation stream lost"),
       });
       currentId = id;
+      reportSession();
       refreshColumnOptions();
       sidebar.setAnalyses(analyses, id);
       topbar.setAnalyses(analyses, id);
@@ -324,6 +347,13 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   };
   root.ownerDocument.addEventListener("keydown", onKeyDown);
 
+  // A tab that becomes visible again resends the session unchanged, in case
+  // it is the most recently reported editor and another tab took over.
+  const onVisibilityChange = () => {
+    if (root.ownerDocument.visibilityState === "visible") sessionReporter.flush();
+  };
+  root.ownerDocument.addEventListener("visibilitychange", onVisibilityChange);
+
   // ── boot and reconnect ─────────────────────────────────────────────────────
   // Connectivity failures are shown by the host banner, so error toasts are
   // reserved for failures that happened while the host was reachable.
@@ -386,6 +416,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   return {
     openAnalysis,
     refreshAnalyses,
+    session: () => currentSession,
     dispose() {
       unsubscribe();
       unsubscribeHost();
@@ -395,7 +426,9 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       canvasEditor.dispose();
       paneArea.dispose();
       shell.dispose();
+      sessionReporter.dispose();
       root.ownerDocument.removeEventListener("keydown", onKeyDown);
+      root.ownerDocument.removeEventListener("visibilitychange", onVisibilityChange);
     },
   };
 }

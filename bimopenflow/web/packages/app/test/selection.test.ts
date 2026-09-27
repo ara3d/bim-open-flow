@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createStore, emptyDocument, serializeDocument } from "@bimopenflow/state";
-import { primaryNodeId, reopenKeepingSelection } from "../src/selection.js";
+import { primaryNodeId, reopenKeepingSelection, selectedNodeIds } from "../src/selection.js";
 
 const documentWith = (...ids: string[]): string => {
   const store = createStore();
@@ -25,6 +25,29 @@ describe("primaryNodeId", () => {
     const store = createStore();
     store.dispatch({ type: "setDocument", json: documentWith("a") });
     expect(primaryNodeId(store.getState())).toBeNull();
+  });
+});
+
+describe("selectedNodeIds", () => {
+  it("returns the selected ids that are nodes of the open document, in selection order", () => {
+    const store = createStore();
+    store.dispatch({ type: "setDocument", json: documentWith("n1") });
+    store.dispatch({ type: "select", ids: ["n1", "ghost"] });
+    expect(selectedNodeIds(store.getState())).toEqual(["n1"]);
+  });
+
+  it("preserves selection order", () => {
+    const store = createStore();
+    store.dispatch({ type: "setDocument", json: documentWith("a", "b") });
+    store.dispatch({ type: "select", ids: ["b", "a"] });
+    expect(selectedNodeIds(store.getState())).toEqual(["b", "a"]);
+  });
+
+  it("is empty when nothing selected is a node", () => {
+    const store = createStore();
+    store.dispatch({ type: "setDocument", json: documentWith("a") });
+    store.dispatch({ type: "select", ids: ["result-1"] });
+    expect(selectedNodeIds(store.getState())).toEqual([]);
   });
 });
 

@@ -11,6 +11,12 @@ export function primaryNodeId(state: State): string | null {
   return null;
 }
 
+/** The selected ids that are nodes of the open document, in selection order. */
+export function selectedNodeIds(state: State): string[] {
+  const nodeIds = new Set(state.document.structure.nodes.map((n) => n.id));
+  return state.selection.filter((id) => nodeIds.has(id));
+}
+
 /**
  * Runs `reopen` (which replaces the store's document and clears its
  * selection) and reselects the node that was primary before, when the

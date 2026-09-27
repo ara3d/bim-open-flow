@@ -30,6 +30,7 @@ import { loadThemeChoice, saveThemeChoice } from "./themeChoice.js";
 import { showToast } from "./toast.js";
 import { buildLiveViewRecipe } from "./liveViewRecipe";
 import { createHostStatus, type HostStatusSource } from "./hostStatus.js";
+import { mountAskPanel, type AskPanel } from "./askPanel.js";
 import { nodeTitle, upstreamIds } from "./graphPreview";
 import { primaryNodeId, reopenKeepingSelection, selectedNodeIds } from "./selection.js";
 import { createSessionReporter } from "./editorSession.js";
@@ -463,6 +464,17 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     }
   };
 
+  // TKT-84: an Ask panel that edits the open flow, shown only when the host
+  // answers /api/ask (mountAskPanel probes and mounts nothing otherwise).
+  let askPanel: AskPanel | undefined;
+  let askPanelDisposed = false;
+  void mountAskPanel(root, {
+    host,
+    getAnalysisId: () => currentId ?? undefined,
+    onBuilt: async (id) => { await refreshAnalyses(); await openAnalysis(id); },
+    onError: fail,
+  }).then((panel) => { if (askPanelDisposed) panel.dispose(); else askPanel = panel; });
+
   let syncing: Promise<void> | null = null;
   const syncOnce = () => {
     if (syncing) return;
@@ -483,6 +495,8 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     refreshAnalyses,
     session: () => currentSession,
     dispose() {
+      askPanelDisposed = true;
+      askPanel?.dispose();
       unsubscribe();
       unsubscribeHost();
       if (!options.host) host.dispose();

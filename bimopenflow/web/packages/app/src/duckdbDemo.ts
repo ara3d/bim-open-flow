@@ -8,6 +8,7 @@ import type { App } from './app.js';
 import { watchHost } from './hostStatus.js';
 import { mountHostBanner } from './topbar.js';
 import { startOnce } from './startOnce.js';
+import { appendAskLine as sharedAppendAskLine, readEvents, shortArgs, type AskEvent } from './askClient.js';
 import './duckdbDemo.css';
 
 /** One entry of samples/duckdb-analyses/workflows.json, loaded lazily below. */
@@ -74,57 +75,13 @@ async function download() {
 }
 
 // ── Ask ──────────────────────────────────────────────────────────────────────
+// The event shape, shortArgs, and readEvents live in askClient.ts, shared with
+// the editor's Ask panel (askPanel.ts, TKT-84).
 
-interface AskEvent {
-  type: 'start' | 'tool' | 'text' | 'check' | 'done' | 'error';
-  verified?: boolean;
-  problem?: string | null;
-  analysisId?: string;
-  model?: string;
-  name?: string;
-  args?: Record<string, unknown> | null;
-  ok?: boolean | null;
-  summary?: string | null;
-  text?: string | null;
-  message?: string;
-  built?: boolean;
-  turns?: number;
-  inputTokens?: number;
-  outputTokens?: number;
-}
-
+/** Bound to this page's log element and its 'duck-ask' classes, so every
+ *  existing caller (including the transcript-height test) is unaffected. */
 export function appendAskLine(kind: string, text: string): HTMLElement {
-  const item = document.createElement('div');
-  item.className = `duck-ask-line duck-ask-${kind}`;
-  item.textContent = text;
-  log.append(item);
-  log.scrollTop = log.scrollHeight;
-  return item;
-}
-
-function shortArgs(args: Record<string, unknown> | null | undefined): string {
-  if (!args) return '';
-  const shown = Object.entries(args).filter(([key]) => key !== 'id')
-    .map(([key, value]) => `${key}=${typeof value === 'string' ? JSON.stringify(value) : String(value)}`).join(', ');
-  return shown.length > 140 ? shown.slice(0, 140) + '…' : shown;
-}
-
-async function readEvents(response: Response, onEvent: (event: AskEvent) => Promise<void> | void) {
-  const reader = response.body!.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  for (;;) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    let end: number;
-    while ((end = buffer.indexOf('\n\n')) >= 0) {
-      const chunk = buffer.slice(0, end);
-      buffer = buffer.slice(end + 2);
-      const data = chunk.split('\n').filter(l => l.startsWith('data: ')).map(l => l.slice(6)).join('\n');
-      if (data) await onEvent(JSON.parse(data) as AskEvent);
-    }
-  }
+  return sharedAppendAskLine(log, kind, text);
 }
 
 async function ask(request: string, form: HTMLFormElement, followUp: HTMLInputElement) {

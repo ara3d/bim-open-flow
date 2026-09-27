@@ -38,6 +38,13 @@ export const KIND_CONTROL = {
   Json: "longText", Expression: "longText",
 } as const satisfies Record<ParamKind, SlotControl>;
 
+/** Control per descriptor.kind. Checked before KIND_CONTROL. */
+export const DESCRIPTOR_CONTROL = {
+  sortColumn: "columnSelect",
+  slider: "slider",
+  range: "range",
+} as const satisfies Record<ControlDescriptor["kind"], SlotControl>;
+
 /** Row height per control: compact 32, field 50, widget 70. */
 export const CONTROL_HEIGHT: Readonly<Record<SlotControl, number>> = {
   toggle: COMPACT_SLOT_H,
@@ -53,16 +60,14 @@ export const CONTROL_HEIGHT: Readonly<Record<SlotControl, number>> = {
 /** Plain Text longer than this, or with a line break, gets the long-text row. */
 export const LONG_TEXT_CHARS = 60;
 
-/** Descriptor control first (sortColumn -> columnSelect, slider, range), then
- *  the long-Text rule (Text, no suggest, no control), then KIND_CONTROL.
- *  Unknown kind -> "field". */
+/** Descriptor control first (DESCRIPTOR_CONTROL), then the long-Text rule
+ *  (Text, no suggest, no control), then KIND_CONTROL. Unknown kind -> "field". */
 export function slotControl(
   param: Pick<CanvasParam, "kind" | "value" | "control" | "suggest">,
 ): SlotControl {
-  const controlKind = param.control?.kind;
-  if (controlKind === "sortColumn") return "columnSelect";
-  if (controlKind === "slider") return "slider";
-  if (controlKind === "range") return "range";
+  if (param.control?.kind && param.control.kind in DESCRIPTOR_CONTROL) {
+    return DESCRIPTOR_CONTROL[param.control.kind as keyof typeof DESCRIPTOR_CONTROL];
+  }
   if (
     param.kind === "Text" &&
     !param.suggest &&

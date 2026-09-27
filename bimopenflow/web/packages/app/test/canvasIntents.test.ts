@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { NodeDescriptor } from "@bimopenflow/contracts";
 import { createStore } from "@bimopenflow/state";
 import {
   anchorId,
@@ -17,6 +18,28 @@ function setup() {
   const errors: string[] = [];
   const update = makeCanvasUpdate(store, (m) => errors.push(m));
   const model = () => buildCanvasModel(store.getState(), emptyCatalog);
+  return { store, update, errors, model };
+}
+
+/** A catalog whose "k" nodes carry one inline Text param, "note", so tests
+ *  can open a long-value editor on a real parameter. */
+const kWithParam: NodeDescriptor = {
+  kind: "k",
+  version: 1,
+  capability: "Pure",
+  inputs: [],
+  outputs: [],
+  params: [{ name: "note", kind: "Text", default: "hi" }],
+  description: "",
+};
+const paramCatalog = new Map([["k", kWithParam]]);
+
+function setupWithParam() {
+  const store = createStore();
+  store.dispatch({ type: "addNode", id: "a", kind: "k", version: 1 });
+  const errors: string[] = [];
+  const update = makeCanvasUpdate(store, (m) => errors.push(m));
+  const model = () => buildCanvasModel(store.getState(), paramCatalog);
   return { store, update, errors, model };
 }
 
@@ -94,5 +117,37 @@ describe("makeCanvasUpdate", () => {
     expect(store.getState().selection).toEqual(["a"]);
     update(model(), { kind: "clearSelection" });
     expect(store.getState().selection).toEqual([]);
+  });
+
+  it("opens the long-value editor without touching the store", () => {
+    const { store, update, model } = setup();
+    const before = store.getState();
+    const doc = update(model(), { kind: "openEditor", nodeId: "a", name: "note" });
+    expect(doc.openEditor).toEqual({ nodeId: "a", name: "note" });
+    expect(store.getState()).toBe(before);
+  });
+
+  it("closes the long-value editor", () => {
+    const { update, model } = setup();
+    let doc = update(model(), { kind: "openEditor", nodeId: "a", name: "note" });
+    doc = update(doc, { kind: "closeEditor" });
+    expect(doc.openEditor).toBeNull();
+  });
+
+  it("keeps an open editor across sync when its node and parameter survive", () => {
+    const { update, model } = setupWithParam();
+    let doc = update(model(), { kind: "openEditor", nodeId: "a", name: "note" });
+    const next = model();
+    doc = update(doc, { kind: "sync", model: next });
+    expect(doc.openEditor).toEqual({ nodeId: "a", name: "note" });
+    expect(doc).not.toBe(next);
+  });
+
+  it("closes the editor on sync once removeNode drops its node", () => {
+    const { store, update, model } = setupWithParam();
+    let doc = update(model(), { kind: "openEditor", nodeId: "a", name: "note" });
+    store.dispatch({ type: "removeNode", id: "a" });
+    doc = update(doc, { kind: "sync", model: model() });
+    expect(doc.openEditor).toBeNull();
   });
 });

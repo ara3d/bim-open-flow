@@ -34,10 +34,17 @@ export interface CanvasEdge {
   readonly contributing?: boolean;
 }
 
+/** The parameter whose long-value editor is open; at most one. */
+export interface OpenEditor {
+  readonly nodeId: string;
+  readonly name: string;
+}
+
 export interface CanvasModel {
   readonly nodes: readonly CanvasNode[];
   readonly edges: readonly CanvasEdge[];
   readonly selectedEdgeId: string | null;
+  readonly openEditor: OpenEditor | null;
 }
 
 export const NODE_WIDTH = 184;
@@ -145,5 +152,5 @@ export function buildCanvasModel(
     to: e.to,
     contributing: contributing.has(e.from.split(".")[0]!) && contributing.has(e.to.split(".")[0]!),
   }));
-  return { nodes, edges, selectedEdgeId: null };
+  return { nodes, edges, selectedEdgeId: null, openEditor: null };
 }

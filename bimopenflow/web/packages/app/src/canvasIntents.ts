@@ -56,7 +56,9 @@ export type CanvasIntent =
   | { kind: "selectNode"; id: string }
   | { kind: "selectEdge"; id: string | null } // transient wire selection
   | { kind: "clearSelection" }
-  | { kind: "deleteSelected" };
+  | { kind: "deleteSelected" }
+  | { kind: "openEditor"; nodeId: string; name: string } // opens the long-value editor for one row
+  | { kind: "closeEditor" };
 
 /**
  * The gratify update function for the canvas, bound to the store. Store
@@ -78,8 +80,13 @@ export function makeCanvasUpdate(
 
   return (doc, intent) => {
     switch (intent.kind) {
-      case "sync":
-        return intent.model;
+      case "sync": {
+        if (doc.openEditor === null) return intent.model;
+        const { nodeId, name } = doc.openEditor;
+        const node = intent.model.nodes.find((n) => n.id === nodeId);
+        const stillOpen = node?.params.some((p) => p.name === name) ?? false;
+        return stillOpen ? { ...intent.model, openEditor: doc.openEditor } : intent.model;
+      }
 
       case "move":
         return {
@@ -123,6 +130,12 @@ export function makeCanvasUpdate(
       case "clearSelection":
         dispatch({ type: "clearSelection" });
         return { ...doc, selectedEdgeId: null };
+
+      case "openEditor":
+        return { ...doc, openEditor: { nodeId: intent.nodeId, name: intent.name } };
+
+      case "closeEditor":
+        return { ...doc, openEditor: null };
 
       case "deleteSelected": {
         if (doc.selectedEdgeId) {

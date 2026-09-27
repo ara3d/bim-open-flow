@@ -5,7 +5,7 @@ import type { CanvasModel } from '../src/viewModel.js';
 it('lays out branching graphs deterministically without overlapping variable-height nodes', () => {
   const nodes = ['source', 'query-a', 'query-b', 'join', 'sort'].map((id, i) => ({ id, kind: 'test', x: 0, y: 0, w: 260, h: 120 + i * 20, inputs: [], outputs: [], params: [], selected: false }));
   const edges = [['source', 'query-a'], ['source', 'query-b'], ['query-a', 'join'], ['query-b', 'join'], ['join', 'sort']].map(([a, b]) => ({ id: a + b, from: a + '.out', to: b + '.in' }));
-  const graph: CanvasModel = { nodes, edges, selectedEdgeId: null };
+  const graph: CanvasModel = { nodes, edges, selectedEdgeId: null, openEditor: null };
   for (const viewport of [{ width: 700, height: 750 }, { width: 1500, height: 500 }]) {
     const positions = autoLayout(graph, viewport);
     expect(autoLayout(graph, viewport)).toEqual(positions);

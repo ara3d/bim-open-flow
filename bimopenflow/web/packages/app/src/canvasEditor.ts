@@ -9,7 +9,7 @@ import type { NodeDescriptor } from "@bimopenflow/contracts";
 import type { Store } from "@bimopenflow/state";
 import { makeCanvasUpdate, type CanvasIntent } from "./canvasIntents.js";
 import { canvasView } from "./canvasParts.js";
-import { disposeInlineControls, pruneInlineControls } from "./canvasControls.js";
+import { disposeSlots, pruneSlots } from "./slotRegistry.js";
 import { islandKey, setInlineControlDispatch } from "./slotShared.js";
 import { buildCanvasModel, type CanvasModel } from "./viewModel.js";
 import { animateSelection } from "./selectionBorder";
@@ -81,7 +81,7 @@ export function createCanvasEditor(
     queueMicrotask(() => {
       queued = false;
       const next = model();
-      pruneInlineControls(new Set(
+      pruneSlots(new Set(
         next.nodes.flatMap((n) => n.params.map((p) => islandKey(n.id, p.name))),
       ));
       holdRequested = true;
@@ -120,7 +120,7 @@ export function createCanvasEditor(
     dispose: () => {
       unsubscribe();
       disposeContextMenu();
-      disposeInlineControls();
+      disposeSlots();
       runtime.stop();
     },
   };

@@ -9,7 +9,8 @@ import { makeCanvasUpdate, type CanvasIntent } from "../src/canvasIntents.js";
 import { canvasView } from "../src/canvasParts.js";
 import { buildCanvasModel, NODE_HEADER, PORT_SPACING, type CanvasModel } from "../src/viewModel.js";
 import { COMPACT_SLOT_H, SLOT_GAP, SLOT_X_PAD, SLOTS_PAD_TOP } from "../src/canvasSlots.js";
-import { disposeInlineControls, slotElement } from "../src/canvasControls.js";
+import { disposeInlineControls } from "../src/canvasControls.js";
+import { slotElement } from "../src/slotRegistry.js";
 import { setInlineControlDispatch } from "../src/slotShared.js";
 
 afterEach(() => disposeInlineControls());
@@ -70,19 +71,19 @@ describe("inline node controls (headless)", () => {
   it("recreates a reused parameter input with refreshed bounds and percent conversion", () => {
     const intents: CanvasIntent[] = [];
     setInlineControlDispatch(intent => intents.push(intent));
-    const original = inputFor(slotElement("same", {name:"value",kind:"Number",value:"0.5"},240))!;
+    const original = inputFor(slotElement({nodeId:"same", param:{name:"value",kind:"Number",value:"0.5"}, w:240, open:false}))!;
     expect(original.value).toBe("0.5");
-    const current = inputFor(slotElement("same", {
+    const current = inputFor(slotElement({nodeId:"same", param:{
       name:"value",kind:"Fraction",value:"0.5",
       control:{kind:"slider",min:0,max:1,step:.01,unit:"percent"},
-    },240))!;
+    }, w:240, open:false}))!;
     expect(current).not.toBe(original);
     expect([current.value,current.min,current.max,current.step]).toEqual(["50","0","100","1"]);
     current.value = "150";
     current.dispatchEvent(new Event("change"));
     expect(intents.at(-1)).toEqual({kind:"setParam",nodeId:"same",name:"value",value:"1"});
     expect(current.value).toBe("100");
-    const text = inputFor(slotElement("same", {name:"value",kind:"Text",value:"hello"},240))!;
+    const text = inputFor(slotElement({nodeId:"same", param:{name:"value",kind:"Text",value:"hello"}, w:240, open:false}))!;
     expect(text.type).toBe("text");
     expect(text.min).toBe("");
     text.value = "world";
@@ -91,11 +92,11 @@ describe("inline node controls (headless)", () => {
   });
 
   it("replacing an open enum under the same key restores native input islands", () => {
-    const dropdown = slotElement("same", {name:"value",kind:"Enum",value:"a",enumValues:["a","b"]},240);
+    const dropdown = slotElement({nodeId:"same", param:{name:"value",kind:"Enum",value:"a",enumValues:["a","b"]}, w:240, open:false});
     dropdown.part.reduce!({open:false},{kind:"toggle"},slotNode(dropdown));
-    const other = slotElement("other", {name:"value",kind:"Text",value:"visible"},240);
+    const other = slotElement({nodeId:"other", param:{name:"value",kind:"Text",value:"visible"}, w:240, open:false});
     expect(inputFor(other)).toBeNull();
-    slotElement("same", {name:"value",kind:"Text",value:"replacement"},240);
+    slotElement({nodeId:"same", param:{name:"value",kind:"Text",value:"replacement"}, w:240, open:false});
     expect(inputFor(other)?.value).toBe("visible");
   });
 

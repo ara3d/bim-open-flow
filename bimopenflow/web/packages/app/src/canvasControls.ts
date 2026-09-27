@@ -30,11 +30,10 @@ import {
   v,
 } from "gratify";
 import type { ControlDescriptor, ParamKind, SuggestDescriptor, SuggestionList } from "@bimopenflow/contracts";
-import { rangeSlot, sliderSlot } from "./graphWidgets";
 import { displayScale, isNumericParam, numericDisplay, numericFromDisplay, numericLimits, numericValue, paramLabel } from "./numericParam";
 import { attachSuggestions } from "./suggestInput.js";
 import { ColumnSelects } from './columnSelect.js';
-import type { CanvasParam } from "./canvasSlots.js";
+import type { CanvasParam, SlotContext } from "./canvasSlots.js";
 import { COMPACT_SLOT_H, FIELD_SLOT_H } from "./canvasSlots.js";
 import { canvasThemes, currentCanvasTheme } from "./canvasTheme.js";
 import type { CanvasIntent } from "./canvasIntents.js";
@@ -99,6 +98,11 @@ const BoolSlot = part<BoolSlotProps, BoolSlotStyle>("bof-slot-bool", {
   ],
 });
 
+export function toggleSlot(ctx: SlotContext): Element {
+  const { nodeId, param, w } = ctx;
+  return BoolSlot(param.name, { nodeId, name: param.name, value: param.value === "true", w });
+}
+
 // ── Enum: a dropdown with a modal option list ────────────────────────────────
 
 interface EnumSlotProps {
@@ -120,6 +124,11 @@ type EnumIntent =
 // Native fields sit above canvas paint. While a canvas dropdown is modal,
 // detach those fields so they cannot cover or intercept its option list.
 const openDropdowns = new Set<string>();
+
+/** Drops a stale open-dropdown flag for a row that no longer shows a dropdown. */
+export function clearOpenDropdown(nodeId: string, name: string): void {
+  openDropdowns.delete(islandKey(nodeId, name));
+}
 
 interface OptionRowProps {
   text: string;
@@ -227,6 +236,11 @@ const EnumSlot = part<EnumSlotProps, { label: Color; field: Color; edge: Color; 
   },
 );
 
+export function dropdownSlot(ctx: SlotContext): Element {
+  const { nodeId, param, w } = ctx;
+  return EnumSlot(param.name, { nodeId, name: param.name, value: param.value, options: param.enumValues ?? [], w });
+}
+
 /** The enum's value field: right-aligned, leaving room for the label. */
 function enumFieldRect(node: GNode<EnumSlotProps>) {
   const r = node.rect;
@@ -237,14 +251,14 @@ function enumFieldRect(node: GNode<EnumSlotProps>) {
 
 // ── Island fields: Text, FilePath, DateTime, Integer, Number ─────────────────
 
-type IslandLayout = "compact" | "field";
-
 interface IslandSlotProps {
   nodeId: string;
   name: string;
   paramKind: ParamKind;
   value: string;
   w: number;
+  /** compact: label left, input right (numbers). field: caption + full-width input. */
+  layout: "compact" | "field";
   suggest?: SuggestDescriptor;
   control?: ControlDescriptor;
   states?: Record<string, boolean>;
@@ -395,11 +409,11 @@ const ColumnSlot = part<{ nodeId: string; param: CanvasParam; w: number }, { lab
 });
 
 const IslandSlot = part<IslandSlotProps, { label: Color }>("bof-slot-island", {
-  size: (p) => v(p.w, layoutOf(p.paramKind) === "compact" ? COMPACT_SLOT_H : FIELD_SLOT_H),
+  size: (p) => v(p.w, p.layout === "compact" ? COMPACT_SLOT_H : FIELD_SLOT_H),
   style: (t, ch) => ({ label: t.mix(t.textDim, t.text, ch.hover) }),
   render(node, painter, style) {
     const r = node.rect;
-    if (layoutOf(node.props.paramKind) === "compact") {
+    if (node.props.layout === "compact") {
       painter.label(paramLabel(node.props.name,node.props.paramKind,node.props.control), v(r.x, r.center.y), style.label, {
         align: "left",
         size: LABEL_SIZE,
@@ -414,7 +428,7 @@ const IslandSlot = part<IslandSlotProps, { label: Color }>("bof-slot-island", {
   island(node) {
     if (openDropdowns.size) return null;
     const r = node.rect;
-    const compact = layoutOf(node.props.paramKind) === "compact";
+    const compact = node.props.layout === "compact";
     const inputRect = compact
       ? rect(r.right - COMPACT_INPUT_W, r.y + 1, COMPACT_INPUT_W, r.h - 2)
       : rect(r.x, r.y + 14, r.w, r.h - 16);
@@ -422,49 +436,31 @@ const IslandSlot = part<IslandSlotProps, { label: Color }>("bof-slot-island", {
   },
 });
 
-const layoutOf = (kind: ParamKind): IslandLayout =>
-  isNumericParam(kind) ? "compact" : "field";
+// ── Slot factories: one island element per inline param ─────────────────────
 
-// ── Slot factory: one element per inline param, chosen by kind ───────────────
-
-export function slotElement(nodeId: string, param: CanvasParam, w: number): Element {
-  if (param.control?.kind === 'sortColumn') return ColumnSlot(param.name, { nodeId, param, w });
-  if (param.kind !== "Enum" || param.control?.kind === "range" || param.control?.kind === "slider")
-    openDropdowns.delete(islandKey(nodeId, param.name));
-  const field = () => IslandSlot("field", {
-    nodeId, name: param.name, paramKind: param.kind, value: param.value, w,
+/** Compact island (label left, input right); key defaults to param.name ("field" inside a slider). */
+export function numberSlot(ctx: SlotContext, key?: string): Element {
+  const { nodeId, param, w } = ctx;
+  return IslandSlot(key ?? param.name, {
+    nodeId, name: param.name, paramKind: param.kind, value: param.value, w, layout: "compact",
     ...(param.suggest ? { suggest: param.suggest } : {}),
     ...(param.control ? { control: param.control } : {}),
   });
-  if (param.control?.kind === "range") return rangeSlot(nodeId,param,w);
-  if (param.control?.kind === "slider") return sliderSlot(nodeId,param,w,field());
-  switch (param.kind) {
-    case "Boolean":
-      return BoolSlot(param.name, {
-        nodeId,
-        name: param.name,
-        value: param.value === "true",
-        w,
-      });
-    case "Enum":
-      return EnumSlot(param.name, {
-        nodeId,
-        name: param.name,
-        value: param.value,
-        options: param.enumValues ?? [],
-        w,
-      });
-    default:
-      return IslandSlot(param.name, {
-        nodeId,
-        name: param.name,
-        paramKind: param.kind,
-        value: param.value,
-        w,
-        ...(param.suggest ? { suggest: param.suggest } : {}),
-        ...(param.control ? { control: param.control } : {}),
-      });
-  }
+}
+
+/** Caption + full-width island input (text, FilePath, DateTime, ModelRef, color). */
+export function fieldSlot(ctx: SlotContext, key?: string): Element {
+  const { nodeId, param, w } = ctx;
+  return IslandSlot(key ?? param.name, {
+    nodeId, name: param.name, paramKind: param.kind, value: param.value, w, layout: "field",
+    ...(param.suggest ? { suggest: param.suggest } : {}),
+    ...(param.control ? { control: param.control } : {}),
+  });
+}
+
+export function columnSlot(ctx: SlotContext): Element {
+  const { nodeId, param, w } = ctx;
+  return ColumnSlot(param.name, { nodeId, param, w });
 }
 
 // ── Option list panel ────────────────────────────────────────────────────────

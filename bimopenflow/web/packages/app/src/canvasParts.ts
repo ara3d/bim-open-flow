@@ -28,7 +28,7 @@ import type { PortType } from "@bimopenflow/contracts";
 import type { CanvasEdge, CanvasModel, CanvasNode } from "./viewModel.js";
 import { NODE_HEADER, PORT_SPACING } from "./viewModel.js";
 import { placeSlots, SLOT_X_PAD } from "./canvasSlots.js";
-import { slotElement } from "./canvasControls.js";
+import { slotElement } from "./slotRegistry.js";
 import { canvasColors } from "./canvasTheme.js";
 import { nodeTitle } from "./graphPreview";
 import { animateSelection, selectionBorder } from "./selectionBorder";
@@ -324,7 +324,12 @@ export function canvasView(model: CanvasModel): Element {
         withExt(GraphNodePart(
           n.id,
           { ...n, pos: v(n.x, n.y), states: { sel: n.selected } },
-          n.params.map((param) => slotElement(n.id, param, n.w - 2 * SLOT_X_PAD)),
+          n.params.map((param) => slotElement({
+            nodeId: n.id,
+            param,
+            w: n.w - 2 * SLOT_X_PAD,
+            open: model.openEditor?.nodeId === n.id && model.openEditor.name === param.name,
+          })),
         ), selectedBorder)),
     ]),
     onScreenLayer(

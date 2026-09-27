@@ -1,7 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { createChartPane } from "../src/chartPane";
+import { createChartPane, splitRowColors } from "../src/chartPane";
+import { renderLegendView, scaleLegendView, parseScaleLegend } from "../src/scaleLegend";
 import { conformance, tableInput } from "./conformance";
 import { fakeCtx, makeSlice } from "./helpers";
+
+const LEGEND_COLUMNS: Array<[string, "Text" | "Number" | "Integer"]> = [
+  ["column", "Text"],
+  ["domain", "Text"],
+  ["role", "Text"],
+  ["label", "Text"],
+  ["value", "Number"],
+  ["r", "Number"],
+  ["g", "Number"],
+  ["b", "Number"],
+  ["count", "Integer"],
+];
+
+const legendSlice = (rows: unknown[][]) => makeSlice(LEGEND_COLUMNS, rows);
+
+const numericLegendRows: unknown[][] = [
+  ["meshVolume", "manual", "stop", "0", 0, 0.267, 0.005, 0.329, null],
+  ["meshVolume", "manual", "stop", "1", 1, 0.993, 0.906, 0.144, null],
+  ["meshVolume", "manual", "above", "> 1", 1, 0.993, 0.906, 0.144, 2],
+];
 
 conformance({
   name: "ChartPane (bar)",
@@ -81,5 +102,71 @@ describe("ChartPane", () => {
     });
     expect(host.querySelectorAll("svg.bof-viz-line-chart").length).toBe(1);
     pane.destroy();
+  });
+
+  it("passes a table's r/g/b columns to the bar chart as fills and drops them from the plotted table", () => {
+    const host = document.createElement("div");
+    const pane = createChartPane({ chart: "bar", categoryColumn: "name" });
+    pane.mount(host, fakeCtx());
+    pane.update({
+      kind: "table",
+      data: makeSlice(
+        [["name", "Text"], ["area", "Number"], ["r", "Number"], ["g", "Number"], ["b", "Number"]],
+        [["a", 1, 1, 0, 0], ["b", 2, 0, 1, 0]],
+      ),
+    });
+    const bars = [...host.querySelectorAll("rect.bof-viz-bar")];
+    expect(bars).toHaveLength(2);
+    expect(bars[0]!.getAttribute("style")).toContain("fill: rgb(255,0,0)");
+    expect(bars[1]!.getAttribute("style")).toContain("fill: rgb(0,255,0)");
+    pane.destroy();
+  });
+
+  it("renders a legend input as the same DOM renderLegendView produces for the same slice", () => {
+    const host = document.createElement("div");
+    const pane = createChartPane({ chart: "bar" });
+    pane.mount(host, fakeCtx());
+    pane.update({ kind: "legend", data: legendSlice(numericLegendRows) });
+
+    const legendEl = host.querySelector(".bof-panes-legend") as HTMLElement;
+    expect(legendEl).not.toBeNull();
+    expect(legendEl.hidden).toBe(false);
+
+    const expected = document.createElement("div");
+    renderLegendView(expected, scaleLegendView(parseScaleLegend(legendSlice(numericLegendRows))!));
+    expect(legendEl.innerHTML).toBe(expected.innerHTML);
+    pane.destroy();
+  });
+
+  it("hides the legend strip when the legend slice has no rows", () => {
+    const host = document.createElement("div");
+    const pane = createChartPane({ chart: "bar" });
+    pane.mount(host, fakeCtx());
+    pane.update({ kind: "legend", data: legendSlice(numericLegendRows) });
+    pane.update({ kind: "legend", data: legendSlice([]) });
+
+    const legendEl = host.querySelector(".bof-panes-legend") as HTMLElement;
+    expect(legendEl.hidden).toBe(true);
+    pane.destroy();
+  });
+});
+
+describe("splitRowColors", () => {
+  it("removes r/g/b columns and returns one rgb(...) string per row", () => {
+    const data = makeSlice(
+      [["name", "Text"], ["r", "Number"], ["g", "Number"], ["b", "Number"]],
+      [["a", 1, 0, 0], ["b", 0, 1, 0]],
+    );
+    const { data: split, colors } = splitRowColors(data);
+    expect(split.columns.map((c) => c.name)).toEqual(["name"]);
+    expect(split.rows).toEqual([["a"], ["b"]]);
+    expect(colors).toEqual(["rgb(255,0,0)", "rgb(0,255,0)"]);
+  });
+
+  it("returns colors null when r/g/b columns are absent", () => {
+    const data = makeSlice([["name", "Text"]], [["a"]]);
+    const { data: split, colors } = splitRowColors(data);
+    expect(split).toEqual(data);
+    expect(colors).toBeNull();
   });
 });

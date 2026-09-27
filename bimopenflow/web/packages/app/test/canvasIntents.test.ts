@@ -21,18 +21,28 @@ function setup() {
   return { store, update, errors, model };
 }
 
-/** A catalog whose "k" nodes carry one inline Text param, "note", so tests
- *  can open a long-value editor on a real parameter. */
+/** A catalog whose "k" nodes carry one Json param, "note" — a real long-text
+ *  row (slotControl(note) === "longText") — so tests can open a long-value
+ *  editor on a real parameter. */
 const kWithParam: NodeDescriptor = {
   kind: "k",
   version: 1,
   capability: "Pure",
   inputs: [],
   outputs: [],
-  params: [{ name: "note", kind: "Text", default: "hi" }],
+  params: [{ name: "note", kind: "Json", default: "{}" }],
   description: "",
 };
 const paramCatalog = new Map([["k", kWithParam]]);
+
+/** Same node and parameter name, but "note" is now a short plain Text field:
+ *  a live catalog reload or descriptor change that no longer draws a
+ *  long-text row for it. */
+const kWithFieldParam: NodeDescriptor = {
+  ...kWithParam,
+  params: [{ name: "note", kind: "Text", default: "hi" }],
+};
+const fieldParamCatalog = new Map([["k", kWithFieldParam]]);
 
 function setupWithParam() {
   const store = createStore();
@@ -40,7 +50,8 @@ function setupWithParam() {
   const errors: string[] = [];
   const update = makeCanvasUpdate(store, (m) => errors.push(m));
   const model = () => buildCanvasModel(store.getState(), paramCatalog);
-  return { store, update, errors, model };
+  const fieldModel = () => buildCanvasModel(store.getState(), fieldParamCatalog);
+  return { store, update, errors, model, fieldModel };
 }
 
 describe("anchor ids", () => {
@@ -148,6 +159,16 @@ describe("makeCanvasUpdate", () => {
     let doc = update(model(), { kind: "openEditor", nodeId: "a", name: "note" });
     store.dispatch({ type: "removeNode", id: "a" });
     doc = update(doc, { kind: "sync", model: model() });
+    expect(doc.openEditor).toBeNull();
+  });
+
+  it("closes the editor on sync once its row stops being long text", () => {
+    // Regression for design note 1: the row and its node can both still
+    // exist (a catalog reload changes only the descriptor), and the old
+    // check kept the editor open under a row that no longer renders it.
+    const { update, model, fieldModel } = setupWithParam();
+    let doc = update(model(), { kind: "openEditor", nodeId: "a", name: "note" });
+    doc = update(doc, { kind: "sync", model: fieldModel() });
     expect(doc.openEditor).toBeNull();
   });
 });

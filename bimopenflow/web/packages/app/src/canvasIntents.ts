@@ -7,6 +7,7 @@ import type { PortType } from "@bimopenflow/contracts";
 import type { Store } from "@bimopenflow/state";
 import type { CanvasModel } from "./viewModel.js";
 import { previewAfterEdit } from "./graphPreview";
+import { slotControl } from "./canvasSlots.js";
 
 export type AnchorDir = "in" | "out";
 
@@ -84,7 +85,13 @@ export function makeCanvasUpdate(
         if (doc.openEditor === null) return intent.model;
         const { nodeId, name } = doc.openEditor;
         const node = intent.model.nodes.find((n) => n.id === nodeId);
-        const stillOpen = node?.params.some((p) => p.name === name) ?? false;
+        const param = node?.params.find((p) => p.name === name);
+        // An evaluation update can change a parameter's kind, control, or
+        // suggest source (a catalog reload, a descriptor change) and stop it
+        // being long text. longTextSlot is the only row the editor is placed
+        // under, so once the row is a different control, keeping the editor
+        // open would anchor it under a row that no longer renders it.
+        const stillOpen = param !== undefined && slotControl(param) === "longText";
         return stillOpen ? { ...intent.model, openEditor: doc.openEditor } : intent.model;
       }
 

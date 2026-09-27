@@ -116,6 +116,38 @@ describe("createLongValueEditor", () => {
     editor.dispose();
   });
 
+  it("focuses the textarea after mount, even when opened while detached", async () => {
+    // Regression for defect 1: gratify connects the island's element to the
+    // page only after this function returns, so a synchronous focus() would
+    // focus a detached node and silently do nothing.
+    const editor = createLongValueEditor(document);
+    const onCommit = vi.fn();
+    const onClose = vi.fn();
+
+    expect(editor.el.isConnected).toBe(false);
+    editor.open({ label: "Expr", value: "area > 10", onCommit, onClose });
+    expect(document.activeElement).not.toBe(editor.textarea);
+
+    document.body.appendChild(editor.el);
+    await Promise.resolve();
+
+    expect(document.activeElement).toBe(editor.textarea);
+
+    editor.dispose();
+  });
+
+  it("focuses the textarea at once when the editor is already mounted", () => {
+    const editor = makeEditor();
+    const onCommit = vi.fn();
+    const onClose = vi.fn();
+
+    editor.open({ label: "Expr", value: "area > 10", onCommit, onClose });
+
+    expect(document.activeElement).toBe(editor.textarea);
+
+    editor.dispose();
+  });
+
   it("focusout to an element outside the wrapper commits", () => {
     const editor = makeEditor();
     const outside = document.createElement("input");

@@ -127,7 +127,20 @@ export function createLongValueEditor(doc: Document): LongValueEditor {
       current = request;
       label.textContent = request.label;
       textarea.value = request.value;
-      textarea.focus();
+      // Gratify mounts the island (and connects `el` to the page) after this
+      // function returns (runtime.ts:552-571), so focusing now would focus a
+      // detached element and do nothing: Ctrl+Enter, Escape, and click-outside
+      // would need a manual click first. Focus at once when already connected
+      // (the caller re-opens an editor that is already on the page), otherwise
+      // wait a microtask for the mount, and only if this is still the current
+      // opening.
+      if (el.isConnected) {
+        textarea.focus();
+      } else {
+        queueMicrotask(() => {
+          if (current === request) textarea.focus();
+        });
+      }
     },
 
     isOpen(): boolean {

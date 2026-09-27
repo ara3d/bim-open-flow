@@ -1,4 +1,4 @@
-namespace BimOpenFlow.Nodes.Tables.Tests;
+﻿namespace BimOpenFlow.Nodes.Tables.Tests;
 
 /// <summary>bfast.read and bfast.buffer against a file written by the SDK writer into a
 /// temp folder: the buffer directory, typed reads with widening, and the two errors.</summary>
@@ -31,6 +31,15 @@ public sealed class BfastNodeTests
             Assert.That(table.ColumnCells("byteLength"), Is.EqualTo(new object[] { 32L, 32L, 64L, 25L }));
             Assert.That(table.ColumnCells("index"), Is.EqualTo(new object[] { 0L, 1L, 2L, 3L }));
         });
+    }
+
+    [Test]
+    public void ReadAndBuffer_OnOneFileInParallel_NeverLockEachOtherOut()
+    {
+        var reads = Enumerable.Range(0, 32).AsParallel().Select(i => i % 2 == 0
+            ? new BfastBufferNode().EvalTable([], ("path", _path), ("name", "unitPrices"), ("type", "float64")).Rows.Count
+            : new BfastReadNode().EvalTable([], ("path", _path)).Rows.Count).ToList();
+        Assert.That(reads, Has.All.GreaterThan(0));
     }
 
     [Test]

@@ -11,7 +11,6 @@ import { rangeSlot, sliderSlot } from "./graphWidgets.js";
 import {
   clearOpenDropdown,
   columnSlot,
-  disposeInlineControls,
   dropdownSlot,
   fieldSlot,
   numberSlot,
@@ -51,6 +50,8 @@ export function pruneSlots(liveKeys: ReadonlySet<string>): void {
   pruneLongValueEditors(liveKeys);
 }
 
+/** Disposes every per-row store, including the long-value editors: an empty
+ *  live set makes pruneSlots treat every row as gone. */
 export function disposeSlots(): void {
-  disposeInlineControls();
+  pruneSlots(new Set());
 }

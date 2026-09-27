@@ -17,12 +17,12 @@ import { makeCanvasUpdate, type CanvasIntent } from "../src/canvasIntents.js";
 import { buildCanvasModel, type CanvasModel } from "../src/viewModel.js";
 import { KIND_CONTROL, slotControl, type SlotContext } from "../src/canvasSlots.js";
 import { disposeSlots, slotElement, SLOT_FACTORIES } from "../src/slotRegistry.js";
-import { pruneLongValueEditors } from "../src/canvasLongSlot.js";
 import { setInlineControlDispatch } from "../src/slotShared.js";
 
 afterEach(() => {
+  // disposeSlots (fixed for defect 3) now disposes the long-value editors
+  // too, so this no longer needs a separate pruneLongValueEditors call.
   disposeSlots();
-  pruneLongValueEditors(new Set());
   setInlineControlDispatch(() => {});
 });
 
@@ -207,6 +207,28 @@ describe("a range control", () => {
 
     store.dispatch({ type: "undo" });
     expect(store.getState().document.values["n1"]?.["band"]).toBeUndefined();
+  });
+});
+
+describe("disposeSlots", () => {
+  it("also disposes the long-value editors, not just the inline islands", () => {
+    // Regression for defect 3: disposeSlots used to call only
+    // disposeInlineControls, leaving longTextSlot's editors (and their
+    // textarea and listeners) alive across a full canvas teardown.
+    const { update, model } = setup();
+    let doc = model();
+
+    const closed = slotElement(paramCtx(doc, "rules"));
+    doc = update(doc, pressIntent(closed));
+    const firstOpen = slotElement(paramCtx(doc, "rules"));
+    const firstTextarea = islandOf(firstOpen).querySelector("textarea") as HTMLTextAreaElement;
+
+    disposeSlots();
+
+    const secondOpen = slotElement(paramCtx(doc, "rules"));
+    const secondTextarea = islandOf(secondOpen).querySelector("textarea") as HTMLTextAreaElement;
+
+    expect(secondTextarea).not.toBe(firstTextarea);
   });
 });
 

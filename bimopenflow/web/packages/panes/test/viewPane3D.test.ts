@@ -4,6 +4,7 @@ import { createViewPane3D, inferFormat } from "../src/viewPane3D";
 import type { PaneContext } from "../src/pane";
 import type { ColorableGroup, GroupEntityMap } from "../src/instanceTable";
 import type { View3DDeps, ViewerRig } from "../src/viewerDeps";
+import { parseScaleLegend, renderLegendView, scaleLegendView } from "../src/scaleLegend";
 import { conformance } from "./conformance";
 import { collect, fakeCtx, makeSlice, settle } from "./helpers";
 
@@ -82,6 +83,24 @@ const colorSlice = makeSlice(
   ],
   [[7, 1, 0, 0, 1]],
 );
+
+const LEGEND_TABLE_COLUMNS: Array<[string, "Text" | "Number" | "Integer"]> = [
+  ["column", "Text"],
+  ["domain", "Text"],
+  ["role", "Text"],
+  ["label", "Text"],
+  ["value", "Number"],
+  ["r", "Number"],
+  ["g", "Number"],
+  ["b", "Number"],
+  ["count", "Integer"],
+];
+
+/** A tiny categorical legend table, standing in for a view.colormap or view3d.color `legend` port. */
+const legendInputSlice = makeSlice(LEGEND_TABLE_COLUMNS, [
+  ["category", "categorical", "category", "Wall", null, 1, 0.498, 0.055, 2],
+  ["category", "categorical", "missing", "no value", null, 0.5, 0.5, 0.5, 1],
+]);
 
 describe("ViewPane3D", () => {
   it("infers the model format from the URL", () => {
@@ -162,6 +181,59 @@ describe("ViewPane3D", () => {
     expect(legend.lastElementChild?.textContent).toBe("and 2 more");
     pane.update({ kind: "instances", data: colorSlice });
     expect(legend.hidden).toBe(true);
+    pane.destroy();
+  });
+
+  it("renders a legend input through the shared strip renderer", async () => {
+    const { deps } = fakeDeps([]);
+    const pane = createViewPane3D({ deps });
+    const host = document.createElement("div");
+    pane.mount(host, fakeCtx());
+    pane.update({ kind: "model", url: "m.bos" });
+    await settle();
+    pane.update({ kind: "legend", data: legendInputSlice });
+    const legend = host.querySelector(".bof-panes-legend") as HTMLElement;
+
+    const expected = document.createElement("div");
+    renderLegendView(expected, scaleLegendView(parseScaleLegend(legendInputSlice)!));
+    expect(legend.innerHTML).toBe(expected.innerHTML);
+    expect(legend.hidden).toBe(false);
+    pane.destroy();
+  });
+
+  it("prefers a legend input over the table-derived category legend, and a recipe legend over both", async () => {
+    const { group } = recordingGroup([0.5, 0.5, 0.5, 1, 0.5, 0.5, 0.5, 1]);
+    let recipeLegend: ReturnType<NonNullable<ViewerRig["legend"]>> = [];
+    const deps: View3DDeps = {
+      createRig: (): ViewerRig => ({
+        load: () => Promise.resolve([{ group, entities: [7, 8] }]),
+        setBoxes: () => {},
+        clearBoxes: () => {},
+        requestRender: () => {},
+        dispose: () => {},
+        legend: () => recipeLegend,
+      }),
+    };
+    const pane = createViewPane3D({ deps });
+    const host = document.createElement("div");
+    pane.mount(host, fakeCtx());
+    pane.update({ kind: "model", url: "m.bos" });
+    await settle();
+    const legend = host.querySelector(".bof-panes-legend") as HTMLElement;
+
+    const columns: Array<[string, "Integer" | "Text" | "Number"]> = [
+      ["entityId", "Integer"], ["category", "Text"], ["r", "Number"], ["g", "Number"], ["b", "Number"], ["a", "Number"],
+    ];
+    pane.update({ kind: "instances", data: makeSlice(columns, [[7, "IfcWall", 1, 0, 0, 1], [8, "IfcWall", 1, 0, 0, 1]]) });
+    expect(legend.textContent).toBe("IfcWall (2 objects)");
+
+    pane.update({ kind: "legend", data: legendInputSlice });
+    expect(legend.textContent).toContain("Wall (2)");
+    expect(legend.textContent).not.toContain("IfcWall");
+
+    recipeLegend = [{ name: "Recipe", color: [0, 1, 0], count: 3 }];
+    pane.update({ kind: "instances", data: makeSlice(columns, [[7, "IfcWall", 1, 0, 0, 1], [8, "IfcWall", 1, 0, 0, 1]]) });
+    expect(legend.textContent).toBe("Recipe (3 objects)");
     pane.destroy();
   });
 

@@ -10,8 +10,8 @@ import {
 import { parseBoxTable } from "./boxTable";
 import { defaultView3DDeps, type View3DDeps } from "./viewerDeps";
 import { parseViewRecipe } from "./viewRecipe";
-import type { LegendEntry } from "./toolkitRecipe";
 import { emptyInstanceLegend, legendFromSlice, type InstanceLegend } from "./instanceLegend";
+import { entriesLegendView, parseScaleLegend, renderLegendView, scaleLegendView } from "./scaleLegend";
 import { renderEntityMessage, renderEntityProperties } from "./entityProperties";
 
 export interface ViewPane3DOptions {
@@ -36,8 +36,10 @@ export const inferFormat = (url: string): ModelFormat =>
  * transforms, and absent instances get alpha 0. "boxes" renders a boxes
  * table as instanced unit cubes, replacing any previous boxes group. An
  * instances input arriving before the model finishes loading is applied
- * afterwards; when the rig has no recipe legend, the legend strip lists the
- * table's distinct `verdict` or `category` values with their colours. Emits
+ * afterwards. The legend strip prefers, in order: the rig's own recipe
+ * legend; a "legend" input (a scale table from view.colormap or
+ * view3d.color); the table's distinct `verdict` or `category` values with
+ * their colours. Emits
  * "selection" (ids = [entityId]) on pick where the
  * loader provided a group→entity mapping, and "action" modelLoaded/loadError.
  */
@@ -66,29 +68,21 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
     legend.className = "bof-panes-legend";
     legend.setAttribute("aria-label", "Source category legend");
     root.append(legend);
-    // The recipe rig's legend wins; a coloured instance table supplies one otherwise.
+    // Precedence: the recipe rig's legend, then a "legend" input (a scale
+    // table), then a coloured instance table's distinct values.
     let tableLegend: InstanceLegend = emptyInstanceLegend;
-    let displayedLegend: readonly LegendEntry[] | undefined;
+    let legendInput: TableSlice | null = null;
     const updateLegend = () => {
       const fromRig = rig.legend?.() ?? [];
-      const { entries, omitted } = fromRig.length > 0 ? { entries: fromRig, omitted: 0 } : tableLegend;
-      if (entries === displayedLegend) return;
-      displayedLegend = entries;
-      legend.replaceChildren();
-      for (const entry of entries) {
-        const item = root.ownerDocument.createElement("span");
-        const swatch = root.ownerDocument.createElement("i");
-        swatch.style.background = `rgb(${entry.color.map(c => Math.round(c * 255)).join(",")})`;
-        item.append(swatch, `${entry.name} (${entry.count.toLocaleString()} objects)`);
-        legend.append(item);
+      if (fromRig.length > 0) {
+        renderLegendView(legend, entriesLegendView(fromRig, 0));
+        return;
       }
-      if (omitted > 0) {
-        const more = root.ownerDocument.createElement("span");
-        more.className = "bof-panes-legend-more";
-        more.textContent = `and ${omitted.toLocaleString()} more`;
-        legend.append(more);
-      }
-      legend.hidden = !legend.children.length;
+      const scale = legendInput && parseScaleLegend(legendInput);
+      renderLegendView(
+        legend,
+        scale ? scaleLegendView(scale) : entriesLegendView(tableLegend.entries, tableLegend.omitted),
+      );
     };
 
     const reportError = (error: unknown) => {
@@ -261,6 +255,9 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
             pendingView = input.data;
             if (!loading && maps.length > 0) scheduleRecipe();
           } catch (error) { reportError(error); }
+        } else if (input.kind === "legend") {
+          legendInput = input.data;
+          updateLegend();
         }
       },
       destroy: () => {

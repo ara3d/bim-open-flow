@@ -12,7 +12,7 @@
 // the transition into "open" — calling it every frame would overwrite
 // whatever the user is mid-typing.
 
-import { Element, GNode, Press, part, rect, v, Color } from "gratify";
+import { Element, GNode, Press, part, rect, v, Color, fitText } from "gratify";
 import type { CanvasIntent } from "./canvasIntents.js";
 import { FIELD_SLOT_H, previewText, type SlotContext } from "./canvasSlots.js";
 import { createLongValueEditor, type LongValueEditor } from "./longValueEditor.js";
@@ -22,8 +22,9 @@ import { dispatchInline, islandKey } from "./slotShared.js";
 const LABEL_SIZE = 14;
 const VALUE_SIZE = 14;
 
-/** Characters shown in the painted preview before it truncates with "…". */
-const PREVIEW_CHARS = 48;
+/** Padding inside the preview box, both sides, subtracted from its width
+ *  before fitText measures how much text fits. */
+const PREVIEW_PAD = 14;
 
 interface LongSlotStyle {
   label: Color;
@@ -73,7 +74,13 @@ const LongSlot = part<SlotContext, LongSlotStyle>("bof-slot-long", {
     });
     const box = rect(r.x, r.y + 14, r.w, r.h - 16);
     painter.box(box, 5, style.field, style.edge, 1);
-    painter.label(previewText(param.value, PREVIEW_CHARS) || "—", v(box.x + 7, box.center.y), style.value, {
+    // previewText(..., Infinity) only collapses whitespace runs to one space
+    // and trims; fitText then cuts to the box's actual width in px, instead
+    // of a fixed character count that was about 100px past the node edge on
+    // a wide row and wasted space on a narrow one.
+    const collapsed = previewText(param.value, Infinity);
+    const fitted = fitText(painter.measure, collapsed, box.w - PREVIEW_PAD, VALUE_SIZE);
+    painter.label(fitted || "—", v(box.x + 7, box.center.y), style.value, {
       align: "left",
       size: VALUE_SIZE,
     });

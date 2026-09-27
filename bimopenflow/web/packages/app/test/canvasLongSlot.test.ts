@@ -3,7 +3,7 @@
 // discard paths through dispatchInline.
 
 import { afterEach, describe, expect, it } from "vitest";
-import { rect, tokens, v, type Element, type GNode } from "gratify";
+import { fitText, rect, tokens, v, type Element, type GNode } from "gratify";
 import { longTextSlot, pruneLongValueEditors } from "../src/canvasLongSlot.js";
 import type { CanvasIntent } from "../src/canvasIntents.js";
 import type { SlotContext } from "../src/canvasSlots.js";
@@ -69,6 +69,27 @@ describe("longTextSlot (headless)", () => {
     expect(calls.label.some((args) => args[0] === "Expr")).toBe(true);
     expect(calls.label.some((args) => args[0] === "area > 10")).toBe(true);
     expect(element.part.island!(node)).toBeNull();
+  });
+
+  it("cuts the preview to the box's measured width, not a fixed character count", () => {
+    // Regression for defect 4: a fixed 48-character cut sat about 100px past
+    // the node edge on this row's width. fitText against the box's actual
+    // width (row width minus padding) should never overflow it, however the
+    // font measures.
+    const longValue = "area is greater than ten and level equals L1 ".repeat(4).trim();
+    const wideCtx: SlotContext = { nodeId: "f", param: { name: "expr", kind: "Expression", value: longValue }, w: 240, open: false };
+    const element = longTextSlot(wideCtx);
+    const node = slotNode(element);
+    const { painter, calls } = fakePainter();
+    painter.measure.text = (s: string) => v(s.length * 8, 0); // a wide, realistic-ish font
+    element.part.render!(node, painter, style(element));
+
+    const preview = calls.label.map((args) => args[0] as string).find((s) => s !== "Expr")!;
+    const maxW = node.rect.w - 14; // box width minus PREVIEW_PAD
+    expect(painter.measure.text(preview, 14).x).toBeLessThanOrEqual(maxW);
+    expect(preview.endsWith("…")).toBe(true);
+    expect(preview).toEqual(fitText(painter.measure, longValue, maxW, 14));
+    expect(preview.length).toBeLessThan(48); // shorter than the old fixed cut
   });
 
   it("pressing the row yields the openEditor intent", () => {

@@ -18,6 +18,19 @@ depend on the Windows-only DuckDB project; one-table SQL lives in the data layer
 | `MemoryTable.cs` | `MemoryTable`, `MemoryColumn`, `MemoryRow`: a minimal immutable in-memory `IDataTable` for summary rows and verdict tables |
 | `FileHashes.cs` | `HashFile`: uppercase hex SHA-256 of a file's bytes, the key of the in-memory read caches |
 | `ColorMaps.cs` | `Rgb`, `ColorMaps`: gradients (viridis, redgreen) and the category10 palette, moved here unchanged from `Nodes.Geometry` so both Geometry and Viz can reach it without referencing each other |
+| `ColorScale.cs` | `ColorScale`: the colour scale behind a `legend` table (auto or manual domain, gradient or categorical), shared by `view3d.color`, `view.colormap`, and `chart.bar` so the three nodes colour cells the same way and never each carry their own domain logic |
+
+## The legend table
+
+`ColorScale.Build` colours one column of a values table and reports what it
+did in a `legend` table (`ColorScale.TableName`, columns `column`, `domain`,
+`role`, `label`, `value`, `r`, `g`, `b`, `count`; one row per swatch): stop
+rows for a gradient, category rows for `category10`, and `below`/`above`/
+`missing` rows only when their count is above 0. A manual domain that clamps
+values warns once, naming how many of the column's values lie outside it.
+`ColorScale.ColorOf` colours a single cell against a built scale;
+`ToTable`/`FromTable` round-trip the scale across a node boundary, so a scale
+built once can colour more than one consumer's cells identically.
 
 ## Conventions
 

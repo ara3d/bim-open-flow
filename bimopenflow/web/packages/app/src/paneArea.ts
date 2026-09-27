@@ -71,9 +71,13 @@ interface ShownNode {
   pending?: boolean;
   live?: LiveViewRecipe;
   lineage?: string;
-  /** True when this node is shown because nothing is selected (TKT-46):
-   *  the panes display it, but the selection stays empty. */
+  /** True when this node is the flow's answer (TKT-46/TKT-81): the panes
+   *  display it whether or not anything is selected. False means it is shown
+   *  because of an explicit "show" request (double-click, the header's pin),
+   *  not because it is the answer. */
   default?: boolean;
+  /** True while the pane is pinned to this node regardless of the answer. */
+  pinned?: boolean;
 }
 
 export interface PaneAreaDeps {
@@ -85,6 +89,10 @@ export interface PaneAreaDeps {
   resolveModelId?(path: string): Promise<string | null>;
   /** Pane construction override for tests. */
   paneFactory?(kind: PaneKind, chartOptions: ChartPaneOptions): Pane;
+  /** The pane header's pin toggle was clicked (TKT-81). */
+  onTogglePin?(): void;
+  /** The pane header's "Back to answer" button was clicked (TKT-81). */
+  onShowAnswer?(): void;
 }
 
 export interface PaneArea {
@@ -100,15 +108,36 @@ export interface PaneArea {
 export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea {
   ensurePaneStyles(root.ownerDocument);
   root.classList.add("bof-app-panearea");
+  const header = root.ownerDocument.createElement("div");
+  header.className = "bof-app-pane-header";
+  header.style.cssText = "display:flex;align-items:baseline;gap:8px;";
+  const pinBtn = root.ownerDocument.createElement("button");
+  pinBtn.type = "button";
+  pinBtn.className = "bof-app-pin-toggle";
+  pinBtn.title = "Pin: keep showing this node no matter what is selected or answered next";
+  pinBtn.textContent = "Pin";
+  pinBtn.setAttribute("aria-pressed", "false");
+  pinBtn.hidden = true;
+  pinBtn.style.cssText = "flex:none;";
+  pinBtn.addEventListener("click", () => deps.onTogglePin?.());
   const source = root.ownerDocument.createElement("div");
   source.className = "bof-app-preview-source";
   source.setAttribute("role", "status");
+  source.style.cssText = "flex:1 1 auto;min-width:0;";
+  const backBtn = root.ownerDocument.createElement("button");
+  backBtn.type = "button";
+  backBtn.className = "bof-app-back-to-answer";
+  backBtn.textContent = "Back to answer";
+  backBtn.hidden = true;
+  backBtn.style.cssText = "flex:none;";
+  backBtn.addEventListener("click", () => deps.onShowAnswer?.());
+  header.append(pinBtn, source, backBtn);
   const tabs = root.ownerDocument.createElement("div");
   tabs.className = "bof-app-tabs";
   tabs.hidden = deps.tableOnly ?? false;
   const body = root.ownerDocument.createElement("div");
   body.className = "bof-app-panebody";
-  root.append(source, tabs, body);
+  root.append(header, tabs, body);
 
   let shown: ShownNode | null = null;
   let activeKind: PaneKind | null = null;
@@ -259,15 +288,21 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
       shown = next;
       const live = next?.live;
       const error = live?.kind === "invalid" ? live.message : live?.kind === "ready" ? null : next?.state && !hasResults(next.state) ? next.state.error ?? next.state.status : null;
-      // Shown by default (nothing selected): a quiet one-line header naming
-      // the node, not the detailed preview/lineage line a selection gets.
+      // The header names the node in words, never just "nothing selected"
+      // (TKT-81): "Answer: ..." while the pane follows the flow's answer,
+      // "Showing ..." once an explicit request (double-click, the pin)
+      // replaced it, each with its own detail/lineage line underneath.
+      const prefix = !next ? "" : next.default ? "Answer: " : "Showing ";
+      const detail = error ?? (next?.pending ? "live · saving…" : "live graph output");
       source.textContent = !next
         ? ""
-        : next.default
-        ? `Showing ${nodeTitle(next.desc?.kind ?? "")} (${next.nodeId}) · nothing selected`
-        : `Preview: ${nodeTitle(next.desc?.kind ?? "")} (${next.nodeId}) · ${error ?? (next.pending ? "live · saving…" : "live graph output")}${next.lineage ? `\n${next.lineage}` : ""}`;
+        : `${prefix}${nodeTitle(next.desc?.kind ?? "")} (${next.nodeId}) · ${detail}${next.lineage ? `\n${next.lineage}` : ""}`;
       source.setAttribute("role", error ? "alert" : "status");
       body.style.visibility = error ? "hidden" : "";
+      pinBtn.hidden = !next;
+      pinBtn.setAttribute("aria-pressed", String(next?.pinned ?? false));
+      pinBtn.classList.toggle("bof-app-pin-active", next?.pinned ?? false);
+      backBtn.hidden = !next || next.default !== false;
       if (!next) {
         activeKind = null;
         rebuildTabs([]);

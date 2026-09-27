@@ -224,8 +224,8 @@ describe("createPaneArea chart wiring", () => {
   });
 });
 
-describe("createPaneArea default-shown header (TKT-46)", () => {
-  it("shows a quiet header naming the node when shown by default", async () => {
+describe("createPaneArea default-shown header (TKT-46/TKT-81)", () => {
+  it("names the node as the flow's answer, never 'nothing selected'", async () => {
     const { root, area } = makeArea();
     area.showNode({
       nodeId: "n1",
@@ -236,18 +236,30 @@ describe("createPaneArea default-shown header (TKT-46)", () => {
     });
     await settle();
     expect(root.querySelector(".bof-app-preview-source")?.textContent).toBe(
-      "Showing table.select (n1) · nothing selected",
+      "Answer: table.select (n1) · live graph output",
     );
+    expect(root.querySelector(".bof-app-back-to-answer")).toHaveProperty("hidden", true);
     area.dispose();
   });
 
-  it("shows the detailed preview line, not the default header, once selected", async () => {
+  it("shows 'Showing ...' with a Back to answer button once explicitly overridden", async () => {
     const { root, area } = makeArea();
-    area.showNode({ nodeId: "n1", desc: desc("table.select"), values: {}, state: okState });
+    area.showNode({ nodeId: "n1", desc: desc("table.select"), values: {}, state: okState, default: false });
     await settle();
     const text = root.querySelector(".bof-app-preview-source")?.textContent ?? "";
-    expect(text.startsWith("Preview:")).toBe(true);
+    expect(text.startsWith("Showing table.select (n1)")).toBe(true);
     expect(text).not.toContain("nothing selected");
+    expect(root.querySelector(".bof-app-back-to-answer")).toHaveProperty("hidden", false);
+    area.dispose();
+  });
+
+  it("shows a pin toggle reflecting the pinned flag", async () => {
+    const { root, area } = makeArea();
+    area.showNode({ nodeId: "n1", desc: desc("table.select"), values: {}, state: okState, pinned: true });
+    await settle();
+    const pin = root.querySelector(".bof-app-pin-toggle");
+    expect(pin).toHaveProperty("hidden", false);
+    expect(pin?.getAttribute("aria-pressed")).toBe("true");
     area.dispose();
   });
 });

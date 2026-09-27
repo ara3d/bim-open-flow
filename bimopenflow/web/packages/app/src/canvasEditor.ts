@@ -32,6 +32,9 @@ export function createCanvasEditor(
   onError: (message: string) => void,
   initialTheme: CanvasThemeName = defaultCanvasTheme,
   getPreview: () => string | null = () => store.getState().selection.at(-1) ?? null,
+  // TKT-81: double-clicking a node is the discoverable way to look at
+  // something other than the flow's answer, without leaving it selected.
+  onShowNode: (nodeId: string) => void = () => {},
 ): CanvasEditor {
   applyCanvasTheme(initialTheme, /* instant: */ true);
   const model = (): CanvasModel => buildCanvasModel(store.getState(), getCatalog(), getPreview());
@@ -73,6 +76,22 @@ export function createCanvasEditor(
       catch (error) { onError(error instanceof Error ? error.message : String(error)); }
     },
   });
+
+  // Double-click shows a node in the pane without selecting it (TKT-81): the
+  // hit test mirrors the context menu's, in canvas (unzoomed/unpanned) space.
+  const hitNode = (clientX: number, clientY: number): string | null => {
+    const bounds = canvas.getBoundingClientRect();
+    const { zoom, pan } = runtime.viewport;
+    const px = (clientX - bounds.left - pan.x) / zoom;
+    const py = (clientY - bounds.top - pan.y) / zoom;
+    return [...runtime.doc.nodes].reverse().find((n) =>
+      px >= n.x && px <= n.x + n.w && py >= n.y && py <= n.y + n.h)?.id ?? null;
+  };
+  const onDoubleClick = (event: MouseEvent) => {
+    const nodeId = hitNode(event.clientX, event.clientY);
+    if (nodeId !== null) onShowNode(nodeId);
+  };
+  canvas.addEventListener("dblclick", onDoubleClick);
 
   // Store dispatches can originate inside a gratify update (a gesture intent);
   // syncing re-entrantly would be overwritten by the outer update's return
@@ -124,6 +143,7 @@ export function createCanvasEditor(
     dispose: () => {
       unsubscribe();
       disposeContextMenu();
+      canvas.removeEventListener("dblclick", onDoubleClick);
       disposeSlots();
       runtime.stop();
     },

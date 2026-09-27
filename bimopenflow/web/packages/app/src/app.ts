@@ -33,7 +33,14 @@ import { createHostStatus, type HostStatusSource } from "./hostStatus.js";
 import { nodeTitle, upstreamIds } from "./graphPreview";
 import { primaryNodeId, reopenKeepingSelection, selectedNodeIds } from "./selection.js";
 import { createSessionReporter } from "./editorSession.js";
-import { defaultShownNode } from "./defaultShown.js";
+import {
+  backToAnswer,
+  initialShownChoice,
+  resolveShown,
+  showOverride,
+  togglePin,
+  type ShownChoice,
+} from "./shownChoice.js";
 
 export interface App {
   openAnalysis(id: string): Promise<void>;
@@ -72,7 +79,10 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   /** The open in progress; a newer open aborts it. */
   let opening: AbortController | null = null;
   let resultSelection: string[] = [];
+  /** The node id currently shown in the pane area (TKT-81: the answer, an
+   *  override, or a pin's target — never just "the selection"). */
   let lastPrimary: string | null = null;
+  let shownChoice: ShownChoice = initialShownChoice();
   let currentSession: EditorSession = { analysisId: undefined, selection: [] };
 
   const fail = (message: string) => showToast(message, "error");
@@ -132,10 +142,16 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     onSelect: (ids) => { resultSelection = ids; paneArea.updateSelection(ids); },
     onError: fail,
     resolveModelId,
+    onTogglePin: () => togglePaneAnswerPin(),
+    onShowAnswer: () => showAnswerInPane(),
   });
 
   // ── canvas ─────────────────────────────────────────────────────────────────
-  const canvasEditor = createCanvasEditor(shell.canvas, store, () => catalog, fail, loadThemeChoice(), () => primaryNodeId(store.getState()) ?? lastPrimary);
+  const canvasEditor = createCanvasEditor(
+    shell.canvas, store, () => catalog, fail, loadThemeChoice(),
+    () => primaryNodeId(store.getState()) ?? lastPrimary,
+    (nodeId) => showNodeInPane(nodeId),
+  );
   const preview = root.ownerDocument.createElement("select");
   preview.setAttribute("aria-label", "Preview node");
   preview.addEventListener("change", () => {
@@ -186,7 +202,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   let lastEval = store.getState().evalState;
   let lastDirty = false;
 
-  const shownFor = (state: State, nodeId: string, isDefault: boolean) => ({
+  const shownFor = (state: State, nodeId: string, isAnswer: boolean) => ({
     nodeId,
     desc: catalog.get(
       state.document.structure.nodes.find((n) => n.id === nodeId)?.kind ?? "",
@@ -200,18 +216,54 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       const node = state.document.structure.nodes.find(n=>n.id===id);
       return node ? nodeTitle(node.kind) : id;
     }).join(" → "),
-    default: isDefault,
+    default: isAnswer,
+    pinned: shownChoice.pinned,
   });
+
+  // TKT-81: the pane follows the flow's answer node and stays there while the
+  // user selects nodes or edits parameters — selection never drives what the
+  // pane shows. showNodeInPane/showAnswerInPane/togglePaneAnswerPin (below)
+  // are the only way to change that, each re-running this from outside a
+  // store update (a pin/show/back click touches no store state).
+  function applyShown(state: State, dataChanged: boolean): void {
+    const { id: shownId, isAnswer } = resolveShown(state.document, state.evalState, catalog, shownChoice);
+    preview.value = shownId ?? "";
+    if (shownId === null) {
+      if (lastPrimary !== null) paneArea.showNode(null);
+    } else if (shownId !== lastPrimary || dataChanged) {
+      paneArea.showNode(shownFor(state, shownId, isAnswer));
+    } else {
+      paneArea.updateSelection(resultSelection);
+    }
+    lastPrimary = shownId;
+  }
+
+  /** Shows `nodeId` explicitly (double-click on the canvas), replacing the answer. */
+  function showNodeInPane(nodeId: string): void {
+    showOverride(shownChoice, nodeId);
+    applyShown(store.getState(), true);
+  }
+
+  /** The pane header's "Back to answer" button: drops the override and any pin. */
+  function showAnswerInPane(): void {
+    backToAnswer(shownChoice);
+    applyShown(store.getState(), true);
+  }
+
+  /** The pane header's pin toggle: freezes on whatever the pane shows now. */
+  function togglePaneAnswerPin(): void {
+    togglePin(shownChoice, lastPrimary);
+    applyShown(store.getState(), true);
+  }
 
   const unsubscribe = store.subscribe(() => {
     const state = store.getState();
     topbar.setDirty(state.dirty);
-    if (state.evalState !== lastEval) refreshColumnOptions();
-    // Nothing selected: fall back to the graph's answer node (TKT-46) so the
-    // pane area shows an answer instead of going blank; selection stays
-    // empty either way (no dispatch here), so this is display only.
-    const selected = primaryNodeId(state);
-    const shownId = selected ?? defaultShownNode(state.document, state.evalState, catalog, lastPrimary);
+    // Deferred one microtask so it runs after canvasEditor's own subscriber
+    // (registered first, above) has pruned the previous document's column
+    // selects; otherwise a flow switch re-requests suggestions for the old
+    // flow's node ids against the new analysis id and the host 404s.
+    if (state.evalState !== lastEval) queueMicrotask(refreshColumnOptions);
     const dataChanged = state.document !== lastDoc || state.evalState !== lastEval || state.dirty !== lastDirty;
     if (options.graphDemo && state.document !== lastDoc) {
       preview.replaceChildren(...state.document.structure.nodes.map(n => {
@@ -221,17 +273,9 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
         return option;
       }));
     }
-    preview.value = shownId ?? "";
-    if (shownId === null) {
-      if (lastPrimary !== null) paneArea.showNode(null);
-    } else if (shownId !== lastPrimary || dataChanged) {
-      paneArea.showNode(shownFor(state, shownId, selected === null));
-    } else {
-      paneArea.updateSelection(resultSelection);
-    }
+    applyShown(state, dataChanged);
     lastDoc = state.document;
     lastEval = state.evalState;
-    lastPrimary = shownId;
     lastDirty = state.dirty;
     // Report whenever the selected nodes or the open analysis changed
     // (openAnalysis itself reports too, for the case the store does not fire).
@@ -254,6 +298,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   async function openAnalysis(id: string): Promise<void> {
     resultSelection = [];
     lastPrimary = null;
+    shownChoice = initialShownChoice();
     paneArea.showNode(null);
     connection?.dispose();
     connection = null;
@@ -287,6 +332,10 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
         if (initial) dispatch({ type: "select", ids: [initial.id] });
         if (options.autoLayout) canvasEditor.fit();
         else canvasEditor.focus(initial?.id);
+      } else {
+        // TKT-81: the plain editor never auto-fit on open, so a graph wider
+        // than the canvas left its answer node off-screen to the right.
+        canvasEditor.fit();
       }
     } catch (e) {
       if (thisOpen.signal.aborted) return; // a newer open replaced this one

@@ -42,7 +42,7 @@ the same bytes. Units are still not written.
 The charter lists GLB and BOS export sinks, and `docs/bimopenflow-structure.md`
 names Ara3D.IO.GltfExporter as a dependency, but this project is not granted
 the geometry/schema dependencies (Ara3D.Ifc.Mesher / Ara3D.BimOpenSchema.IO)
-those sinks need. This is a structure-doc inconsistency to resolve; until then:
+those sinks need. This is a structure-doc inconsistency to resolve; until then: tracked as TKT-66.
 
 <!-- TODO: add sink.exportGlb and sink.exportBos once the structure doc grants the geometry/schema dependencies. -->
 

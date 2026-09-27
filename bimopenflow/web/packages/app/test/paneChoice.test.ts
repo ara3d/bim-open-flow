@@ -28,6 +28,6 @@ describe("firstTableOutput", () => {
 
 describe("choosePanes", () => {
   it("offers the table pane first for a relation node", () => {
-    expect(choosePanes(withOutput("rel.join", "Relation"))).toEqual(["table", "chart", "params", "inspector"]);
+    expect(choosePanes(withOutput("rel.join", "Relation"))).toEqual(["table", "chart", "inspector"]);
   });
 });

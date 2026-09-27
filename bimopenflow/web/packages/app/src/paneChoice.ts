@@ -10,7 +10,6 @@ export type PaneKind =
   | "view3d"
   | "table"
   | "chart"
-  | "params"
   | "inspector";
 
 /**
@@ -46,19 +45,19 @@ function isView3DKind(desc: NodeDescriptor): boolean {
 }
 
 /**
- * Panes offered for a node, best default first. Params and inspector are
- * always available; table/chart need a Table output; verdict and 3D come
- * from kind conventions.
+ * Panes offered for a node, best default first. Inspector is always
+ * available; table/chart need a Table output; verdict and 3D come from kind
+ * conventions.
  */
 export function choosePanes(desc: NodeDescriptor | undefined): PaneKind[] {
-  if (!desc) return ["params", "inspector"];
+  if (!desc) return ["inspector"];
   const panes: PaneKind[] = [];
   const table = firstTableOutput(desc);
   if (table && isVerdictKind(desc.kind)) panes.push("verdict");
   if (table && isView3DKind(desc)) panes.push("view3d");
   if (table && desc.kind.startsWith("chart.")) panes.push("chart", "table");
   else if (table) panes.push("table", "chart");
-  panes.push("params", "inspector");
+  panes.push("inspector");
   return panes;
 }
 

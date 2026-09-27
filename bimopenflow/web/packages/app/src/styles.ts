@@ -110,12 +110,6 @@ html, body { margin: 0; height: 100%; }
 .bof-app-tab.bof-app-tab-active { background: var(--bof-app-surface); color: var(--bof-app-text); }
 .bof-app-panebody { flex: 1; overflow: auto; min-height: 0; padding: 6px; }
 .bof-app-empty { color: var(--bof-app-dim); padding: 12px; }
-.bof-app-params { display: grid; grid-template-columns: max-content 1fr; gap: 6px 10px; align-items: center; }
-.bof-app-params label { color: var(--bof-app-dim); }
-.bof-app-params input, .bof-app-params select {
-  font: inherit; border: 1px solid var(--bof-app-border); border-radius: 4px; padding: 3px 6px;
-  background: var(--bof-app-bg); color: inherit; width: 100%; box-sizing: border-box;
-}
 .bof-app-toasts { position: fixed; right: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 6px; z-index: 100; }
 .bof-app-toast {
   background: var(--bof-app-text); color: var(--bof-app-surface);

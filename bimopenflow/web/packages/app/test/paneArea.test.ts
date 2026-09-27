@@ -44,7 +44,6 @@ const makeArea = () => {
       resolveAsset: (url) => url,
     },
     onSelect: () => {},
-    onSetParam: () => {},
     onError: (m) => {
       throw new Error(m);
     },
@@ -71,7 +70,6 @@ describe("createPaneArea 3D model wiring", () => {
     const area = createPaneArea(root, {
       ctx: { requestTable: async () => slice, resolveAsset: (url) => url },
       onSelect: () => {},
-      onSetParam: () => {},
       onError: (m) => { errors.push(m); },
       resolveModelId: async (path) => resolved[path] ?? null,
       paneFactory: () => ({

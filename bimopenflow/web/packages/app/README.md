@@ -46,11 +46,18 @@ npm run -w @bimopenflow/app build   # vite production build
 - `canvasParts.ts` / `canvasEditor.ts` — gratify parts (surface, node, wire,
   rubber wire; adapted from gratify's node-editor example) and the mount +
   store-subscription sync.
-- `paneChoice.ts` / `paneArea.ts` / `paneContext.ts` / `paramsPane.ts` — pane
-  heuristics per node kind, the tab strip + single active pane, the
-  `PaneContext` bridging `requestTable` to `getResult`, and the app-owned
-  editable params form. Full docking is deferred by design (its right home is
-  gratify — see `docs/bimopenflow-structure.md`).
+- `slotShared.ts` — island plumbing (dispatch, row key, styling) shared by
+  every on-node parameter control.
+- `slotRegistry.ts` — maps each parameter row's control to the gratify
+  element that draws it.
+- `canvasLongSlot.ts` — the on-node row for Json, Expression, and long Text:
+  a preview that opens the anchored editor.
+- `longValueEditor.ts` — the plain-DOM textarea editor the long-text row
+  opens, with its own commit/discard rules.
+- `paneChoice.ts` / `paneArea.ts` / `paneContext.ts` — pane heuristics per
+  node kind, the tab strip + single active pane, and the `PaneContext`
+  bridging `requestTable` to `getResult`. Full docking is deferred by design
+  (its right home is gratify — see `docs/bimopenflow-structure.md`).
 - `sidebar.ts` / `topbar.ts` / `toast.ts` — chrome: analysis list, catalog
   search, picker/save/run/connection status, notifications.
 - `app.ts` — the controller wiring all of the above around one `ApiClient`.

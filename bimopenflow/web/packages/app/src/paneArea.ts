@@ -24,7 +24,6 @@ import {
   hasResults,
   type PaneKind,
 } from "./paneChoice.js";
-import { createParamsPane } from "./paramsPane.js";
 import { completeTable } from "./completeTable.js";
 import type { LiveViewRecipe } from "./liveViewRecipe";
 import { nodeTitle } from "./graphPreview";
@@ -34,7 +33,6 @@ const PANE_LABELS: Record<PaneKind, string> = {
   view3d: "3D",
   table: "Table",
   chart: "Chart",
-  params: "Params",
   inspector: "Inspector",
 };
 
@@ -44,7 +42,6 @@ const paneFactory = (kind: PaneKind, chartOptions: ChartPaneOptions): Pane => {
     case "chart": return createChartPane(chartOptions);
     case "verdict": return createVerdictPane();
     case "view3d": return createViewPane3D({ followGraph: true });
-    case "params": return createParamsPane();
     case "inspector": return createInspectorPane();
   }
 };
@@ -66,7 +63,6 @@ export interface PaneAreaDeps {
   tableOnly?: boolean;
   ctx: PaneContext;
   onSelect(ids: string[]): void;
-  onSetParam(nodeId: string, name: string, value: string): void;
   onError(message: string): void;
   /** Catalog model id for a node's model file path; null when unknown. */
   resolveModelId?(path: string): Promise<string | null>;
@@ -130,8 +126,6 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
 
   const onPaneEvent = (e: PaneEvent) => {
     if (e.kind === "selection") deps.onSelect(e.event.ids);
-    else if (e.action === "setParam" && shown && e.payload)
-      deps.onSetParam(shown.nodeId, e.payload.name!, e.payload.value ?? "");
     else if (e.action === "loadError") {
       loadedModelUrl = null;
       deps.onError(`3D model load failed: ${e.payload?.message ?? "unknown error"}`);
@@ -160,7 +154,7 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
     const pane = activePane;
     const { nodeId, desc, values, state } = shown;
     try {
-      if (activeKind === "params" || activeKind === "inspector") {
+      if (activeKind === "inspector") {
         if (desc) pane.update({ kind: "inspect", node: desc, values, state, nodeId });
         return;
       }

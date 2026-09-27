@@ -1,19 +1,12 @@
-// Inline parameter controls drawn on canvas nodes. Three families, chosen per
-// parameter kind for the best editing experience rather than homogeneity:
-//
-// - BoolSlot: a canvas-drawn toggle (one press, animated, undo-clean).
-// - EnumSlot: a canvas-drawn dropdown; the open flag is gratify-local state,
-//   the option list is a modal adornment (click-away closes without pressing
-//   what is underneath, undo never re-opens it).
-// - IslandSlot: a real DOM <input> glued to the node via gratify's island
-//   facet — Text/FilePath/DateTime/numbers keep the browser's caret,
-//   selection, IME, and (for DateTime) the native picker. Commits on
-//   change/Enter, reverts on Escape, so scrubbing keystrokes never floods the
-//   undo history.
-//
-// Island elements are created once per (node, param) and pruned by
-// canvasEditor when nodes disappear; intents reach the store through the
-// dispatch registered at mount (islands live outside gratify's intent flow).
+// Inline parameter controls drawn on canvas nodes. Controls are chosen per
+// parameter from slotControl: descriptor overrides kind, which defaults to
+// KIND_CONTROL. A few controls draw directly on canvas (toggleSlot,
+// dropdownSlot); most use gratify's island facet for real DOM elements
+// (numberSlot, fieldSlot, columnSlot). longTextSlot is separate in
+// canvasLongSlot.ts. Island elements are created once per (node, param) and
+// pruned by canvasEditor when nodes disappear; intents reach the store
+// through the dispatch registered at mount (islands live outside gratify's
+// intent flow).
 
 import {
   at,
@@ -249,7 +242,10 @@ function enumFieldRect(node: GNode<EnumSlotProps>) {
   return rect(r.right - w, r.y + 1, w, r.h - 2);
 }
 
-// ── Island fields: Text, FilePath, DateTime, Integer, Number ─────────────────
+// ── Island slots: field and number kinds ──────────────────────────────────────
+// Long-text rows (Json, Expression, and Text) are drawn in canvasLongSlot.
+// Toggles and dropdowns are drawn above. Column selectors are columnSlot.
+// Sliders and ranges are drawn in canvasParts (graphWidgets.ts).
 
 interface IslandSlotProps {
   nodeId: string;

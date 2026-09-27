@@ -1,11 +1,12 @@
-// Inline parameter slots: which parameter kinds render directly on a canvas
-// node, and the vertical layout of those slots. Pure geometry — gratify-free,
+// Parameter slot control selection and heights. Pure geometry — gratify-free,
 // shared by the view model (node heights) and the canvas parts (slot rects).
 //
-// Slots are deliberately NOT homogeneous: each kind gets the height its
-// control needs. Compact kinds (Boolean, Enum, numbers) are a single row with
-// the label on the left; text-like kinds (Text, FilePath, DateTime) get a
-// caption line plus a full-width input, because values need the width.
+// slotControl(param) returns one of SlotControl's eight types based on the
+// descriptor's control.kind (sortColumn, slider, range), KIND_CONTROL[kind],
+// and a length-based rule for long Text. CONTROL_HEIGHT[type] gives each
+// row's height. Together they replace four scatter locations that used to list
+// kinds (INLINE set, slotHeight switch, placeSlots ternary, canvasControls
+// if/switch chain).
 
 import type { ControlDescriptor, ParamDescriptor, ParamKind, SuggestDescriptor } from "@bimopenflow/contracts";
 

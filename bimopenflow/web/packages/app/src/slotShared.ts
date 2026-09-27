@@ -1,5 +1,5 @@
-// Island plumbing shared by every on-node control (canvasControls.ts today,
-// canvasLongSlot.ts once the long-value editor lands). Islands are real DOM
+// Island plumbing shared by every on-node control: canvasControls.ts (field,
+// number, column), canvasLongSlot.ts (long text). Islands are real DOM
 // elements glued to a node via gratify's island facet; they live outside
 // gratify's intent flow, so their commits need a row key, a registered
 // dispatch, and a theme-matched style.

@@ -53,6 +53,11 @@ export type CanvasIntent =
   | { kind: "move"; id: string; x: number; y: number } // transient, during drag
   | { kind: "moveEnd"; id: string } // commits the dragged position to the store
   | { kind: "connect"; a: string; b: string } // two anchor ids, either order
+  /** A dragged wire released over empty canvas (no snap): `from` is the
+   *  anchor it started at, (x, y) the world point it was dropped on. The
+   *  canvas palette (TKT-96) answers it with a kind list filtered to ports
+   *  that can take the wire. */
+  | { kind: "wireDropped"; from: string; x: number; y: number }
   | { kind: "setParam"; nodeId: string; name: string; value: string } // inline control commit
   | { kind: "selectNode"; id: string }
   | { kind: "selectEdge"; id: string | null } // transient wire selection
@@ -60,6 +65,14 @@ export type CanvasIntent =
   | { kind: "deleteSelected" }
   | { kind: "openEditor"; nodeId: string; name: string } // opens the long-value editor for one row
   | { kind: "closeEditor" };
+
+/** Gestures the canvas cannot resolve alone; the editor supplies the DOM
+ *  surfaces that answer them. Every hook is optional so headless tests and
+ *  the demo pages need none. */
+export interface CanvasHooks {
+  /** A wire dropped on empty canvas; `from` is the parsed source anchor. */
+  onWireDropped?(from: AnchorRef, x: number, y: number): void;
+}
 
 /**
  * The gratify update function for the canvas, bound to the store. Store
@@ -70,6 +83,7 @@ export function makeCanvasUpdate(
   store: Store,
   onError: (message: string) => void,
   getPreview: () => string | null = () => store.getState().selection.at(-1) ?? null,
+  hooks: CanvasHooks = {},
 ): (doc: CanvasModel, intent: CanvasIntent) => CanvasModel {
   const dispatch = (action: Parameters<Store["dispatch"]>[0]): void => {
     try {
@@ -119,6 +133,10 @@ export function makeCanvasUpdate(
         dispatch({ type: "select", ids: [previewAfterEdit(store.getState().document,to.nodeId,getPreview())] });
         return doc;
       }
+
+      case "wireDropped":
+        hooks.onWireDropped?.(parseAnchorId(intent.from), intent.x, intent.y);
+        return doc;
 
       case "setParam":
         dispatch({ type: "select", ids: [previewAfterEdit(store.getState().document,intent.nodeId,getPreview())] });

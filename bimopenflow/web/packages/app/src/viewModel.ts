@@ -28,6 +28,10 @@ export interface CanvasNode {
   /** Status badge text, and the upstream node responsible when one exists
    *  (TKT-10). Undefined alongside `status` before the first eval update. */
   readonly badge?: NodeBadge;
+  /** The kind's catalog description (TKT-98): the card draws it so a reader
+   *  learns what the node does without the sidebar. Absent for a note or an
+   *  unknown kind. */
+  readonly description?: string;
   readonly selected: boolean;
   readonly contributing?: boolean;
   /** The `text` param's value, only for a `view.note` node (TKT-82): drawn as
@@ -200,6 +204,7 @@ export function buildCanvasModel(
       params,
       status: state.evalState[n.id]?.status,
       badge: nodeBadge({ edges: state.document.structure.edges, evalState: state.evalState }, n.id),
+      ...(desc?.description ? { description: desc.description } : {}),
       selected: selected.has(n.id),
       contributing: contributing.has(n.id),
     };

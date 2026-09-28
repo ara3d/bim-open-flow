@@ -14,4 +14,7 @@ export type Action =
   | { type: "redo" }
   | { type: "applyServerState"; update: EvalUpdate }
   | { type: "setDocument"; json: string }
-  | { type: "markSaved" };
+  | { type: "markSaved" }
+  /** Several actions applied in order as one undo step (an add with its
+   *  placement and wire, or an agent's edit burst). Nested batches flatten. */
+  | { type: "batch"; actions: readonly Action[] };

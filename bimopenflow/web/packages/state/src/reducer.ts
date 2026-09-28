@@ -163,5 +163,19 @@ export function reduce(state: State, action: Action): State {
       };
     case "markSaved":
       return { ...state, dirty: false };
+    case "batch": {
+      // Each inner action runs through the ordinary reducer, so its validation
+      // and its selection effects apply unchanged; only the undo bookkeeping
+      // differs: one snapshot of the document as it was before the batch, and
+      // none when no inner action edited it (a batch of selects).
+      const after = action.actions.reduce(reduce, state);
+      if (after.document === state.document) return after;
+      return {
+        ...after,
+        undoStack: [...state.undoStack, serializeDocument(state.document)],
+        redoStack: [],
+        dirty: true,
+      };
+    }
   }
 }

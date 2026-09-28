@@ -315,7 +315,8 @@ const GraphNodePart = part<NodeProps, NodeStyle>("bof-node", {
         ];
       },
       up(state) {
-        if (!state.snap) return;
+        if (!state.snap)
+          return { kind: "wireDropped", from: state.fromId, x: state.cursor.x, y: state.cursor.y } satisfies CanvasIntent;
         return { kind: "connect", a: state.fromId, b: state.snap.id } satisfies CanvasIntent;
       },
     }),

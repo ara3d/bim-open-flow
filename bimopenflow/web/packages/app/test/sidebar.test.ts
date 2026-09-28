@@ -109,4 +109,16 @@ describe("sidebar catalog", () => {
     expect(opened).toEqual(["untitled-1"]);
     expect(added).toEqual([]);
   });
+
+  it("places an empty Steps section between the flows and the catalog", () => {
+    const { root, sidebar } = setup();
+    const headers = [...root.querySelectorAll("h3")].map((h) => h.textContent);
+    expect(headers).toEqual(["Flows", "Steps", "Node catalog"]);
+    expect(sidebar.stepsEl.classList.contains("bof-app-steps")).toBe(true);
+    expect(sidebar.stepsEl.previousElementSibling?.textContent).toBe("Steps");
+    expect(sidebar.stepsEl.childElementCount).toBe(0);
+    sidebar.setAnalyses([{ id: "untitled-1", graphHash: "h" }], null);
+    sidebar.setCatalog([desc("table.select")]);
+    expect(sidebar.stepsEl.childElementCount).toBe(0);
+  });
 });

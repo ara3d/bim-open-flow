@@ -1,4 +1,5 @@
-// Left sidebar: the analysis list and the searchable node catalog.
+// Left sidebar: the analysis list, the open flow's steps, and the searchable
+// node catalog.
 
 import type { AnalysisSummary, NodeDescriptor } from "@bimopenflow/contracts";
 import { groupCatalog, loadExpandedPacks, saveExpandedPacks } from "./catalogFilter.js";
@@ -6,6 +7,8 @@ import { groupCatalog, loadExpandedPacks, saveExpandedPacks } from "./catalogFil
 export interface Sidebar {
   setAnalyses(list: AnalysisSummary[], activeId: string | null): void;
   setCatalog(nodes: NodeDescriptor[]): void;
+  /** Empty host for the open flow's step list (stepList.ts's createStepList). */
+  readonly stepsEl: HTMLElement;
 }
 
 const SIDEBAR_TREE_STYLE_ID = "bof-app-sidebar-tree-styles";
@@ -19,6 +22,7 @@ function ensureSidebarStyles(doc: Document): void {
   style.textContent = `
     .bof-app-catalog-group { cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; }
     .bof-app-catalog-group-count { opacity: 0.65; font-weight: normal; }
+    .bof-app-steps { flex: 0 1 auto; max-height: 30%; overflow-y: auto; }
   `;
   doc.head.appendChild(style);
 }
@@ -32,8 +36,9 @@ export function createSidebar(
   ensureSidebarStyles(doc);
   root.classList.add("bof-app-sidebar");
 
-  // Each list scrolls on its own (bof-app-analyses / bof-app-catalog) so the
-  // headers and the filter box stay visible when content overflows.
+  // Each list scrolls on its own (bof-app-analyses / bof-app-steps /
+  // bof-app-catalog) so the headers and the filter box stay visible when
+  // content overflows; Flows and Steps are capped so the catalog keeps room.
   const section = (title: string, listClass: string): HTMLElement => {
     const h = doc.createElement("h3");
     h.textContent = title;
@@ -45,6 +50,7 @@ export function createSidebar(
   };
 
   const analysisList = section("Flows", "bof-app-analyses");
+  const stepsEl = section("Steps", "bof-app-steps");
 
   const catalogHeader = doc.createElement("h3");
   catalogHeader.textContent = "Node catalog";
@@ -103,6 +109,7 @@ export function createSidebar(
   search.addEventListener("input", renderCatalog);
 
   return {
+    stepsEl,
     setAnalyses(list, activeId) {
       analysisList.textContent = "";
       for (const a of list) {

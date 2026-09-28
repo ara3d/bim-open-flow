@@ -14,6 +14,8 @@ import { islandKey, setInlineControlDispatch } from "./slotShared.js";
 import { buildCanvasModel, type CanvasModel } from "./viewModel.js";
 import { animateSelection } from "./selectionBorder";
 import { installNodeContextMenu } from "./nodeContextMenu";
+import { createPeekWiring, type PeekWiring } from "./peekWiring.js";
+import type { ReadPort } from "./portResults.js";
 
 export interface CanvasEditor {
   /** Re-derives the canvas doc from the store (e.g. after the catalog loads). */
@@ -35,9 +37,14 @@ export function createCanvasEditor(
   // TKT-81: double-clicking a node is the discoverable way to look at
   // something other than the flow's answer, without leaving it selected.
   onShowNode: (nodeId: string) => void = () => {},
+  // TKT-11: when given, hovering an output socket or wire peeks its rows and
+  // wires show row counts. Absent, the editor behaves as before.
+  readPort?: ReadPort,
 ): CanvasEditor {
   applyCanvasTheme(initialTheme, /* instant: */ true);
-  const model = (): CanvasModel => buildCanvasModel(store.getState(), getCatalog(), getPreview());
+  let wiring: PeekWiring | null = null; // created once the runtime exists
+  const model = (): CanvasModel =>
+    buildCanvasModel(store.getState(), getCatalog(), getPreview(), wiring?.view());
   // The runtime's rest detector can doze off mid entrance-animation right
   // after a doc swap (boot, flow open), freezing the canvas on ghost-faint
   // nodes until the next interaction. `ambient` holds the loop awake briefly
@@ -112,6 +119,14 @@ export function createCanvasEditor(
     });
   };
   const unsubscribe = store.subscribe(sync);
+  if (readPort) {
+    wiring = createPeekWiring(canvas, {
+      store, getCatalog, readPort,
+      getDoc: () => runtime.doc,
+      getViewport: () => runtime.viewport,
+      onChange: sync,
+    });
+  }
 
   return {
     refresh: sync,
@@ -142,6 +157,7 @@ export function createCanvasEditor(
     },
     dispose: () => {
       unsubscribe();
+      wiring?.dispose();
       disposeContextMenu();
       canvas.removeEventListener("dblclick", onDoubleClick);
       disposeSlots();

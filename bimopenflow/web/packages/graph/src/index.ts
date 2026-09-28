@@ -2,8 +2,10 @@
 // its geometry helpers, the document helpers, and the canvas theme. Callers
 // import from here, never from a module path.
 
-export { createCanvasEditor } from "./canvasEditor.js";
-export type { CanvasEditor } from "./canvasEditor.js";
+export { createGraphEditor } from "./canvasEditor.js";
+export type { GraphEditor, GraphEditorOptions } from "./canvasEditor.js";
+export { createCanvasInstance, pruneInstance } from "./instance.js";
+export type { CanvasInstance, SuggestionProvider } from "./instance.js";
 export { anchorId, canConnect, parseAnchorId } from "./canvasIntents.js";
 export type { AnchorDir, AnchorRef, CanvasHooks, CanvasIntent } from "./canvasIntents.js";
 export {
@@ -18,7 +20,5 @@ export { nodeBadge } from "./nodeBadge.js";
 export type { NodeBadge } from "./nodeBadge.js";
 export { applyCanvasTheme, canvasThemeNames, currentCanvasTheme, defaultCanvasTheme, isCanvasThemeName } from "./canvasTheme.js";
 export type { CanvasThemeName } from "./canvasTheme.js";
-export { refreshColumnOptions, setSuggestionProvider } from "./canvasControls.js";
-export type { SuggestionProvider } from "./canvasControls.js";
 export type { PortResultsView, ReadPort, WireRows } from "./portResults.js";
 export { NO_PORT_RESULTS } from "./portResults.js";

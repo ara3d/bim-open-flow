@@ -7,7 +7,10 @@ import type { NodeDescriptor } from "@bimopenflow/contracts";
 import { createStore } from "@bimopenflow/state";
 import { makeCanvasUpdate, type CanvasIntent } from "../src/canvasIntents.js";
 import { canvasView } from "../src/canvasParts.js";
+import { createCanvasInstance } from "../src/instance.js";
 import { buildCanvasModel, NOTE_KIND, type CanvasModel } from "../src/viewModel.js";
+
+const instance = createCanvasInstance({ document });
 
 const desc: NodeDescriptor = {
   kind: "k.a",
@@ -35,7 +38,7 @@ describe("canvas parts (headless gratify)", () => {
       {
         init: model,
         update: makeCanvasUpdate(store, (m) => errors.push(m)),
-        view: canvasView,
+        view: (doc) => canvasView(doc, instance),
       },
       { headless: true, width: 800, height: 600 },
     );
@@ -70,7 +73,7 @@ describe("view.note (headless gratify)", () => {
     const errors: string[] = [];
     const runtime = new Runtime<CanvasModel, CanvasIntent>(
       null,
-      { init: model(), update: makeCanvasUpdate(store, (m) => errors.push(m)), view: canvasView },
+      { init: model(), update: makeCanvasUpdate(store, (m) => errors.push(m)), view: (doc) => canvasView(doc, instance) },
       { headless: true, width: 800, height: 600 },
     );
     runtime.step(3, 1 / 60);

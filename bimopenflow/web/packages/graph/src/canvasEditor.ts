@@ -1,47 +1,68 @@
-// The canvas editor: mounts the gratify graph view on a <canvas> and keeps it
+// The graph editor: mounts the gratify graph view on a <canvas> and keeps it
 // in sync with the store. Data flows one way: gestures -> CanvasIntents ->
 // store dispatches (in canvasIntents.ts) -> store subscription -> "sync"
-// intent rebuilding the canvas doc from the store.
+// intent rebuilding the canvas doc from the store. Everything the mount owns
+// lives in its CanvasInstance, so several editors can share a page.
 
 import { mount, v, type Runtime } from "gratify";
 import { applyCanvasTheme, defaultCanvasTheme, type CanvasThemeName } from "./canvasTheme.js";
 import type { NodeDescriptor } from "@bimopenflow/contracts";
 import type { Store } from "@bimopenflow/state";
-import { makeCanvasUpdate, type CanvasIntent } from "./canvasIntents.js";
+import { makeCanvasUpdate, type CanvasHooks, type CanvasIntent } from "./canvasIntents.js";
 import { canvasView } from "./canvasParts.js";
-import { disposeSlots, pruneSlots } from "./slotRegistry.js";
-import { islandKey, setInlineControlDispatch } from "./slotShared.js";
-import { buildCanvasModel, type CanvasModel } from "./viewModel.js";
-import { animateSelection } from "./selectionBorder";
-import { installNodeContextMenu } from "./nodeContextMenu";
+import { createCanvasInstance, pruneInstance, type SuggestionProvider } from "./instance.js";
+import { islandKey } from "./slotShared.js";
+import { buildCanvasModel, NOTE_KIND, type CanvasModel } from "./viewModel.js";
+import { animateSelection } from "./selectionBorder.js";
+import { installNodeContextMenu } from "./nodeContextMenu.js";
 import { createPeekWiring, type PeekWiring } from "./peekWiring.js";
 import type { ReadPort } from "./portResults.js";
 
-export interface CanvasEditor {
+export interface GraphEditorOptions {
+  readonly store: Store;
+  readonly catalog: () => ReadonlyMap<string, NodeDescriptor>;
+  /** A rejected gesture reports here instead of crashing the frame loop. */
+  readonly onError: (message: string) => void;
+  /** A viewer: pans, zooms, hovers, and selects, and never changes the document. Default false. */
+  readonly readOnly?: boolean;
+  /** The canvas theme at mount. The theme is page-wide (gratify's tokens are), so every mounted canvas follows a later setTheme. */
+  readonly theme?: CanvasThemeName;
+  /** The node whose upstream path is highlighted; defaults to the last selected node. */
+  readonly getPreview?: () => string | null;
+  /** Double-click on a node (TKT-81): show it without selecting it. */
+  readonly onShowNode?: (nodeId: string) => void;
+  /** Host reader for wire row counts and peeks (TKT-11); without it the canvas shows neither. */
+  readonly readPort?: ReadPort;
+  /** Live values for suggest-annotated parameters. */
+  readonly suggestions?: SuggestionProvider;
+  /** Gestures the canvas cannot resolve alone (a wire dropped on empty canvas). */
+  readonly hooks?: CanvasHooks;
+}
+
+export interface GraphEditor {
   /** Re-derives the canvas doc from the store (e.g. after the catalog loads). */
   refresh(): void;
   fit(): void;
   focus(nodeId?: string): void;
-  /** Switches the canvas theme (see canvasTheme.ts for the names). */
+  /** Re-reads the column options of every column selector (after an evaluation update). */
+  refreshSuggestions(): void;
+  /** Switches the canvas theme (see canvasTheme.ts for the names). Page-wide. */
   setTheme(theme: CanvasThemeName): void;
   dispose(): void;
 }
 
-export function createCanvasEditor(
-  canvas: HTMLCanvasElement,
-  store: Store,
-  getCatalog: () => ReadonlyMap<string, NodeDescriptor>,
-  onError: (message: string) => void,
-  initialTheme: CanvasThemeName = defaultCanvasTheme,
-  getPreview: () => string | null = () => store.getState().selection.at(-1) ?? null,
-  // TKT-81: double-clicking a node is the discoverable way to look at
-  // something other than the flow's answer, without leaving it selected.
-  onShowNode: (nodeId: string) => void = () => {},
-  // TKT-11: when given, hovering an output socket or wire peeks its rows and
-  // wires show row counts. Absent, the editor behaves as before.
-  readPort?: ReadPort,
-): CanvasEditor {
-  applyCanvasTheme(initialTheme, /* instant: */ true);
+export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEditorOptions): GraphEditor {
+  const { store, onError } = options;
+  const getCatalog = options.catalog;
+  const getPreview = options.getPreview ?? (() => store.getState().selection.at(-1) ?? null);
+  const onShowNode = options.onShowNode ?? (() => {});
+  const readOnly = options.readOnly ?? false;
+  applyCanvasTheme(options.theme ?? defaultCanvasTheme, /* instant: */ true);
+  const instance = createCanvasInstance({
+    document: canvas.ownerDocument,
+    readOnly,
+    suggestionProvider: options.suggestions ?? null,
+  });
   let wiring: PeekWiring | null = null; // created once the runtime exists
   const model = (): CanvasModel =>
     buildCanvasModel(store.getState(), getCatalog(), getPreview(), wiring?.view());
@@ -57,8 +78,8 @@ export function createCanvasEditor(
   let holdRequested = true; // cover the very first frames after mount
   const runtime: Runtime<CanvasModel, CanvasIntent> = mount(canvas, {
     init: model(),
-    update: makeCanvasUpdate(store, onError, getPreview),
-    view: canvasView,
+    update: makeCanvasUpdate(store, onError, getPreview, options.hooks),
+    view: (doc) => canvasView(doc, instance),
     ambient: (_doc, time) => {
       if (holdRequested) {
         holdRequested = false;
@@ -69,33 +90,30 @@ export function createCanvasEditor(
   });
   // Island inputs (inline Text/FilePath/DateTime/number controls) live in the
   // DOM, outside gratify's intent flow; their commits come back through here.
-  setInlineControlDispatch((intent) => runtime.dispatch(intent));
-  const disposeContextMenu = installNodeContextMenu(canvas, {
-    hitNode(x, y) {
-      const { zoom, pan } = runtime.viewport;
-      const px = (x - pan.x) / zoom;
-      const py = (y - pan.y) / zoom;
-      return [...runtime.doc.nodes].reverse().find(n =>
-        px >= n.x && px <= n.x + n.w && py >= n.y && py <= n.y + n.h)?.id ?? null;
-    },
+  instance.dispatch = (intent) => runtime.dispatch(intent);
+
+  // Both hit tests work in canvas (unzoomed, unpanned) space.
+  const hitNodeAt = (px: number, py: number): string | null =>
+    [...runtime.doc.nodes].reverse().find(n =>
+      px >= n.x && px <= n.x + n.w && py >= n.y && py <= n.y + n.h)?.id ?? null;
+  const hitNodeAtCanvas = (x: number, y: number): string | null => {
+    const { zoom, pan } = runtime.viewport;
+    return hitNodeAt((x - pan.x) / zoom, (y - pan.y) / zoom);
+  };
+
+  // A viewer has no delete: the context menu is not installed at all.
+  const disposeContextMenu = readOnly ? () => {} : installNodeContextMenu(canvas, {
+    hitNode: hitNodeAtCanvas,
     onDelete(nodeId) {
       try { store.dispatch({ type: "removeNode", id: nodeId }); }
       catch (error) { onError(error instanceof Error ? error.message : String(error)); }
     },
   });
 
-  // Double-click shows a node in the pane without selecting it (TKT-81): the
-  // hit test mirrors the context menu's, in canvas (unzoomed/unpanned) space.
-  const hitNode = (clientX: number, clientY: number): string | null => {
-    const bounds = canvas.getBoundingClientRect();
-    const { zoom, pan } = runtime.viewport;
-    const px = (clientX - bounds.left - pan.x) / zoom;
-    const py = (clientY - bounds.top - pan.y) / zoom;
-    return [...runtime.doc.nodes].reverse().find((n) =>
-      px >= n.x && px <= n.x + n.w && py >= n.y && py <= n.y + n.h)?.id ?? null;
-  };
+  // Double-click shows a node in the pane without selecting it (TKT-81).
   const onDoubleClick = (event: MouseEvent) => {
-    const nodeId = hitNode(event.clientX, event.clientY);
+    const bounds = canvas.getBoundingClientRect();
+    const nodeId = hitNodeAtCanvas(event.clientX - bounds.left, event.clientY - bounds.top);
     if (nodeId !== null) onShowNode(nodeId);
   };
   canvas.addEventListener("dblclick", onDoubleClick);
@@ -111,17 +129,20 @@ export function createCanvasEditor(
     queueMicrotask(() => {
       queued = false;
       const next = model();
-      pruneSlots(new Set(
-        next.nodes.flatMap((n) => n.params.map((p) => islandKey(n.id, p.name))),
-      ));
+      pruneInstance(
+        instance,
+        new Set(next.nodes.flatMap((n) => n.params.map((p) => islandKey(n.id, p.name)))),
+        new Set(next.nodes.filter((n) => n.kind === NOTE_KIND).map((n) => n.id)),
+      );
       holdRequested = true;
       runtime.dispatch({ kind: "sync", model: next });
     });
   };
   const unsubscribe = store.subscribe(sync);
-  if (readPort) {
+
+  if (options.readPort) {
     wiring = createPeekWiring(canvas, {
-      store, getCatalog, readPort,
+      store, getCatalog, readPort: options.readPort,
       getDoc: () => runtime.doc,
       getViewport: () => runtime.viewport,
       onChange: sync,
@@ -149,6 +170,7 @@ export function createCanvasEditor(
         (canvas.clientHeight - height * zoom) / 2 - top * zoom + 12) };
       sync();
     },
+    refreshSuggestions: () => instance.columnSelects.refresh(),
     // Live swap: gratify retargets its tokens and cross-fades; the sync wakes
     // the runtime's frame loop so the fade actually runs. Pan/zoom untouched.
     setTheme: (theme) => {
@@ -160,7 +182,8 @@ export function createCanvasEditor(
       wiring?.dispose();
       disposeContextMenu();
       canvas.removeEventListener("dblclick", onDoubleClick);
-      disposeSlots();
+      pruneInstance(instance, new Set());
+      instance.dispatch = () => {};
       runtime.stop();
     },
   };

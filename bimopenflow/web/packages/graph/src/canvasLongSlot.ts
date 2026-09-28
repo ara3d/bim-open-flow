@@ -6,10 +6,10 @@
 // same way the inline fields in canvasControls.ts do. See "The long-value
 // editor" in docs/plans/remove-properties-panel.md.
 //
-// One editor instance lives per row key (nodeId::name, from slotShared's
-// islandKey), the same lifetime rule canvasControls.ts uses for its inline
-// islands: created lazily, reused across frames, pruned when the row goes
-// away. `island()` runs every frame, so `editorFor` only calls `open()` on
+// One editor lives per row key (nodeId::name, from slotShared's islandKey)
+// on the row's CanvasInstance, the same lifetime rule canvasControls.ts uses
+// for its inline islands: created lazily, reused across frames, pruned when
+// the row goes away. `island()` runs every frame, so `editorFor` only calls `open()` on
 // the transition into "open" — calling it every frame would overwrite
 // whatever the user is mid-typing.
 
@@ -19,7 +19,8 @@ import { LONG_TEXT_LINES, LONG_TEXT_SLOT_H, type SlotContext } from "./canvasSlo
 import { canvasThemes, currentCanvasTheme } from "./canvasTheme.js";
 import { createLongValueEditor, type LongValueEditor } from "./longValueEditor.js";
 import { paramLabel } from "./numericParam.js";
-import { dispatchInline, islandKey, styleIsland } from "./slotShared.js";
+import { islandKey, styleIsland } from "./slotShared.js";
+import type { CanvasInstance } from "./instance.js";
 
 const LABEL_SIZE = 14;
 const VALUE_SIZE = 14;
@@ -114,13 +115,6 @@ interface LongSlotStyle {
   value: Color;
 }
 
-/** One editor per row key, same lifetime rule as canvasControls.ts's islands. */
-const editors = new Map<string, LongValueEditor>();
-
-/** The theme version last applied to each editor's textarea, the same
- *  restyle-on-change rule canvasControls.ts's inline islands use. */
-const editorThemeV = new Map<string, number>();
-
 /** styleIsland replaces the textarea's whole cssText with the theme's border,
  *  background, and text colour, so the flex sizing longValueEditor.ts's
  *  layout depends on, and the monospace font a JSON or expression value
@@ -136,14 +130,15 @@ function styleEditorTextarea(editor: LongValueEditor): void {
 
 /** Lazily creates the row's editor and opens it exactly once per opening. */
 function editorFor(ctx: SlotContext): LongValueEditor {
+  const { instance } = ctx;
   const key = islandKey(ctx.nodeId, ctx.param.name);
-  let editor = editors.get(key);
+  let editor = instance.longEditors.get(key);
   if (!editor) {
-    editor = createLongValueEditor(document);
-    editors.set(key, editor);
+    editor = createLongValueEditor(instance.document);
+    instance.longEditors.set(key, editor);
   }
-  if (editorThemeV.get(key) !== themeVersion) {
-    editorThemeV.set(key, themeVersion);
+  if (instance.longEditorThemeV.get(key) !== themeVersion) {
+    instance.longEditorThemeV.set(key, themeVersion);
     styleEditorTextarea(editor);
   }
   if (!editor.isOpen()) {
@@ -152,8 +147,8 @@ function editorFor(ctx: SlotContext): LongValueEditor {
       label: `${paramLabel(param.name, param.kind, param.control)} (${param.kind})`,
       value: param.value,
       onCommit: (value) =>
-        dispatchInline({ kind: "setParam", nodeId, name: param.name, value } satisfies CanvasIntent),
-      onClose: () => dispatchInline({ kind: "closeEditor" } satisfies CanvasIntent),
+        instance.dispatch({ kind: "setParam", nodeId, name: param.name, value } satisfies CanvasIntent),
+      onClose: () => instance.dispatch({ kind: "closeEditor" } satisfies CanvasIntent),
     });
   }
   return editor;
@@ -200,7 +195,7 @@ const LongSlot = part<SlotContext, LongSlotStyle>("bof-slot-long", {
     if (!ctx.open) {
       // The canvas (not the user) closed this row — close silently so a
       // later re-open loads a fresh value instead of a stale draft.
-      editors.get(key)?.close();
+      ctx.instance.longEditors.get(key)?.close();
       return null;
     }
     const editor = editorFor(ctx);
@@ -217,13 +212,13 @@ export function longTextSlot(ctx: SlotContext): Element {
   return LongSlot(ctx.param.name, ctx);
 }
 
-/** Disposes editors whose islandKey is not live. */
-export function pruneLongValueEditors(liveKeys: ReadonlySet<string>): void {
-  for (const [key, editor] of editors) {
+/** Disposes the instance's editors whose islandKey is not live. */
+export function pruneLongValueEditors(instance: CanvasInstance, liveKeys: ReadonlySet<string>): void {
+  for (const [key, editor] of instance.longEditors) {
     if (!liveKeys.has(key)) {
       editor.dispose();
-      editors.delete(key);
-      editorThemeV.delete(key);
+      instance.longEditors.delete(key);
+      instance.longEditorThemeV.delete(key);
     }
   }
 }

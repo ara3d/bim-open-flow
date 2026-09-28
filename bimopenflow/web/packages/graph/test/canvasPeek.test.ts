@@ -8,8 +8,11 @@ import type { NodeDescriptor } from "@bimopenflow/contracts";
 import { createStore } from "@bimopenflow/state";
 import { makeCanvasUpdate, type CanvasIntent } from "../src/canvasIntents.js";
 import { canvasView } from "../src/canvasParts.js";
+import { createCanvasInstance } from "../src/instance.js";
 import { buildCanvasModel, type CanvasModel } from "../src/viewModel.js";
 import type { PortResultsView } from "../src/portResults.js";
+
+const instance = createCanvasInstance({ document });
 
 const desc: NodeDescriptor = {
   kind: "k.a",
@@ -56,7 +59,7 @@ function mountDiamond(results: PortResultsView): { runtime: Runtime<CanvasModel,
 
   const runtime = new Runtime<CanvasModel, CanvasIntent>(
     null,
-    { init: model, update: makeCanvasUpdate(store, () => {}), view: canvasView },
+    { init: model, update: makeCanvasUpdate(store, () => {}), view: (doc) => canvasView(doc, instance) },
     { headless: true, width: 800, height: 600 },
   );
   const spy = new SpyPainter();

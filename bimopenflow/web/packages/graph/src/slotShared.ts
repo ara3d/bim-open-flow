@@ -1,27 +1,14 @@
 // Island plumbing shared by every on-node control: canvasControls.ts (field,
 // number, column), canvasLongSlot.ts (long text). Islands are real DOM
 // elements glued to a node via gratify's island facet; they live outside
-// gratify's intent flow, so their commits need a row key, a registered
-// dispatch, and a theme-matched style.
+// gratify's intent flow, so their commits need a row key (here), a dispatch
+// (their CanvasInstance's), and a theme-matched style (here).
 
 import { css, type Tokens } from "gratify";
-import type { CanvasIntent } from "./canvasIntents.js";
 import { currentCanvasTheme } from "./canvasTheme.js";
 
 /** Key of one parameter row: "nodeId::name". */
 export const islandKey = (nodeId: string, name: string): string => `${nodeId}::${name}`;
-
-let dispatchIntent: (intent: CanvasIntent) => void = () => {};
-
-/** canvasEditor registers the runtime's dispatch after mount. */
-export function setInlineControlDispatch(fn: (intent: CanvasIntent) => void): void {
-  dispatchIntent = fn;
-}
-
-/** DOM-side commits (islands, the long-value editor) enter the canvas intent flow here. */
-export function dispatchInline(intent: CanvasIntent): void {
-  dispatchIntent(intent);
-}
 
 /** Border, background, font, and focus colour from the canvas theme. */
 export function styleIsland(el: HTMLInputElement | HTMLTextAreaElement, palette: Omit<Tokens, "mix">): void {

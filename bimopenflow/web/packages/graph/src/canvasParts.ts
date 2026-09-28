@@ -43,7 +43,8 @@ import { portY, SOCKET_GRAB_RADIUS, WIRE_HIT_DISTANCE } from "./portGeometry.js"
 import { peekAdorn, rowCountText } from "./peekCard.js";
 import { wrapParagraphs } from "./canvasLongSlot.js";
 import { createLongValueEditor, type LongValueEditor } from "./longValueEditor.js";
-import { dispatchInline, styleIsland } from "./slotShared.js";
+import { styleIsland } from "./slotShared.js";
+import type { CanvasInstance } from "./instance.js";
 
 const SOCKET_RADIUS = 4.5;
 
@@ -96,9 +97,6 @@ const Surface = part<SurfaceProps, { gridDot: Color }>("bof-surface", {
 // view.note has no params, so it never appears in canvasEditor's per-param
 // liveKeys set that prunes ordinary rows.
 
-const noteEditors = new Map<string, LongValueEditor>();
-const noteEditorThemeV = new Map<string, number>();
-
 function styleNoteTextarea(editor: LongValueEditor): void {
   const ta = editor.textarea;
   styleIsland(ta, canvasThemes[currentCanvasTheme()].palette);
@@ -106,14 +104,14 @@ function styleNoteTextarea(editor: LongValueEditor): void {
   ta.style.resize = "none";
 }
 
-function noteEditorFor(node: CanvasNode): LongValueEditor {
-  let editor = noteEditors.get(node.id);
+function noteEditorFor(instance: CanvasInstance, node: CanvasNode): LongValueEditor {
+  let editor = instance.noteEditors.get(node.id);
   if (!editor) {
-    editor = createLongValueEditor(document);
-    noteEditors.set(node.id, editor);
+    editor = createLongValueEditor(instance.document);
+    instance.noteEditors.set(node.id, editor);
   }
-  if (noteEditorThemeV.get(node.id) !== themeVersion) {
-    noteEditorThemeV.set(node.id, themeVersion);
+  if (instance.noteEditorThemeV.get(node.id) !== themeVersion) {
+    instance.noteEditorThemeV.set(node.id, themeVersion);
     styleNoteTextarea(editor);
   }
   if (!editor.isOpen()) {
@@ -121,29 +119,29 @@ function noteEditorFor(node: CanvasNode): LongValueEditor {
       label: "Note",
       value: node.noteText ?? "",
       onCommit: (value) =>
-        dispatchInline({ kind: "setParam", nodeId: node.id, name: "text", value } satisfies CanvasIntent),
-      onClose: () => dispatchInline({ kind: "closeEditor" } satisfies CanvasIntent),
+        instance.dispatch({ kind: "setParam", nodeId: node.id, name: "text", value } satisfies CanvasIntent),
+      onClose: () => instance.dispatch({ kind: "closeEditor" } satisfies CanvasIntent),
     });
   }
   return editor;
 }
 
-/** Disposes note editors for ids no longer on the canvas; called from
- *  canvasView every render (see the comment above) rather than from
- *  canvasEditor's per-param pruning. */
-function pruneNoteEditors(liveIds: ReadonlySet<string>): void {
-  for (const [id, editor] of noteEditors) {
+/** Disposes the instance's note editors for ids no longer on the canvas;
+ *  called from canvasView every render (see the comment above) as well as
+ *  from the editor's pruning. */
+function pruneNoteEditors(instance: CanvasInstance, liveIds: ReadonlySet<string>): void {
+  for (const [id, editor] of instance.noteEditors) {
     if (!liveIds.has(id)) {
       editor.dispose();
-      noteEditors.delete(id);
-      noteEditorThemeV.delete(id);
+      instance.noteEditors.delete(id);
+      instance.noteEditorThemeV.delete(id);
     }
   }
 }
 
 // ── Node ─────────────────────────────────────────────────────────────────────
 
-type NodeProps = CanvasNode & { pos: Vec; states?: Record<string, boolean>; noteOpen?: boolean };
+type NodeProps = CanvasNode & { pos: Vec; instance: CanvasInstance; states?: Record<string, boolean>; noteOpen?: boolean };
 
 interface NodeStyle {
   fill: Color;
@@ -347,10 +345,10 @@ const GraphNodePart = part<NodeProps, NodeStyle>("bof-node", {
   island(node) {
     if (node.props.kind !== NOTE_KIND) return null;
     if (!node.props.noteOpen) {
-      noteEditors.get(node.props.id)?.close();
+      node.props.instance.noteEditors.get(node.props.id)?.close();
       return null;
     }
-    const editor = noteEditorFor(node.props);
+    const editor = noteEditorFor(node.props.instance, node.props);
     const r = node.rect;
     return { el: editor.el, rect: rect(r.x, r.y, r.w, r.h) };
   },
@@ -449,14 +447,14 @@ const wireAnchorIds = (edge: CanvasEdge) => {
   return { from: `out:${edge.from}`, to: `in:${edge.to}` };
 };
 
-export function canvasView(model: CanvasModel): Element {
+export function canvasView(model: CanvasModel, instance: CanvasInstance): Element {
   // The animated path (TKT-24): every wire feeding the selected node, so the
   // owner can see at a glance what flows into it. Wired off `selected`, the
   // same per-node flag selectionBorder pulses, not the 3D-view "contributing"
   // preview above (a different, pre-existing highlight).
   const selectedId = model.nodes.find((n) => n.selected)?.id ?? null;
   const flowing = upstreamEdges(model, selectedId);
-  pruneNoteEditors(new Set(model.nodes.filter((n) => n.kind === NOTE_KIND).map((n) => n.id)));
+  pruneNoteEditors(instance, new Set(model.nodes.filter((n) => n.kind === NOTE_KIND).map((n) => n.id)));
   return Surface("root", { selectedEdgeId: model.selectedEdgeId }, [
     Free("graph", {}, [
       ...model.edges.map((edge) => {
@@ -477,12 +475,14 @@ export function canvasView(model: CanvasModel): Element {
           {
             ...n,
             pos: v(n.x, n.y),
+            instance,
             states: { sel: n.selected },
             noteOpen: model.openEditor?.nodeId === n.id && model.openEditor.name === "text",
           },
           n.params.map((param) => slotElement({
             nodeId: n.id,
             param,
+            instance,
             w: n.w - 2 * SLOT_X_PAD,
             open: model.openEditor?.nodeId === n.id && model.openEditor.name === param.name,
           })),

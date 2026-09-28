@@ -9,6 +9,7 @@
 // if/switch chain).
 
 import type { ControlDescriptor, ParamDescriptor, ParamKind, SuggestDescriptor } from "@bimopenflow/contracts";
+import type { CanvasInstance } from "./instance.js";
 
 export interface CanvasParam {
   readonly descending?: boolean;
@@ -108,6 +109,8 @@ export interface SlotContext {
   readonly w: number;
   /** True when CanvasModel.openEditor names this row. */
   readonly open: boolean;
+  /** The mounted canvas this row belongs to: its islands, editors, and dispatch. */
+  readonly instance: CanvasInstance;
 }
 
 export const SLOT_GAP = 4;

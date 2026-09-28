@@ -17,14 +17,17 @@ import { makeCanvasUpdate, type CanvasIntent } from "../src/canvasIntents.js";
 import { buildCanvasModel, type CanvasModel } from "../src/viewModel.js";
 import { KIND_CONTROL, slotControl, type SlotContext, type CanvasParam } from "../src/canvasSlots.js";
 import { disposeSlots, slotElement } from "../src/slotRegistry.js";
-import { setInlineControlDispatch } from "../src/slotShared.js";
+import { createCanvasInstance, pruneInstance } from "../src/instance.js";
 
 afterEach(() => {
   // disposeSlots (fixed for defect 3) now disposes the long-value editors
   // too, so this no longer needs a separate pruneLongValueEditors call.
-  disposeSlots();
-  setInlineControlDispatch(() => {});
+  disposeSlots(instance);
+  instance.dispatch = () => {};
 });
+/** One mounted canvas's state for this file's slots; pruned after each test. */
+const instance = createCanvasInstance({ document });
+
 
 /** One node whose params cover every kind this chunk moves onto the card. */
 const desc: NodeDescriptor = {
@@ -60,6 +63,7 @@ function paramCtx(doc: CanvasModel, name: string): SlotContext {
   return {
     nodeId: "n1",
     param,
+    instance,
     w: 240,
     open: doc.openEditor?.nodeId === "n1" && doc.openEditor?.name === name,
   };
@@ -102,7 +106,7 @@ describe("Json and Expression: the long-text row on the node card", () => {
     expect(textarea.value).toBe("{}");
 
     const intents: CanvasIntent[] = [];
-    setInlineControlDispatch((i) => intents.push(i));
+    instance.dispatch = (i) => intents.push(i);
     textarea.value = '{"a":2}';
     textarea.dispatchEvent(
       new KeyboardEvent("keydown", { key: "Enter", ctrlKey: true, bubbles: true, cancelable: true }),
@@ -132,7 +136,7 @@ describe("Json and Expression: the long-text row on the node card", () => {
     expect(textarea.value).toBe("area > 10"); // unchanged
 
     const intents: CanvasIntent[] = [];
-    setInlineControlDispatch((i) => intents.push(i));
+    instance.dispatch = (i) => intents.push(i);
     textarea.dispatchEvent(
       new KeyboardEvent("keydown", { key: "Enter", ctrlKey: true, bubbles: true, cancelable: true }),
     );
@@ -152,7 +156,7 @@ describe("ModelRef: a plain text field on the node card", () => {
     expect(input.type).toBe("text");
 
     const intents: CanvasIntent[] = [];
-    setInlineControlDispatch((i) => intents.push(i));
+    instance.dispatch = (i) => intents.push(i);
     input.value = "duplex.bos";
     input.dispatchEvent(new Event("change"));
     expect(intents).toEqual([{ kind: "setParam", nodeId: "n1", name: "model", value: "duplex.bos" }]);
@@ -176,7 +180,7 @@ describe("Text with a ColumnsOf suggestion: keeps its field", () => {
     const input = islandOf(element) as HTMLInputElement;
 
     const intents: CanvasIntent[] = [];
-    setInlineControlDispatch((i) => intents.push(i));
+    instance.dispatch = (i) => intents.push(i);
     input.value = "c,d";
     input.dispatchEvent(new Event("change"));
     expect(intents).toEqual([{ kind: "setParam", nodeId: "n1", name: "cols", value: "c,d" }]);
@@ -223,7 +227,7 @@ describe("disposeSlots", () => {
     const firstOpen = slotElement(paramCtx(doc, "rules"));
     const firstTextarea = islandOf(firstOpen).querySelector("textarea") as HTMLTextAreaElement;
 
-    disposeSlots();
+    disposeSlots(instance);
 
     const secondOpen = slotElement(paramCtx(doc, "rules"));
     const secondTextarea = islandOf(secondOpen).querySelector("textarea") as HTMLTextAreaElement;
@@ -245,6 +249,7 @@ describe("Unknown kinds", () => {
     const ctx: SlotContext = {
       nodeId: "n1",
       param: unknownParam,
+      instance,
       w: 240,
       open: false,
     };

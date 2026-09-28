@@ -3,10 +3,10 @@
 // KIND_CONTROL. A few controls draw directly on canvas (toggleSlot,
 // dropdownSlot); most use gratify's island facet for real DOM elements
 // (numberSlot, fieldSlot, columnSlot). longTextSlot is separate in
-// canvasLongSlot.ts. Island elements are created once per (node, param) and
-// pruned by canvasEditor when nodes disappear; intents reach the store
-// through the dispatch registered at mount (islands live outside gratify's
-// intent flow).
+// canvasLongSlot.ts. Island elements are created once per (node, param) on
+// the row's CanvasInstance and pruned by the editor when nodes disappear;
+// intents reach the store through the instance's dispatch (islands live
+// outside gratify's intent flow).
 
 import {
   at,
@@ -22,15 +22,15 @@ import {
   themeVersion,
   v,
 } from "gratify";
-import type { ControlDescriptor, ParamKind, SuggestDescriptor, SuggestionList } from "@bimopenflow/contracts";
+import type { ControlDescriptor, ParamKind, SuggestDescriptor } from "@bimopenflow/contracts";
 import { displayScale, isNumericParam, numericDisplay, numericFromDisplay, numericLimits, numericValue, paramLabel } from "./numericParam";
 import { attachSuggestions } from "./suggestInput.js";
-import { ColumnSelects } from './columnSelect.js';
 import type { CanvasParam, SlotContext } from "./canvasSlots.js";
 import { COMPACT_SLOT_H, FIELD_SLOT_H } from "./canvasSlots.js";
 import { canvasThemes, currentCanvasTheme } from "./canvasTheme.js";
 import type { CanvasIntent } from "./canvasIntents.js";
-import { dispatchInline, islandKey, styleIsland } from "./slotShared.js";
+import { islandKey, styleIsland } from "./slotShared.js";
+import type { CanvasInstance } from "./instance.js";
 import {
   fileName,
   fromDatetimeLocal,
@@ -105,6 +105,7 @@ interface EnumSlotProps {
   value: string;
   options: readonly string[];
   w: number;
+  instance: CanvasInstance;
   states?: Record<string, boolean>;
 }
 
@@ -116,12 +117,12 @@ type EnumIntent =
   | { kind: "pick"; value: string };
 
 // Native fields sit above canvas paint. While a canvas dropdown is modal,
-// detach those fields so they cannot cover or intercept its option list.
-const openDropdowns = new Set<string>();
+// detach those fields so they cannot cover or intercept its option list. The
+// open flags live on the row's CanvasInstance (`openDropdowns`).
 
 /** Drops a stale open-dropdown flag for a row that no longer shows a dropdown. */
-export function clearOpenDropdown(nodeId: string, name: string): void {
-  openDropdowns.delete(islandKey(nodeId, name));
+export function clearOpenDropdown(instance: CanvasInstance, nodeId: string, name: string): void {
+  instance.openDropdowns.delete(islandKey(nodeId, name));
 }
 
 interface OptionRowProps {
@@ -165,7 +166,8 @@ const EnumSlot = part<EnumSlotProps, { label: Color; field: Color; edge: Color; 
     size: (p) => v(p.w, COMPACT_SLOT_H),
     localInit: { open: false } as EnumLocal,
     reduce(local: EnumLocal, intent: EnumIntent, node: GNode<EnumSlotProps>) {
-      const key = `${node.props.nodeId}::${node.props.name}`;
+      const key = islandKey(node.props.nodeId, node.props.name);
+      const { openDropdowns } = node.props.instance;
       if (intent.kind === "toggle" && !local.open) openDropdowns.add(key);
       else openDropdowns.delete(key);
       switch (intent.kind) {
@@ -232,7 +234,7 @@ const EnumSlot = part<EnumSlotProps, { label: Color; field: Color; edge: Color; 
 
 export function dropdownSlot(ctx: SlotContext): Element {
   const { nodeId, param, w } = ctx;
-  return EnumSlot(param.name, { nodeId, name: param.name, value: param.value, options: param.enumValues ?? [], w });
+  return EnumSlot(param.name, { nodeId, name: param.name, value: param.value, options: param.enumValues ?? [], w, instance: ctx.instance });
 }
 
 /** The enum's value field: right-aligned, leaving room for the label. */
@@ -258,24 +260,12 @@ interface IslandSlotProps {
   layout: "compact" | "field";
   suggest?: SuggestDescriptor;
   control?: ControlDescriptor;
+  instance: CanvasInstance;
   states?: Record<string, boolean>;
 }
 
-export type SuggestionProvider = (nodeId: string, param: string) => Promise<SuggestionList>;
-
-let suggestionProvider: SuggestionProvider | null = null;
-const columnSelects = new ColumnSelects(
-  (node, param) => suggestionProvider ? suggestionProvider(node, param) : Promise.reject(new Error('No open flow')),
-  (nodeId, name, value) => dispatchInline({ kind: 'setParam', nodeId, name, value }));
-export const refreshColumnOptions = () => columnSelects.refresh();
-
-/** The app registers how suggest-annotated params fetch their live values
- *  (the suggestions endpoint of the open analysis). */
-export function setSuggestionProvider(fn: SuggestionProvider | null): void {
-  suggestionProvider = fn;
-}
-
-interface IslandEntry {
+/** One native input for a parameter row, held by its CanvasInstance. */
+export interface IslandEntry {
   el: HTMLInputElement;
   themeV: number;
   descriptor: string;
@@ -283,25 +273,6 @@ interface IslandEntry {
   canonical: string;
   paramKind: ParamKind;
   detachSuggest?: () => void;
-}
-
-const islands = new Map<string, IslandEntry>();
-
-/** Drops island elements for (node, param) keys no longer on the canvas. */
-export function pruneInlineControls(liveKeys: ReadonlySet<string>): void {
-  columnSelects.prune(liveKeys);
-  for (const key of openDropdowns) if (!liveKeys.has(key)) openDropdowns.delete(key);
-  for (const [key, entry] of islands) {
-    if (!liveKeys.has(key)) {
-      entry.detachSuggest?.();
-      entry.el.remove();
-      islands.delete(key);
-    }
-  }
-}
-
-export function disposeInlineControls(): void {
-  pruneInlineControls(new Set());
 }
 
 /** Blurred display for a canonical value: DateTime formats for the native
@@ -327,6 +298,8 @@ function toCanonical(kind: ParamKind, text: string): string | null {
 }
 
 function islandFor(props: IslandSlotProps): IslandEntry {
+  const { instance } = props;
+  const { islands } = instance;
   const key = islandKey(props.nodeId, props.name);
   const descriptor = JSON.stringify([props.paramKind, props.control, props.suggest]);
   let entry = islands.get(key);
@@ -339,7 +312,7 @@ function islandFor(props: IslandSlotProps): IslandEntry {
     entry = undefined;
   }
   if (!entry) {
-    const el = document.createElement("input");
+    const el = instance.document.createElement("input");
     el.setAttribute("aria-label", `${props.nodeId} ${props.name}`);
     el.type = props.control?.kind === "color" ? "color" : props.paramKind === "DateTime" ? "datetime-local" :
       isNumericParam(props.paramKind) ? "number" : "text";
@@ -366,7 +339,7 @@ function islandFor(props: IslandSlotProps): IslandEntry {
       el.value = display(canonical);
       if (props.paramKind === "FilePath") el.title = canonical;
       entry!.canonical = canonical;
-      dispatchInline({ kind: "setParam", nodeId: props.nodeId, name: props.name, value: canonical });
+      instance.dispatch({ kind: "setParam", nodeId: props.nodeId, name: props.name, value: canonical });
     };
     el.addEventListener("change", commit);
     if (props.paramKind === "FilePath") {
@@ -381,8 +354,8 @@ function islandFor(props: IslandSlotProps): IslandEntry {
     }
     if (props.suggest && el.type === "text")
       entry.detachSuggest = attachSuggestions(el, `bof-suggest-${key}`, () =>
-        suggestionProvider
-          ? suggestionProvider(props.nodeId, props.name)
+        instance.suggestionProvider
+          ? instance.suggestionProvider(props.nodeId, props.name)
           : Promise.reject(new Error("No suggestion provider")));
     el.addEventListener("keydown", (e) => {
       if (e.key === "Enter") el.blur();
@@ -409,16 +382,16 @@ function islandFor(props: IslandSlotProps): IslandEntry {
 
 const COMPACT_INPUT_W = 96;
 
-const ColumnSlot = part<{ nodeId: string; param: CanvasParam; w: number }, { label: Color }>('bof-slot-column', {
+const ColumnSlot = part<{ nodeId: string; param: CanvasParam; w: number; instance: CanvasInstance }, { label: Color }>('bof-slot-column', {
   size: p => v(p.w, COMPACT_SLOT_H),
   style: t => ({ label: t.textDim }),
   render(node, painter, style) {
     painter.label(node.props.param.name, v(node.rect.x, node.rect.center.y), style.label, { align: 'left', size: LABEL_SIZE });
   },
   island(node) {
-    if (openDropdowns.size) return null;
-    const { nodeId, param } = node.props;
-    return { el: columnSelects.get(nodeId, param.name, param.value, param.descending ?? false),
+    const { nodeId, param, instance } = node.props;
+    if (instance.openDropdowns.size) return null;
+    return { el: instance.columnSelects.get(nodeId, param.name, param.value, param.descending ?? false),
       rect: rect(node.rect.x + 24, node.rect.y + 1, node.rect.w - 24, node.rect.h - 2) };
   },
 });
@@ -441,7 +414,7 @@ const IslandSlot = part<IslandSlotProps, { label: Color }>("bof-slot-island", {
     }
   },
   island(node) {
-    if (openDropdowns.size) return null;
+    if (node.props.instance.openDropdowns.size) return null;
     const r = node.rect;
     const compact = node.props.layout === "compact";
     const inputRect = compact
@@ -457,7 +430,7 @@ const IslandSlot = part<IslandSlotProps, { label: Color }>("bof-slot-island", {
 export function numberSlot(ctx: SlotContext, key?: string): Element {
   const { nodeId, param, w } = ctx;
   return IslandSlot(key ?? param.name, {
-    nodeId, name: param.name, paramKind: param.kind, value: param.value, w, layout: "compact",
+    nodeId, name: param.name, paramKind: param.kind, value: param.value, w, layout: "compact", instance: ctx.instance,
     ...(param.suggest ? { suggest: param.suggest } : {}),
     ...(param.control ? { control: param.control } : {}),
   });
@@ -467,7 +440,7 @@ export function numberSlot(ctx: SlotContext, key?: string): Element {
 export function fieldSlot(ctx: SlotContext, key?: string): Element {
   const { nodeId, param, w } = ctx;
   return IslandSlot(key ?? param.name, {
-    nodeId, name: param.name, paramKind: param.kind, value: param.value, w, layout: "field",
+    nodeId, name: param.name, paramKind: param.kind, value: param.value, w, layout: "field", instance: ctx.instance,
     ...(param.suggest ? { suggest: param.suggest } : {}),
     ...(param.control ? { control: param.control } : {}),
   });
@@ -475,7 +448,7 @@ export function fieldSlot(ctx: SlotContext, key?: string): Element {
 
 export function columnSlot(ctx: SlotContext): Element {
   const { nodeId, param, w } = ctx;
-  return ColumnSlot(param.name, { nodeId, param, w });
+  return ColumnSlot(param.name, { nodeId, param, w, instance: ctx.instance });
 }
 
 // ── Option list panel ────────────────────────────────────────────────────────

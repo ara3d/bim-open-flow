@@ -8,9 +8,12 @@ import { canvasThemes, currentCanvasTheme } from "../src/canvasTheme.js";
 import { longTextSlot, pruneLongValueEditors } from "../src/canvasLongSlot.js";
 import type { CanvasIntent } from "../src/canvasIntents.js";
 import type { SlotContext } from "../src/canvasSlots.js";
-import { setInlineControlDispatch } from "../src/slotShared.js";
+import { createCanvasInstance, pruneInstance } from "../src/instance.js";
 
-afterEach(() => pruneLongValueEditors(new Set()));
+afterEach(() => { pruneLongValueEditors(instance, new Set()); instance.dispatch = () => {}; });
+/** One mounted canvas's state for this file's slots; pruned after each test. */
+const instance = createCanvasInstance({ document });
+
 
 const slotNode = (element: Element): GNode<SlotContext> => ({
   key: element.key,
@@ -58,6 +61,7 @@ const ctx = (open: boolean): SlotContext => ({
   param: { name: "expr", kind: "Expression", value: "area > 10" },
   w: 240,
   open,
+  instance,
 });
 
 describe("longTextSlot (headless)", () => {
@@ -78,7 +82,7 @@ describe("longTextSlot (headless)", () => {
     // width (row width minus padding) should never overflow it, however the
     // font measures, and a value that fits in a few lines should not be cut.
     const longValue = "area is greater than ten and level equals L1 ".repeat(3).trim();
-    const wideCtx: SlotContext = { nodeId: "f", param: { name: "expr", kind: "Expression", value: longValue }, w: 240, open: false };
+    const wideCtx: SlotContext = { nodeId: "f", param: { name: "expr", kind: "Expression", value: longValue }, w: 240, open: false, instance };
     const element = longTextSlot(wideCtx);
     const node = slotNode(element);
     const { painter, calls } = fakePainter();
@@ -95,7 +99,7 @@ describe("longTextSlot (headless)", () => {
 
   it("cuts a value that overruns six lines, with an ellipsis on the last one", () => {
     const longValue = "area is greater than ten and level equals L1 ".repeat(10).trim();
-    const wideCtx: SlotContext = { nodeId: "f", param: { name: "expr", kind: "Expression", value: longValue }, w: 240, open: false };
+    const wideCtx: SlotContext = { nodeId: "f", param: { name: "expr", kind: "Expression", value: longValue }, w: 240, open: false, instance };
     const element = longTextSlot(wideCtx);
     const node = slotNode(element);
     const { painter, calls } = fakePainter();
@@ -128,7 +132,7 @@ describe("longTextSlot (headless)", () => {
 
   it("typing a new value then Ctrl+Enter dispatches setParam then closeEditor, in that order", () => {
     const intents: CanvasIntent[] = [];
-    setInlineControlDispatch((intent) => intents.push(intent));
+    instance.dispatch = (intent) => intents.push(intent);
     const element = longTextSlot(ctx(true));
     const island = element.part.island!(slotNode(element))!;
     const textarea = (island.el as HTMLElement).querySelector("textarea") as HTMLTextAreaElement;
@@ -144,7 +148,7 @@ describe("longTextSlot (headless)", () => {
 
   it("Escape dispatches only closeEditor", () => {
     const intents: CanvasIntent[] = [];
-    setInlineControlDispatch((intent) => intents.push(intent));
+    instance.dispatch = (intent) => intents.push(intent);
     const element = longTextSlot(ctx(true));
     const island = element.part.island!(slotNode(element))!;
     const textarea = (island.el as HTMLElement).querySelector("textarea") as HTMLTextAreaElement;
@@ -177,12 +181,12 @@ describe("longTextSlot (headless)", () => {
   });
 
   it("prune disposes a row that is no longer live", () => {
-    setInlineControlDispatch(() => {});
+    instance.dispatch = () => {};
     const element = longTextSlot(ctx(true));
     const node = slotNode(element);
     const first = element.part.island!(node)!;
 
-    pruneLongValueEditors(new Set()); // "f::expr" is not live
+    pruneLongValueEditors(instance, new Set()); // "f::expr" is not live
 
     const second = element.part.island!(node)!;
     expect(second.el).not.toBe(first.el);

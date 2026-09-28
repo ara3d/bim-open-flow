@@ -8,7 +8,6 @@ import {
   calpha,
   Color,
   Element,
-  fitText,
   Free,
   Gesture,
   GNode,
@@ -30,11 +29,12 @@ import {
 import type { PortType } from "@bimopenflow/contracts";
 import type { CanvasEdge, CanvasModel, CanvasNode } from "./viewModel.js";
 import type { WireRows } from "./portResults.js";
-import { NODE_HEADER, NOTE_KIND, NOTE_LINE_H, NOTE_MAX_LINES, NOTE_PAD, NOTE_WIDTH, PORT_SPACING } from "./viewModel.js";
+import { NOTE_KIND, NOTE_LINE_H, NOTE_MAX_LINES, NOTE_PAD } from "./viewModel.js";
 import { placeSlots, SLOT_X_PAD } from "./canvasSlots.js";
 import { slotElement } from "./slotRegistry.js";
 import { canvasColors, canvasThemes, currentCanvasTheme } from "./canvasTheme.js";
-import { nodeTitle } from "./graphPreview";
+import { currentNodeStyle } from "./nodeStyle.js";
+import { portsBottom, renderNodeCard, type NodeCardColors } from "./nodeRender.js";
 import { animateSelection, selectionBorder } from "./selectionBorder";
 import { upstreamEdges } from "./upstreamEdges.js";
 const selectedBorder = selectionBorder(() => canvasColors().wireSelected, animateSelection);
@@ -45,14 +45,6 @@ import { wrapParagraphs } from "./canvasLongSlot.js";
 import { createLongValueEditor, type LongValueEditor } from "./longValueEditor.js";
 import { styleIsland } from "./slotShared.js";
 import type { CanvasInstance } from "./instance.js";
-
-const SOCKET_RADIUS = 4.5;
-
-// Type sizes: id must read at a glance, kind and port labels stay secondary
-// but never below 10px.
-const ID_SIZE = 17;
-const KIND_SIZE = 13;
-const PORT_SIZE = 13;
 
 // ── Surface ──────────────────────────────────────────────────────────────────
 
@@ -143,18 +135,6 @@ function pruneNoteEditors(instance: CanvasInstance, liveIds: ReadonlySet<string>
 
 type NodeProps = CanvasNode & { pos: Vec; instance: CanvasInstance; states?: Record<string, boolean>; noteOpen?: boolean };
 
-interface NodeStyle {
-  fill: Color;
-  edge: Color;
-  text: Color;
-  dim: Color;
-  socket: Color;
-}
-
-/** Bottom of the port rows, relative to the node top. */
-const portsBottom = (p: { inputs: readonly unknown[]; outputs: readonly unknown[] }): number =>
-  NODE_HEADER + Math.max(p.inputs.length, p.outputs.length, 1) * PORT_SPACING;
-
 interface AnchorMeta {
   dir: "in" | "out";
   nodeId: string;
@@ -188,7 +168,7 @@ const portAnchors = (node: GNode<NodeProps>): PortAnchor[] => {
 
 const anchorEnd = (a: Anchor) => metaOf(a);
 
-const GraphNodePart = part<NodeProps, NodeStyle>("bof-node", {
+const GraphNodePart = part<NodeProps, NodeCardColors>("bof-node", {
   channels: { enter: { target: () => 1, rate: 1000 } },
   size: (p) => v(p.w, p.h),
   anchors: portAnchors,
@@ -237,47 +217,8 @@ const GraphNodePart = part<NodeProps, NodeStyle>("bof-node", {
       });
       return;
     }
-    painter.box(r, 8, style.fill, p.contributing ? canvasColors().wireSelected : style.edge, p.contributing ? 2 : 1.2);
-    // Header (NODE_HEADER tall) holds id + kind; port rows start below it.
-    painter.label(nodeTitle(p.kind), v(r.x + 12, r.y + 16), style.text, {
-      align: "left",
-      weight: 600,
-      size: ID_SIZE,
-    });
-    painter.label(p.id, v(r.x + 12, r.y + NODE_HEADER - 9), style.dim, {
-      align: "left",
-      size: KIND_SIZE,
-    });
-    if (p.status) {
-      const statusColor = canvasColors().status[p.status];
-      painter.dot(v(r.right - 12, r.y + 13), 4, statusColor);
-      // Badge text (TKT-10): the state's own hint, or the upstream node
-      // responsible for it, right-aligned under the dot so it never covers
-      // the id/kind lines on the left.
-      if (p.badge) {
-        const maxW = r.w * 0.48;
-        const text = fitText(painter.measure, p.badge.text, maxW, 10);
-        painter.label(text, v(r.right - 12, r.y + NODE_HEADER - 9), statusColor, {
-          align: "right",
-          size: 10,
-        });
-      }
-    }
-    p.inputs.forEach((port, i) => {
-      const y = portY(r.y, i);
-      painter.dot(v(r.x, y), SOCKET_RADIUS, style.socket);
-      painter.label(port.name, v(r.x + 11, y), style.dim, { align: "left", size: PORT_SIZE });
-    });
-    p.outputs.forEach((port, i) => {
-      const y = portY(r.y, i);
-      painter.dot(v(r.right, y), SOCKET_RADIUS, style.socket);
-      painter.label(port.name, v(r.right - 11, y), style.dim, { align: "right", size: PORT_SIZE });
-    });
-    // A quiet separator between the port rows and the inline param slots.
-    if (p.params.length > 0) {
-      const y = r.y + portsBottom(p) + 3;
-      painter.line(v(r.x + 10, y), v(r.right - 10, y), calpha(style.dim, 0.35), 1);
-    }
+    const c = canvasColors();
+    renderNodeCard(node, painter, style, { status: c.status, contributing: c.wireSelected }, currentNodeStyle());
   },
 
   on: [

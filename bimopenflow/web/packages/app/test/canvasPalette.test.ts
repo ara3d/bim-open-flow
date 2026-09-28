@@ -2,7 +2,7 @@
 import type { NodeDescriptor, PortDescriptor, PortType } from "@bimopenflow/contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { installCanvasPalette } from "../src/canvasPalette.js";
-import { parseAnchorId } from "../src/canvasIntents.js";
+import { parseAnchorId } from "@bimopenflow/graph";
 
 const port = (name: string, type: PortType): PortDescriptor => ({ name, type, optional: false });
 const desc = (kind: string, description: string, inputs: PortDescriptor[] = [], outputs: PortDescriptor[] = []): NodeDescriptor => ({

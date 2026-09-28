@@ -2,7 +2,7 @@
 // seam so a stale or foreign value falls back to the default. The
 // themeChoice.ts pattern.
 
-import { defaultNodeStyle, isNodeStyleName, type NodeStyleName } from "./nodeStyle.js";
+import { defaultNodeStyle, isNodeStyleName, type NodeStyleName } from "@bimopenflow/graph";
 import { readPref, writePref } from "./prefs.js";
 
 export const NODE_STYLE_PREF_KEY = "bof-app-node-style";

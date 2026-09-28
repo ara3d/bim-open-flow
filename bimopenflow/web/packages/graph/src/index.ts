@@ -9,10 +9,13 @@ export type { CanvasInstance, SuggestionProvider } from "./instance.js";
 export { anchorId, canConnect, MUTATING_INTENTS, parseAnchorId } from "./canvasIntents.js";
 export type { AnchorDir, AnchorRef, CanvasHooks, CanvasIntent } from "./canvasIntents.js";
 export {
-  buildCanvasModel, defaultPosition, edgeId, freePosition, nodeHeight, nodeWidth, NOTE_KIND,
+  buildCanvasModel, defaultPosition, edgeId, freePosition, nodeHeight, nodeWidth,
+  NODE_HEADER, NODE_WIDTH, NOTE_KIND, PORT_SPACING, WIDE_NODE_WIDTH,
 } from "./viewModel.js";
 export type { CanvasEdge, CanvasModel, CanvasNode, CanvasPort, NodeBounds, OpenEditor } from "./viewModel.js";
-export { inlineParams, slotControl } from "./canvasSlots.js";
+export { inlineParams, previewText, slotControl } from "./canvasSlots.js";
+export { fileName } from "./paramText.js";
+export { portY } from "./portGeometry.js";
 export type { CanvasParam, SlotContext, SlotControl } from "./canvasSlots.js";
 export { autoLayout } from "./autoLayout.js";
 export { nodeTitle, previewAfterEdit, upstreamIds } from "./graphPreview.js";

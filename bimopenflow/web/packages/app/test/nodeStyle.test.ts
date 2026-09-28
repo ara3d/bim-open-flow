@@ -1,39 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  currentNodeStyle,
-  defaultNodeStyle,
-  isNodeStyleName,
-  nodeStyleNames,
-  onNodeStyleChange,
-  setNodeStyle,
-} from "../src/nodeStyle.js";
+import { beforeEach, describe, expect, it } from "vitest";
+import { defaultNodeStyle } from "@bimopenflow/graph";
 import { NODE_STYLE_PREF_KEY, loadNodeStyleChoice, saveNodeStyleChoice } from "../src/nodeStyleChoice.js";
 
-afterEach(() => setNodeStyle(defaultNodeStyle));
-
-describe("node style seam", () => {
-  it("names four styles and validates names", () => {
-    expect(nodeStyleNames).toEqual(["classic", "banner", "chip", "bar"]);
-    expect(isNodeStyleName("chip")).toBe(true);
-    expect(isNodeStyleName("fancy")).toBe(false);
-  });
-
-  it("notifies each listener once per change, and the returned function unsubscribes", () => {
-    const listener = vi.fn();
-    const off = onNodeStyleChange(listener);
-    setNodeStyle("banner");
-    expect(currentNodeStyle()).toBe("banner");
-    expect(listener).toHaveBeenCalledTimes(1);
-
-    setNodeStyle("banner");
-    expect(listener).toHaveBeenCalledTimes(1);
-
-    off();
-    setNodeStyle("bar");
-    expect(currentNodeStyle()).toBe("bar");
-    expect(listener).toHaveBeenCalledTimes(1);
-  });
-});
+// The seam (setNodeStyle, listeners) is tested in @bimopenflow/graph; this covers the persisted choice.
 
 describe("node style choice persistence", () => {
   beforeEach(() => localStorage.clear());

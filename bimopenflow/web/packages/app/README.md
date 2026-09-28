@@ -38,22 +38,10 @@ npm run -w @bimopenflow/app build   # vite production build
 
 - `shell.ts` / `styles.ts` — the DOM layout (topbar, sidebar, canvas,
   splitter, pane area) under the `bof-app-` class/custom-property prefix.
-- `viewModel.ts` — pure store-state → canvas model (positions from the layout
-  layer, deterministic defaults for unplaced nodes, ports from the catalog).
-- `canvasIntents.ts` — the canvas intent vocabulary and the gratify update
-  function: gestures become store dispatches; only mid-drag positions and the
-  selected wire are transient canvas state.
-- `canvasParts.ts` / `canvasEditor.ts` — gratify parts (surface, node, wire,
-  rubber wire; adapted from gratify's node-editor example) and the mount +
-  store-subscription sync.
-- `slotShared.ts` — island plumbing (dispatch, row key, styling) shared by
-  every on-node parameter control.
-- `slotRegistry.ts` — maps each parameter row's control to the gratify
-  element that draws it.
-- `canvasLongSlot.ts` — the on-node row for Json, Expression, and long Text:
-  a preview that opens the anchored editor.
-- `longValueEditor.ts` — the plain-DOM textarea editor the long-text row
-  opens, with its own commit/discard rules.
+- The graph canvas (view model, intents, parts, inline controls, peeks, node
+  styles, theme) is `@bimopenflow/graph` (`packages/graph`), mounted here by
+  `app.ts` through `createGraphEditor`; `themeChoice.ts` and
+  `nodeStyleChoice.ts` persist the studio's choices for it.
 - `paneChoice.ts` / `paneArea.ts` / `paneContext.ts` — pane heuristics per
   node kind, the tab strip + single active pane, and the `PaneContext`
   bridging `requestTable` to `getResult`. Full docking is deferred by design

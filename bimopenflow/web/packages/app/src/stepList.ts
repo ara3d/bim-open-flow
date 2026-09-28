@@ -5,13 +5,13 @@
 
 import type { NodeDescriptor, NodeStatus } from "@bimopenflow/contracts";
 import type { State } from "@bimopenflow/state";
-import { previewText } from "./canvasSlots.js";
+import { previewText } from "@bimopenflow/graph";
 import { dataflowOrder, feeders } from "./graphOrder.js";
-import { nodeTitle } from "./graphPreview.js";
-import { nodeBadge } from "./nodeBadge.js";
+import { nodeTitle } from "@bimopenflow/graph";
+import { nodeBadge } from "@bimopenflow/graph";
 import { firstTableOutput } from "./paneChoice.js";
-import { fileName } from "./paramText.js";
-import type { PortResultsView } from "./portResults.js";
+import { fileName } from "@bimopenflow/graph";
+import type { PortResultsView } from "@bimopenflow/graph";
 
 export interface Step {
   readonly index: number;          // 1-based

@@ -4,7 +4,7 @@
 
 import type { NodeDescriptor, PortType } from "@bimopenflow/contracts";
 import { filterCatalog } from "./catalogFilter.js";
-import { canConnect, type AnchorDir } from "./canvasIntents.js";
+import { canConnect, type AnchorDir } from "@bimopenflow/graph";
 
 export interface PaletteEntry {
   readonly desc: NodeDescriptor;

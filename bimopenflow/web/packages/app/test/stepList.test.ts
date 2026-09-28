@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { NodeDescriptor, NodeState, ParamKind } from "@bimopenflow/contracts";
 import { initialState, type State } from "@bimopenflow/state";
-import { NO_PORT_RESULTS, type PortResultsView } from "../src/portResults.js";
+import { NO_PORT_RESULTS, type PortResultsView } from "@bimopenflow/graph";
 import { createStepList, stepListModel, type Step } from "../src/stepList.js";
 
 const desc = (kind: string, params: [string, ParamKind][] = []): NodeDescriptor => ({

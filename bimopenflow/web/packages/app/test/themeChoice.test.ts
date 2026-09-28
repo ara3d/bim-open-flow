@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { defaultCanvasTheme, canvasThemeNames } from "../src/canvasTheme.js";
+import { defaultCanvasTheme, canvasThemeNames } from "@bimopenflow/graph";
 import { THEME_PREF_KEY, loadThemeChoice, saveThemeChoice } from "../src/themeChoice.js";
 
 beforeEach(() => localStorage.clear());

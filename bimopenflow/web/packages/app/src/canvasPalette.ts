@@ -3,7 +3,7 @@
 // only reports the pick; adding the node is the caller's store batch.
 
 import type { NodeDescriptor, PortType } from "@bimopenflow/contracts";
-import type { AnchorRef } from "./canvasIntents.js";
+import type { AnchorRef } from "@bimopenflow/graph";
 import { filterPalette, type PaletteEntry } from "./paletteFilter.js";
 
 export interface CanvasPaletteDeps {

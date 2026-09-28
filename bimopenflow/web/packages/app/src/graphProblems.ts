@@ -3,8 +3,8 @@
 
 import type { NodeStatus } from "@bimopenflow/contracts";
 import type { State } from "@bimopenflow/state";
-import { nodeTitle } from "./graphPreview";
-import { nodeBadge } from "./nodeBadge";
+import { nodeTitle } from "@bimopenflow/graph";
+import { nodeBadge } from "@bimopenflow/graph";
 
 export interface Problem {
   readonly nodeId: string;

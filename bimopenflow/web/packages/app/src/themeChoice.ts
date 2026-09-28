@@ -5,7 +5,7 @@ import {
   defaultCanvasTheme,
   isCanvasThemeName,
   type CanvasThemeName,
-} from "./canvasTheme.js";
+} from "@bimopenflow/graph";
 import { readPref, writePref } from "./prefs.js";
 
 export const THEME_PREF_KEY = "bof-app-canvas-theme";

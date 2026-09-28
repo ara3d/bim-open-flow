@@ -4,11 +4,11 @@
 
 import type { NodeDescriptor } from "@bimopenflow/contracts";
 import type { Action, State } from "@bimopenflow/state";
-import type { AnchorRef } from "./canvasIntents.js";
-import { inlineParams } from "./canvasSlots.js";
+import type { AnchorRef } from "@bimopenflow/graph";
+import { inlineParams } from "@bimopenflow/graph";
 import { freshNodeId } from "./ids.js";
-import { portY } from "./portGeometry.js";
-import { nodeWidth } from "./viewModel.js";
+import { portY } from "@bimopenflow/graph";
+import { nodeWidth } from "@bimopenflow/graph";
 
 /**
  * The actions that add `desc` at (x, y), select it, and optionally connect it

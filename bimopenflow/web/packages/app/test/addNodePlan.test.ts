@@ -2,8 +2,8 @@ import type { NodeDescriptor, PortDescriptor, PortType } from "@bimopenflow/cont
 import { initialState, reduce, type Action, type State } from "@bimopenflow/state";
 import { describe, expect, it } from "vitest";
 import { addNodeActions } from "../src/addNodePlan.js";
-import { parseAnchorId } from "../src/canvasIntents.js";
-import { NODE_HEADER, NODE_WIDTH, PORT_SPACING, WIDE_NODE_WIDTH } from "../src/viewModel.js";
+import { parseAnchorId } from "@bimopenflow/graph";
+import { NODE_HEADER, NODE_WIDTH, PORT_SPACING, WIDE_NODE_WIDTH } from "@bimopenflow/graph";
 
 const port = (name: string, type: PortType): PortDescriptor => ({ name, type, optional: false });
 

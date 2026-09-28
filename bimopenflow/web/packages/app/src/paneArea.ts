@@ -26,7 +26,7 @@ import {
 } from "./paneChoice.js";
 import { completeTable } from "./completeTable.js";
 import type { LiveViewRecipe } from "./liveViewRecipe";
-import { nodeTitle } from "./graphPreview";
+import { nodeTitle } from "@bimopenflow/graph";
 
 const PANE_LABELS: Record<PaneKind, string> = {
   verdict: "Verdicts",

@@ -20,14 +20,13 @@ import { createPaneArea } from "./paneArea.js";
 import { makePaneContext } from "./paneContext.js";
 import { modelPathFor } from "./modelRef.js";
 import { modelCatalog } from "./modelCatalog.js";
-import { createCanvasEditor } from "./canvasEditor.js";
-import { inlineParams } from "./canvasSlots.js";
-import { setSuggestionProvider, refreshColumnOptions } from "./canvasControls.js";
-import { autoLayout } from './autoLayout.js';
-import { buildCanvasModel, freePosition, nodeHeight, nodeWidth } from "./viewModel.js";
+import { createGraphEditor } from "@bimopenflow/graph";
+import { inlineParams } from "@bimopenflow/graph";
+import { autoLayout } from "@bimopenflow/graph";
+import { buildCanvasModel, freePosition, nodeHeight, nodeWidth } from "@bimopenflow/graph";
 import { freshCopyId, freshUntitledId } from "./ids.js";
 import { loadThemeChoice, saveThemeChoice } from "./themeChoice.js";
-import { setNodeStyle } from "./nodeStyle.js";
+import { setNodeStyle } from "@bimopenflow/graph";
 import { loadNodeStyleChoice, saveNodeStyleChoice } from "./nodeStyleChoice.js";
 import { installCanvasPalette } from "./canvasPalette.js";
 import { addNodeActions } from "./addNodePlan.js";
@@ -40,7 +39,7 @@ import { showToast } from "./toast.js";
 import { buildLiveViewRecipe } from "./liveViewRecipe";
 import { createHostStatus, type HostStatusSource } from "./hostStatus.js";
 import { mountAskPanel, type AskPanel } from "./askPanel.js";
-import { nodeTitle, upstreamIds } from "./graphPreview";
+import { nodeTitle, upstreamIds } from "@bimopenflow/graph";
 import { primaryNodeId, reopenKeepingSelection, selectedNodeIds } from "./selection.js";
 import { createSessionReporter } from "./editorSession.js";
 import {
@@ -139,7 +138,6 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     resolveAsset: makePaneContext(resultApi, "").resolveAsset,
     requestEntityProperties: makePaneContext(resultApi, "").requestEntityProperties,
   };
-  setSuggestionProvider(boundCtx.requestSuggestions);
 
   // Model list for path -> catalog id resolution, fetched lazily and
   // re-fetched once on a miss (a model may have appeared since).
@@ -170,12 +168,16 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     },
   });
   setNodeStyle(loadNodeStyleChoice());
-  const canvasEditor = createCanvasEditor(
-    shell.canvas, store, () => catalog, fail, loadThemeChoice(),
-    () => primaryNodeId(store.getState()) ?? lastPrimary,
-    (nodeId) => showNodeInPane(nodeId),
-    boundCtx.requestTable, // TKT-11: peek cards and row counts
-    {
+  const canvasEditor = createGraphEditor(shell.canvas, {
+    store,
+    catalog: () => catalog,
+    onError: fail,
+    theme: loadThemeChoice(),
+    getPreview: () => primaryNodeId(store.getState()) ?? lastPrimary,
+    onShowNode: (nodeId) => showNodeInPane(nodeId),
+    readPort: boundCtx.requestTable, // TKT-11: peek cards and row counts
+    suggestions: boundCtx.requestSuggestions,
+    surfaces: {
       onEmptyCanvas: (client, world) => palette.open(client, world),
       onWireDropped: (from, world, client) => {
         const node = store.getState().document.structure.nodes.find((n) => n.id === from.nodeId);
@@ -185,7 +187,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       },
       onResultsChange: () => renderGraphViews(store.getState()),
     },
-  );
+  });
   // Selecting from the step list or the problems strip also brings the node
   // into view; a click on the canvas itself never moves the viewport.
   const selectAndFocus = (nodeId: string) => {
@@ -329,7 +331,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     // (registered first, above) has pruned the previous document's column
     // selects; otherwise a flow switch re-requests suggestions for the old
     // flow's node ids against the new analysis id and the host 404s.
-    if (state.evalState !== lastEval) queueMicrotask(refreshColumnOptions);
+    if (state.evalState !== lastEval) queueMicrotask(() => canvasEditor.refreshSuggestions());
     const dataChanged = state.document !== lastDoc || state.evalState !== lastEval || state.dirty !== lastDirty;
     if (options.graphDemo && state.document !== lastDoc) {
       preview.replaceChildren(...state.document.structure.nodes.map(n => {
@@ -400,7 +402,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
         signal: thisOpen.signal,
       });
       reportSession();
-      refreshColumnOptions();
+      canvasEditor.refreshSuggestions();
       sidebar.setAnalyses(analyses, id);
       topbar.setAnalyses(analyses, id);
       if (options.graphDemo) {
@@ -582,7 +584,6 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       unsubscribe();
       unsubscribeHost();
       if (!options.host) host.dispose();
-      setSuggestionProvider(null);
       opening?.abort();
       connection?.dispose();
       canvasEditor.dispose();

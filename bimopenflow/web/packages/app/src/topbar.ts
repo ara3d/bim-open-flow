@@ -7,8 +7,8 @@ import {
   canvasThemeNames,
   isCanvasThemeName,
   type CanvasThemeName,
-} from "./canvasTheme.js";
-import { isNodeStyleName, nodeStyleNames, type NodeStyleName } from "./nodeStyle.js";
+} from "@bimopenflow/graph";
+import { isNodeStyleName, nodeStyleNames, type NodeStyleName } from "@bimopenflow/graph";
 import { hostStatusMessage, type HostStatus, type HostStatusSource } from "./hostStatus.js";
 import { ensureAppStyles } from "./styles.js";
 

@@ -10,14 +10,25 @@ import { currentCanvasTheme } from "./canvasTheme.js";
 /** Key of one parameter row: "nodeId::name". */
 export const islandKey = (nodeId: string, name: string): string => `${nodeId}::${name}`;
 
-/** Border, background, font, and focus colour from the canvas theme. */
+/** Border, background, font, and focus colour from the canvas theme. Sets
+ *  each property on its own: gratify's runtime pins the element over its
+ *  world rect with position, offsets, and a top-left transform origin it
+ *  writes once, and rewriting the whole inline style (as a theme switch
+ *  used to) dropped them, so every island scaled about its centre. Width
+ *  and height are set only on a fresh element; the runtime owns them after. */
 export function styleIsland(el: HTMLInputElement | HTMLTextAreaElement, palette: Omit<Tokens, "mix">): void {
-  el.style.cssText =
-    "box-sizing:border-box;width:100%;height:100%;border-radius:5px;" +
-    "padding:0 7px;font:14px system-ui,'Segoe UI',sans-serif;outline:none;" +
-    `border:1px solid ${css(palette.muted)};` +
-    `background:${css(palette.bg)};color:${css(palette.text)};`;
-  el.style.colorScheme = currentCanvasTheme().includes("light") ? "light" : "dark";
+  const s = el.style;
+  s.boxSizing = "border-box";
+  if (s.width === "") s.width = "100%";
+  if (s.height === "") s.height = "100%";
+  s.borderRadius = "5px";
+  s.padding = "0 7px";
+  s.font = "14px system-ui,'Segoe UI',sans-serif";
+  s.outline = "none";
+  s.border = `1px solid ${css(palette.muted)}`;
+  s.background = css(palette.bg);
+  s.color = css(palette.text);
+  s.colorScheme = currentCanvasTheme().includes("light") ? "light" : "dark";
   el.onfocus = () => (el.style.borderColor = css(palette.accent));
   el.onblur = () => (el.style.borderColor = css(palette.muted));
 }

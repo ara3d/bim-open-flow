@@ -19,7 +19,7 @@ public sealed class NrcSeedingTests
     private static readonly string[] BimOnlyIds =
     [
         "nrc-dc-w1-verdicts", "nrc-enrich-run",
-        "nrc-color-operational-carbon", "nrc-color-embodied-carbon", "nrc-color-category",
+        "nrc-color-operational-carbon",
     ];
 
     private static string NewStoreDir()

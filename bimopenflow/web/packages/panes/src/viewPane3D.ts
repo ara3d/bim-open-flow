@@ -225,7 +225,7 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
         if (pendingBoxes) applyBoxes(pendingBoxes);
         if (pendingView) rig.applyRecipe?.(pendingView);
         updateLegend();
-        status.textContent = `${loaded.reduce((n, m) => n + m.entities.length, 0).toLocaleString()} instances · orbit / pan / zoom`;
+        status.textContent = `${loaded.reduce((n, m) => n + m.entities.length, 0).toLocaleString()} rendered instances · orbit / pan / zoom`;
         emit({ kind: "action", action: "modelLoaded", payload: { url } });
       }).catch(error => {
         if (disposed || token !== loadToken) return;

@@ -443,7 +443,7 @@ describe("ViewPane3D", () => {
     expect(status()).toBe("Coarse preview · loading full detail…");
     resolveLoad?.([{ group, entities: [7] }]);
     await settle();
-    expect(status()).toBe("1 instances · orbit / pan / zoom");
+    expect(status()).toBe("1 rendered instances · orbit / pan / zoom");
     pane.destroy();
   });
 

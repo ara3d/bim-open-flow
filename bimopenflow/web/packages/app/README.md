@@ -63,6 +63,31 @@ npm run -w @bimopenflow/app build   # vite production build
   node in the document.
 - `sidebar.ts` / `topbar.ts` / `toast.ts` — chrome: analysis list, catalog
   search, picker/save/run/connection status, notifications.
+- `peekWiring.ts` — connects the port-results controller, evaluation watcher,
+  and hover listener to a canvas; `createCanvasEditor` uses it when given a
+  `readPort` (TKT-11: hover a socket or wire for its rows, counts on wires).
+- `startPage.ts` / `templates.ts` — the start page: one card per sample flow
+  grouped by folder (Open, Copy, Blank flow; dimmed when the host profile does
+  not seed it). The catalog `templates.generated.ts` comes from
+  `node scripts/build-flow-templates.mjs` (`--check` in CI); rerun it after
+  adding or describing a sample (TKT-14).
+- `stepList.ts` / `graphOrder.ts` — the open flow as numbered steps in
+  dataflow order (title, parameter summary, status, row count, "from 1, 2" for
+  joins), mounted in the sidebar's Steps section; a click selects the node
+  (TKT-95).
+- `canvasPalette.ts` / `paletteFilter.ts` / `addNodePlan.ts` — right-click
+  empty canvas, or drop a wire there, to open the node palette; a dropped wire
+  lists only kinds with a port that can take it, and each pick adds, places,
+  selects, and connects the node as one undo step (the store's `batch`
+  action) (TKT-96).
+- `problemsPanel.ts` / `graphProblems.ts` — a strip along the bottom of the
+  canvas that reads "N problems · M errors" and expands to every non-Ok node,
+  root causes first (TKT-97).
+- `nodeStyle.ts` / `nodeStyleChoice.ts` / `nodeRender.ts` — the node card
+  style switch (classic, banner, chip, bar; topbar "Node style", saved under
+  `bof-app-node-style`) and the card drawing, with a pure `nodeCardLayout`
+  that records where the title, id, description, and status go in each style
+  (TKT-98).
 - `app.ts` — the controller wiring all of the above around one `ApiClient`.
 
 gratify is consumed from the submodule source via a vite/tsc alias to

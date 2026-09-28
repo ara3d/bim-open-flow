@@ -7,7 +7,7 @@ import { mount, v, type Runtime } from "gratify";
 import { applyCanvasTheme, defaultCanvasTheme, type CanvasThemeName } from "./canvasTheme.js";
 import type { NodeDescriptor } from "@bimopenflow/contracts";
 import type { Store } from "@bimopenflow/state";
-import { makeCanvasUpdate, type CanvasIntent } from "./canvasIntents.js";
+import { makeCanvasUpdate, type AnchorRef, type CanvasIntent } from "./canvasIntents.js";
 import { canvasView } from "./canvasParts.js";
 import { disposeSlots, pruneSlots } from "./slotRegistry.js";
 import { islandKey, setInlineControlDispatch } from "./slotShared.js";
@@ -15,11 +15,28 @@ import { buildCanvasModel, type CanvasModel } from "./viewModel.js";
 import { animateSelection } from "./selectionBorder";
 import { installNodeContextMenu } from "./nodeContextMenu";
 import { createPeekWiring, type PeekWiring } from "./peekWiring.js";
-import type { ReadPort } from "./portResults.js";
+import { NO_PORT_RESULTS, type PortResultsView, type ReadPort } from "./portResults.js";
+
+/** A point in CSS pixels relative to the page (client) or in canvas world units. */
+export interface Point { readonly x: number; readonly y: number }
+
+/** Gestures the canvas hands to app-side chrome (the palette, TKT-96). Every
+ *  hook is optional; the demo pages pass none. */
+export interface CanvasEditorSurfaces {
+  /** A wire released over empty canvas: its source anchor, the drop point in
+   *  world units, and the same point in client pixels for placing a popup. */
+  onWireDropped?(from: AnchorRef, world: Point, client: Point): void;
+  /** A right-click that hit no node. */
+  onEmptyCanvas?(client: Point, world: Point): void;
+  /** Row counts or the open peek changed (only with a readPort). */
+  onResultsChange?(): void;
+}
 
 export interface CanvasEditor {
   /** Re-derives the canvas doc from the store (e.g. after the catalog loads). */
   refresh(): void;
+  /** The row counts and open peek the canvas draws; empty without a readPort. */
+  results(): PortResultsView;
   fit(): void;
   focus(nodeId?: string): void;
   /** Switches the canvas theme (see canvasTheme.ts for the names). */
@@ -40,6 +57,7 @@ export function createCanvasEditor(
   // TKT-11: when given, hovering an output socket or wire peeks its rows and
   // wires show row counts. Absent, the editor behaves as before.
   readPort?: ReadPort,
+  surfaces: CanvasEditorSurfaces = {},
 ): CanvasEditor {
   applyCanvasTheme(initialTheme, /* instant: */ true);
   let wiring: PeekWiring | null = null; // created once the runtime exists
@@ -57,7 +75,9 @@ export function createCanvasEditor(
   let holdRequested = true; // cover the very first frames after mount
   const runtime: Runtime<CanvasModel, CanvasIntent> = mount(canvas, {
     init: model(),
-    update: makeCanvasUpdate(store, onError, getPreview),
+    update: makeCanvasUpdate(store, onError, getPreview, {
+      onWireDropped: (from, x, y) => surfaces.onWireDropped?.(from, { x, y }, toClient({ x, y })),
+    }),
     view: canvasView,
     ambient: (_doc, time) => {
       if (holdRequested) {
@@ -70,30 +90,39 @@ export function createCanvasEditor(
   // Island inputs (inline Text/FilePath/DateTime/number controls) live in the
   // DOM, outside gratify's intent flow; their commits come back through here.
   setInlineControlDispatch((intent) => runtime.dispatch(intent));
+
+  // Coordinate frames: client (page CSS pixels), canvas (CSS pixels from the
+  // canvas's top-left), world (the graph's own units, under pan and zoom).
+  const canvasToWorld = (x: number, y: number): Point => {
+    const { zoom, pan } = runtime.viewport;
+    return { x: (x - pan.x) / zoom, y: (y - pan.y) / zoom };
+  };
+  const clientToWorld = (clientX: number, clientY: number): Point => {
+    const bounds = canvas.getBoundingClientRect();
+    return canvasToWorld(clientX - bounds.left, clientY - bounds.top);
+  };
+  const toClient = (world: Point): Point => {
+    const bounds = canvas.getBoundingClientRect();
+    const { zoom, pan } = runtime.viewport;
+    return { x: bounds.left + pan.x + world.x * zoom, y: bounds.top + pan.y + world.y * zoom };
+  };
+  const nodeAtWorld = (p: Point): string | null =>
+    [...runtime.doc.nodes].reverse().find((n) =>
+      p.x >= n.x && p.x <= n.x + n.w && p.y >= n.y && p.y <= n.y + n.h)?.id ?? null;
+
   const disposeContextMenu = installNodeContextMenu(canvas, {
-    hitNode(x, y) {
-      const { zoom, pan } = runtime.viewport;
-      const px = (x - pan.x) / zoom;
-      const py = (y - pan.y) / zoom;
-      return [...runtime.doc.nodes].reverse().find(n =>
-        px >= n.x && px <= n.x + n.w && py >= n.y && py <= n.y + n.h)?.id ?? null;
-    },
+    hitNode: (x, y) => nodeAtWorld(canvasToWorld(x, y)),
     onDelete(nodeId) {
       try { store.dispatch({ type: "removeNode", id: nodeId }); }
       catch (error) { onError(error instanceof Error ? error.message : String(error)); }
     },
+    onEmptyCanvas: (clientX, clientY, canvasX, canvasY) =>
+      surfaces.onEmptyCanvas?.({ x: clientX, y: clientY }, canvasToWorld(canvasX, canvasY)),
   });
 
-  // Double-click shows a node in the pane without selecting it (TKT-81): the
-  // hit test mirrors the context menu's, in canvas (unzoomed/unpanned) space.
-  const hitNode = (clientX: number, clientY: number): string | null => {
-    const bounds = canvas.getBoundingClientRect();
-    const { zoom, pan } = runtime.viewport;
-    const px = (clientX - bounds.left - pan.x) / zoom;
-    const py = (clientY - bounds.top - pan.y) / zoom;
-    return [...runtime.doc.nodes].reverse().find((n) =>
-      px >= n.x && px <= n.x + n.w && py >= n.y && py <= n.y + n.h)?.id ?? null;
-  };
+  // Double-click shows a node in the pane without selecting it (TKT-81).
+  const hitNode = (clientX: number, clientY: number): string | null =>
+    nodeAtWorld(clientToWorld(clientX, clientY));
   const onDoubleClick = (event: MouseEvent) => {
     const nodeId = hitNode(event.clientX, event.clientY);
     if (nodeId !== null) onShowNode(nodeId);
@@ -124,12 +153,13 @@ export function createCanvasEditor(
       store, getCatalog, readPort,
       getDoc: () => runtime.doc,
       getViewport: () => runtime.viewport,
-      onChange: sync,
+      onChange: () => { sync(); surfaces.onResultsChange?.(); },
     });
   }
 
   return {
     refresh: sync,
+    results: () => wiring?.view() ?? NO_PORT_RESULTS,
     focus(nodeId) {
       const node = model().nodes.find(n => n.id === nodeId) ?? model().nodes[0];
       if (!node) return;

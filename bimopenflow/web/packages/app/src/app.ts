@@ -25,8 +25,17 @@ import { inlineParams } from "./canvasSlots.js";
 import { setSuggestionProvider, refreshColumnOptions } from "./canvasControls.js";
 import { autoLayout } from './autoLayout.js';
 import { buildCanvasModel, freePosition, nodeHeight, nodeWidth } from "./viewModel.js";
-import { freshNodeId, freshUntitledId } from "./ids.js";
+import { freshCopyId, freshUntitledId } from "./ids.js";
 import { loadThemeChoice, saveThemeChoice } from "./themeChoice.js";
+import { setNodeStyle } from "./nodeStyle.js";
+import { loadNodeStyleChoice, saveNodeStyleChoice } from "./nodeStyleChoice.js";
+import { installCanvasPalette } from "./canvasPalette.js";
+import { addNodeActions } from "./addNodePlan.js";
+import { createStepList, stepListModel } from "./stepList.js";
+import { createProblemsPanel } from "./problemsPanel.js";
+import { graphProblems } from "./graphProblems.js";
+import { createStartPage } from "./startPage.js";
+import { TEMPLATES } from "./templates.generated.js";
 import { showToast } from "./toast.js";
 import { buildLiveViewRecipe } from "./liveViewRecipe";
 import { createHostStatus, type HostStatusSource } from "./hostStatus.js";
@@ -148,11 +157,42 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   });
 
   // ── canvas ─────────────────────────────────────────────────────────────────
+  // The palette (TKT-96): right-click on empty canvas, or a wire dropped
+  // there, offers kinds; a pick adds, places, selects, and wires the node as
+  // one undo step through the batch action.
+  const palette = installCanvasPalette(shell.canvas, {
+    getCatalog: () => [...catalog.values()],
+    onPick: (entry, at, wire) => {
+      if (!currentId) return fail("Open a flow first");
+      const actions = addNodeActions(store.getState(), entry.desc, at,
+        wire && entry.port ? { from: wire, port: entry.port } : undefined);
+      dispatch({ type: "batch", actions });
+    },
+  });
+  setNodeStyle(loadNodeStyleChoice());
   const canvasEditor = createCanvasEditor(
     shell.canvas, store, () => catalog, fail, loadThemeChoice(),
     () => primaryNodeId(store.getState()) ?? lastPrimary,
     (nodeId) => showNodeInPane(nodeId),
+    boundCtx.requestTable, // TKT-11: peek cards and row counts
+    {
+      onEmptyCanvas: (client, world) => palette.open(client, world),
+      onWireDropped: (from, world, client) => {
+        const node = store.getState().document.structure.nodes.find((n) => n.id === from.nodeId);
+        const desc = node && catalog.get(node.kind);
+        const type = (from.dir === "out" ? desc?.outputs : desc?.inputs)?.find((p) => p.name === from.port)?.type;
+        if (type) palette.open(client, world, { from, type });
+      },
+      onResultsChange: () => renderGraphViews(store.getState()),
+    },
   );
+  // Selecting from the step list or the problems strip also brings the node
+  // into view; a click on the canvas itself never moves the viewport.
+  const selectAndFocus = (nodeId: string) => {
+    dispatch({ type: "select", ids: [nodeId] });
+    canvasEditor.focus(nodeId);
+  };
+  const problems = createProblemsPanel(shell.canvasHost, { onSelect: selectAndFocus });
   const preview = root.ownerDocument.createElement("select");
   preview.setAttribute("aria-label", "Preview node");
   preview.addEventListener("change", () => {
@@ -182,26 +222,51 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   const topbar = createTopbar(shell.topbarEl, {
     heading: options.heading,
     onOpenAnalysis: (id) => void openAnalysis(id),
-    onNewAnalysis: () => void newAnalysis(),
+    // "New" opens the start page (TKT-14); its Blank card creates an empty flow.
+    onNewAnalysis: () => startPage.show(),
     onSave: () => void save(),
     onRun: () => void run(),
     onThemeChange: (name) => {
       saveThemeChoice(name);
       canvasEditor.setTheme(name);
     },
+    onNodeStyleChange: (name) => {
+      saveNodeStyleChoice(name);
+      setNodeStyle(name);
+      canvasEditor.refresh();
+    },
   });
   topbar.setTheme(loadThemeChoice());
+  topbar.setNodeStyle(loadNodeStyleChoice());
 
   const sidebar = createSidebar(
     shell.sidebarEl,
     (id) => void openAnalysis(id),
     (desc) => addNode(desc),
   );
+  const stepList = createStepList(sidebar.stepsEl, { onSelect: selectAndFocus });
+
+  // The start page (TKT-14): one card per sample flow, over the canvas. Shown
+  // at boot in the plain editor, and from the topbar's New button.
+  const startPage = createStartPage(shell.canvasHost, {
+    templates: TEMPLATES,
+    onOpen: (id) => { startPage.hide(); void openAnalysis(id); },
+    onCopy: (id) => { startPage.hide(); void copyAnalysis(id); },
+    onBlank: () => { startPage.hide(); void newAnalysis(); },
+  });
+
+  /** The two whole-graph readings (TKT-95, TKT-97), re-rendered on every
+   *  store change and whenever a row count arrives. */
+  const renderGraphViews = (state: State) => {
+    stepList.render(stepListModel(state, catalog, canvasEditor.results()));
+    problems.render(graphProblems(state));
+  };
 
   // ── store -> UI ────────────────────────────────────────────────────────────
   let lastDoc = store.getState().document;
   let lastEval = store.getState().evalState;
   let lastDirty = false;
+  let lastSelection = store.getState().selection;
 
   const shownFor = (state: State, nodeId: string, isAnswer: boolean) => ({
     nodeId,
@@ -275,6 +340,8 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       }));
     }
     applyShown(state, dataChanged);
+    if (dataChanged || state.selection !== lastSelection) renderGraphViews(state);
+    lastSelection = state.selection;
     lastDoc = state.document;
     lastEval = state.evalState;
     lastDirty = state.dirty;
@@ -294,7 +361,21 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     analyses = await api.listAnalyses();
     sidebar.setAnalyses(analyses, currentId);
     topbar.setAnalyses(analyses, currentId);
+    startPage.setPresent(analyses.map((a) => a.id));
   };
+
+  /** "New from template": the host's seeded copy already has resolved paths,
+   *  so copying it is the one way to start from a sample without placeholders. */
+  async function copyAnalysis(id: string): Promise<void> {
+    const copy = freshCopyId(id, analyses.map((a) => a.id));
+    try {
+      await api.putAnalysis(copy, await api.getAnalysis(id));
+      await refreshAnalyses();
+      await openAnalysis(copy);
+    } catch (e) {
+      fail(`Could not copy '${id}': ${e instanceof Error ? e.message : e}`);
+    }
+  }
 
   async function openAnalysis(id: string): Promise<void> {
     resultSelection = [];
@@ -381,20 +462,16 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   function addNode(desc: NodeDescriptor): void {
     if (!currentId) return fail("Open a flow first");
     const state = store.getState();
-    const id = freshNodeId(desc.kind, state.document.structure.nodes.map((n) => n.id));
     // Size-aware placement: the first grid spot where this node's real
-    // width/height (inline param slots included) overlaps nothing.
+    // width/height (inline param slots included) overlaps nothing. Add,
+    // place, and select are one undo step (the batch action).
     const params = inlineParams(desc.params, {});
     const position = freePosition(
       buildCanvasModel(state, catalog).nodes,
       nodeWidth(params),
       nodeHeight(desc.inputs.length, desc.outputs.length, params),
     );
-    // TODO: fold add+place into one undo step once the state package offers a
-    // compound action.
-    dispatch({ type: "addNode", id, kind: desc.kind, version: desc.version });
-    dispatch({ type: "setLayout", nodeId: id, layout: position });
-    dispatch({ type: "select", ids: [id] });
+    dispatch({ type: "batch", actions: addNodeActions(state, desc, position) });
     root.classList.remove("bof-app-catalog-open");
     shell.graphToolbar.querySelector("button")?.setAttribute("aria-expanded", "false");
   }
@@ -444,7 +521,12 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
           return;
         }
         await openAnalysis(options.initialAnalysis);
-      } else if (analyses.length > 0) await openAnalysis(analyses[0]!.id);
+      } else if (analyses.length > 0) {
+        await openAnalysis(analyses[0]!.id);
+        // A newcomer sees what the host offers before the first graph
+        // (workflow 1: "a start page lists the supported demos").
+        if (!options.graphDemo) startPage.show();
+      }
       if (currentId === null) await newAnalysis();
     } catch (e) {
       if (connectedNow()) fail(`Could not load the host: ${e instanceof Error ? e.message : e}`);
@@ -504,6 +586,10 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       opening?.abort();
       connection?.dispose();
       canvasEditor.dispose();
+      palette.dispose();
+      stepList.dispose();
+      problems.dispose();
+      startPage.dispose();
       paneArea.dispose();
       shell.dispose();
       sessionReporter.dispose();

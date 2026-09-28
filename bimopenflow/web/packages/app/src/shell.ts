@@ -13,6 +13,9 @@ export interface Shell {
   topbarEl: HTMLElement;
   sidebarEl: HTMLElement;
   canvas: HTMLCanvasElement;
+  /** The positioned box around the canvas; overlays (the start page, the
+   *  problems strip) mount here so they cover the canvas and nothing else. */
+  canvasHost: HTMLElement;
   paneEl: HTMLElement;
   graphToolbar: HTMLElement;
   dispose(): void;
@@ -107,7 +110,7 @@ export function buildShell(root: HTMLElement, graphDemo = false): Shell {
     restoreWidth(root, right);
   };
   root.ownerDocument.defaultView?.addEventListener("resize", resize);
-  return { topbarEl, sidebarEl, canvas, paneEl, graphToolbar,
+  return { topbarEl, sidebarEl, canvas, canvasHost, paneEl, graphToolbar,
     dispose: () => root.ownerDocument.defaultView?.removeEventListener("resize", resize),
   };
 }

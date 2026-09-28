@@ -110,6 +110,19 @@ describe("makeCanvasUpdate", () => {
     expect(update(fresh, { kind: "sync", model: fresh })).toBe(fresh);
   });
 
+  it("keeps the selected wire across sync while its edge exists, and drops it once cut", () => {
+    const { store, update, model } = setup();
+    store.dispatch({ type: "connect", from: "a.out", to: "b.in" });
+    const id = edgeId("a.out", "b.in");
+    let doc = update(model(), { kind: "selectEdge", id });
+    expect(doc.selectedEdgeId).toBe(id);
+    doc = update(doc, { kind: "sync", model: model() });
+    expect(doc.selectedEdgeId).toBe(id);
+    store.dispatch({ type: "disconnect", from: "a.out", to: "b.in" });
+    doc = update(doc, { kind: "sync", model: model() });
+    expect(doc.selectedEdgeId).toBeNull();
+  });
+
   it("deletes the selected wire, then falls back to selected nodes", () => {
     const { store, update, model } = setup();
     store.dispatch({ type: "connect", from: "a.out", to: "b.in" });

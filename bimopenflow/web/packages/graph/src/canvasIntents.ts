@@ -107,9 +107,16 @@ export function makeCanvasUpdate(
     if (readOnly && MUTATING_INTENTS.has(intent.kind)) return doc;
     switch (intent.kind) {
       case "sync": {
-        if (doc.openEditor === null) return intent.model;
+        // The selected wire is transient canvas state, so a rebuilt model
+        // (an evaluation update, a peek pinned on a click) must carry it
+        // over while the edge still exists; otherwise "click wire + Del"
+        // cuts nothing whenever a peek reader is installed.
+        const selectedEdgeId = doc.selectedEdgeId !== null && intent.model.edges.some((e) => e.id === doc.selectedEdgeId)
+          ? doc.selectedEdgeId : null;
+        const synced = selectedEdgeId === intent.model.selectedEdgeId ? intent.model : { ...intent.model, selectedEdgeId };
+        if (doc.openEditor === null) return synced;
         const { nodeId, name } = doc.openEditor;
-        const node = intent.model.nodes.find((n) => n.id === nodeId);
+        const node = synced.nodes.find((n) => n.id === nodeId);
         const param = node?.params.find((p) => p.name === name);
         // An evaluation update can change a parameter's kind, control, or
         // suggest source (a catalog reload, a descriptor change) and stop it
@@ -120,7 +127,7 @@ export function makeCanvasUpdate(
         // so it stays open for as long as the note itself does.
         const stillOpen = (node?.kind === NOTE_KIND && name === "text")
           || (param !== undefined && slotControl(param) === "longText");
-        return stillOpen ? { ...intent.model, openEditor: doc.openEditor } : intent.model;
+        return stillOpen ? { ...synced, openEditor: doc.openEditor } : synced;
       }
 
       case "move":

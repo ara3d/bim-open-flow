@@ -78,7 +78,7 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
   let holdRequested = true; // cover the very first frames after mount
   const runtime: Runtime<CanvasModel, CanvasIntent> = mount(canvas, {
     init: model(),
-    update: makeCanvasUpdate(store, onError, getPreview, options.hooks),
+    update: makeCanvasUpdate(store, onError, getPreview, options.hooks, readOnly),
     view: (doc) => canvasView(doc, instance),
     ambient: (_doc, time) => {
       if (holdRequested) {

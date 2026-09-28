@@ -166,6 +166,7 @@ const EnumSlot = part<EnumSlotProps, { label: Color; field: Color; edge: Color; 
     size: (p) => v(p.w, COMPACT_SLOT_H),
     localInit: { open: false } as EnumLocal,
     reduce(local: EnumLocal, intent: EnumIntent, node: GNode<EnumSlotProps>) {
+      if (intent.kind === "toggle" && node.props.instance.readOnly) return [local] as const;
       const key = islandKey(node.props.nodeId, node.props.name);
       const { openDropdowns } = node.props.instance;
       if (intent.kind === "toggle" && !local.open) openDropdowns.add(key);
@@ -314,6 +315,7 @@ function islandFor(props: IslandSlotProps): IslandEntry {
   if (!entry) {
     const el = instance.document.createElement("input");
     el.setAttribute("aria-label", `${props.nodeId} ${props.name}`);
+    el.disabled = instance.readOnly;
     el.type = props.control?.kind === "color" ? "color" : props.paramKind === "DateTime" ? "datetime-local" :
       isNumericParam(props.paramKind) ? "number" : "text";
     if (el.type === "number") {

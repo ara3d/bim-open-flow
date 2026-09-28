@@ -64,6 +64,7 @@ export function createCanvasInstance(options: CanvasInstanceOptions): CanvasInst
         ? instance.suggestionProvider(nodeId, param)
         : Promise.reject(new Error("No suggestion provider")),
       (nodeId, name, value) => instance.dispatch({ kind: "setParam", nodeId, name, value }),
+      { readOnly: options.readOnly ?? false, document: options.document },
     ),
     suggestionProvider: options.suggestionProvider ?? null,
   };

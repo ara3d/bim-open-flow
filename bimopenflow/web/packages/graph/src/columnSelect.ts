@@ -6,22 +6,35 @@ interface Entry {
   refresh(): Promise<void>; render(): void;
 }
 
+export interface ColumnSelectsOptions {
+  /** A viewer's selectors never commit: the select and the direction button stay disabled. */
+  readonly readOnly?: boolean;
+  /** The DOM document the elements are created in; the global one by default. */
+  readonly document?: Document;
+}
+
 /** Live column choices. Requests are invalidated on schema changes, flow switches and disposal. */
 export class ColumnSelects {
   private entries = new Map<string, Entry>();
+  private readonly readOnly: boolean;
+  private readonly doc: Document;
   constructor(private fetch: (node: string, param: string) => Promise<SuggestionList>,
-    private commit: (node: string, param: string, value: string) => void) {}
+    private commit: (node: string, param: string, value: string) => void,
+    options: ColumnSelectsOptions = {}) {
+    this.readOnly = options.readOnly ?? false;
+    this.doc = options.document ?? document;
+  }
 
   get(node: string, param: string, value: string, descending: boolean): HTMLDivElement {
     const key = `${node}::${param}`;
     let entry = this.entries.get(key);
     if (!entry) {
-      const el = document.createElement('div');
+      const el = this.doc.createElement('div');
       el.style.cssText = 'display:flex;gap:4px;width:100%;height:100%;font:14px system-ui';
-      const select = document.createElement('select');
+      const select = this.doc.createElement('select');
       select.setAttribute('aria-label', `${node} ${param}`);
       select.style.cssText = 'flex:1;min-width:0;font:inherit;border:1px solid #aaa;border-radius:4px;padding:0 6px';
-      const direction = document.createElement('button');
+      const direction = this.doc.createElement('button');
       direction.setAttribute('aria-label', `${node} ${param} direction`);
       direction.style.cssText = 'width:30px;flex-shrink:0;border:1px solid #aaa;border-radius:4px;font:inherit;cursor:pointer';
       el.append(select, direction);
@@ -33,7 +46,8 @@ export class ColumnSelects {
         if (state.value && !state.values.includes(state.value))
           select.append(new Option(`${state.value} (unavailable)`, state.value));
         select.value = state.value;
-        select.disabled = !state.ready;
+        select.disabled = this.readOnly || !state.ready;
+        direction.disabled = this.readOnly;
         direction.textContent = state.descending ? '↓' : '↑';
         direction.title = state.descending ? 'Descending' : 'Ascending';
         direction.setAttribute('aria-pressed', String(state.descending));

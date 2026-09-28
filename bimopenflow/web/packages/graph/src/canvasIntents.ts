@@ -74,16 +74,26 @@ export interface CanvasHooks {
   onWireDropped?(from: AnchorRef, x: number, y: number): void;
 }
 
+/** Intents that change the document or open an editor on it; a read-only
+ *  canvas drops them here, whatever part raised them. Selection, the
+ *  transient wire selection, closing an editor, and sync still run. */
+export const MUTATING_INTENTS: ReadonlySet<CanvasIntent["kind"]> = new Set<CanvasIntent["kind"]>([
+  "move", "moveEnd", "connect", "setParam", "deleteSelected", "openEditor", "wireDropped",
+]);
+
 /**
  * The gratify update function for the canvas, bound to the store. Store
  * dispatches are wrapped: the reducer throws on invalid edits, and a rejected
- * user gesture must report, not crash the frame loop.
+ * user gesture must report, not crash the frame loop. With `readOnly`, every
+ * MUTATING_INTENTS member returns the doc unchanged: this is the one place a
+ * viewer's guarantee rests on, whether or not a part also hides the gesture.
  */
 export function makeCanvasUpdate(
   store: Store,
   onError: (message: string) => void,
   getPreview: () => string | null = () => store.getState().selection.at(-1) ?? null,
   hooks: CanvasHooks = {},
+  readOnly = false,
 ): (doc: CanvasModel, intent: CanvasIntent) => CanvasModel {
   const dispatch = (action: Parameters<Store["dispatch"]>[0]): void => {
     try {
@@ -94,6 +104,7 @@ export function makeCanvasUpdate(
   };
 
   return (doc, intent) => {
+    if (readOnly && MUTATING_INTENTS.has(intent.kind)) return doc;
     switch (intent.kind) {
       case "sync": {
         if (doc.openEditor === null) return intent.model;

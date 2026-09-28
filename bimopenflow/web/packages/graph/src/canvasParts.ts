@@ -225,6 +225,7 @@ const GraphNodePart = part<NodeProps, NodeCardColors>("bof-node", {
     // Wire drag: starts only when the press lands near a socket.
     Gesture<NodeProps, { fromId: string; cursor: Vec; snap?: Anchor }>({
       begin(node, pointer, query) {
+        if (node.props.instance.readOnly) return null;
         for (const a of portAnchors(node)) {
           const live = query.anchor(a.id);
           if (live && vdist(live.pos, pointer) < SOCKET_GRAB_RADIUS)
@@ -266,14 +267,16 @@ const GraphNodePart = part<NodeProps, NodeCardColors>("bof-node", {
         grabOffset: v(pointer.x - node.props.pos.x, pointer.y - node.props.pos.y),
         start: node.props.pos,
       }),
-      during: (state, node, pointer) =>
+      during: (state, node, pointer) => node.props.instance.readOnly ? undefined :
         ({
           kind: "move",
           id: node.props.id,
           x: pointer.x - state.grabOffset.x,
           y: pointer.y - state.grabOffset.y,
         }) satisfies CanvasIntent,
-      up: (state, node) => [vdist(state.start,node.props.pos) > 3
+      up: (state, node) => node.props.instance.readOnly
+        ? [{ kind: "selectNode", id: node.props.id } satisfies CanvasIntent]
+        : [vdist(state.start,node.props.pos) > 3
         ? { kind: "moveEnd", id: node.props.id }
         // A click (not a drag) on a note opens its editor directly — there is
         // no separate label row to press, the way a long-text param has.

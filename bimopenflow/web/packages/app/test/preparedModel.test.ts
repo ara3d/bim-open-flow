@@ -21,7 +21,11 @@ beforeEach(async () => {
   vi.stubGlobal("fetch", vi.fn(async () => new Response(source)));
 });
 afterEach(async () => {
-  await Promise.all(servers.splice(0).map(server => new Promise<void>(resolve => server.close(() => resolve()))));
+  // closeAllConnections: the client keeps its socket alive after a streamed reply, and close() alone waits ~4 s for it.
+  await Promise.all(servers.splice(0).map(server => new Promise<void>(resolve => {
+    server.close(() => resolve());
+    server.closeAllConnections();
+  })));
   await rm(directory, { recursive: true });
   vi.unstubAllGlobals();
 });

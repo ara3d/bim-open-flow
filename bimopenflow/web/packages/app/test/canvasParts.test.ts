@@ -8,6 +8,7 @@ import { createStore } from "@bimopenflow/state";
 import { makeCanvasUpdate, type CanvasIntent } from "../src/canvasIntents.js";
 import { canvasView } from "../src/canvasParts.js";
 import { buildCanvasModel, NOTE_KIND, type CanvasModel } from "../src/viewModel.js";
+import { defaultNodeStyle, nodeStyleNames, setNodeStyle } from "../src/nodeStyle.js";
 
 const desc: NodeDescriptor = {
   kind: "k.a",
@@ -89,5 +90,30 @@ describe("view.note (headless gratify)", () => {
     expect(runtime.doc.openEditor).toEqual({ nodeId: "n1", name: "text" });
     // A click does not move the note or select it as an ordinary node would.
     expect(store.getState().document.layout["n1"]).toBeUndefined();
+  });
+});
+
+describe("node card styles (headless gratify)", () => {
+  it("steps a described node in every style without errors", () => {
+    const store = createStore();
+    store.dispatch({ type: "addNode", id: "a", kind: "k.a", version: 1 });
+    const catalog = new Map([["k.a", { ...desc, description: "Keeps the rows that match." }]]);
+    const model = buildCanvasModel(store.getState(), catalog);
+    expect(model.nodes[0]!.description).toBe("Keeps the rows that match.");
+    const errors: string[] = [];
+    const runtime = new Runtime<CanvasModel, CanvasIntent>(
+      null,
+      { init: model, update: makeCanvasUpdate(store, (m) => errors.push(m)), view: canvasView },
+      { headless: true, width: 800, height: 600 },
+    );
+    try {
+      for (const style of nodeStyleNames) {
+        setNodeStyle(style);
+        runtime.step(2, 1 / 60);
+      }
+    } finally {
+      setNodeStyle(defaultNodeStyle);
+    }
+    expect(errors).toEqual([]);
   });
 });

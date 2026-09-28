@@ -1,5 +1,5 @@
 // Top bar: analysis picker + new, save (with dirty indicator), run, canvas
-// theme picker, and host connection status. Also the page-level host banner
+// theme picker, node style picker, and host connection status. Also the page-level host banner
 // that every page mounts, inside or outside the shell.
 
 import type { AnalysisSummary } from "@bimopenflow/contracts";
@@ -8,6 +8,7 @@ import {
   isCanvasThemeName,
   type CanvasThemeName,
 } from "./canvasTheme.js";
+import { isNodeStyleName, nodeStyleNames, type NodeStyleName } from "./nodeStyle.js";
 import { hostStatusMessage, type HostStatus, type HostStatusSource } from "./hostStatus.js";
 import { ensureAppStyles } from "./styles.js";
 
@@ -19,6 +20,9 @@ export interface TopbarHandlers {
   onSave(): void;
   onRun(): void;
   onThemeChange(name: CanvasThemeName): void;
+  /** Called with the node card style the user picked (TKT-98). The "Node
+   *  style" picker is shown only when a page passes this handler. */
+  onNodeStyleChange?(name: NodeStyleName): void;
 }
 
 export interface Topbar {
@@ -26,6 +30,31 @@ export interface Topbar {
   setDirty(dirty: boolean): void;
   setConnection(status: HostStatus): void;
   setTheme(name: CanvasThemeName): void;
+  /** Shows `name` in the node style picker without calling the handler. */
+  setNodeStyle(name: NodeStyleName): void;
+}
+
+/** A <select> over `names` that calls `onPick` with a validated choice. */
+function namePicker<T extends string>(
+  doc: Document,
+  label: string,
+  names: readonly T[],
+  isName: (value: string) => value is T,
+  onPick: (name: T) => void,
+): HTMLSelectElement {
+  const select = doc.createElement("select");
+  select.title = label;
+  select.setAttribute("aria-label", label);
+  for (const name of names) {
+    const opt = doc.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    select.appendChild(opt);
+  }
+  select.addEventListener("change", () => {
+    if (isName(select.value)) onPick(select.value);
+  });
+  return select;
 }
 
 export function createTopbar(root: HTMLElement, handlers: TopbarHandlers): Topbar {
@@ -63,24 +92,17 @@ export function createTopbar(root: HTMLElement, handlers: TopbarHandlers): Topba
   runBtn.textContent = "Run";
   runBtn.addEventListener("click", handlers.onRun);
 
-  const themePicker = doc.createElement("select");
-  themePicker.title = "Canvas theme";
-  for (const name of canvasThemeNames) {
-    const opt = doc.createElement("option");
-    opt.value = name;
-    opt.textContent = name;
-    themePicker.appendChild(opt);
-  }
-  themePicker.addEventListener("change", () => {
-    if (isCanvasThemeName(themePicker.value))
-      handlers.onThemeChange(themePicker.value);
-  });
+  const themePicker = namePicker(doc, "Canvas theme", canvasThemeNames, isCanvasThemeName, handlers.onThemeChange);
+  const onNodeStyleChange = handlers.onNodeStyleChange;
+  const stylePicker = onNodeStyleChange
+    ? namePicker(doc, "Node style", nodeStyleNames, isNodeStyleName, onNodeStyleChange)
+    : null;
 
   const conn = doc.createElement("span");
   conn.className = "bof-app-conn";
   conn.textContent = "reconnecting…";
 
-  root.append(title, picker, newBtn, saveBtn, dirtyMark, runBtn, themePicker, conn);
+  root.append(title, picker, newBtn, saveBtn, dirtyMark, runBtn, themePicker, ...(stylePicker ? [stylePicker] : []), conn);
 
   return {
     setAnalyses(list, activeId) {
@@ -103,6 +125,9 @@ export function createTopbar(root: HTMLElement, handlers: TopbarHandlers): Topba
     },
     setTheme(name) {
       themePicker.value = name;
+    },
+    setNodeStyle(name) {
+      if (stylePicker) stylePicker.value = name;
     },
     setConnection(status) {
       conn.textContent = status === "reconnecting" ? "reconnecting…" : status;

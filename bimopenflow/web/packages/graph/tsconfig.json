@@ -1,0 +1,22 @@
+{
+  "extends": "../../toolkit.tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": ["vite/client"],
+    "baseUrl": ".",
+    // gratify is consumed from the submodule source, as packages/app does;
+    // vitest.config.ts carries the runtime twin of this alias.
+    "paths": {
+      "gratify": ["../../../../submodules/gratify/src/gratify/index.ts"],
+      "@bim-open-toolkit/*": ["../../../../viz/packages/*/src/index.ts"]
+    }
+  },
+  "include": ["src", "test"]
+}

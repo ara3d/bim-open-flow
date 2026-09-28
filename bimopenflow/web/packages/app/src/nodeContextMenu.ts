@@ -2,6 +2,9 @@ export interface NodeContextMenuDependencies {
   /** Coordinates are CSS pixels relative to the canvas. */
   hitNode(x: number, y: number): string | null;
   onDelete(nodeId: string): void;
+  /** A right-click that hit no node, in window (client) and canvas CSS pixels;
+   *  the canvas palette (TKT-96) opens there. */
+  onEmptyCanvas?(clientX: number, clientY: number, canvasX: number, canvasY: number): void;
 }
 
 /** A disposable command menu; graph mutation and hit testing belong to the caller. */
@@ -22,8 +25,13 @@ export function installNodeContextMenu(canvas: HTMLCanvasElement, deps: NodeCont
     event.stopPropagation();
     dismiss(true);
     const rect = canvas.getBoundingClientRect();
-    const nodeId = deps.hitNode(event.clientX - rect.left, event.clientY - rect.top);
-    if (nodeId === null) return;
+    const canvasX = event.clientX - rect.left;
+    const canvasY = event.clientY - rect.top;
+    const nodeId = deps.hitNode(canvasX, canvasY);
+    if (nodeId === null) {
+      deps.onEmptyCanvas?.(event.clientX, event.clientY, canvasX, canvasY);
+      return;
+    }
 
     previousFocus = document.activeElement instanceof window.HTMLElement ? document.activeElement : null;
     menu = document.createElement("div");

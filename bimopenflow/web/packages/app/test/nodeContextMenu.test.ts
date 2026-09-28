@@ -17,14 +17,15 @@ function setup() {
   vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({ left: 50, top: 80 } as DOMRect);
   const hitNode = vi.fn<(x: number, y: number) => string | null>().mockReturnValue("node-a");
   const onDelete = vi.fn();
-  const dispose = installNodeContextMenu(canvas, { hitNode, onDelete });
+  const onEmptyCanvas = vi.fn();
+  const dispose = installNodeContextMenu(canvas, { hitNode, onDelete, onEmptyCanvas });
   disposers.push(dispose);
   const open = (x = 130, y = 160) => {
     const event = new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: x, clientY: y });
     canvas.dispatchEvent(event);
     return event;
   };
-  return { canvas, hitNode, onDelete, open, dispose };
+  return { canvas, hitNode, onDelete, onEmptyCanvas, open, dispose };
 }
 
 describe("node context menu", () => {
@@ -52,6 +53,27 @@ describe("node context menu", () => {
     hitNode.mockReturnValue(null);
     expect(open().defaultPrevented).toBe(true);
     expect(document.querySelector('[role="menu"]')).toBeNull();
+  });
+
+  it("hands a right-click on empty canvas to onEmptyCanvas in client and canvas pixels", () => {
+    const { hitNode, onEmptyCanvas, open } = setup();
+    hitNode.mockReturnValue(null);
+    expect(open(130, 160).defaultPrevented).toBe(true);
+    expect(onEmptyCanvas).toHaveBeenCalledExactlyOnceWith(130, 160, 80, 80);
+    expect(document.querySelector('[role="menu"]')).toBeNull();
+    hitNode.mockReturnValue("node-a");
+    open();
+    expect(onEmptyCanvas).toHaveBeenCalledOnce();
+    expect(document.querySelector("[role=menuitem]")!.textContent).toBe("Delete node");
+  });
+
+  it("works without onEmptyCanvas", () => {
+    const canvas = document.createElement("canvas");
+    document.body.append(canvas);
+    disposers.push(installNodeContextMenu(canvas, { hitNode: () => null, onDelete: vi.fn() }));
+    const event = new MouseEvent("contextmenu", { bubbles: true, cancelable: true });
+    expect(() => canvas.dispatchEvent(event)).not.toThrow();
+    expect(event.defaultPrevented).toBe(true);
   });
 
   it.each(["Escape", "Tab", "outside", "blur", "resize"])("dismisses on %s without deleting", (gesture) => {

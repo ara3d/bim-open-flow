@@ -27,7 +27,19 @@ npm test -w @bimopenflow/graph
 npm run typecheck -w @bimopenflow/graph
 ```
 
+## Layout
+
+Flat `src/`, one concern per file, the names the studio used:
+
+- `canvasEditor.ts` mounts the gratify runtime on a `<canvas>` and syncs it with the store; `canvasIntents.ts` is the intent vocabulary and update function; `canvasParts.ts` the surface, node, wire, and rubber-wire parts.
+- `viewModel.ts` turns store state and the node catalog into what the canvas draws; `canvasSlots.ts`, `slotRegistry.ts`, `slotShared.ts`, `canvasControls.ts`, `canvasLongSlot.ts`, `longValueEditor.ts`, `graphWidgets.ts` are the inline parameter controls.
+- `portResults.ts`, `portGeometry.ts`, `portHover.ts`, `peekCard.ts`, `peekWiring.ts` are wire row counts and peeks.
+- `nodeBadge.ts`, `upstreamEdges.ts`, `selectionBorder.ts`, `nodeContextMenu.ts`, `autoLayout.ts`, `graphPreview.ts`, `canvasTheme.ts` and the small text helpers.
+- `gratifyWidgets.ts`, `gratifyRangeMath.ts`: copies of gratify's example slider and range, planned debt until TKT-23.
+
 ## Status
 
-Skeleton. `createGraphEditor` throws until the canvas modules move in (plan
-chunk G4).
+Building apart: a copy of the studio's canvas cluster at commit 3e4a699 while
+the Editor UX wave and TKT-12 keep editing the studio's copy. The plan's G7
+replaces the studio's copy with this package. Per-instance state and the
+read-only mode land here first.

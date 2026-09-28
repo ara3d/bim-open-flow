@@ -1,0 +1,538 @@
+// Inline parameter controls drawn on canvas nodes. Controls are chosen per
+// parameter from slotControl: descriptor overrides kind, which defaults to
+// KIND_CONTROL. A few controls draw directly on canvas (toggleSlot,
+// dropdownSlot); most use gratify's island facet for real DOM elements
+// (numberSlot, fieldSlot, columnSlot). longTextSlot is separate in
+// canvasLongSlot.ts. Island elements are created once per (node, param) and
+// pruned by canvasEditor when nodes disappear; intents reach the store
+// through the dispatch registered at mount (islands live outside gratify's
+// intent flow).
+
+import {
+  at,
+  calpha,
+  Color,
+  Element,
+  GNode,
+  Local,
+  modal,
+  part,
+  Press,
+  rect,
+  themeVersion,
+  v,
+} from "gratify";
+import type { ControlDescriptor, ParamKind, SuggestDescriptor, SuggestionList } from "@bimopenflow/contracts";
+import { displayScale, isNumericParam, numericDisplay, numericFromDisplay, numericLimits, numericValue, paramLabel } from "./numericParam";
+import { attachSuggestions } from "./suggestInput.js";
+import { ColumnSelects } from './columnSelect.js';
+import type { CanvasParam, SlotContext } from "./canvasSlots.js";
+import { COMPACT_SLOT_H, FIELD_SLOT_H } from "./canvasSlots.js";
+import { canvasThemes, currentCanvasTheme } from "./canvasTheme.js";
+import type { CanvasIntent } from "./canvasIntents.js";
+import { dispatchInline, islandKey, styleIsland } from "./slotShared.js";
+import {
+  fileName,
+  fromDatetimeLocal,
+  normalizeInteger,
+  normalizeNumber,
+  toDatetimeLocal,
+} from "./paramText.js";
+
+const LABEL_SIZE = 14;
+const VALUE_SIZE = 14;
+
+// ── Boolean: a toggle switch ─────────────────────────────────────────────────
+
+interface BoolSlotProps {
+  nodeId: string;
+  name: string;
+  value: boolean;
+  w: number;
+  states?: Record<string, boolean>;
+}
+
+interface BoolSlotStyle {
+  label: Color;
+  track: Color;
+  knob: Color;
+}
+
+const TOGGLE_W = 26;
+const TOGGLE_H = 14;
+
+const BoolSlot = part<BoolSlotProps, BoolSlotStyle>("bof-slot-bool", {
+  size: (p) => v(p.w, COMPACT_SLOT_H),
+  channels: { on: { target: (n) => (n.props.value ? 1 : 0), rate: 16 } },
+  style: (t, ch) => ({
+    label: t.mix(t.textDim, t.text, ch.hover),
+    track: t.mix(t.mix(t.muted, t.surface, 0.4), t.accent, ch.on ?? 0),
+    knob: t.mix(t.text, t.textBright, ch.on ?? 0),
+  }),
+  render(node, painter, style) {
+    const r = node.rect;
+    painter.label(node.props.name, v(r.x, r.center.y), style.label, {
+      align: "left",
+      size: LABEL_SIZE,
+    });
+    const track = rect(r.right - TOGGLE_W, r.center.y - TOGGLE_H / 2, TOGGLE_W, TOGGLE_H);
+    painter.box(track, TOGGLE_H / 2, style.track);
+    const on = node.ch.on ?? 0;
+    const kx = track.x + TOGGLE_H / 2 + on * (TOGGLE_W - TOGGLE_H);
+    painter.dot(v(kx, track.center.y), TOGGLE_H / 2 - 2.5, style.knob);
+  },
+  on: [
+    Press((node: GNode<BoolSlotProps>) =>
+      ({
+        kind: "setParam",
+        nodeId: node.props.nodeId,
+        name: node.props.name,
+        value: node.props.value ? "false" : "true",
+      }) satisfies CanvasIntent),
+  ],
+});
+
+export function toggleSlot(ctx: SlotContext): Element {
+  const { nodeId, param, w } = ctx;
+  return BoolSlot(param.name, { nodeId, name: param.name, value: param.value === "true", w });
+}
+
+// ── Enum: a dropdown with a modal option list ────────────────────────────────
+
+interface EnumSlotProps {
+  nodeId: string;
+  name: string;
+  value: string;
+  options: readonly string[];
+  w: number;
+  states?: Record<string, boolean>;
+}
+
+type EnumLocal = { open: boolean };
+
+type EnumIntent =
+  | { kind: "toggle" }
+  | { kind: "close" }
+  | { kind: "pick"; value: string };
+
+// Native fields sit above canvas paint. While a canvas dropdown is modal,
+// detach those fields so they cannot cover or intercept its option list.
+const openDropdowns = new Set<string>();
+
+/** Drops a stale open-dropdown flag for a row that no longer shows a dropdown. */
+export function clearOpenDropdown(nodeId: string, name: string): void {
+  openDropdowns.delete(islandKey(nodeId, name));
+}
+
+interface OptionRowProps {
+  text: string;
+  selected: boolean;
+  states?: Record<string, boolean>;
+}
+
+const OptionRow = part<OptionRowProps, { fill: Color; text: Color; tick: Color }>(
+  "bof-slot-option",
+  {
+    size: (p, m) => v(Math.max(m.text(p.text, 12).x + 38, 96), 24),
+    style: (t, ch, p) => ({
+      fill: calpha(t.accent, 0.22 * ch.hover + 0.1 * ch.press),
+      text: t.mix(p.selected ? t.accent : t.text, t.textBright, ch.hover),
+      tick: t.accent,
+    }),
+    render(node, painter, style) {
+      painter.box(node.rect, 5, style.fill);
+      painter.label(node.props.text, v(node.rect.x + 22, node.rect.center.y), style.text, {
+        align: "left",
+        size: 12,
+      });
+      if (node.props.selected)
+        painter.label("✓", v(node.rect.x + 8, node.rect.center.y), style.tick, {
+          align: "left",
+          size: 11,
+          weight: 700,
+        });
+    },
+    on: [
+      Press((node: GNode<OptionRowProps>) =>
+        Local<EnumIntent>({ kind: "pick", value: node.props.text })),
+    ],
+  },
+);
+
+const EnumSlot = part<EnumSlotProps, { label: Color; field: Color; edge: Color; value: Color; chevron: Color }>(
+  "bof-slot-enum",
+  {
+    size: (p) => v(p.w, COMPACT_SLOT_H),
+    localInit: { open: false } as EnumLocal,
+    reduce(local: EnumLocal, intent: EnumIntent, node: GNode<EnumSlotProps>) {
+      const key = `${node.props.nodeId}::${node.props.name}`;
+      if (intent.kind === "toggle" && !local.open) openDropdowns.add(key);
+      else openDropdowns.delete(key);
+      switch (intent.kind) {
+        case "toggle":
+          return [{ open: !local.open }] as const;
+        case "close":
+          return [{ open: false }] as const;
+        case "pick":
+          return [
+            { open: false },
+            {
+              kind: "setParam",
+              nodeId: node.props.nodeId,
+              name: node.props.name,
+              value: intent.value,
+            } satisfies CanvasIntent,
+          ] as const;
+      }
+    },
+    channels: { open: { target: (n) => ((n.local as EnumLocal).open ? 1 : 0), rate: 14 } },
+    style: (t, ch) => ({
+      label: t.mix(t.textDim, t.text, ch.hover),
+      field: t.mix(t.bg, t.surfaceHi, 0.35 + 0.25 * ch.hover),
+      edge: t.mix(t.muted, t.accent, 0.6 * ch.hover + (ch.open ?? 0)),
+      value: t.mix(t.text, t.textBright, ch.hover),
+      chevron: t.mix(t.textDim, t.accent, ch.hover + (ch.open ?? 0)),
+    }),
+    render(node, painter, style) {
+      const r = node.rect;
+      painter.label(node.props.name, v(r.x, r.center.y), style.label, {
+        align: "left",
+        size: LABEL_SIZE,
+      });
+      const field = enumFieldRect(node);
+      painter.box(field, 5, style.field, style.edge, 1);
+      painter.label(node.props.value || "—", v(field.x + 7, field.center.y), style.value, {
+        align: "left",
+        size: VALUE_SIZE,
+      });
+      const c = v(field.right - 11, field.center.y);
+      const k = 3.4;
+      const dy = k * (1 - 2 * (node.ch.open ?? 0));
+      painter.line(v(c.x - k, c.y - dy / 2), v(c.x, c.y + dy / 2), style.chevron, 1.6);
+      painter.line(v(c.x, c.y + dy / 2), v(c.x + k, c.y - dy / 2), style.chevron, 1.6);
+    },
+    on: [Press(() => Local<EnumIntent>({ kind: "toggle" }))],
+    adorn(node) {
+      if (!(node.local as EnumLocal).open) return [];
+      const field = enumFieldRect(node);
+      return [
+        at(
+          modal(
+            OptionListPanel(`options`, { gap: 1, pad: 5 },
+              node.props.options.map((option) =>
+                OptionRow(option, { text: option, selected: option === node.props.value }))),
+            Local<EnumIntent>({ kind: "close" }),
+          ),
+          v(field.x, field.bottom + 3),
+        ),
+      ];
+    },
+  },
+);
+
+export function dropdownSlot(ctx: SlotContext): Element {
+  const { nodeId, param, w } = ctx;
+  return EnumSlot(param.name, { nodeId, name: param.name, value: param.value, options: param.enumValues ?? [], w });
+}
+
+/** The enum's value field: right-aligned, leaving room for the label. */
+function enumFieldRect(node: GNode<EnumSlotProps>) {
+  const r = node.rect;
+  const labelRoom = Math.min(r.w * 0.42, 86);
+  const w = r.w - labelRoom;
+  return rect(r.right - w, r.y + 1, w, r.h - 2);
+}
+
+// ── Island slots: field and number kinds ──────────────────────────────────────
+// Long-text rows (Json, Expression, and Text) are drawn in canvasLongSlot.
+// Toggles and dropdowns are drawn above. Column selectors are columnSlot.
+// Sliders and ranges are drawn in canvasParts (graphWidgets.ts).
+
+interface IslandSlotProps {
+  nodeId: string;
+  name: string;
+  paramKind: ParamKind;
+  value: string;
+  w: number;
+  /** compact: label left, input right (numbers). field: caption + full-width input. */
+  layout: "compact" | "field";
+  suggest?: SuggestDescriptor;
+  control?: ControlDescriptor;
+  states?: Record<string, boolean>;
+}
+
+export type SuggestionProvider = (nodeId: string, param: string) => Promise<SuggestionList>;
+
+let suggestionProvider: SuggestionProvider | null = null;
+const columnSelects = new ColumnSelects(
+  (node, param) => suggestionProvider ? suggestionProvider(node, param) : Promise.reject(new Error('No open flow')),
+  (nodeId, name, value) => dispatchInline({ kind: 'setParam', nodeId, name, value }));
+export const refreshColumnOptions = () => columnSelects.refresh();
+
+/** The app registers how suggest-annotated params fetch their live values
+ *  (the suggestions endpoint of the open analysis). */
+export function setSuggestionProvider(fn: SuggestionProvider | null): void {
+  suggestionProvider = fn;
+}
+
+interface IslandEntry {
+  el: HTMLInputElement;
+  themeV: number;
+  descriptor: string;
+  /** Canonical value last pushed into the element (revert target). */
+  canonical: string;
+  paramKind: ParamKind;
+  detachSuggest?: () => void;
+}
+
+const islands = new Map<string, IslandEntry>();
+
+/** Drops island elements for (node, param) keys no longer on the canvas. */
+export function pruneInlineControls(liveKeys: ReadonlySet<string>): void {
+  columnSelects.prune(liveKeys);
+  for (const key of openDropdowns) if (!liveKeys.has(key)) openDropdowns.delete(key);
+  for (const [key, entry] of islands) {
+    if (!liveKeys.has(key)) {
+      entry.detachSuggest?.();
+      entry.el.remove();
+      islands.delete(key);
+    }
+  }
+}
+
+export function disposeInlineControls(): void {
+  pruneInlineControls(new Set());
+}
+
+/** Blurred display for a canonical value: DateTime formats for the native
+ *  picker, FilePath shows only the file name (title carries the rest, and
+ *  focusing the field switches it to the full path for editing). */
+const toInputValue = (kind: ParamKind, canonical: string): string =>
+  kind === "DateTime" ? toDatetimeLocal(canonical)
+    : kind === "FilePath" ? fileName(canonical)
+    : canonical;
+
+/** Input text -> canonical form, or null when invalid (revert). */
+function toCanonical(kind: ParamKind, text: string): string | null {
+  switch (kind) {
+    case "Integer":
+      return text.trim() === "" ? "" : normalizeInteger(text);
+    case "Number":
+      return text.trim() === "" ? "" : normalizeNumber(text);
+    case "DateTime":
+      return fromDatetimeLocal(text);
+    default:
+      return text;
+  }
+}
+
+function islandFor(props: IslandSlotProps): IslandEntry {
+  const key = islandKey(props.nodeId, props.name);
+  const descriptor = JSON.stringify([props.paramKind, props.control, props.suggest]);
+  let entry = islands.get(key);
+  // Node IDs can be reused in another flow, and the catalog can gain controls
+  // after refresh. Old DOM listeners must not retain the previous units/type.
+  if (entry && entry.descriptor !== descriptor) {
+    entry.detachSuggest?.();
+    entry.el.remove();
+    islands.delete(key);
+    entry = undefined;
+  }
+  if (!entry) {
+    const el = document.createElement("input");
+    el.setAttribute("aria-label", `${props.nodeId} ${props.name}`);
+    el.type = props.control?.kind === "color" ? "color" : props.paramKind === "DateTime" ? "datetime-local" :
+      isNumericParam(props.paramKind) ? "number" : "text";
+    if (el.type === "number") {
+      const limits = numericLimits(props.paramKind,props.control);
+      const scale = displayScale(props.control);
+      el.step = limits.step === undefined ? "any" : String(limits.step*scale);
+      if (limits.min !== undefined) el.min = String(limits.min*scale);
+      if (limits.max !== undefined) el.max = String(limits.max*scale);
+    }
+    if (props.paramKind === "Integer" || props.paramKind === "Number")
+      el.inputMode = "decimal";
+    el.spellcheck = false;
+    if (props.paramKind === "FilePath") el.title = props.value;
+    const display = (value: string) => isNumericParam(props.paramKind) ? numericDisplay(value,props.control) : toInputValue(props.paramKind,value);
+    el.value = display(props.value);
+    entry = { el, themeV: -1, descriptor, canonical: props.value, paramKind: props.paramKind };
+    const commit = () => {
+      const canonical = isNumericParam(entry!.paramKind) ? numericValue(entry!.paramKind,numericFromDisplay(el.value,props.control),props.control) : toCanonical(entry!.paramKind, el.value);
+      if (canonical === null || canonical === entry!.canonical) {
+        el.value = display(entry!.canonical); // revert
+        return;
+      }
+      el.value = display(canonical);
+      if (props.paramKind === "FilePath") el.title = canonical;
+      entry!.canonical = canonical;
+      dispatchInline({ kind: "setParam", nodeId: props.nodeId, name: props.name, value: canonical });
+    };
+    el.addEventListener("change", commit);
+    if (props.paramKind === "FilePath") {
+      // Editing needs the full path, not the shortened display; expand on
+      // focus and let commit (fired by "change" on blur) shorten it back.
+      el.addEventListener("focus", () => {
+        el.value = entry!.canonical;
+      });
+      el.addEventListener("blur", () => {
+        el.value = display(entry!.canonical);
+      });
+    }
+    if (props.suggest && el.type === "text")
+      entry.detachSuggest = attachSuggestions(el, `bof-suggest-${key}`, () =>
+        suggestionProvider
+          ? suggestionProvider(props.nodeId, props.name)
+          : Promise.reject(new Error("No suggestion provider")));
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") el.blur();
+      if (e.key === "Escape") {
+        el.value = display(entry!.canonical);
+        el.blur();
+        e.stopPropagation();
+      }
+    });
+    islands.set(key, entry);
+  }
+  // External changes (undo, another editor) flow in unless the user is typing.
+  if (entry.el.ownerDocument.activeElement !== entry.el && entry.canonical !== props.value) {
+    entry.canonical = props.value;
+    entry.el.value = isNumericParam(props.paramKind) ? numericDisplay(props.value,props.control) : toInputValue(props.paramKind, props.value);
+    if (props.paramKind === "FilePath") entry.el.title = props.value;
+  }
+  if (entry.themeV !== themeVersion) {
+    entry.themeV = themeVersion;
+    styleIsland(entry.el, canvasThemes[currentCanvasTheme()].palette);
+  }
+  return entry;
+}
+
+const COMPACT_INPUT_W = 96;
+
+const ColumnSlot = part<{ nodeId: string; param: CanvasParam; w: number }, { label: Color }>('bof-slot-column', {
+  size: p => v(p.w, COMPACT_SLOT_H),
+  style: t => ({ label: t.textDim }),
+  render(node, painter, style) {
+    painter.label(node.props.param.name, v(node.rect.x, node.rect.center.y), style.label, { align: 'left', size: LABEL_SIZE });
+  },
+  island(node) {
+    if (openDropdowns.size) return null;
+    const { nodeId, param } = node.props;
+    return { el: columnSelects.get(nodeId, param.name, param.value, param.descending ?? false),
+      rect: rect(node.rect.x + 24, node.rect.y + 1, node.rect.w - 24, node.rect.h - 2) };
+  },
+});
+
+const IslandSlot = part<IslandSlotProps, { label: Color }>("bof-slot-island", {
+  size: (p) => v(p.w, p.layout === "compact" ? COMPACT_SLOT_H : FIELD_SLOT_H),
+  style: (t, ch) => ({ label: t.mix(t.textDim, t.text, ch.hover) }),
+  render(node, painter, style) {
+    const r = node.rect;
+    if (node.props.layout === "compact") {
+      painter.label(paramLabel(node.props.name,node.props.paramKind,node.props.control), v(r.x, r.center.y), style.label, {
+        align: "left",
+        size: LABEL_SIZE,
+      });
+    } else {
+      painter.label(paramLabel(node.props.name,node.props.paramKind,node.props.control), v(r.x, r.y + 6), style.label, {
+        align: "left",
+        size: LABEL_SIZE,
+      });
+    }
+  },
+  island(node) {
+    if (openDropdowns.size) return null;
+    const r = node.rect;
+    const compact = node.props.layout === "compact";
+    const inputRect = compact
+      ? rect(r.right - COMPACT_INPUT_W, r.y + 1, COMPACT_INPUT_W, r.h - 2)
+      : rect(r.x, r.y + 14, r.w, r.h - 16);
+    return { el: islandFor(node.props).el, rect: inputRect };
+  },
+});
+
+// ── Slot factories: one island element per inline param ─────────────────────
+
+/** Compact island (label left, input right); key defaults to param.name ("field" inside a slider). */
+export function numberSlot(ctx: SlotContext, key?: string): Element {
+  const { nodeId, param, w } = ctx;
+  return IslandSlot(key ?? param.name, {
+    nodeId, name: param.name, paramKind: param.kind, value: param.value, w, layout: "compact",
+    ...(param.suggest ? { suggest: param.suggest } : {}),
+    ...(param.control ? { control: param.control } : {}),
+  });
+}
+
+/** Caption + full-width island input (text, FilePath, DateTime, ModelRef, color). */
+export function fieldSlot(ctx: SlotContext, key?: string): Element {
+  const { nodeId, param, w } = ctx;
+  return IslandSlot(key ?? param.name, {
+    nodeId, name: param.name, paramKind: param.kind, value: param.value, w, layout: "field",
+    ...(param.suggest ? { suggest: param.suggest } : {}),
+    ...(param.control ? { control: param.control } : {}),
+  });
+}
+
+export function columnSlot(ctx: SlotContext): Element {
+  const { nodeId, param, w } = ctx;
+  return ColumnSlot(param.name, { nodeId, param, w });
+}
+
+// ── Option list panel ────────────────────────────────────────────────────────
+// A skinned Stack: same layout, plus a surface + border + shadow.
+
+const OptionListPanel = (
+  key: string,
+  props: { gap?: number; pad?: number },
+  children: Element[],
+): Element => PanelPart(key, props, children);
+
+const PanelPart = part<{ gap?: number; pad?: number; states?: Record<string, boolean> }, {
+  fill: Color;
+  edge: Color;
+  shadow: Color;
+}>("bof-slot-panel", {
+  measure: (props, avail, m) => stackMeasure(props, avail, m),
+  arrange: (props, r, kids) => stackArrange(props, r, kids),
+  style: (t) => ({
+    fill: t.surface,
+    edge: calpha(t.accent, 0.55),
+    shadow: calpha(t.textBright, 0.25),
+  }),
+  render(node, painter, style) {
+    painter.push();
+    painter.alpha(0.5 + 0.5 * node.ch.enter);
+    painter.glow(style.shadow, 14, () => painter.box(node.rect, 7, style.fill, style.edge, 1));
+    painter.pop();
+  },
+});
+
+// Minimal vertical-stack measure/arrange (gap + pad), local so the panel does
+// not depend on Stack's internals.
+function stackMeasure(
+  props: { gap?: number; pad?: number },
+  avail: { x: number; y: number },
+  m: { children(avail: { x: number; y: number }): { x: number; y: number }[] },
+): { x: number; y: number } {
+  const gap = props.gap ?? 0;
+  const pad = props.pad ?? 0;
+  const sizes = m.children(avail);
+  const w = sizes.reduce((mx, s) => Math.max(mx, s.x), 0);
+  const h = sizes.reduce((sum, s) => sum + s.y, 0) + gap * Math.max(0, sizes.length - 1);
+  return v(w + 2 * pad, h + 2 * pad);
+}
+
+function stackArrange(
+  props: { gap?: number; pad?: number },
+  r: { x: number; y: number; w: number },
+  kids: { size: { x: number; y: number } }[],
+): ReturnType<typeof rect>[] {
+  const gap = props.gap ?? 0;
+  const pad = props.pad ?? 0;
+  let y = r.y + pad;
+  return kids.map(({ size }) => {
+    const placed = rect(r.x + pad, y, Math.max(size.x, r.w - 2 * pad), size.y);
+    y += size.y + gap;
+    return placed;
+  });
+}

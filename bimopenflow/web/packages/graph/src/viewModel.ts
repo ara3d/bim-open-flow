@@ -3,8 +3,8 @@
 
 import type { NodeDescriptor, NodeStatus, PortType } from "@bimopenflow/contracts";
 import type { State } from "@bimopenflow/state";
-import { inlineParams, placeSlots, type CanvasParam } from "./canvasSlots.js";
-import { clampNodeSize, type Size } from "./canvasResize.js";
+import { inlineParams, type CanvasParam } from "./canvasSlots.js";
+import { fitNodeSize, NODE_WIDTH, NOTE_KIND } from "./nodeSize.js";
 import { upstreamIds } from "./graphPreview";
 import { nodeBadge, type NodeBadge } from "./nodeBadge.js";
 import { NO_PORT_RESULTS, type PortPeekView, type PortResultsView, type WireRows } from "./portResults.js";
@@ -65,68 +65,10 @@ export interface CanvasModel {
   readonly peek?: PortPeekView;
 }
 
-export const NODE_WIDTH = 184;
-/** Nodes with inline param slots get extra width so field values stay legible. */
-export const WIDE_NODE_WIDTH = 260;
-export const PORT_SPACING = 24;
-export const NODE_HEADER = 46;
-
-export function nodeWidth(params: readonly CanvasParam[]): number {
-  return params.length > 0 ? WIDE_NODE_WIDTH : NODE_WIDTH;
-}
-
-/** A comment pinned to the canvas (see NoteNode in BimOpenFlow.Nodes.Viz): no
- *  ports, one text param drawn as the whole card rather than a labelled row. */
-export const NOTE_KIND = "view.note";
-export const NOTE_WIDTH = 300;
-export const NOTE_LINE_H = 18;
-export const NOTE_MAX_LINES = 12;
-export const NOTE_PAD = 16;
-/** Rough characters per wrapped line at the note's width and font size; only
- *  used to size the card. canvasParts wraps the actual text precisely for
- *  painting, so a note is always at least as tall as it needs and at most
- *  NOTE_MAX_LINES tall (canvasParts then ellipsizes past that). */
-const NOTE_CHARS_PER_LINE = 34;
-
-/** Fixed width, height from an approximate wrap of `text` up to
- *  NOTE_MAX_LINES lines (one more line for an explicit line break). */
-export function noteHeight(text: string): number {
-  const paragraphs = text.split("\n");
-  const lines = paragraphs.reduce(
-    (sum, p) => sum + Math.max(1, Math.ceil(p.length / NOTE_CHARS_PER_LINE)),
-    0,
-  );
-  return NOTE_PAD * 2 + Math.min(Math.max(lines, 1), NOTE_MAX_LINES) * NOTE_LINE_H;
-}
-
-/** Node height grows with its densest port side, then with its param slots —
- *  each slot contributes the height its control kind needs. */
-export function nodeHeight(
-  inputCount: number,
-  outputCount: number,
-  params: readonly CanvasParam[] = [],
-): number {
-  const portsBottom = NODE_HEADER + Math.max(inputCount, outputCount, 1) * PORT_SPACING;
-  return placeSlots(params, portsBottom).bottom;
-}
-
-/** The fields of a card its default size is computed from. */
-type SizedNode = Pick<CanvasNode, "kind" | "inputs" | "outputs" | "params" | "noteText">;
-
-/** The size `node`'s content needs: its default size, and the smallest a
- *  resize may make it (TKT-124). */
-export function contentSize(node: SizedNode): Size {
-  return node.kind === NOTE_KIND
-    ? { w: NOTE_WIDTH, h: noteHeight(node.noteText ?? "") }
-    : { w: nodeWidth(node.params), h: nodeHeight(node.inputs.length, node.outputs.length, node.params) };
-}
-
-/** The size `node` is drawn at when `want` is asked for (a saved layout
- *  entry or a resize drag): see canvasResize.clampNodeSize. Only a note's
- *  height is resizable. */
-export function fitNodeSize(node: SizedNode, want: { readonly w?: number; readonly h?: number }): Size {
-  return clampNodeSize(contentSize(node), want, node.kind === NOTE_KIND);
-}
+export {
+  contentSize, fitNodeSize, NODE_HEADER, NODE_WIDTH, nodeHeight, nodeWidth, NOTE_KIND, NOTE_LINE_H,
+  NOTE_MAX_LINES, NOTE_PAD, NOTE_WIDTH, noteHeight, PORT_SPACING, WIDE_NODE_WIDTH,
+} from "./nodeSize.js";
 
 /** Deterministic grid position for the n-th node without saved layout. */
 export function defaultPosition(index: number): { x: number; y: number } {

@@ -20,7 +20,8 @@ import { calpha, cmix, fitText, rect, v, type Color, type Measure, type Painter,
 import { nodeTitle } from "./graphPreview";
 import { nodeStyleNames, type NodeStyleName } from "./nodeStyle.js";
 import { portY } from "./portGeometry.js";
-import { NODE_HEADER, PORT_SPACING, type CanvasNode } from "./viewModel.js";
+import { NODE_HEADER, PORT_SPACING } from "./nodeSize.js";
+import type { CanvasNode } from "./viewModel.js";
 
 /** Where the description line is drawn: on the header's second line, or in a
  *  strip hanging below the card. */

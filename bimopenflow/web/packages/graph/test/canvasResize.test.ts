@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { NodeDescriptor } from "@bimopenflow/contracts";
 import { createStore } from "@bimopenflow/state";
-import { clampNodeSize, MAX_NODE_SIZE, RESIZE_GRAB_RADIUS, resizeHandleHit } from "../src/canvasResize.js";
+import { RESIZE_GRAB_RADIUS, resizeHandleHit } from "../src/canvasResize.js";
+import { clampNodeSize, MAX_NODE_SIZE } from "../src/nodeSize.js";
 import { makeCanvasUpdate, MUTATING_INTENTS } from "../src/canvasIntents.js";
 import {
   buildCanvasModel,

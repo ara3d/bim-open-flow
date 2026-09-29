@@ -36,9 +36,11 @@ function setPosition(text: string, id: string, to: { x: number; y: number }): st
   pattern.lastIndex = layout;
   const match = pattern.exec(text);
   if (!match) {
-    // A node placed by defaultPosition: add its entry at the block's start.
+    // A node placed by defaultPosition: a new first entry, indented as the
+    // entry after it.
     const open = text.indexOf("{", layout) + 1;
-    return `${text.slice(0, open)} "${id}": { "x": ${Math.round(to.x)}, "y": ${Math.round(to.y)} },${text.slice(open)}`;
+    const indent = /^\r?\n[ \t]*/.exec(text.slice(open))?.[0] ?? " ";
+    return `${text.slice(0, open)}${indent}"${id}": { "x": ${Math.round(to.x)}, "y": ${Math.round(to.y)} },${text.slice(open)}`;
   }
   const replaced = `${match[1]}${Math.round(to.x)}${match[2]}${Math.round(to.y)}`;
   return text.slice(0, match.index) + replaced + text.slice(match.index + match[0].length);

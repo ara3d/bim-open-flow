@@ -5,8 +5,8 @@ import type { CanvasModel, CanvasNode } from './viewModel.js';
 type Positions = Record<string, { x: number; y: number }>;
 
 /** Space between two cards in one layer or column, and between layers. */
-export const LAYOUT_GAP_ACROSS = 48;
-export const LAYOUT_GAP_ALONG = 64;
+const LAYOUT_GAP_ACROSS = 48;
+const LAYOUT_GAP_ALONG = 64;
 const MARGIN = 24;
 
 /** NullPainter's measure: a footprint depends on which texts a card has, not
@@ -79,6 +79,17 @@ function cardCorners(footprintAt: Positions, boxes: ReadonlyMap<string, CardBox>
   }));
 }
 
+/** Least space tidyLayout keeps between two columns and between two cards
+ *  in a column: room for the wires, and no more, so a graph that already
+ *  fits is left alone. Positions it has to move land on a TIDY_GRID step. */
+const TIDY_GAP_COLUMN = 40;
+const TIDY_GAP_ROW = 24;
+const TIDY_GRID = 10;
+
+/** `stored` when it already clears `least`; otherwise the first TIDY_GRID
+ *  step at or after `least`. */
+const pushTo = (stored: number, least: number) => stored >= least ? stored : Math.ceil(least / TIDY_GRID) * TIDY_GRID;
+
 /** Tidies a laid-out graph without reordering it (TKT-110): cards whose left
  *  edges lie within `columnSnap` of each other share a column, left-aligned.
  *  Columns keep their left-to-right order and cards their top-to-bottom order;
@@ -86,7 +97,7 @@ function cardCorners(footprintAt: Positions, boxes: ReadonlyMap<string, CardBox>
  *  it right or down, so a graph with no overlap keeps its shape. */
 export function tidyLayout(model: CanvasModel, measure: Measure = defaultMeasure, columnSnap = 100): Positions {
   const boxes = footprints(model, measure);
-  const at = (node: CanvasNode) => ({ x: node.x + boxes.get(node.id)!.x, y: node.y + boxes.get(node.id)!.y });
+  const box = (node: CanvasNode) => boxes.get(node.id)!;
   const byX = [...model.nodes].sort((a, b) => a.x - b.x || a.y - b.y || a.id.localeCompare(b.id));
   const columns: CanvasNode[][] = [];
   for (const node of byX) {
@@ -97,14 +108,17 @@ export function tidyLayout(model: CanvasModel, measure: Measure = defaultMeasure
   const result: Positions = {};
   let right = -Infinity;
   for (const column of columns) {
-    const x = Math.max(Math.min(...column.map(n => at(n).x)), right + LAYOUT_GAP_ALONG);
+    // Card x of the column: its leftmost stored x, or the least x that clears
+    // the previous column's footprints.
+    const left = Math.max(...column.map(n => -box(n).x));
+    const x = pushTo(Math.min(...column.map(n => n.x)), right + TIDY_GAP_COLUMN + left);
     let bottom = -Infinity;
     for (const node of [...column].sort((a, b) => a.y - b.y || a.x - b.x || a.id.localeCompare(b.id))) {
-      const y = Math.max(at(node).y, bottom + LAYOUT_GAP_ACROSS);
+      const y = pushTo(node.y, bottom + TIDY_GAP_ROW - box(node).y);
       result[node.id] = { x, y };
-      bottom = y + boxes.get(node.id)!.h;
+      bottom = y + box(node).y + box(node).h;
     }
-    right = x + Math.max(...column.map(n => boxes.get(n.id)!.w));
+    right = x + Math.max(...column.map(n => box(n).x + box(n).w));
   }
-  return cardCorners(result, boxes);
+  return result;
 }

@@ -34,5 +34,6 @@ public static class FlowMcpServer
             .RegisterDocumentTools(services)
             .RegisterDatabaseTools(services)
             .RegisterEditTools(services)
-            .RegisterEvalTools(services);
+            .RegisterEvalTools(services)
+            .RegisterRepoDocTools(RepoDocs.Locate());
 }

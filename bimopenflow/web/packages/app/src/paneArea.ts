@@ -21,6 +21,7 @@ import {
   chartPaneOptions,
   choosePanes,
   firstTableOutput,
+  studioPanes,
   hasResults,
   type PaneKind,
 } from "./paneChoice.js";
@@ -81,6 +82,8 @@ interface ShownNode {
 }
 
 export interface PaneAreaDeps {
+  /** The DuckDB studio's pane set (see studioPanes): the table, plus a Chart
+   *  tab for chart.* nodes; the tab strip shows only when there is a choice. */
   tableOnly?: boolean;
   ctx: PaneContext;
   onSelect(ids: string[]): void;
@@ -134,7 +137,6 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
   header.append(pinBtn, source, backBtn);
   const tabs = root.ownerDocument.createElement("div");
   tabs.className = "bof-app-tabs";
-  tabs.hidden = deps.tableOnly ?? false;
   const body = root.ownerDocument.createElement("div");
   body.className = "bof-app-panebody";
   root.append(header, tabs, body);
@@ -267,7 +269,10 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
 
   const rebuildTabs = (kinds: PaneKind[]) => {
     tabs.textContent = "";
-    if (deps.tableOnly) { tabs.style.display = 'none'; return; }
+    // .bof-app-tabs sets display:flex, which beats the hidden attribute.
+    const noChoice = deps.tableOnly === true && kinds.length < 2;
+    tabs.style.display = noChoice ? "none" : "";
+    if (noChoice) return;
     for (const kind of kinds) {
       const tab = root.ownerDocument.createElement("div");
       tab.className = "bof-app-tab";
@@ -309,7 +314,7 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
         showEmpty("Select a node to see its data.");
         return;
       }
-      const kinds: PaneKind[] = deps.tableOnly ? ['table'] : choosePanes(next.desc);
+      const kinds: PaneKind[] = deps.tableOnly ? studioPanes(next.desc) : choosePanes(next.desc);
       // Recipe branches share the loaded model and renderer. Reapply their
       // complete recipe without reloading Snowdon on every node click.
       if (!sameNode && sameRecipeModel && activeKind === "view3d" && kinds.includes("view3d")) {

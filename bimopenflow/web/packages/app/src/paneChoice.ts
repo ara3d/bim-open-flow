@@ -61,6 +61,16 @@ export function choosePanes(desc: NodeDescriptor | undefined): PaneKind[] {
   return panes;
 }
 
+/**
+ * Panes the DuckDB studio offers (its table-only pane area): every node shows
+ * its table, and a chart.* node also gets a Chart tab, shown first (TKT-20).
+ */
+export function studioPanes(desc: NodeDescriptor | undefined): PaneKind[] {
+  return desc?.kind.startsWith("chart.") && firstTableOutput(desc)
+    ? ["chart", "table"]
+    : ["table"];
+}
+
 /** Comma list -> trimmed non-empty names; undefined when nothing remains. */
 function splitColumns(list: string | undefined): string[] | undefined {
   const parts = (list ?? "")

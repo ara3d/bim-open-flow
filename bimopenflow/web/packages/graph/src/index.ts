@@ -9,7 +9,7 @@ export type { CanvasInstance, SuggestionProvider } from "./instance.js";
 export { anchorId, canConnect, MUTATING_INTENTS, parseAnchorId } from "./canvasIntents.js";
 export type { AnchorDir, AnchorRef, CanvasHooks, CanvasIntent } from "./canvasIntents.js";
 export {
-  buildCanvasModel, defaultPosition, edgeId, freePosition, nodeHeight, nodeWidth,
+  buildCanvasModel, edgeId, freePosition, newNodeSize,
   NODE_HEADER, NODE_WIDTH, NOTE_KIND, PORT_SPACING, WIDE_NODE_WIDTH,
 } from "./viewModel.js";
 export type { CanvasEdge, CanvasModel, CanvasNode, CanvasPort, NodeBounds, OpenEditor } from "./viewModel.js";

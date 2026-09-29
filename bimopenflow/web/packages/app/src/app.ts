@@ -21,15 +21,14 @@ import { makePaneContext } from "./paneContext.js";
 import { modelPathFor } from "./modelRef.js";
 import { modelCatalog } from "./modelCatalog.js";
 import { createGraphEditor } from "@bimopenflow/graph";
-import { inlineParams } from "@bimopenflow/graph";
 import { autoLayout } from "@bimopenflow/graph";
-import { buildCanvasModel, freePosition, nodeHeight, nodeWidth } from "@bimopenflow/graph";
+import { buildCanvasModel } from "@bimopenflow/graph";
 import { freshCopyId, freshUntitledId } from "./ids.js";
 import { loadThemeChoice, saveThemeChoice } from "./themeChoice.js";
 import { setNodeStyle } from "@bimopenflow/graph";
 import { loadNodeStyleChoice, saveNodeStyleChoice } from "./nodeStyleChoice.js";
 import { installCanvasPalette, paletteClientPoint, paletteKeyOpens } from "./canvasPalette.js";
-import { addNodeActions } from "./addNodePlan.js";
+import { addNodeActions, freeSpot } from "./addNodePlan.js";
 import { createStepList, stepListModel } from "./stepList.js";
 import { createProblemsPanel } from "./problemsPanel.js";
 import { graphProblems } from "./graphProblems.js";
@@ -169,7 +168,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     onPick: (entry, at, wire) => {
       if (!currentId) return fail("Open a flow first");
       const state = store.getState();
-      const actions = addNodeActions(state, entry.desc, at ?? freeSpot(state, entry.desc),
+      const actions = addNodeActions(state, entry.desc, at ?? freeSpot(state, catalog, entry.desc),
         wire && entry.port ? { from: wire, port: entry.port } : undefined);
       dispatch({ type: "batch", actions });
     },
@@ -482,22 +481,11 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     }
   }
 
-  /** Size-aware placement: the first grid spot where this node's real
-   *  width/height (inline param slots included) overlaps nothing. */
-  function freeSpot(state: State, desc: NodeDescriptor): { x: number; y: number } {
-    const params = inlineParams(desc.params, {});
-    return freePosition(
-      buildCanvasModel(state, catalog).nodes,
-      nodeWidth(params),
-      nodeHeight(desc.inputs.length, desc.outputs.length, params),
-    );
-  }
-
   function addNode(desc: NodeDescriptor): void {
     if (!currentId) return fail("Open a flow first");
     const state = store.getState();
     // Add, place, and select are one undo step (the batch action).
-    dispatch({ type: "batch", actions: addNodeActions(state, desc, freeSpot(state, desc)) });
+    dispatch({ type: "batch", actions: addNodeActions(state, desc, freeSpot(state, catalog, desc)) });
     root.classList.remove("bof-app-catalog-open");
     shell.graphToolbar.querySelector("button")?.setAttribute("aria-expanded", "false");
   }

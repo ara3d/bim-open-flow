@@ -88,10 +88,6 @@ export function minNodeWidth(node: Pick<SizedNode, "kind" | "params">): number {
   return node.params.length > 0 ? WIDE_NODE_WIDTH : NODE_WIDTH;
 }
 
-/** The least width of a card with `params` (the app's placement uses it
- *  until it moves to nodeSize). */
-export const nodeWidth = (params: readonly CanvasParam[]): number => minNodeWidth({ kind: "", params });
-
 /** Width one port row needs: the input label from the left socket, the
  *  output label from the right one, with a gap between them. */
 function portRowWidth(m: Measure, input: string | undefined, output: string | undefined): number {

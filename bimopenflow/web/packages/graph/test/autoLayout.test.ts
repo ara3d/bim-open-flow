@@ -1,8 +1,11 @@
 import { NullPainter } from 'gratify';
 import { describe, expect, it } from 'vitest';
+import { initialState, reduce, type Action } from '@bimopenflow/state';
+import type { NodeDescriptor } from '@bimopenflow/contracts';
 import { autoLayout, tidyLayout } from '../src/autoLayout.js';
 import { nodeFootprint } from '../src/nodeRender.js';
-import type { CanvasModel, CanvasNode } from '../src/viewModel.js';
+import { MAX_CONTENT_WIDTH, NODE_WIDTH } from '../src/nodeSize.js';
+import { buildCanvasModel, type CanvasModel, type CanvasNode } from '../src/viewModel.js';
 
 const measure = new NullPainter().measure;
 const table = [{ name: 'table', type: 'Table' as const }];
@@ -66,5 +69,32 @@ describe('tidyLayout', () => {
     const stored = [card('a', 100, { x: 40, y: 40 }), card('b', 100, { x: 40, y: 400 }), card('c', 100, { x: 500, y: 40 })];
     const positions = tidyLayout({ nodes: stored, edges: [], selectedEdgeId: null, openEditor: null }, measure);
     expect(positions).toEqual({ a: { x: 40, y: 40 }, b: { x: 40, y: 400 }, c: { x: 500, y: 40 } });
+  });
+});
+
+describe('layout over content-sized cards (TKT-125)', () => {
+  const kind = (name: string, params: NodeDescriptor['params']): NodeDescriptor => ({
+    kind: name, version: 1, capability: 'Pure', params, description: 'Keeps the rows whose expression is true.',
+    inputs: [{ name: 'table', type: 'Table', optional: false }], outputs: [{ name: 'result', type: 'Table', optional: false }],
+  });
+  const catalog = new Map([
+    ['k.narrow', kind('k.narrow', [])],
+    ['k.sql', kind('k.sql', [{ name: 'sql', kind: 'Expression', default: 'SELECT category, count(*) AS n FROM elements GROUP BY category ORDER BY n DESC' }])],
+  ]);
+  const actions: Action[] = [
+    ...['a', 'b', 'c', 'd', 'e'].map((id, i): Action => ({ type: 'addNode', id, kind: i % 2 ? 'k.sql' : 'k.narrow', version: 1 })),
+    ...[['a', 'b'], ['a', 'c'], ['b', 'd'], ['c', 'd'], ['d', 'e']].map(([from, to]): Action => ({ type: 'connect', from: `${from}.result`, to: `${to}.table` })),
+  ];
+  const model = buildCanvasModel({ ...initialState, document: actions.reduce(reduce, initialState).document }, catalog, null);
+
+  it('lays cards of mixed real widths out without overlap', () => {
+    expect(new Set(model.nodes.map(n => n.w))).toEqual(new Set([NODE_WIDTH, MAX_CONTENT_WIDTH]));
+    for (const viewport of [{ width: 700, height: 750 }, { width: 1500, height: 500 }])
+      expect(overlaps(model.nodes, autoLayout(model, viewport))).toEqual([]);
+  });
+
+  it('tidies stacked content-sized cards apart', () => {
+    const stacked = model.nodes.map((n, i) => ({ ...n, x: 40 + 10 * i, y: 40 + 10 * i }));
+    expect(overlaps(stacked, tidyLayout({ ...model, nodes: stacked }))).toEqual([]);
   });
 });

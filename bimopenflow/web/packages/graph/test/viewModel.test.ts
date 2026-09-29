@@ -3,7 +3,6 @@ import type { NodeDescriptor } from "@bimopenflow/contracts";
 import { createStore } from "@bimopenflow/state";
 import {
   buildCanvasModel,
-  defaultPosition,
   edgeId,
   NODE_HEADER,
   nodeHeight,
@@ -58,14 +57,19 @@ describe("buildCanvasModel", () => {
     expect(buildCanvasModel(store.getState(), catalog).nodes[0]).toMatchObject({ x: 99, y: 99 });
   });
 
-  it("gives nodes without layout deterministic default positions", () => {
+  it("puts nodes without layout on free spots at their real size, clear of placed ones", () => {
     const store = createStore();
-    store.dispatch({ type: "addNode", id: "a", kind: "k.a", version: 1 });
-    store.dispatch({ type: "addNode", id: "b", kind: "k.b", version: 1 });
+    store.dispatch({ type: "addNode", id: "placed", kind: "k.a", version: 1 });
+    store.dispatch({ type: "setLayout", nodeId: "placed", layout: { x: 80, y: 80, w: 700 } });
+    for (const id of ["a_node_with_an_identifier_long_enough_to_widen_its_card", "b", "c"])
+      store.dispatch({ type: "addNode", id, kind: "k.b", version: 1 });
     const model = buildCanvasModel(store.getState(), catalog);
-    expect(model.nodes[0]).toMatchObject(defaultPosition(0));
-    expect(model.nodes[1]).toMatchObject(defaultPosition(1));
-    expect(defaultPosition(0)).not.toEqual(defaultPosition(1));
+    expect(buildCanvasModel(store.getState(), catalog).nodes.map(({ x, y }) => ({ x, y })))
+      .toEqual(model.nodes.map(({ x, y }) => ({ x, y })));
+    const boxes = model.nodes;
+    for (const [i, p] of boxes.entries())
+      for (const q of boxes.slice(i + 1))
+        expect(p.x < q.x + q.w && q.x < p.x + p.w && p.y < q.y + q.h && q.y < p.y + p.h, `${p.id} / ${q.id}`).toBe(false);
   });
 
   it("carries ports from the catalog and degrades unknown kinds to portless", () => {

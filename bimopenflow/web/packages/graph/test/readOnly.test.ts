@@ -114,6 +114,18 @@ describe("read-only canvas", () => {
     expect(store.getState().document.values["a"]).toBeUndefined();
   });
 
+  it("shows a viewer's hint instead of the editing gestures", () => {
+    const store = createStore();
+    const model = buildCanvasModel(store.getState(), catalog);
+    const hintOf = (instance: ReturnType<typeof createCanvasInstance>): string => {
+      const find = (e: Element): Element | undefined =>
+        e.key === "hint" ? e : e.children?.map(find).find(Boolean);
+      return (find(canvasView(model, instance))?.props as { text: string }).text;
+    };
+    expect(hintOf(createCanvasInstance({ document, readOnly: true }))).toBe("click = select · drag/wheel = pan/zoom");
+    expect(hintOf(createCanvasInstance({ document }))).toContain("Del = cut");
+  });
+
   it("island inputs are disabled, and the update drops every mutating intent", () => {
     const instance = createCanvasInstance({ document, readOnly: true });
     const element = slotElement({ nodeId: "a", param: { name: "name", kind: "Text", value: "x" }, w: 240, open: false, instance });

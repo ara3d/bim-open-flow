@@ -435,7 +435,9 @@ export function canvasView(model: CanvasModel, instance: CanvasInstance): Elemen
     onScreenLayer(
       Stack("hud", { pad: 10 }, [
         Label("hint", {
-          text: "drag node · drag socket = wire · click wire + Del = cut · drag/wheel = pan/zoom",
+          text: instance.readOnly
+            ? "click = select · drag/wheel = pan/zoom"
+            : "drag node · drag socket = wire · click wire + Del = cut · drag/wheel = pan/zoom",
           dim: true,
           size: 11,
         }),

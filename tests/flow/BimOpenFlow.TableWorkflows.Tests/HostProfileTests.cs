@@ -30,7 +30,7 @@ public sealed class HostProfileTests
         "sink.exportCsv", "sink.exportParquet", "sink.exportJson",
         "sink.exportXlsx", "sink.exportSqlite", "sink.exportDuckDb",
         // Viz pack
-        "chart.bar", "chart.line", "view.table", "view.colormap",
+        "chart.bar", "chart.line", "view.table", "view.colormap", "view.note",
         // Cherry-picked from the Bos pack
         "table.filter", "table.derive", "table.aggregate", "table.sort",
         // Relations pack

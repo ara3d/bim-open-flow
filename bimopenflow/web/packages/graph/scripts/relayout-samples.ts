@@ -4,7 +4,8 @@
 //
 //   npm run relayout-samples -- [--host http://127.0.0.1:5214] [--dry] [path-substring ...]
 //
-// Needs a running host for the node catalog. Rewrites only the x and y
+// Sizes cards from the committed docs/nodes.catalog.json, or from a running
+// host's catalog with --host (or BOF_HOST). Rewrites only the x and y
 // numbers of the layout entries, in place, so each file keeps its formatting;
 // the graph hash ignores layout, so golden files and run records stay valid.
 // A file with uncommitted changes is skipped, since another session owns it.
@@ -14,14 +15,14 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tidyLayout } from "../src/autoLayout.js";
-import { fetchCatalog, overlappingPairs, repoRoot, sampleGraphs, sampleModel } from "./sampleGraphs.js";
+import { committedCatalog, fetchCatalog, overlappingPairs, repoRoot, sampleGraphs, sampleModel } from "./sampleGraphs.js";
 
 const args = process.argv.slice(2);
 const option = (name: string) => {
   const i = args.indexOf(name);
   return i >= 0 ? args.splice(i, 2)[1] : undefined;
 };
-const host = option("--host") ?? process.env["BOF_HOST"] ?? "http://127.0.0.1:5214";
+const host = option("--host") ?? process.env["BOF_HOST"];
 const dry = args.includes("--dry");
 const filters = args.filter((a) => a !== "--dry");
 
@@ -53,7 +54,7 @@ const dirty = new Set(
     .map((line) => line.slice(3)),
 );
 
-const catalog = await fetchCatalog(host);
+const catalog = host === undefined ? committedCatalog() : await fetchCatalog(host);
 const texts = new Map<string, string>();
 // Workflow lists (samples/duckdb-analyses/workflows.json) are skipped: the
 // DuckDB studio lays each graph out afresh with autoLayout when it opens it.

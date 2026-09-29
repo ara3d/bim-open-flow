@@ -12,7 +12,6 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "test:layout": "vitest run --config vitest.layout.config.ts",
     "relayout-samples": "vite-node --config vitest.config.ts scripts/relayout-samples.ts --"
   },
   "dependencies": {

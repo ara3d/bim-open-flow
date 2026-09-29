@@ -70,6 +70,20 @@ describe("sidebar catalog", () => {
     expect(itemKinds(root)).toEqual(["table.select"]);
   });
 
+  it("shows a triangle that follows aria-expanded, including filter-opened packs", () => {
+    const { root, sidebar, search } = setup();
+    sidebar.setCatalog([desc("table.select"), desc("csv.read")]);
+    const triangle = (pack: string) =>
+      groupHeader(root, pack).querySelector(".bof-app-catalog-group-triangle")?.textContent;
+    expect(triangle("csv")).toBe("▸");
+    groupHeader(root, "csv").click();
+    expect(triangle("csv")).toBe("▾");
+    search.value = "select";
+    search.dispatchEvent(new Event("input"));
+    expect(groupHeader(root, "table").getAttribute("aria-expanded")).toBe("true");
+    expect(triangle("table")).toBe("▾");
+  });
+
   it("clearing the filter restores the packs the user had open before typing", () => {
     const { root, sidebar, search } = setup();
     sidebar.setCatalog([desc("table.select"), desc("csv.read"), desc("table.filter")]);

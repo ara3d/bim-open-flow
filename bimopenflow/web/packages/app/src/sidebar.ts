@@ -105,14 +105,16 @@ export function createSidebar(
       const header = doc.createElement("h4");
       header.className = "bof-app-catalog-group";
       header.setAttribute("aria-expanded", String(group.open));
+      const triangle = doc.createElement("span");
+      triangle.className = "bof-app-catalog-group-triangle";
+      triangle.textContent = group.open ? "▾" : "▸";
       const name = doc.createElement("span");
       name.className = "bof-app-catalog-group-name";
       name.textContent = group.pack;
       const count = doc.createElement("span");
       count.className = "bof-app-catalog-group-count";
       count.textContent = String(group.count);
-      header.appendChild(name);
-      header.appendChild(count);
+      header.append(triangle, name, count);
       header.addEventListener("click", () => {
         if (expanded.has(group.pack)) expanded.delete(group.pack);
         else expanded.add(group.pack);

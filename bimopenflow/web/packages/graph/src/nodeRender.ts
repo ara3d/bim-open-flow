@@ -15,12 +15,21 @@
 // the status on line 1, the id and then the description on line 2. The id
 // beside the title was tried first; a 184 px card with a badge on line 1 left
 // it one letter wide.
+//
+// Every text is fitted (gratify's fitText) to the room the card actually has
+// (TKT-125): the card's width comes from nodeSize.ts, which sizes it for its
+// texts measured with a fixed estimate, and a saved width can be narrower
+// than that. The 600-weight title is fitted to its room divided by
+// BOLD_WIDEN, since a Measure reports regular-weight widths.
 
 import { calpha, cmix, fitText, rect, v, type Color, type Measure, type Painter, type Rect } from "gratify";
 import { nodeTitle } from "./graphPreview";
 import { nodeStyleNames, type NodeStyleName } from "./nodeStyle.js";
 import { portY } from "./portGeometry.js";
-import { NODE_HEADER, PORT_SPACING } from "./nodeSize.js";
+import {
+  BOLD_WIDEN, CARD_GAP as GAP, CARD_PAD as PAD, ID_SIZE, NODE_HEADER, PORT_LABEL_INSET, PORT_LABEL_SIZE as PORT_SIZE,
+  PORT_SPACING, STATUS_DOT_ROOM, TITLE_SIZE,
+} from "./nodeSize.js";
 import type { CanvasNode } from "./viewModel.js";
 
 /** Where the description line is drawn: on the header's second line, or in a
@@ -47,22 +56,19 @@ export interface NodeCardLayout {
   readonly badge?: { text: string; x: number; y: number; size: number; align: "left" | "right" | "center" };
 }
 
-const PAD = 12;
 const SOCKET_RADIUS = 4.5;
-const PORT_SIZE = 13;
 const BADGE_SIZE = 10;
 const DESC_SIZE = 11;
 /** The header of today: a 17 px title on the first line, the 13 px id on the second. */
-const TALL_TITLE = { size: 17, y: 16 };
-const TALL_ID = { size: 13, y: NODE_HEADER - 9 };
+const TALL_TITLE = { size: TITLE_SIZE, y: 16 };
+const TALL_ID = { size: ID_SIZE, y: NODE_HEADER - 9 };
 /** The compact header: a 15 px title on line 1, the 11 px id and the
  *  description after it on line 2. */
 const COMPACT_TITLE = { size: 15, y: 14 };
 const COMPACT_ID_SIZE = 11;
 const COMPACT_LINE2_Y = 33;
-/** Share of the card width the id may take on the compact line 2. */
-const COMPACT_ID_SHARE = 0.4;
-const GAP = 6;
+/** Least room worth drawing the compact description in, after the id. */
+const COMPACT_DESC_MIN = 40;
 const FOOTER_H = 18;
 const FOOTER_GAP = 3;
 /** Share of the card width the status text may take. */
@@ -77,31 +83,36 @@ type Subtitle = NonNullable<NodeCardLayout["subtitle"]>;
 type Description = NonNullable<NodeCardLayout["description"]>;
 type Badge = NonNullable<NodeCardLayout["badge"]>;
 
+/** `text` in the 600-weight title font, fitted to `room`. */
+const fitTitle = (m: Measure, text: string, room: number, size: number): string =>
+  fitText(m, text, room / BOLD_WIDEN, size);
+
 /** Title on line 1 and the id on line 2, both left, at the sizes of today.
  *  The id stops short of a right-aligned badge of width `badgeW` on line 2. */
 function tallHeader(p: CanvasNode, m: Measure, titleRoom: number, badgeW: number): { title: Title; subtitle: Subtitle } {
   const idRoom = p.w - 2 * PAD - (badgeW > 0 ? badgeW + GAP : 0);
   return {
-    title: { text: fitText(m, nodeTitle(p.kind), titleRoom, TALL_TITLE.size), x: PAD, y: TALL_TITLE.y, size: TALL_TITLE.size, weight: 600 },
+    title: { text: fitTitle(m, nodeTitle(p.kind), titleRoom, TALL_TITLE.size), x: PAD, y: TALL_TITLE.y, size: TALL_TITLE.size, weight: 600 },
     subtitle: { text: fitText(m, p.id, idRoom, TALL_ID.size), x: PAD, y: TALL_ID.y, size: TALL_ID.size },
   };
 }
 
 /** Title on line 1 ending before `right`; the id and then the description
- *  on line 2. */
+ *  on line 2. The id comes first, since the card is sized to hold it; the
+ *  description takes what is left, and is left out below COMPACT_DESC_MIN. */
 function compactHeader(p: CanvasNode, m: Measure, right: number): Pick<NodeCardLayout, "title" | "subtitle" | "description"> {
   const title: Title = {
-    text: fitText(m, nodeTitle(p.kind), right - PAD, COMPACT_TITLE.size),
+    text: fitTitle(m, nodeTitle(p.kind), right - PAD, COMPACT_TITLE.size),
     x: PAD,
     y: COMPACT_TITLE.y,
     size: COMPACT_TITLE.size,
     weight: 600,
   };
-  const id = fitText(m, p.id, p.w * COMPACT_ID_SHARE, COMPACT_ID_SIZE);
+  const id = fitText(m, p.id, p.w - 2 * PAD, COMPACT_ID_SIZE);
   const subtitle: Subtitle = { text: id, x: PAD, y: COMPACT_LINE2_Y, size: COMPACT_ID_SIZE };
-  if (!p.description) return { title, subtitle };
   const x = PAD + m.text(id, COMPACT_ID_SIZE).x + 2 * GAP;
   const maxWidth = p.w - PAD - x;
+  if (!p.description || maxWidth < COMPACT_DESC_MIN) return { title, subtitle };
   const description: Description = {
     text: fitText(m, p.description, maxWidth, DESC_SIZE),
     x,
@@ -143,7 +154,7 @@ export function nodeCardLayout(props: CanvasNode, style: NodeStyleName, measure:
       // The card of today: dot at the top right, the badge under it, the
       // description in the hanging footer.
       const badge = rightBadge(p, m, TALL_ID.y);
-      const dotRoom = p.status ? 2 * PAD : 0;
+      const dotRoom = p.status ? STATUS_DOT_ROOM : 0;
       return {
         ...tallHeader(p, m, p.w - 2 * PAD - dotRoom, badgeWidth(m, badge)),
         ...footerDescription(p, m),
@@ -220,6 +231,35 @@ export function nodeFootprint(props: CanvasNode, measure: Measure): CardBox {
     w: Math.max(...boxes.map((b) => b.x + b.w)) - x,
     h: Math.max(...boxes.map((b) => b.y + b.h)) - y,
   };
+}
+
+/** How much of `room` two texts `a` and `b` wide on one line each get: both
+ *  whole when they fit; else the shorter one whole if it is under half, and
+ *  the longer one the rest; else half each. */
+export function shareRoom(a: number, b: number, room: number): [number, number] {
+  if (a + b <= room) return [a, b];
+  if (a <= room / 2) return [a, room - a];
+  if (b <= room / 2) return [room - b, b];
+  return [room / 2, room / 2];
+}
+
+/** Each port row's input and output label, fitted to the card's width: the
+ *  two labels of a row share it (shareRoom), a label alone takes it all. */
+export function portLabels(p: CanvasNode, m: Measure): { inputs: string[]; outputs: string[] } {
+  const w = (s: string | undefined) => (s === undefined ? 0 : m.text(s, PORT_SIZE).x);
+  const rows = Math.max(p.inputs.length, p.outputs.length);
+  const inputs: string[] = [];
+  const outputs: string[] = [];
+  for (let i = 0; i < rows; i++) {
+    const a = p.inputs[i]?.name;
+    const b = p.outputs[i]?.name;
+    const sides = (a === undefined ? PAD : PORT_LABEL_INSET) + (b === undefined ? PAD : PORT_LABEL_INSET);
+    const room = p.w - sides - (a !== undefined && b !== undefined ? 2 * GAP : 0);
+    const [ra, rb] = shareRoom(w(a), w(b), room);
+    if (a !== undefined) inputs.push(fitText(m, a, ra, PORT_SIZE));
+    if (b !== undefined) outputs.push(fitText(m, b, rb, PORT_SIZE));
+  }
+  return { inputs, outputs };
 }
 
 /** Card colours the part's style computes from hover, drag, and selection. */
@@ -302,15 +342,16 @@ export function renderNodeCard(
     painter.label(b.text, v(r.x + b.x, r.y + b.y), color, { align: b.align, size: b.size });
   }
 
-  p.inputs.forEach((port, i) => {
+  const labels = portLabels(p, painter.measure);
+  p.inputs.forEach((_port, i) => {
     const y = portY(r.y, i);
     painter.dot(v(r.x, y), SOCKET_RADIUS, colors.socket);
-    painter.label(port.name, v(r.x + 11, y), colors.dim, { align: "left", size: PORT_SIZE });
+    painter.label(labels.inputs[i]!, v(r.x + PORT_LABEL_INSET, y), colors.dim, { align: "left", size: PORT_SIZE });
   });
-  p.outputs.forEach((port, i) => {
+  p.outputs.forEach((_port, i) => {
     const y = portY(r.y, i);
     painter.dot(v(r.right, y), SOCKET_RADIUS, colors.socket);
-    painter.label(port.name, v(r.right - 11, y), colors.dim, { align: "right", size: PORT_SIZE });
+    painter.label(labels.outputs[i]!, v(r.right - PORT_LABEL_INSET, y), colors.dim, { align: "right", size: PORT_SIZE });
   });
   // A quiet separator between the port rows and the inline param slots.
   if (p.params.length > 0) {

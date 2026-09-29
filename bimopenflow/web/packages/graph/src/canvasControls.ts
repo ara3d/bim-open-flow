@@ -13,6 +13,7 @@ import {
   calpha,
   Color,
   Element,
+  fitText,
   GNode,
   Local,
   modal,
@@ -26,7 +27,10 @@ import type { ControlDescriptor, ParamKind, SuggestDescriptor } from "@bimopenfl
 import { displayScale, isNumericParam, numericDisplay, numericFromDisplay, numericLimits, numericValue, paramLabel } from "./numericParam";
 import { attachSuggestions } from "./suggestInput.js";
 import type { CanvasParam, SlotContext } from "./canvasSlots.js";
-import { COMPACT_SLOT_H, FIELD_SLOT_H } from "./canvasSlots.js";
+import {
+  COMPACT_INPUT_W, COMPACT_SLOT_H, ENUM_CHEVRON_ROOM, ENUM_LABEL_ROOM, ENUM_VALUE_INSET, FIELD_SLOT_H,
+  SLOT_LABEL_GAP, SLOT_LABEL_SIZE as LABEL_SIZE, SLOT_VALUE_SIZE as VALUE_SIZE, TOGGLE_W,
+} from "./canvasSlots.js";
 import { canvasThemes, currentCanvasTheme } from "./canvasTheme.js";
 import type { CanvasIntent } from "./canvasIntents.js";
 import { islandKey, styleIsland } from "./slotShared.js";
@@ -38,9 +42,6 @@ import {
   normalizeNumber,
   toDatetimeLocal,
 } from "./paramText.js";
-
-const LABEL_SIZE = 14;
-const VALUE_SIZE = 14;
 
 // ── Boolean: a toggle switch ─────────────────────────────────────────────────
 
@@ -58,7 +59,6 @@ interface BoolSlotStyle {
   knob: Color;
 }
 
-const TOGGLE_W = 26;
 const TOGGLE_H = 14;
 
 const BoolSlot = part<BoolSlotProps, BoolSlotStyle>("bof-slot-bool", {
@@ -71,7 +71,7 @@ const BoolSlot = part<BoolSlotProps, BoolSlotStyle>("bof-slot-bool", {
   }),
   render(node, painter, style) {
     const r = node.rect;
-    painter.label(node.props.name, v(r.x, r.center.y), style.label, {
+    painter.label(fitText(painter.measure, node.props.name, r.w - TOGGLE_W - SLOT_LABEL_GAP, LABEL_SIZE), v(r.x, r.center.y), style.label, {
       align: "left",
       size: LABEL_SIZE,
     });
@@ -198,13 +198,14 @@ const EnumSlot = part<EnumSlotProps, { label: Color; field: Color; edge: Color; 
     }),
     render(node, painter, style) {
       const r = node.rect;
-      painter.label(node.props.name, v(r.x, r.center.y), style.label, {
+      const field = enumFieldRect(node);
+      painter.label(fitText(painter.measure, node.props.name, field.x - r.x - SLOT_LABEL_GAP, LABEL_SIZE), v(r.x, r.center.y), style.label, {
         align: "left",
         size: LABEL_SIZE,
       });
-      const field = enumFieldRect(node);
       painter.box(field, 5, style.field, style.edge, 1);
-      painter.label(node.props.value || "—", v(field.x + 7, field.center.y), style.value, {
+      const value = fitText(painter.measure, node.props.value || "—", field.w - ENUM_VALUE_INSET - ENUM_CHEVRON_ROOM, VALUE_SIZE);
+      painter.label(value, v(field.x + ENUM_VALUE_INSET, field.center.y), style.value, {
         align: "left",
         size: VALUE_SIZE,
       });
@@ -241,7 +242,7 @@ export function dropdownSlot(ctx: SlotContext): Element {
 /** The enum's value field: right-aligned, leaving room for the label. */
 function enumFieldRect(node: GNode<EnumSlotProps>) {
   const r = node.rect;
-  const labelRoom = Math.min(r.w * 0.42, 86);
+  const labelRoom = Math.min(r.w * 0.42, ENUM_LABEL_ROOM);
   const w = r.w - labelRoom;
   return rect(r.right - w, r.y + 1, w, r.h - 2);
 }
@@ -382,13 +383,11 @@ function islandFor(props: IslandSlotProps): IslandEntry {
   return entry;
 }
 
-const COMPACT_INPUT_W = 96;
-
 const ColumnSlot = part<{ nodeId: string; param: CanvasParam; w: number; instance: CanvasInstance }, { label: Color }>('bof-slot-column', {
   size: p => v(p.w, COMPACT_SLOT_H),
   style: t => ({ label: t.textDim }),
   render(node, painter, style) {
-    painter.label(node.props.param.name, v(node.rect.x, node.rect.center.y), style.label, { align: 'left', size: LABEL_SIZE });
+    painter.label(fitText(painter.measure, node.props.param.name, node.rect.w, LABEL_SIZE), v(node.rect.x, node.rect.center.y), style.label, { align: 'left', size: LABEL_SIZE });
   },
   island(node) {
     const { nodeId, param, instance } = node.props;
@@ -403,13 +402,14 @@ const IslandSlot = part<IslandSlotProps, { label: Color }>("bof-slot-island", {
   style: (t, ch) => ({ label: t.mix(t.textDim, t.text, ch.hover) }),
   render(node, painter, style) {
     const r = node.rect;
+    const label = paramLabel(node.props.name, node.props.paramKind, node.props.control);
     if (node.props.layout === "compact") {
-      painter.label(paramLabel(node.props.name,node.props.paramKind,node.props.control), v(r.x, r.center.y), style.label, {
+      painter.label(fitText(painter.measure, label, r.w - COMPACT_INPUT_W - SLOT_LABEL_GAP, LABEL_SIZE), v(r.x, r.center.y), style.label, {
         align: "left",
         size: LABEL_SIZE,
       });
     } else {
-      painter.label(paramLabel(node.props.name,node.props.paramKind,node.props.control), v(r.x, r.y + 6), style.label, {
+      painter.label(fitText(painter.measure, label, r.w, LABEL_SIZE), v(r.x, r.y + 6), style.label, {
         align: "left",
         size: LABEL_SIZE,
       });

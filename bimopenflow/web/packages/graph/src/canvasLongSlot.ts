@@ -13,28 +13,43 @@
 // the transition into "open" — calling it every frame would overwrite
 // whatever the user is mid-typing.
 
-import { Element, GNode, Press, part, rect, v, Color, Measure, themeVersion } from "gratify";
+import { Element, fitText, GNode, Press, part, rect, v, Color, Measure, themeVersion } from "gratify";
 import type { CanvasIntent } from "./canvasIntents.js";
-import { LONG_TEXT_LINES, LONG_TEXT_SLOT_H, type SlotContext } from "./canvasSlots.js";
+import {
+  LONG_PREVIEW_PAD as PREVIEW_PAD, LONG_TEXT_LINES, LONG_TEXT_SLOT_H, SLOT_LABEL_SIZE as LABEL_SIZE,
+  SLOT_VALUE_SIZE as VALUE_SIZE, type SlotContext,
+} from "./canvasSlots.js";
 import { canvasThemes, currentCanvasTheme } from "./canvasTheme.js";
 import { createLongValueEditor, type LongValueEditor } from "./longValueEditor.js";
 import { paramLabel } from "./numericParam.js";
 import { islandKey, styleIsland } from "./slotShared.js";
 import type { CanvasInstance } from "./instance.js";
 
-const LABEL_SIZE = 14;
-const VALUE_SIZE = 14;
-
-/** Padding inside the preview box, both sides, subtracted from its width
- *  before fitText measures how much text fits. */
-const PREVIEW_PAD = 14;
-
 const LINE_H = 16;
+
+/** `words` with every word wider than `maxW` cut into pieces that each fit
+ *  (a file path or an identifier with no spaces), so no wrapped line is
+ *  wider than the box it is drawn in. */
+function breakLongWords(words: readonly string[], measure: Measure, maxW: number, size: number): string[] {
+  return words.flatMap((word) => {
+    if (measure.text(word, size).x <= maxW) return [word];
+    const pieces: string[] = [];
+    let rest = word;
+    while (rest.length > 0) {
+      let n = rest.length;
+      while (n > 1 && measure.text(rest.slice(0, n), size).x > maxW) n--;
+      pieces.push(rest.slice(0, n));
+      rest = rest.slice(n);
+    }
+    return pieces;
+  });
+}
 
 /** Greedy word-wrap of already-split `words` into at most `maxLines` lines
  *  that each fit `maxW`; the last line gets an ellipsis, shrunk a character
- *  at a time until it fits, when words remain past the cap. Returns the
- *  wrapped lines and whether every word was placed. */
+ *  at a time until it fits, when words remain past the cap. A word wider
+ *  than `maxW` is cut across lines. Returns the wrapped lines and whether
+ *  every word was placed. */
 function wrapWords(
   words: readonly string[],
   measure: Measure,
@@ -42,6 +57,7 @@ function wrapWords(
   size: number,
   maxLines: number,
 ): { lines: string[]; complete: boolean } {
+  words = breakLongWords(words, measure, maxW, size);
   const lines: string[] = [];
   let line = "";
   let i = 0;
@@ -165,7 +181,7 @@ const LongSlot = part<SlotContext, LongSlotStyle>("bof-slot-long", {
   render(node, painter, style) {
     const r = node.rect;
     const { param } = node.props;
-    painter.label(paramLabel(param.name, param.kind, param.control), v(r.x, r.y + 6), style.label, {
+    painter.label(fitText(painter.measure, paramLabel(param.name, param.kind, param.control), r.w, LABEL_SIZE), v(r.x, r.y + 6), style.label, {
       align: "left",
       size: LABEL_SIZE,
     });

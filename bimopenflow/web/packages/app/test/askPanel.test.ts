@@ -117,6 +117,24 @@ describe("mountAskPanel: sending a request", () => {
     expect(root.textContent).toContain("Added the filter.");
     expect(onBuilt).toHaveBeenCalledWith("snowdon-doors");
   });
+
+  // TKT-127: a question about the toolkit is answered in text; the open flow is left alone.
+  it("shows a text-only answer as a reply and does not reload the open flow", async () => {
+    const fetchFn = (async () => sseResponse([
+      'data: {"type":"start","analysisId":"snowdon-doors","model":"claude-haiku"}\n\n',
+      'data: {"type":"tool","name":"searchDocs","args":{"query":"BOS"},"ok":true}\n\n',
+      'data: {"type":"done","built":false,"verified":false,"analysisId":"snowdon-doors","turns":2,"text":"BOS is BIM Open Schema (from docs/OVERVIEW.md)."}\n\n',
+    ])) as typeof fetch;
+    const { root, onBuilt } = await mount(fetchFn, () => "snowdon-doors");
+    const input = root.querySelector<HTMLInputElement>("input")!;
+    input.value = "What is BOS?";
+    root.querySelector("form")!.dispatchEvent(new Event("submit", { cancelable: true }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const reply = root.querySelector(".bof-ask-done");
+    expect(reply?.textContent).toBe("Answered in 2 turns: BOS is BIM Open Schema (from docs/OVERVIEW.md).");
+    expect(root.querySelector(".bof-ask-bad")).toBeNull();
+    expect(onBuilt).not.toHaveBeenCalled();
+  });
 });
 
 // TKT-112: the panel docks in the shell's right column with a fixed height.

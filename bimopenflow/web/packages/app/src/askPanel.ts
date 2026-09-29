@@ -74,7 +74,7 @@ export async function mountAskPanel(root: HTMLElement, options: AskPanelOptions)
   toggle.title = `Model: ${info.model}${info.provider ? ` (${info.provider})` : ''}`;
   const input = doc.createElement('input');
   input.type = 'text';
-  input.placeholder = 'Ask Claude to edit this flow…';
+  input.placeholder = 'Ask Claude to edit this flow, or about the toolkit…';
   input.setAttribute('aria-label', 'Ask for an edit to the open flow');
   input.autocomplete = 'off';
   const button = doc.createElement('button');

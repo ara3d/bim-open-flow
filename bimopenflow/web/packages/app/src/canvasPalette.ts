@@ -1,23 +1,48 @@
 // The canvas palette (TKT-96): a searchable list of node kinds opened at the
-// cursor, by a right-click on empty canvas or by a wire dropped there. It
-// only reports the pick; adding the node is the caller's store batch.
+// cursor, by a right-click on empty canvas, by a wire dropped there, or by
+// Space over the canvas (TKT-120). It only reports the pick; adding the node
+// is the caller's store batch.
 
 import type { NodeDescriptor, PortType } from "@bimopenflow/contracts";
 import type { AnchorRef } from "@bimopenflow/graph";
 import { filterPalette, type PaletteEntry } from "./paletteFilter.js";
 
+type Point = { x: number; y: number };
+
 export interface CanvasPaletteDeps {
   readonly getCatalog: () => readonly NodeDescriptor[];
-  /** `at` is the world point passed to `open`; `wire` the dropped wire's anchor. */
-  readonly onPick: (entry: PaletteEntry, at: { x: number; y: number }, wire?: AnchorRef) => void;
+  /** `at` is the world point passed to `open`, undefined when the caller places the node;
+   *  `wire` the dropped wire's anchor. */
+  readonly onPick: (entry: PaletteEntry, at: Point | undefined, wire?: AnchorRef) => void;
 }
 
 export interface CanvasPalette {
-  /** Opens at a CSS-pixel position; `at` is the world point a picked node is placed at. */
-  open(client: { x: number; y: number }, at: { x: number; y: number }, wire?: { from: AnchorRef; type: PortType }): void;
+  /** Opens at a CSS-pixel position; `at` is the world point a picked node is placed at,
+   *  undefined to leave placement to `onPick`. */
+  open(client: Point, at: Point | undefined, wire?: { from: AnchorRef; type: PortType }): void;
   close(): void;
   isOpen(): boolean;
   dispose(): void;
+}
+
+/** The key that opens the palette (KeyboardEvent.key) and its name in the hint. Space does not
+ *  pan (panning is a drag) and gratify takes it only for a focused part, which the canvas has none of. */
+export const PALETTE_KEY = " ";
+export const PALETTE_KEY_NAME = "Space";
+
+/** True when `event` should open the palette: the bare key, pressed on the canvas or on the page
+ *  itself, so a focused field, button, or panel (the Ask box, the Nodes filter) keeps its own Space. */
+export function paletteKeyOpens(event: KeyboardEvent, canvas: HTMLCanvasElement): boolean {
+  if (event.key !== PALETTE_KEY || event.repeat || event.ctrlKey || event.metaKey || event.altKey) return false;
+  const doc = canvas.ownerDocument;
+  return event.target === canvas || event.target === doc.body || event.target === doc.documentElement;
+}
+
+/** Where the keyboard opens the palette: the pointer when it is over the canvas, else the canvas centre. */
+export function paletteClientPoint(canvas: HTMLCanvasElement, pointer: Point | null): Point {
+  const r = canvas.getBoundingClientRect();
+  if (pointer && pointer.x >= r.left && pointer.x <= r.right && pointer.y >= r.top && pointer.y <= r.bottom) return pointer;
+  return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
 }
 
 const STYLE_ID = "bof-app-palette-styles";
@@ -54,7 +79,7 @@ interface OpenState {
   readonly root: HTMLDivElement;
   readonly input: HTMLInputElement;
   readonly list: HTMLDivElement;
-  readonly at: { x: number; y: number };
+  readonly at: Point | undefined;
   readonly wire: Wire | undefined;
   readonly previousFocus: HTMLElement | null;
   entries: PaletteEntry[];
@@ -163,7 +188,7 @@ export function installCanvasPalette(canvas: HTMLCanvasElement, deps: CanvasPale
     const input = document.createElement("input");
     input.type = "search";
     input.className = "bof-app-palette-search";
-    input.placeholder = wire ? "Add a node for this wire" : "Add a node";
+    input.placeholder = wire ? "Add a node for this wire" : `Add a node (${PALETTE_KEY_NAME})`;
     input.autocomplete = "off";
     input.setAttribute("aria-label", input.placeholder);
     input.setAttribute("aria-controls", LIST_ID);

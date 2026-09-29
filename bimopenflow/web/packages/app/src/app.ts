@@ -28,7 +28,7 @@ import { freshCopyId, freshUntitledId } from "./ids.js";
 import { loadThemeChoice, saveThemeChoice } from "./themeChoice.js";
 import { setNodeStyle } from "@bimopenflow/graph";
 import { loadNodeStyleChoice, saveNodeStyleChoice } from "./nodeStyleChoice.js";
-import { installCanvasPalette } from "./canvasPalette.js";
+import { installCanvasPalette, paletteClientPoint, paletteKeyOpens } from "./canvasPalette.js";
 import { addNodeActions } from "./addNodePlan.js";
 import { createStepList, stepListModel } from "./stepList.js";
 import { createProblemsPanel } from "./problemsPanel.js";
@@ -159,14 +159,17 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   });
 
   // ── canvas ─────────────────────────────────────────────────────────────────
-  // The palette (TKT-96): right-click on empty canvas, or a wire dropped
-  // there, offers kinds; a pick adds, places, selects, and wires the node as
-  // one undo step through the batch action.
+  // The palette (TKT-96): right-click on empty canvas, a wire dropped there,
+  // or Space (TKT-120) offers kinds; a pick adds, places, selects, and wires
+  // the node as one undo step through the batch action. Space has no world
+  // point (the graph package keeps its client-to-world conversion private),
+  // so its pick lands on the first free spot, as the Nodes tab's add does.
   const palette = installCanvasPalette(shell.canvas, {
     getCatalog: () => [...catalog.values()],
     onPick: (entry, at, wire) => {
       if (!currentId) return fail("Open a flow first");
-      const actions = addNodeActions(store.getState(), entry.desc, at,
+      const state = store.getState();
+      const actions = addNodeActions(state, entry.desc, at ?? freeSpot(state, entry.desc),
         wire && entry.port ? { from: wire, port: entry.port } : undefined);
       dispatch({ type: "batch", actions });
     },
@@ -466,28 +469,42 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     }
   }
 
-  function addNode(desc: NodeDescriptor): void {
-    if (!currentId) return fail("Open a flow first");
-    const state = store.getState();
-    // Size-aware placement: the first grid spot where this node's real
-    // width/height (inline param slots included) overlaps nothing. Add,
-    // place, and select are one undo step (the batch action).
+  /** Size-aware placement: the first grid spot where this node's real
+   *  width/height (inline param slots included) overlaps nothing. */
+  function freeSpot(state: State, desc: NodeDescriptor): { x: number; y: number } {
     const params = inlineParams(desc.params, {});
-    const position = freePosition(
+    return freePosition(
       buildCanvasModel(state, catalog).nodes,
       nodeWidth(params),
       nodeHeight(desc.inputs.length, desc.outputs.length, params),
     );
-    dispatch({ type: "batch", actions: addNodeActions(state, desc, position) });
+  }
+
+  function addNode(desc: NodeDescriptor): void {
+    if (!currentId) return fail("Open a flow first");
+    const state = store.getState();
+    // Add, place, and select are one undo step (the batch action).
+    dispatch({ type: "batch", actions: addNodeActions(state, desc, freeSpot(state, desc)) });
     root.classList.remove("bof-app-catalog-open");
     shell.graphToolbar.querySelector("button")?.setAttribute("aria-expanded", "false");
   }
 
-  // Undo/redo shortcuts (skipped while typing in a field).
+  // The last pointer position over the canvas, where Space opens the palette.
+  let canvasPointer: { x: number; y: number } | null = null;
+  const onCanvasPointerMove = (e: PointerEvent) => { canvasPointer = { x: e.clientX, y: e.clientY }; };
+  const onCanvasPointerLeave = () => { canvasPointer = null; };
+  shell.canvas.addEventListener("pointermove", onCanvasPointerMove);
+  shell.canvas.addEventListener("pointerleave", onCanvasPointerLeave);
+
+  // Undo/redo and palette shortcuts (skipped while typing in a field).
   const onKeyDown = (e: KeyboardEvent) => {
     const target = e.target as HTMLElement | null;
     if (target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+    if (paletteKeyOpens(e, shell.canvas)) {
+      if (!currentId || palette.isOpen()) return;
+      e.preventDefault(); // Space would otherwise scroll the page
+      palette.open(paletteClientPoint(shell.canvas, canvasPointer), undefined);
+    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
       dispatch({ type: e.shiftKey ? "redo" : "undo" });
       e.preventDefault();
     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
@@ -601,6 +618,8 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       shell.dispose();
       sessionReporter.dispose();
       root.ownerDocument.removeEventListener("keydown", onKeyDown);
+      shell.canvas.removeEventListener("pointermove", onCanvasPointerMove);
+      shell.canvas.removeEventListener("pointerleave", onCanvasPointerLeave);
       root.ownerDocument.removeEventListener("visibilitychange", onVisibilityChange);
     },
   };

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import type { NodeDescriptor, PortDescriptor, PortType } from "@bimopenflow/contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { installCanvasPalette } from "../src/canvasPalette.js";
+import { installCanvasPalette, paletteClientPoint, paletteKeyOpens } from "../src/canvasPalette.js";
 import { parseAnchorId } from "@bimopenflow/graph";
 
 const port = (name: string, type: PortType): PortDescriptor => ({ name, type, optional: false });
@@ -148,5 +148,52 @@ describe("canvas palette", () => {
     expect(document.querySelector(".bof-app-palette")).toBeNull();
     expect(documentRemove.mock.calls.map(([name]) => name)).toEqual(["pointerdown"]);
     expect(windowRemove.mock.calls.map(([name]) => name)).toEqual(["blur", "resize"]);
+  });
+});
+
+describe("palette key", () => {
+  const press = (target: EventTarget, init: KeyboardEventInit = {}) => {
+    let opens = false;
+    const canvas = document.querySelector("canvas")!;
+    const listener = (e: Event) => { opens = paletteKeyOpens(e as KeyboardEvent, canvas); };
+    document.addEventListener("keydown", listener);
+    target.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, ...init }));
+    document.removeEventListener("keydown", listener);
+    return opens;
+  };
+
+  it("opens on a bare Space on the canvas or the page", () => {
+    const { canvas } = setup();
+    expect(press(canvas)).toBe(true);
+    expect(press(document.body)).toBe(true);
+  });
+
+  it("leaves Space to fields, buttons, panels, modifiers, and auto-repeat", () => {
+    const { canvas } = setup();
+    for (const tag of ["input", "textarea", "select", "button", "div"]) {
+      const el = document.createElement(tag);
+      document.body.append(el);
+      expect(press(el), tag).toBe(false);
+    }
+    expect(press(canvas, { ctrlKey: true })).toBe(false);
+    expect(press(canvas, { repeat: true })).toBe(false);
+    expect(press(canvas, { key: "a" })).toBe(false);
+  });
+
+  it("opens at the pointer over the canvas, else at the canvas centre", () => {
+    const { canvas } = setup();
+    vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue(
+      { left: 100, top: 50, right: 500, bottom: 350, width: 400, height: 300 } as DOMRect);
+    expect(paletteClientPoint(canvas, { x: 150, y: 60 })).toEqual({ x: 150, y: 60 });
+    expect(paletteClientPoint(canvas, { x: 20, y: 60 })).toEqual({ x: 300, y: 200 });
+    expect(paletteClientPoint(canvas, null)).toEqual({ x: 300, y: 200 });
+  });
+
+  it("names the key in the search placeholder, and passes no point when opened without one", () => {
+    const { palette, input, key, onPick } = setup();
+    palette.open({ x: 0, y: 0 }, undefined);
+    expect(input().placeholder).toBe("Add a node (Space)");
+    key("Enter");
+    expect(onPick).toHaveBeenCalledExactlyOnceWith({ desc: catalog[1] }, undefined, undefined);
   });
 });

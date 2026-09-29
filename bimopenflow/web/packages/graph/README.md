@@ -31,15 +31,28 @@ npm run typecheck -w @bimopenflow/graph
 
 Flat `src/`, one concern per file, the names the studio used:
 
-- `canvasEditor.ts` mounts the gratify runtime on a `<canvas>` and syncs it with the store; `canvasIntents.ts` is the intent vocabulary and update function; `canvasParts.ts` the surface, node, wire, and rubber-wire parts.
+- `canvasEditor.ts` mounts the gratify runtime on a `<canvas>` and syncs it with the store (`createGraphEditor`, its options, `fit`, `setTheme`, `results`); `instance.ts` is the state one mount owns (islands, editors, dropdown flags, dispatch, suggestion provider); `canvasIntents.ts` is the intent vocabulary and update function, with the read-only guard; `canvasParts.ts` the surface, node, wire, and rubber-wire parts, and `nodeRender.ts` / `nodeStyle.ts` the node card in its four styles.
 - `viewModel.ts` turns store state and the node catalog into what the canvas draws; `canvasSlots.ts`, `slotRegistry.ts`, `slotShared.ts`, `canvasControls.ts`, `canvasLongSlot.ts`, `longValueEditor.ts`, `graphWidgets.ts` are the inline parameter controls.
 - `portResults.ts`, `portGeometry.ts`, `portHover.ts`, `peekCard.ts`, `peekWiring.ts` are wire row counts and peeks.
 - `nodeBadge.ts`, `upstreamEdges.ts`, `selectionBorder.ts`, `nodeContextMenu.ts`, `autoLayout.ts`, `graphPreview.ts`, `canvasTheme.ts` and the small text helpers.
 - `gratifyWidgets.ts`, `gratifyRangeMath.ts`: copies of gratify's example slider and range, planned debt until TKT-23.
 
+## Read-only mode
+
+`createGraphEditor(canvas, { store, catalog, onError, readOnly: true })` gives a
+viewer: it pans, zooms, hovers, and selects, and nothing changes the document.
+`makeCanvasUpdate` drops every mutating intent, and the parts hide the gestures
+(no wire drag, no move, no dropdown, disabled inputs, no context menu).
+
+## Page-wide state that remains
+
+The canvas theme (gratify's tokens are process-wide) and the node card style
+(`nodeStyle.ts`) are page-wide by design: `setTheme` on any editor changes every
+canvas on the page. A per-runtime theme needs a token set in gratify's runtime.
+
 ## Status
 
-Building apart: a copy of the studio's canvas cluster at commit 3e4a699 while
-the Editor UX wave and TKT-12 keep editing the studio's copy. The plan's G7
-replaces the studio's copy with this package. Per-instance state and the
-read-only mode land here first.
+Built (TKT-94, 2026-09-28): the studio mounts this package and the notebook
+mounts it read-only in every graph cell. Planned debt: `gratifyWidgets.ts` and
+`gratifyRangeMath.ts` are copies of gratify's example slider and range until
+TKT-23 rebuilds them as this package's own parts.

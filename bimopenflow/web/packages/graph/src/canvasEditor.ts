@@ -15,6 +15,7 @@ import { islandKey } from "./slotShared.js";
 import { buildCanvasModel, NOTE_KIND, type CanvasModel, type NodeBounds } from "./viewModel.js";
 import { animateSelection } from "./selectionBorder.js";
 import { installNodeContextMenu } from "./nodeContextMenu.js";
+import { installCanvasFocus } from "./canvasFocus.js";
 import { createPeekWiring, type PeekWiring } from "./peekWiring.js";
 import { NO_PORT_RESULTS, type PortResultsView, type ReadPort } from "./portResults.js";
 
@@ -145,6 +146,7 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
   // fall back to a static look under prefers-reduced-motion.
   let awakeUntil = 0;
   let holdRequested = true; // cover the very first frames after mount
+  const disposeFocus = installCanvasFocus(canvas); // before mount: focus moves first
   const runtime: Runtime<CanvasModel, CanvasIntent> = mount(canvas, {
     init: model(),
     update: makeCanvasUpdate(store, onError, getPreview, {
@@ -260,6 +262,7 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
       unsubscribe();
       wiring?.dispose();
       disposeContextMenu();
+      disposeFocus();
       canvas.removeEventListener("dblclick", onDoubleClick);
       pruneInstance(instance, new Set());
       instance.dispatch = () => {};

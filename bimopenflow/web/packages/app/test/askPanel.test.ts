@@ -1,7 +1,8 @@
-// TKT-84: the editor's Ask panel mounts only when the host answers
+// TKT-84 and TKT-112: the editor's Ask panel mounts only when the host answers
 // /api/ask/model, and edits the OPEN flow rather than a freshly named one.
 import { describe, expect, it, vi } from "vitest";
-import { mountAskPanel } from "../src/askPanel.js";
+import { ASK_DEFAULT_HEIGHT, clampAskHeight, mountAskPanel } from "../src/askPanel.js";
+import { buildShell, type Shell } from "../src/shell.js";
 import type { HostStatusSource } from "../src/hostStatus.js";
 
 /** A minimal HostStatusSource whose fetch is the one under test; the panel
@@ -115,5 +116,94 @@ describe("mountAskPanel: sending a request", () => {
     expect(root.textContent).toContain("setParam");
     expect(root.textContent).toContain("Added the filter.");
     expect(onBuilt).toHaveBeenCalledWith("snowdon-doors");
+  });
+});
+
+// TKT-112: the panel docks in the shell's right column with a fixed height.
+describe("mountAskPanel: docked in the right column", () => {
+  const info = { model: "claude-haiku", configured: true, problem: null };
+
+  function shellFetch(frames: string[]): typeof fetch {
+    return (async (url: any) => {
+      if (String(url).endsWith("/api/ask/model")) return new Response(JSON.stringify(info), { status: 200 });
+      return sseResponse(frames);
+    }) as typeof fetch;
+  }
+
+  async function shellWithPanel(fetchFn: typeof fetch) {
+    localStorage.clear();
+    document.body.textContent = "";
+    const root = document.createElement("div");
+    document.body.append(root);
+    const shell = buildShell(root);
+    const panel = await mountAskPanel(shell.askHost, {
+      host: hostWith(fetchFn), getAnalysisId: () => "a1", onBuilt: () => {}, onError: () => {},
+    });
+    return { root, shell, panel };
+  }
+
+  const rect = (el: HTMLElement) => {
+    const { top, left, width, height } = el.getBoundingClientRect();
+    return { top, left, width, height };
+  };
+  const boxes = (shell: Shell) => ({ canvas: rect(shell.canvasHost), panes: rect(shell.paneEl) });
+
+  it("leaves the right column empty above the panes when the host has no /api/ask", async () => {
+    const { shell } = await shellWithPanel((async () => new Response("", { status: 404 })) as typeof fetch);
+    expect(shell.askHost.children).toHaveLength(0);
+    expect(shell.askHost.nextElementSibling).toBe(shell.paneEl);
+    shell.dispose();
+  });
+
+  it("sits above the pane area, not over the layout, at the default height", async () => {
+    const { shell } = await shellWithPanel(shellFetch([]));
+    const panelEl = shell.askHost.querySelector<HTMLElement>(".bof-ask-panel")!;
+    expect(panelEl).not.toBeNull();
+    expect(shell.canvasHost.querySelector(".bof-ask-panel")).toBeNull();
+    expect(shell.paneEl.querySelector(".bof-ask-panel")).toBeNull();
+    expect(panelEl.style.getPropertyValue("--bof-ask-height")).toBe(`${ASK_DEFAULT_HEIGHT}px`);
+    shell.dispose();
+  });
+
+  it("twenty Ask events leave the canvas, the panes, and the panel height unchanged", async () => {
+    const frames = Array.from({ length: 20 }, (_, i) =>
+      `data: {"type":"text","text":"Line ${i} of a long streamed answer."}\n\n`);
+    const { shell } = await shellWithPanel(shellFetch(frames));
+    const panelEl = shell.askHost.querySelector<HTMLElement>(".bof-ask-panel")!;
+    const before = { ...boxes(shell), height: panelEl.style.getPropertyValue("--bof-ask-height") };
+    const input = panelEl.querySelector<HTMLInputElement>("input")!;
+    input.value = "explain this flow";
+    panelEl.querySelector("form")!.dispatchEvent(new Event("submit", { cancelable: true }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(panelEl.querySelectorAll(".bof-ask-agent")).toHaveLength(20);
+    // jsdom has no layout engine, so the boxes are compared as reported; the
+    // panel's height is the property that decides them in a real browser.
+    expect({ ...boxes(shell), height: panelEl.style.getPropertyValue("--bof-ask-height") }).toEqual(before);
+    shell.dispose();
+  });
+
+  it("restores a saved height and collapsed state", async () => {
+    localStorage.clear();
+    localStorage.setItem("bof-ask-height", "320");
+    localStorage.setItem("bof-ask-collapsed", "true");
+    const root = document.createElement("div");
+    await mountAskPanel(root, { host: hostWith(shellFetch([])), getAnalysisId: () => "a1", onBuilt: () => {}, onError: () => {} });
+    const panelEl = root.querySelector<HTMLElement>(".bof-ask-panel")!;
+    expect(panelEl.style.getPropertyValue("--bof-ask-height")).toBe("320px");
+    expect(panelEl.classList.contains("bof-ask-collapsed")).toBe(true);
+    expect(panelEl.querySelector<HTMLElement>(".bof-ask-log")!.hidden).toBe(true);
+    expect(panelEl.querySelector("input")).not.toBeNull();
+    localStorage.clear();
+  });
+});
+
+describe("clampAskHeight", () => {
+  it("keeps room for the panes below", () => {
+    expect(clampAskHeight(900, 800)).toBe(560);
+    expect(clampAskHeight(10, 800)).toBe(96);
+    expect(clampAskHeight(200, 800)).toBe(200);
+  });
+  it("applies only the lower bound before the column is laid out", () => {
+    expect(clampAskHeight(900, 0)).toBe(900);
   });
 });

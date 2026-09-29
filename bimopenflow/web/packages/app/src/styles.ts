@@ -92,6 +92,10 @@ html, body { margin: 0; height: 100%; }
   position: fixed; top: 0; bottom: 0; width: 2px;
   background: var(--bof-app-accent); z-index: 50; pointer-events: none;
 }
+.bof-app-right-column { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.bof-app-ask-host { flex: none; min-width: 0; }
+.bof-app-ask-host:empty { display: none; }
+.bof-app-right-column > .bof-app-panearea { flex: 1 1 0; }
 .bof-app-panearea {
   display: flex; flex-direction: column; min-height: 0; min-width: 0;
   background: var(--bof-app-surface);

@@ -558,9 +558,10 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
 
   // TKT-84: an Ask panel that edits the open flow, shown only when the host
   // answers /api/ask (mountAskPanel probes and mounts nothing otherwise).
+  // TKT-112: it docks at the top of the right column, above the pane tabs.
   let askPanel: AskPanel | undefined;
   let askPanelDisposed = false;
-  void mountAskPanel(root, {
+  void mountAskPanel(shell.askHost, {
     host,
     getAnalysisId: () => currentId ?? undefined,
     onBuilt: async (id) => { await refreshAnalyses(); await openAnalysis(id); },

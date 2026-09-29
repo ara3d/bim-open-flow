@@ -1,5 +1,6 @@
-// The shell layout: topbar over sidebar | splitter | canvas | splitter | pane
-// area. Plain DOM under the bof-app- prefix. Splitters drag a ghost line and
+// The shell layout: topbar over sidebar | splitter | canvas | splitter | right
+// column, where the right column stacks an Ask host (empty unless the host
+// has /api/ask, TKT-112) over the pane area. Plain DOM under the bof-app- prefix. Splitters drag a ghost line and
 // apply the column width once on release — resizing the columns live would
 // resize the <canvas> bitmap on every pointermove, which clears it until the
 // next gratify frame and makes the canvas flash. Widths persist per splitter
@@ -17,6 +18,9 @@ export interface Shell {
    *  problems strip) mount here so they cover the canvas and nothing else. */
   canvasHost: HTMLElement;
   paneEl: HTMLElement;
+  /** Top of the right column, above the pane area. Empty (and so taking no
+   *  room) until the Ask panel mounts into it. */
+  askHost: HTMLElement;
   graphToolbar: HTMLElement;
   dispose(): void;
 }
@@ -98,9 +102,14 @@ export function buildShell(root: HTMLElement, graphDemo = false): Shell {
   rightSplitter.className = "bof-app-splitter";
   installSplitter(rightSplitter, root, right);
 
+  const rightColumn = doc.createElement("div");
+  rightColumn.className = "bof-app-right-column";
+  const askHost = doc.createElement("div");
+  askHost.className = "bof-app-ask-host";
   const paneEl = doc.createElement("div");
+  rightColumn.append(askHost, paneEl);
 
-  main.append(sidebarEl, leftSplitter, canvasHost, rightSplitter, paneEl);
+  main.append(sidebarEl, leftSplitter, canvasHost, rightSplitter, rightColumn);
   root.append(topbarEl, main);
   if (!graphDemo) restoreWidth(root, LEFT);
   restoreWidth(root, right);
@@ -110,7 +119,7 @@ export function buildShell(root: HTMLElement, graphDemo = false): Shell {
     restoreWidth(root, right);
   };
   root.ownerDocument.defaultView?.addEventListener("resize", resize);
-  return { topbarEl, sidebarEl, canvas, canvasHost, paneEl, graphToolbar,
+  return { topbarEl, sidebarEl, canvas, canvasHost, paneEl, askHost, graphToolbar,
     dispose: () => root.ownerDocument.defaultView?.removeEventListener("resize", resize),
   };
 }

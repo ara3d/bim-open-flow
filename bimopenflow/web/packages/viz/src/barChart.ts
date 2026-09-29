@@ -34,6 +34,23 @@ export interface BarChartOptions {
 
 const MARGIN = { top: 16, right: 12, bottom: 28, left: 48 };
 const TITLE_H = 20;
+/** Average glyph width of the 11px axis labels, for fitting labels to bars. */
+const LABEL_CHAR_W = 6;
+/** Longest drop below the axis a slanted label may take; longer ones overflow. */
+const MAX_SLANT_DROP = 120;
+
+/**
+ * Category label layout: level when the longest label fits its bar's band,
+ * else slanted 45 degrees, with the plot shortened by the labels' drop and
+ * the left margin widened so the first label stays inside the chart.
+ */
+const labelLayout = (labels: readonly string[], width: number) => {
+  const longest = Math.max(0, ...labels.map((l) => l.length * LABEL_CHAR_W));
+  const band = (width - MARGIN.left - MARGIN.right) / Math.max(1, labels.length);
+  if (longest <= band - 2) return { slant: false, drop: 0, left: MARGIN.left };
+  const drop = Math.min(Math.ceil(longest * Math.SQRT1_2), MAX_SLANT_DROP);
+  return { slant: true, drop, left: Math.max(MARGIN.left, Math.ceil(drop - band / 2)) };
+};
 
 const seriesIndices = (
   data: TableData,
@@ -72,9 +89,11 @@ export const BarChart = defineComponent<TableData, BarChartOptions>(
           ? data.rows.map((r) => formatValue(r[catIdx], data.columns[catIdx].type))
           : data.rows.map((_, i) => String(i + 1));
 
+      const layout = labelLayout(labels, width);
+      const left = layout.left;
       const plotTop = MARGIN.top + (options?.title ? TITLE_H : 0);
-      const plotW = width - MARGIN.left - MARGIN.right;
-      const plotH = height - plotTop - MARGIN.bottom;
+      const plotW = width - left - MARGIN.right;
+      const plotH = height - plotTop - MARGIN.bottom - layout.drop;
       const finite = series
         .flatMap((s) => data.rows.map((r) => numberOf(r[s])))
         .filter(Number.isFinite);
@@ -115,8 +134,8 @@ export const BarChart = defineComponent<TableData, BarChartOptions>(
         svg.appendChild(
           svgEl(doc, "line", {
             class: "bof-viz-tick",
-            x1: MARGIN.left - 4,
-            x2: MARGIN.left,
+            x1: left - 4,
+            x2: left,
             y1: y(t),
             y2: y(t),
           }),
@@ -127,7 +146,7 @@ export const BarChart = defineComponent<TableData, BarChartOptions>(
             "text",
             {
               class: "bof-viz-tick-label",
-              x: MARGIN.left - 6,
+              x: left - 6,
               y: y(t) + 3,
               "text-anchor": "end",
             },
@@ -138,8 +157,8 @@ export const BarChart = defineComponent<TableData, BarChartOptions>(
       svg.appendChild(
         svgEl(doc, "line", {
           class: "bof-viz-axis-line",
-          x1: MARGIN.left,
-          x2: MARGIN.left,
+          x1: left,
+          x2: left,
           y1: plotTop,
           y2: plotTop + plotH,
         }),
@@ -147,8 +166,8 @@ export const BarChart = defineComponent<TableData, BarChartOptions>(
       svg.appendChild(
         svgEl(doc, "line", {
           class: "bof-viz-axis-line",
-          x1: MARGIN.left,
-          x2: MARGIN.left + plotW,
+          x1: left,
+          x2: left + plotW,
           y1: y(0),
           y2: y(0),
         }),
@@ -159,17 +178,21 @@ export const BarChart = defineComponent<TableData, BarChartOptions>(
       const barW = single ? groupW : groupW / series.length;
       const y0 = y(0);
       data.rows.forEach((row, i) => {
-        const cx = MARGIN.left + i * band + band / 2;
+        const cx = left + i * band + band / 2;
+        const ly = plotTop + plotH + (layout.slant ? 10 : 14);
         svg.appendChild(
           svgEl(
             doc,
             "text",
-            {
-              class: "bof-viz-axis-label",
-              x: cx,
-              y: plotTop + plotH + 14,
-              "text-anchor": "middle",
-            },
+            layout.slant
+              ? {
+                  class: "bof-viz-axis-label",
+                  x: cx,
+                  y: ly,
+                  "text-anchor": "end",
+                  transform: `rotate(-45 ${cx} ${ly})`,
+                }
+              : { class: "bof-viz-axis-label", x: cx, y: ly, "text-anchor": "middle" },
             labels[i],
           ),
         );

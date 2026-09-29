@@ -264,4 +264,29 @@ describe("BarChart", () => {
     const bar = container.querySelector("rect.bof-viz-bar");
     expect(bar?.getAttribute("data-value")).toBe("10");
   });
+  it("keeps short labels level and centred under their bars", () => {
+    const { container } = mountChart();
+    const label = container.querySelector("text.bof-viz-axis-label")!;
+    expect(label.getAttribute("text-anchor")).toBe("middle");
+    expect(label.getAttribute("transform")).toBeNull();
+  });
+
+  it("slants labels that are wider than their bars and shortens the plot to fit them", () => {
+    const rows = Array.from({ length: 33 }, (_, i) => [`L1 - Block 43 · ${i + 1}`, i + 1]);
+    const many: TableData = { columns: data.columns, rows };
+    const level = mountChart({ columns: data.columns, rows: [["L1", 33]] }).container;
+    const { container } = mountChart(many);
+    const labels = [...container.querySelectorAll("text.bof-viz-axis-label")];
+    expect(labels).toHaveLength(33);
+    for (const label of labels) {
+      expect(label.getAttribute("text-anchor")).toBe("end");
+      expect(label.getAttribute("transform")).toMatch(/^rotate\(-45 /);
+    }
+    const axisBottom = (c: HTMLElement) =>
+      Number(c.querySelectorAll("line.bof-viz-axis-line")[0]!.getAttribute("y2"));
+    expect(axisBottom(container)).toBeLessThan(axisBottom(level) - 50);
+    // The first label's slant reaches left of the default 48px margin, so the plot starts further right.
+    const yAxisX = Number(container.querySelectorAll("line.bof-viz-axis-line")[0]!.getAttribute("x1"));
+    expect(yAxisX).toBeGreaterThan(48);
+  });
 });

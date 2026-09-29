@@ -71,7 +71,7 @@ html, body { margin: 0; height: 100%; }
   cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none;
 }
 .bof-app-catalog-group:hover { background: var(--bof-app-hover); }
-.bof-app-catalog-group-triangle { margin-right: 4px; }
+.bof-app-catalog-group-triangle { display: inline-block; width: 12px; margin-right: 4px; font-size: 14px; line-height: 1; text-align: center; }
 .bof-app-catalog-group-name { flex: 1; }
 .bof-app-catalog-group-count { opacity: 0.65; font-weight: normal; }
 .bof-app-canvas-host { position: relative; min-width: 0; min-height: 0; overflow: hidden; }

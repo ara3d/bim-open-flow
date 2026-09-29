@@ -18,7 +18,7 @@
 
 import { calpha, cmix, fitText, rect, v, type Color, type Measure, type Painter, type Rect } from "gratify";
 import { nodeTitle } from "./graphPreview";
-import type { NodeStyleName } from "./nodeStyle.js";
+import { nodeStyleNames, type NodeStyleName } from "./nodeStyle.js";
 import { portY } from "./portGeometry.js";
 import { NODE_HEADER, PORT_SPACING, type CanvasNode } from "./viewModel.js";
 
@@ -187,6 +187,38 @@ export function nodeCardLayout(props: CanvasNode, style: NodeStyleName, measure:
       };
     }
   }
+}
+
+/** A box in card-local coordinates. */
+export interface CardBox {
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+}
+
+/** The box `props` paints in `style`: the card, the port sockets half outside
+ *  its left and right edges, and a footer strip hanging below it. */
+export function nodeCardExtent(props: CanvasNode, style: NodeStyleName, measure: Measure): CardBox {
+  const footer = nodeCardLayout(props, style, measure).footer;
+  const left = props.inputs.length > 0 ? SOCKET_RADIUS : 0;
+  const right = props.outputs.length > 0 ? SOCKET_RADIUS : 0;
+  const bottom = Math.max(props.h, footer ? footer.y + footer.h : 0);
+  return { x: 0 - left, y: 0, w: props.w + left + right, h: bottom };
+}
+
+/** The box `props` paints in whichever style paints the most: what a layout
+ *  must keep clear so no style switch makes two cards overlap. */
+export function nodeFootprint(props: CanvasNode, measure: Measure): CardBox {
+  const boxes = nodeStyleNames.map((style) => nodeCardExtent(props, style, measure));
+  const x = Math.min(...boxes.map((b) => b.x));
+  const y = Math.min(...boxes.map((b) => b.y));
+  return {
+    x,
+    y,
+    w: Math.max(...boxes.map((b) => b.x + b.w)) - x,
+    h: Math.max(...boxes.map((b) => b.y + b.h)) - y,
+  };
 }
 
 /** Card colours the part's style computes from hover, drag, and selection. */

@@ -1,0 +1,100 @@
+// The committed sample graphs and the boxes their cards paint (TKT-110),
+// shared by the overlap check (test/layout) and relayout-samples.ts.
+//
+// A sample graph is a JSON file under samples/ whose root is a graph document
+// (it has `structure.nodes`), or one entry of a workflow list (an array of
+// objects with a `graph` document, as samples/duckdb-analyses/workflows.json).
+// Node sizes need the node catalog, which lives in the C# packs, so it is
+// fetched from a running host.
+
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import type { NodeDescriptor } from "@bimopenflow/contracts";
+import { initialState, parseDocument, type GraphDocument } from "@bimopenflow/state";
+import { NullPainter } from "gratify";
+import { autoLayout } from "../src/autoLayout.js";
+import { nodeFootprint } from "../src/nodeRender.js";
+import { buildCanvasModel, type CanvasModel, type CanvasNode } from "../src/viewModel.js";
+
+export const repoRoot = fileURLToPath(new URL("../../../../../", import.meta.url));
+
+/** NullPainter's measure (0.55 * size px per character); footprints do not
+ *  depend on text width, only on which texts a card has. */
+export const layoutMeasure = new NullPainter().measure;
+
+export interface SampleGraph {
+  /** Repository-relative path, with `#<id>` for an entry of a workflow list. */
+  readonly name: string;
+  readonly file: string;
+  /** True for an entry of a workflow list: the DuckDB studio ignores its
+   *  stored positions and lays it out with autoLayout when it opens it. */
+  readonly autoLaidOut: boolean;
+  readonly document: GraphDocument;
+}
+
+function isGraph(value: unknown): value is { structure: { nodes: unknown[] } } {
+  const s = (value as { structure?: { nodes?: unknown } } | null)?.structure;
+  return Array.isArray(s?.nodes);
+}
+
+/** Every committed sample graph, in path order. */
+export function sampleGraphs(): SampleGraph[] {
+  const files = execFileSync("git", ["ls-files", "samples/*.json", "samples/**/*.json"], { cwd: repoRoot, encoding: "utf8" })
+    .split("\n")
+    .filter((f) => f.endsWith(".json"))
+    .sort();
+  return files.flatMap((file): SampleGraph[] => {
+    const json: unknown = JSON.parse(readFileSync(join(repoRoot, file), "utf8"));
+    if (isGraph(json)) return [{ name: file, file, autoLaidOut: false, document: parseDocument(JSON.stringify(json)) }];
+    if (!Array.isArray(json)) return [];
+    return json.flatMap((item: { id?: string; graph?: unknown }, entry) =>
+      isGraph(item.graph)
+        ? [{ name: `${file}#${item.id ?? entry}`, file, autoLaidOut: true, document: parseDocument(JSON.stringify(item.graph)) }]
+        : []);
+  });
+}
+
+/** The node catalog of the host at `host` (e.g. http://127.0.0.1:5214). */
+export async function fetchCatalog(host: string): Promise<ReadonlyMap<string, NodeDescriptor>> {
+  const response = await fetch(`${host.replace(/\/$/, "")}/api/catalog/nodes`);
+  if (!response.ok) throw new Error(`GET ${host}/api/catalog/nodes: ${response.status}`);
+  const { nodes } = (await response.json()) as { nodes: NodeDescriptor[] };
+  return new Map(nodes.map((n) => [n.kind, n]));
+}
+
+/** The canvas model the editor draws for `document`, at its stored positions. */
+export const sampleModel = (document: GraphDocument, catalog: ReadonlyMap<string, NodeDescriptor>): CanvasModel =>
+  buildCanvasModel({ ...initialState, document }, catalog, null);
+
+/** A viewport of the studio's canvas, for the autoLayout of a workflow list entry. */
+const STUDIO_CANVAS = { width: 1280, height: 720 };
+
+/** The canvas model as the page that loads `sample` shows it. */
+export function shownModel(sample: SampleGraph, catalog: ReadonlyMap<string, NodeDescriptor>): CanvasModel {
+  const model = sampleModel(sample.document, catalog);
+  if (!sample.autoLaidOut) return model;
+  const positions = autoLayout(model, STUDIO_CANVAS);
+  return { ...model, nodes: model.nodes.map((n) => ({ ...n, ...positions[n.id]! })) };
+}
+
+/** The kinds `document` uses that `catalog` lacks; their cards would be drawn portless. */
+export const unknownKinds = (document: GraphDocument, catalog: ReadonlyMap<string, NodeDescriptor>): string[] =>
+  [...new Set(document.structure.nodes.map((n) => n.kind).filter((k) => !catalog.has(k)))];
+
+/** Canvas-space box a card paints in its largest style. */
+export function paintedBox(node: CanvasNode): { x: number; y: number; w: number; h: number } {
+  const f = nodeFootprint(node, layoutMeasure);
+  return { x: node.x + f.x, y: node.y + f.y, w: f.w, h: f.h };
+}
+
+/** Every pair of nodes whose painted boxes intersect, as "a / b". */
+export function overlappingPairs(model: CanvasModel): string[] {
+  const boxes = model.nodes.map((n) => ({ id: n.id, ...paintedBox(n) }));
+  const pairs: string[] = [];
+  for (const [i, a] of boxes.entries())
+    for (const b of boxes.slice(i + 1))
+      if (a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h) pairs.push(`${a.id} / ${b.id}`);
+  return pairs;
+}

@@ -18,5 +18,5 @@
       "@bim-open-toolkit/*": ["../../../../viz/packages/*/src/index.ts"]
     }
   },
-  "include": ["src", "test"]
+  "include": ["src", "test", "scripts"]
 }

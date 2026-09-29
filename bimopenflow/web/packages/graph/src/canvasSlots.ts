@@ -9,7 +9,10 @@
 // if/switch chain).
 
 import type { ControlDescriptor, ParamDescriptor, ParamKind, SuggestDescriptor } from "@bimopenflow/contracts";
+import type { Measure } from "gratify";
 import type { CanvasInstance } from "./instance.js";
+import { displayScale, paramLabel } from "./numericParam.js";
+import { fileName } from "./paramText.js";
 
 export interface CanvasParam {
   readonly descending?: boolean;
@@ -91,6 +94,73 @@ export function slotHeight(
   param: Pick<CanvasParam, "kind" | "value" | "control" | "suggest">,
 ): number {
   return CONTROL_HEIGHT[slotControl(param)];
+}
+
+/** Font size of a row's label and of a value painted on the canvas. */
+export const SLOT_LABEL_SIZE = 14;
+export const SLOT_VALUE_SIZE = 14;
+/** Least space between a row's label and its control. */
+export const SLOT_LABEL_GAP = 6;
+/** The Boolean row's switch, at the row's right edge. */
+export const TOGGLE_W = 26;
+/** The number input of a compact row, at the row's right edge. */
+export const COMPACT_INPUT_W = 96;
+/** Room the Enum row keeps for its label, left of the value field. */
+export const ENUM_LABEL_ROOM = 86;
+/** Inset of the Enum value inside its field, and the room its chevron takes. */
+export const ENUM_VALUE_INSET = 7;
+export const ENUM_CHEVRON_ROOM = 22;
+/** Horizontal padding plus border of a native input (slotShared.styleIsland). */
+export const FIELD_INPUT_PAD = 16;
+/** Padding inside a long-text preview box, both sides together. */
+export const LONG_PREVIEW_PAD = 14;
+
+/** The painted label of a range row: its name and the selected interval. */
+export function rangeLabel(param: Pick<CanvasParam, "name" | "kind" | "value" | "control">): string {
+  let value: unknown;
+  try { value = JSON.parse(param.value); } catch { value = null; }
+  const [min, max] = rangeBounds(value);
+  const scale = displayScale(param.control);
+  return `${paramLabel(param.name, param.kind, param.control)}   ${Number((min * scale).toFixed(2))} – ${Number((max * scale).toFixed(2))}`;
+}
+
+/** A range value's two ends, or [0, 1] when it is not a pair of numbers. */
+export function rangeBounds(value: unknown): [number, number] {
+  return Array.isArray(value) && value.length === 2 && value.every(Number.isFinite) ? [value[0], value[1]] : [0, 1];
+}
+
+/** The text a field row's native input shows for `param`, which the row
+ *  should be wide enough to hold. */
+function fieldText(param: Pick<CanvasParam, "kind" | "value" | "control">): string {
+  if (param.control?.kind === "color") return "";
+  return param.kind === "FilePath" ? fileName(param.value) : param.value;
+}
+
+/** The row width `param`'s control needs to show its label and value whole,
+ *  measured with `m`. Rows narrower than this fit their texts (fitText or
+ *  wrap), so this sets a card's preferred width, not a minimum. */
+export function slotWidth(param: CanvasParam, m: Measure): number {
+  const text = (s: string, size = SLOT_LABEL_SIZE) => m.text(s, size).x;
+  const label = paramLabel(param.name, param.kind, param.control);
+  switch (slotControl(param)) {
+    case "toggle":
+      return text(param.name) + SLOT_LABEL_GAP + TOGGLE_W;
+    case "dropdown": {
+      const widest = Math.max(text(param.value || "—", SLOT_VALUE_SIZE), ...(param.enumValues ?? []).map((o) => text(o, SLOT_VALUE_SIZE)));
+      return ENUM_LABEL_ROOM + ENUM_VALUE_INSET + widest + ENUM_CHEVRON_ROOM;
+    }
+    case "number":
+    case "slider":
+      return text(label) + SLOT_LABEL_GAP + COMPACT_INPUT_W;
+    case "range":
+      return text(rangeLabel(param));
+    case "columnSelect":
+      return text(param.name);
+    case "field":
+      return Math.max(text(label), text(fieldText(param), SLOT_VALUE_SIZE) + FIELD_INPUT_PAD);
+    case "longText":
+      return Math.max(text(label), text(param.value.replace(/\s+/g, " ").trim(), SLOT_VALUE_SIZE) + LONG_PREVIEW_PAD);
+  }
 }
 
 /** Whitespace runs (including line breaks) collapsed to one space, trimmed,

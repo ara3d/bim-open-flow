@@ -1,11 +1,11 @@
 {
   "formatVersion": "0.1.0",
   "layout": {
-    "byCategory": { "x": 700, "y": 40 },
+    "byCategory": { "x": 940, "y": 40 },
     "mix": { "x": 370, "y": 40 },
     "orders": { "x": 40, "y": 40 },
     "products": { "x": 40, "y": 260 },
-    "ranked": { "x": 1030, "y": 40 }
+    "ranked": { "x": 1450, "y": 40 }
   },
   "structure": {
     "edges": [

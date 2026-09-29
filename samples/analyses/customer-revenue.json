@@ -5,8 +5,8 @@
     "joined": { "x": 370, "y": 40 },
     "orders": { "x": 40, "y": 40 },
     "products": { "x": 40, "y": 260 },
-    "revenue": { "x": 700, "y": 40 },
-    "top": { "x": 1030, "y": 40 }
+    "revenue": { "x": 940, "y": 40 },
+    "top": { "x": 1450, "y": 40 }
   },
   "structure": {
     "edges": [

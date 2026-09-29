@@ -38,18 +38,6 @@ describe("nodeHeight", () => {
   });
 });
 
-describe("noteHeight", () => {
-  it("grows with an approximate wrap of the text, capped past a dozen lines", () => {
-    expect(noteHeight("")).toBe(noteHeight("one short line"));
-    expect(noteHeight("a".repeat(200))).toBeGreaterThan(noteHeight("a short note"));
-    expect(noteHeight("a".repeat(2000))).toBe(noteHeight("a".repeat(20000))); // both hit the cap
-  });
-
-  it("an explicit line break counts as its own line even when short", () => {
-    expect(noteHeight("a\nb\nc")).toBeGreaterThan(noteHeight("a"));
-  });
-});
-
 describe("buildCanvasModel", () => {
   it("reads positions from the layout layer, written through actions", () => {
     const store = createStore();

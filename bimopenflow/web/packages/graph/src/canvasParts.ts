@@ -30,7 +30,7 @@ import {
 import type { PortType } from "@bimopenflow/contracts";
 import type { CanvasEdge, CanvasModel, CanvasNode } from "./viewModel.js";
 import type { WireRows } from "./portResults.js";
-import { fitNodeSize, NOTE_KIND, NOTE_LINE_H, NOTE_PAD } from "./viewModel.js";
+import { nodeSize, NOTE_KIND, NOTE_LINE_H, NOTE_PAD, NOTE_TEXT_SIZE } from "./nodeSize.js";
 import { resizeHandleHit } from "./canvasResize.js";
 import { placeSlots, SLOT_X_PAD } from "./canvasSlots.js";
 import { slotElement } from "./slotRegistry.js";
@@ -213,11 +213,11 @@ const GraphNodePart = part<NodeProps, NodeCardColors>("bof-node", {
       // As many lines as the card's height holds: NOTE_MAX_LINES at the
       // default height, more once the note is resized taller.
       const maxLines = Math.max(1, Math.floor((r.h - 2 * NOTE_PAD) / NOTE_LINE_H));
-      const lines = wrapParagraphs(painter.measure, p.noteText ?? "", r.w - 2 * NOTE_PAD, 14, maxLines);
+      const lines = wrapParagraphs(painter.measure, p.noteText ?? "", r.w - 2 * NOTE_PAD, NOTE_TEXT_SIZE, maxLines);
       lines.forEach((line, i) => {
         painter.label(line, v(r.x + NOTE_PAD, r.y + NOTE_PAD + NOTE_LINE_H * (i + 0.7)), style.text, {
           align: "left",
-          size: 14,
+          size: NOTE_TEXT_SIZE,
         });
       });
     } else {
@@ -248,7 +248,7 @@ const GraphNodePart = part<NodeProps, NodeCardColors>("bof-node", {
       during: (state, node, pointer) => ({
         kind: "resize",
         id: node.props.id,
-        ...fitNodeSize(node.props, {
+        ...nodeSize(node.props, {
           w: state.start.w + pointer.x - state.origin.x,
           h: state.start.h + pointer.y - state.origin.y,
         }),

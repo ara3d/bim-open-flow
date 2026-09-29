@@ -2,11 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { NodeDescriptor } from "@bimopenflow/contracts";
 import { createStore } from "@bimopenflow/state";
 import { RESIZE_GRAB_RADIUS, resizeHandleHit } from "../src/canvasResize.js";
-import { clampNodeSize, MAX_NODE_SIZE } from "../src/nodeSize.js";
+import { MAX_NODE_SIZE, nodeSize } from "../src/nodeSize.js";
 import { makeCanvasUpdate, MUTATING_INTENTS } from "../src/canvasIntents.js";
 import {
   buildCanvasModel,
-  fitNodeSize,
   NODE_WIDTH,
   nodeHeight,
   NOTE_KIND,
@@ -29,40 +28,23 @@ describe("resizeHandleHit", () => {
   });
 });
 
-describe("clampNodeSize", () => {
-  const content = { w: 184, h: 70 };
+describe("nodeSize for a resize", () => {
+  const plain = { id: "a", kind: "k", inputs: [], outputs: [], params: [] };
+  const note = { id: "n", kind: NOTE_KIND, inputs: [], outputs: [], params: [], noteText: "hello" };
 
-  it("holds width between the content width and MAX_NODE_SIZE", () => {
-    expect(clampNodeSize(content, { w: 100 }, false).w).toBe(184);
-    expect(clampNodeSize(content, { w: 400 }, false).w).toBe(400);
-    expect(clampNodeSize(content, { w: 5000 }, false).w).toBe(MAX_NODE_SIZE);
+  it("holds a dragged width between the least card width and MAX_NODE_SIZE", () => {
+    expect(nodeSize(plain, { w: 10 }).w).toBe(NODE_WIDTH);
+    expect(nodeSize(plain, { w: 400 }).w).toBe(400);
+    expect(nodeSize(plain, { w: 5000 }).w).toBe(MAX_NODE_SIZE);
   });
 
-  it("falls back to the content size when nothing is asked for", () => {
-    expect(clampNodeSize(content, {}, true)).toEqual(content);
-  });
-
-  it("resizes height only when asked to", () => {
-    expect(clampNodeSize(content, { w: 300, h: 400 }, false).h).toBe(70);
-    expect(clampNodeSize(content, { w: 300, h: 400 }, true).h).toBe(400);
-    expect(clampNodeSize(content, { w: 300, h: 10 }, true).h).toBe(70);
-  });
-
-  it("never shrinks content wider than the maximum", () => {
-    expect(clampNodeSize({ w: 1000, h: 70 }, { w: 200 }, false).w).toBe(1000);
-  });
-});
-
-describe("fitNodeSize", () => {
-  it("uses the default card size as the minimum", () => {
-    const plain = { kind: "k", inputs: [], outputs: [], params: [] };
-    expect(fitNodeSize(plain, { w: 10, h: 999 })).toEqual({ w: NODE_WIDTH, h: nodeHeight(0, 0) });
+  it("keeps a plain card's height to its content", () => {
+    expect(nodeSize(plain, { w: 300, h: 999 }).h).toBe(nodeHeight(0, 0));
   });
 
   it("lets a note grow taller but not shorter than its text", () => {
-    const note = { kind: NOTE_KIND, inputs: [], outputs: [], params: [], noteText: "hello" };
-    expect(fitNodeSize(note, { w: 10, h: 10 })).toEqual({ w: NOTE_WIDTH, h: noteHeight("hello") });
-    expect(fitNodeSize(note, { w: 500, h: 600 })).toEqual({ w: 500, h: 600 });
+    expect(nodeSize(note, { w: 10, h: 10 })).toEqual({ w: NOTE_WIDTH, h: noteHeight("hello") });
+    expect(nodeSize(note, { w: 500, h: 600 })).toEqual({ w: 500, h: 600 });
   });
 });
 

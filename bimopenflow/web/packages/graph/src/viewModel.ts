@@ -4,7 +4,7 @@
 import type { NodeDescriptor, NodeStatus, PortType } from "@bimopenflow/contracts";
 import type { State } from "@bimopenflow/state";
 import { inlineParams, type CanvasParam } from "./canvasSlots.js";
-import { fitNodeSize, NODE_WIDTH, NOTE_KIND } from "./nodeSize.js";
+import { NODE_WIDTH, nodeSize, NOTE_KIND } from "./nodeSize.js";
 import { upstreamIds } from "./graphPreview";
 import { nodeBadge, type NodeBadge } from "./nodeBadge.js";
 import { NO_PORT_RESULTS, type PortPeekView, type PortResultsView, type WireRows } from "./portResults.js";
@@ -66,7 +66,7 @@ export interface CanvasModel {
 }
 
 export {
-  contentSize, fitNodeSize, NODE_HEADER, NODE_WIDTH, nodeHeight, nodeWidth, NOTE_KIND, NOTE_LINE_H,
+  MAX_CONTENT_WIDTH, NODE_HEADER, NODE_WIDTH, nodeHeight, nodeSize, nodeWidth, NOTE_KIND, NOTE_LINE_H,
   NOTE_MAX_LINES, NOTE_PAD, NOTE_WIDTH, noteHeight, PORT_SPACING, WIDE_NODE_WIDTH,
 } from "./nodeSize.js";
 
@@ -138,28 +138,27 @@ export function buildCanvasModel(
       const noteText = state.document.values[n.id]?.["text"]
         ?? desc?.params.find((p) => p.name === "text")?.default
         ?? "";
-      const note = { kind: n.kind, inputs: [], outputs: [], params: [], noteText };
+      const note = { id: n.id, kind: n.kind, inputs: [], outputs: [], params: [], noteText };
       return {
-        id: n.id,
         x: pos.x,
         y: pos.y,
-        ...fitNodeSize(note, layout ?? {}),
+        ...nodeSize(note, layout ?? {}),
         ...note,
         selected: selected.has(n.id),
         contributing: contributing.has(n.id),
       };
     }
     const card = {
+      id: n.id,
       kind: n.kind,
       inputs: inputs.map((p) => ({ name: p.name, type: p.type })),
       outputs: outputs.map((p) => ({ name: p.name, type: p.type })),
       params,
     };
     return {
-      id: n.id,
       x: pos.x,
       y: pos.y,
-      ...fitNodeSize(card, layout ?? {}),
+      ...nodeSize(card, layout ?? {}),
       ...card,
       status: state.evalState[n.id]?.status,
       badge: nodeBadge({ edges: state.document.structure.edges, evalState: state.evalState }, n.id),

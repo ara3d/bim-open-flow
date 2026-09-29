@@ -28,7 +28,14 @@ public static class ValueText
 
     /// <summary>Specialised digests in a fixed order; a table no digest recognises shows its first rows.</summary>
     public static IReadOnlyList<string> Special(IDataTable table, DigestContext context)
-        => [];
+        =>
+        [
+            .. LegendText.Lines(table, context),
+            .. ViewText.Lines(table, context),
+            .. SceneText.Lines(table, context),
+            .. VerdictText.Lines(table, context),
+            .. ChartText.Lines(table, context),
+        ];
 
     private static IReadOnlyList<string> Rows(IDataTable table, DigestContext context)
         => Special(table, context) is { Count: > 0 } special ? special : TableText.SampleRows(table, context.Options);

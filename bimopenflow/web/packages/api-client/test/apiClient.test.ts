@@ -27,6 +27,7 @@ const calls: Record<string, { args: string[]; invoke: (api: ApiClient) => Promis
   getAnalysisHistory: { args: [ID], invoke: (api) => api.getAnalysisHistory(ID) },
   getNodeCatalog: { args: [], invoke: (api) => api.getNodeCatalog() },
   getAnalysisState: { args: [ID], invoke: (api) => api.getAnalysisState(ID) },
+  getAnalysisText: { args: [ID], invoke: (api) => api.getAnalysisText(ID) },
   getResult: { args: [ID, "n/1", "out"], invoke: (api) => api.getResult(ID, "n/1", "out") },
   getSuggestions: { args: [ID, "n/1", "col"], invoke: (api) => api.getSuggestions(ID, "n/1", "col") },
   listRuns: { args: [ID], invoke: (api) => api.listRuns(ID) },
@@ -84,6 +85,8 @@ describe("ApiClient against contracts.json", () => {
     expect(String(fetchFn.mock.calls[0]![0])).toMatch(/\?skip=10$/);
     await api.getResult(ID, "n", "out", undefined, 5);
     expect(String(fetchFn.mock.calls[1]![0])).toMatch(/\?take=5$/);
+    await api.getAnalysisText(ID, "debug");
+    expect(String(fetchFn.mock.calls[2]![0])).toMatch(/\/text\?mode=debug$/);
   });
 
   it("strips a trailing slash from the base url and builds the model bytes url", () => {

@@ -204,9 +204,14 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   const problems = createProblemsPanel(shell.canvasHost, { onSelect: selectAndFocus });
   const preview = root.ownerDocument.createElement("select");
   preview.setAttribute("aria-label", "Preview node");
+  // TKT-113: choosing in the picker is an explicit choice, like a
+  // double-click, so the pane shows the chosen node (or returns to the answer
+  // when the answer is chosen); the node is also selected and brought into view.
   preview.addEventListener("change", () => {
-    dispatch({ type: "select", ids: [preview.value] });
-    canvasEditor.focus(preview.value);
+    const nodeId = preview.value;
+    showPickedInPane(nodeId);
+    dispatch({ type: "select", ids: [nodeId] });
+    canvasEditor.focus(nodeId);
   });
   if (options.graphDemo) {
     const nodes = root.ownerDocument.createElement("button");
@@ -295,9 +300,10 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
 
   // TKT-81: the pane follows the flow's answer node and stays there while the
   // user selects nodes or edits parameters — selection never drives what the
-  // pane shows. showNodeInPane/showAnswerInPane/togglePaneAnswerPin (below)
-  // are the only way to change that, each re-running this from outside a
-  // store update (a pin/show/back click touches no store state).
+  // pane shows. showNodeInPane/showAnswerInPane/showPickedInPane/
+  // togglePaneAnswerPin (below) are the only way to change that, each
+  // re-running this from outside a store update (a pin/show/back click
+  // touches no store state).
   function applyShown(state: State, dataChanged: boolean): void {
     const { id: shownId, isAnswer } = resolveShown(state.document, state.evalState, catalog, shownChoice);
     preview.value = shownId ?? "";
@@ -315,6 +321,13 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   function showNodeInPane(nodeId: string): void {
     showOverride(shownChoice, nodeId);
     applyShown(store.getState(), true);
+  }
+
+  /** The Preview node picker: the answer goes back to following it, any
+   *  other node is shown as an override, exactly as a double-click shows it. */
+  function showPickedInPane(nodeId: string): void {
+    if (nodeId === shownChoice.lastAnswer) showAnswerInPane();
+    else showNodeInPane(nodeId);
   }
 
   /** The pane header's "Back to answer" button: drops the override and any pin. */

@@ -3,15 +3,10 @@
 // (3d.html?analysis=color-by-category) and defaults to the Snowdon toolkit.
 
 import { ApiClient } from "@bimopenflow/api-client";
+import { analysisFromSearch } from "./analysisParam.js";
 import { createApp } from "./app.js";
 import { watchHost } from "./hostStatus.js";
 import { mountHostBanner } from "./topbar.js";
-
-export const DEFAULT_ANALYSIS = "snowdon-toolkit";
-
-/** The `analysis` query value when present and non-blank, else the default. */
-export const analysisFromSearch = (search: string, fallback = DEFAULT_ANALYSIS): string =>
-  new URLSearchParams(search).get("analysis")?.trim() || fallback;
 
 class GraphDemoApi extends ApiClient {
   override getModelBosUrl(id: string): string {

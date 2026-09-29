@@ -1,4 +1,5 @@
 import { ApiClient } from "@bimopenflow/api-client";
+import { analysisParam } from "./analysisParam.js";
 import { createApp } from "./app.js";
 import { watchHost } from "./hostStatus.js";
 import { mountHostBanner } from "./topbar.js";
@@ -8,4 +9,5 @@ import { mountHostBanner } from "./topbar.js";
 // Every call reports into one host status; the banner and topbar show it.
 const { api, host } = watchHost((fetchFn) => new ApiClient({ baseUrl: "", fetch: fetchFn }));
 mountHostBanner(document, host);
-createApp(document.getElementById("app")!, api, { host });
+// `?analysis=<id>` opens that analysis, and the URL follows the open one.
+createApp(document.getElementById("app")!, api, { host, initialAnalysis: analysisParam(location.search), syncUrl: true });

@@ -35,6 +35,7 @@ import { createProblemsPanel } from "./problemsPanel.js";
 import { graphProblems } from "./graphProblems.js";
 import { createStartPage } from "./startPage.js";
 import { TEMPLATES } from "./templates.generated.js";
+import { chooseInitialAnalysis, searchWithAnalysis } from "./analysisParam.js";
 import { showToast } from "./toast.js";
 import { buildLiveViewRecipe } from "./liveViewRecipe";
 import { createHostStatus, type HostStatusSource } from "./hostStatus.js";
@@ -70,6 +71,9 @@ export interface AppOptions {
   autoLayout?: boolean;
   graphDemo?: boolean;
   initialAnalysis?: string;
+  /** Keep `?analysis=<id>` in the address bar in step with the open analysis
+   *  (main editor page only; other query parameters are kept). */
+  syncUrl?: boolean;
   /** Topbar heading; defaults to the BimOpenFlow / Snowdon 3D link. */
   heading?: string;
   /** The host status the api reports into (see watchHost). Without one the
@@ -405,6 +409,10 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       canvasEditor.refreshSuggestions();
       sidebar.setAnalyses(analyses, id);
       topbar.setAnalyses(analyses, id);
+      if (options.syncUrl) {
+        const loc = root.ownerDocument.defaultView?.location;
+        if (loc) root.ownerDocument.defaultView!.history.replaceState(null, "", loc.pathname + searchWithAnalysis(loc.search, id) + loc.hash);
+      }
       if (options.graphDemo) {
         if (options.autoLayout) {
           const positions = autoLayout(buildCanvasModel(store.getState(), catalog), { width: shell.canvas.clientWidth, height: shell.canvas.clientHeight });
@@ -517,17 +525,17 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       booted = true;
       // Always land in an open analysis so no click can fail for lack of one;
       // if the stored analysis fails to open, fall back to a fresh one.
-      if (options.initialAnalysis) {
-        if (!analyses.some(a => a.id === options.initialAnalysis)) {
-          fail(`Snowdon graph is missing. Start the BIM-profile host with a Snowdon model and an empty store, or import snowdon-toolkit.json (see docs/bim-flow-3d.md).`);
-          return;
-        }
-        await openAnalysis(options.initialAnalysis);
-      } else if (analyses.length > 0) {
-        await openAnalysis(analyses[0]!.id);
+      const { open, missing } = chooseInitialAnalysis(options.initialAnalysis, analyses.map(a => a.id));
+      if (missing && options.graphDemo) {
+        fail(`Snowdon graph is missing. Start the BIM-profile host with a Snowdon model and an empty store, or import snowdon-toolkit.json (see docs/bim-flow-3d.md).`);
+        return;
+      }
+      if (missing) fail(`Analysis "${missing}" not found on this host; opened the default instead.`);
+      if (open) {
+        await openAnalysis(open);
         // A newcomer sees what the host offers before the first graph
         // (workflow 1: "a start page lists the supported demos").
-        if (!options.graphDemo) startPage.show();
+        if (!options.graphDemo && !options.initialAnalysis) startPage.show();
       }
       if (currentId === null) await newAnalysis();
     } catch (e) {

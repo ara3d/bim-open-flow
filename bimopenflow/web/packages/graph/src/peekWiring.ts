@@ -5,7 +5,7 @@
 import type { NodeDescriptor } from "@bimopenflow/contracts";
 import type { Store } from "@bimopenflow/state";
 import type { CanvasModel } from "./viewModel.js";
-import { peekTargetAt } from "./portGeometry.js";
+import { grabRadius, peekTargetAt, SOCKET_GRAB_RADIUS } from "./portGeometry.js";
 import { installPortHover } from "./portHover.js";
 import { createPortResults, watchEvaluations, type PortResultsView, type ReadPort } from "./portResults.js";
 
@@ -36,7 +36,7 @@ export function createPeekWiring(canvas: HTMLCanvasElement, deps: PeekWiringDeps
   const stopHover = installPortHover(canvas, {
     targetAt(x, y) {
       const { zoom, pan } = deps.getViewport();
-      return peekTargetAt(deps.getDoc(), (x - pan.x) / zoom, (y - pan.y) / zoom);
+      return peekTargetAt(deps.getDoc(), (x - pan.x) / zoom, (y - pan.y) / zoom, grabRadius(SOCKET_GRAB_RADIUS, zoom));
     },
     hover: (endpoint) => results.hover(endpoint, store.getState()),
     pin: (endpoint) => results.pin(endpoint, store.getState()),

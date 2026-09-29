@@ -41,7 +41,7 @@ import { animateSelection, selectionBorder } from "./selectionBorder";
 import { upstreamEdges } from "./upstreamEdges.js";
 const selectedBorder = selectionBorder(() => canvasColors().wireSelected, animateSelection);
 import { anchorId, canConnect, parseAnchorId, type CanvasIntent } from "./canvasIntents.js";
-import { portY, SOCKET_GRAB_RADIUS, WIRE_HIT_DISTANCE } from "./portGeometry.js";
+import { grabRadius, portY, SOCKET_GRAB_RADIUS, WIRE_HIT_DISTANCE } from "./portGeometry.js";
 import { peekAdorn, rowCountText } from "./peekCard.js";
 import { wrapParagraphs } from "./canvasLongSlot.js";
 import { createLongValueEditor, type LongValueEditor } from "./longValueEditor.js";
@@ -237,12 +237,15 @@ const GraphNodePart = part<NodeProps, NodeCardColors>("bof-node", {
   on: [
     // Resize drag (TKT-124): starts only when the press lands on the
     // bottom-right corner, so it runs ahead of the wire and move gestures.
+    // The corner's reach is in screen pixels when zoomed out (TKT-125).
     // Transient "resize" intents while dragging, one "resizeEnd" commit. The
     // part API has no cursor, so the grip drawn in render is the only cue.
     Gesture<NodeProps, { origin: Vec; start: { w: number; h: number } }>({
       begin(node, pointer) {
         const p = node.props;
-        if (p.instance.readOnly || !resizeHandleHit({ x: p.pos.x, y: p.pos.y, w: p.w, h: p.h }, pointer)) return null;
+        const card = { x: p.pos.x, y: p.pos.y, w: p.w, h: p.h };
+        const sockets = portAnchors(node).map((a) => a.pos);
+        if (p.instance.readOnly || !resizeHandleHit(card, pointer, node.view?.zoom ?? 1, sockets)) return null;
         return { origin: pointer, start: { w: p.w, h: p.h } };
       },
       during: (state, node, pointer) => ({
@@ -259,16 +262,17 @@ const GraphNodePart = part<NodeProps, NodeCardColors>("bof-node", {
           : { kind: "selectNode", id: node.props.id }) satisfies CanvasIntent,
     }),
 
-    // Wire drag: starts only when the press lands near a socket.
+    // Wire drag: starts only when the press lands near a socket, the
+    // nearest one when a zoomed-out reach covers several (TKT-125).
     Gesture<NodeProps, { fromId: string; cursor: Vec; snap?: Anchor }>({
       begin(node, pointer, query) {
         if (node.props.instance.readOnly) return null;
-        for (const a of portAnchors(node)) {
-          const live = query.anchor(a.id);
-          if (live && vdist(live.pos, pointer) < SOCKET_GRAB_RADIUS)
-            return { fromId: live.id, cursor: pointer };
-        }
-        return null;
+        const reach = grabRadius(SOCKET_GRAB_RADIUS, node.view?.zoom ?? 1);
+        const live = portAnchors(node)
+          .map((a) => query.anchor(a.id))
+          .filter((a): a is Anchor => a !== undefined && vdist(a.pos, pointer) < reach)
+          .sort((a, b) => vdist(a.pos, pointer) - vdist(b.pos, pointer))[0];
+        return live ? { fromId: live.id, cursor: pointer } : null;
       },
       move: (state, _node, pointer, query) => ({
         ...state,

@@ -7,10 +7,17 @@ import { wireDist } from "gratify";
 import type { CanvasModel, CanvasNode } from "./viewModel.js";
 import { NODE_HEADER, PORT_SPACING } from "./viewModel.js";
 
-/** Radius, in world units, within which a pointer grabs a socket to drag a
- *  wire or peek it. Moved from canvasParts.ts so drawing, wire-dragging, and
- *  the peek hit-test share one definition. */
+/** Radius within which a pointer grabs a socket to drag a wire or peek it:
+ *  world units at zoom 1 and above, screen pixels below (grabRadius). Moved
+ *  from canvasParts.ts so drawing, wire-dragging, and the peek hit-test
+ *  share one definition. */
 export const SOCKET_GRAB_RADIUS = 12;
+
+/** The world-unit radius of a grab target `radius` pixels across at `zoom`
+ *  (TKT-125): the same world size at zoom 1 and above, and the same screen
+ *  size when zoomed out, so a socket or a card corner stays grabbable at a
+ *  fitted zoom of 0.28 instead of shrinking under 3 pixels. */
+export const grabRadius = (radius: number, zoom: number): number => radius / Math.min(zoom, 1);
 /** Distance, in world units, within which a pointer is considered "on" a
  *  wire. Moved from canvasParts.ts's Wire.hit. */
 export const WIRE_HIT_DISTANCE = 8;

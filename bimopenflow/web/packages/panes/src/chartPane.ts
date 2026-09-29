@@ -42,6 +42,21 @@ export const splitRowColors = (
   return { data: { ...data, columns, rows }, colors };
 };
 
+/** Smallest chart width, the viz default; a narrower pane scrolls. */
+const MIN_CHART_WIDTH = 480;
+/** Chart height when sized to the pane: room for slanted category labels. */
+const FITTED_CHART_HEIGHT = 360;
+
+/**
+ * Chart size for a pane of the given width: the pane's width (at least
+ * MIN_CHART_WIDTH), or nothing when the pane has no layout yet (a detached
+ * host), leaving the viz defaults. Width and height set in the options win.
+ */
+export const fitToPane = (paneWidth: number): { width?: number; height?: number } =>
+  paneWidth > 0
+    ? { width: Math.max(MIN_CHART_WIDTH, Math.floor(paneWidth)), height: FITTED_CHART_HEIGHT }
+    : {};
+
 /**
  * Chart pane: wraps the viz BarChart or LineChart. A "table" input fills bar
  * charts from the table's r/g/b columns, if present, and drops them from the
@@ -67,11 +82,12 @@ export const createChartPane = (options: ChartPaneOptions): Pane =>
     let barOptions: BarChartOptions | null = null;
 
     const mountChart = (data: TableSlice, colors: (string | null)[] | null) => {
-      if (options.chart === "bar") {
-        barOptions = { ...options, barColors: colors ?? undefined } as BarChartOptions;
+      const sized = { ...fitToPane(root.clientWidth), ...options };
+      if (sized.chart === "bar") {
+        barOptions = { ...sized, barColors: colors ?? undefined } as BarChartOptions;
         return BarChart.mount(chartRoot, data, barOptions);
       }
-      return LineChart.mount(chartRoot, data, options);
+      return LineChart.mount(chartRoot, data, sized);
     };
 
     const showLegend = (data: TableSlice) => {

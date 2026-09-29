@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createChartPane, splitRowColors } from "../src/chartPane";
+import { createChartPane, fitToPane, splitRowColors } from "../src/chartPane";
 import { renderLegendView, scaleLegendView, parseScaleLegend } from "../src/scaleLegend";
 import { conformance, tableInput } from "./conformance";
 import { fakeCtx, makeSlice } from "./helpers";
@@ -168,5 +168,32 @@ describe("splitRowColors", () => {
     const { data: split, colors } = splitRowColors(data);
     expect(split).toEqual(data);
     expect(colors).toBeNull();
+  });
+});
+
+describe("fitToPane", () => {
+  it("fills the pane's width, never narrower than the viz default", () => {
+    expect(fitToPane(812.6)).toEqual({ width: 812, height: 360 });
+    expect(fitToPane(300)).toEqual({ width: 480, height: 360 });
+  });
+
+  it("leaves the viz defaults when the pane has no layout yet", () => {
+    expect(fitToPane(0)).toEqual({});
+  });
+
+  it("sizes a mounted chart to its pane unless the options set a size", () => {
+    const sized = (options: Parameters<typeof createChartPane>[0]) => {
+      const host = document.createElement("div");
+      const pane = createChartPane(options);
+      pane.mount(host, fakeCtx());
+      // jsdom has no layout: give the pane's root (.bof-panes-root) a width.
+      Object.defineProperty(host.firstElementChild, "clientWidth", { value: 900 });
+      pane.update(tableInput);
+      const width = host.querySelector("svg")!.getAttribute("width");
+      pane.destroy();
+      return width;
+    };
+    expect(sized({ chart: "bar" })).toBe("900");
+    expect(sized({ chart: "bar", width: 640 })).toBe("640");
   });
 });

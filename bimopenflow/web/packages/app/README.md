@@ -49,8 +49,8 @@ npm run -w @bimopenflow/app build   # vite production build
 - `defaultShown.ts` — which node the panes show when nothing is selected
   (TKT-46): the last shown node if it still exists, else the best terminal
   node in the document.
-- `sidebar.ts` / `topbar.ts` / `toast.ts` — chrome: analysis list, catalog
-  search, picker/save/run/connection status, notifications.
+- `sidebar.ts` / `topbar.ts` / `toast.ts` — chrome: the sidebar's Steps and Nodes tabs
+  (TKT-116), the flow picker, save/run/connection status, notifications.
 - `peekWiring.ts` — connects the port-results controller, evaluation watcher,
   and hover listener to a canvas; `createCanvasEditor` uses it when given a
   `readPort` (TKT-11: hover a socket or wire for its rows, counts on wires).
@@ -61,7 +61,7 @@ npm run -w @bimopenflow/app build   # vite production build
   adding or describing a sample (TKT-14).
 - `stepList.ts` / `graphOrder.ts` — the open flow as numbered steps in
   dataflow order (title, parameter summary, status, row count, "from 1, 2" for
-  joins), mounted in the sidebar's Steps section; a click selects the node
+  joins), mounted in the sidebar's Steps tab; a click selects the node
   (TKT-95).
 - `canvasPalette.ts` / `paletteFilter.ts` / `addNodePlan.ts` — right-click
   empty canvas, or drop a wire there, to open the node palette; a dropped wire

@@ -54,12 +54,20 @@ export interface GraphEditorOptions {
   readonly surfaces?: CanvasEditorSurfaces;
 }
 
+export interface FitOptions {
+  /** The zoom fit never goes below; a graph that then does not fit is anchored at its top-left corner
+   *  and the rest is reached by panning. Default 0.1, the studio's. A notebook cell passes 1 so text
+   *  is never smaller than the studio draws it. */
+  readonly minZoom?: number;
+}
+
 export interface GraphEditor {
   /** Re-derives the canvas doc from the store (e.g. after the catalog loads). */
   refresh(): void;
   /** The row counts and open peek the canvas draws; empty without a readPort. */
   results(): PortResultsView;
-  fit(): void;
+  /** Frames every node: centred when the graph fits, else anchored top-left (see FitOptions). */
+  fit(options?: FitOptions): void;
   focus(nodeId?: string): void;
   /** Re-reads the column options of every column selector (after an evaluation update). */
   refreshSuggestions(): void;
@@ -190,16 +198,20 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
         Math.max(50, canvas.clientHeight / 3 - node.h / 2) - node.y) };
       sync();
     },
-    fit() {
+    fit(fitOptions = {}) {
       const nodes = model().nodes;
       if (!nodes.length) return;
       const left = Math.min(...nodes.map(n => n.x));
       const top = Math.min(...nodes.map(n => n.y));
       const width = Math.max(...nodes.map(n => n.x + n.w)) - left;
       const height = Math.max(...nodes.map(n => n.y + n.h)) - top;
-      const zoom = Math.max(0.1, Math.min(1, (canvas.clientWidth - 48) / width, (canvas.clientHeight - 72) / height));
-      runtime.viewport = { zoom, pan: v((canvas.clientWidth - width * zoom) / 2 - left * zoom,
-        (canvas.clientHeight - height * zoom) / 2 - top * zoom + 12) };
+      const minZoom = fitOptions.minZoom ?? 0.1;
+      const zoom = Math.max(minZoom, Math.min(1, (canvas.clientWidth - 48) / width, (canvas.clientHeight - 72) / height));
+      const fitsX = width * zoom <= canvas.clientWidth - 48;
+      const fitsY = height * zoom <= canvas.clientHeight - 72;
+      runtime.viewport = { zoom, pan: v(
+        fitsX ? (canvas.clientWidth - width * zoom) / 2 - left * zoom : 24 - left * zoom,
+        fitsY ? (canvas.clientHeight - height * zoom) / 2 - top * zoom + 12 : 24 - top * zoom) };
       sync();
     },
     refreshSuggestions: () => instance.columnSelects.refresh(),

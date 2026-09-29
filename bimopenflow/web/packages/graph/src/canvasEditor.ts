@@ -12,7 +12,7 @@ import { makeCanvasUpdate, type AnchorRef, type CanvasIntent } from "./canvasInt
 import { canvasView } from "./canvasParts.js";
 import { createCanvasInstance, pruneInstance, type SuggestionProvider } from "./instance.js";
 import { islandKey } from "./slotShared.js";
-import { buildCanvasModel, NOTE_KIND, type CanvasModel } from "./viewModel.js";
+import { buildCanvasModel, NOTE_KIND, type CanvasModel, type NodeBounds } from "./viewModel.js";
 import { animateSelection } from "./selectionBorder.js";
 import { installNodeContextMenu } from "./nodeContextMenu.js";
 import { createPeekWiring, type PeekWiring } from "./peekWiring.js";
@@ -55,10 +55,51 @@ export interface GraphEditorOptions {
 }
 
 export interface FitOptions {
-  /** The zoom fit never goes below; a graph that then does not fit is anchored at its top-left corner
-   *  and the rest is reached by panning. Default 0.1, the studio's. A notebook cell passes 1 so text
-   *  is never smaller than the studio draws it. */
+  /** The zoom fit never goes below. Default 0.1, the studio's; a notebook cell passes a higher floor
+   *  so node text stays readable, and a graph that then does not fit overflows (see `overflow`). */
   readonly minZoom?: number;
+  /** Space kept free on every side, in CSS pixels. Default: 24 at the sides and bottom and 48 at
+   *  the top, where the studio's canvas carries its overlay buttons. */
+  readonly margin?: number;
+  /** Where a graph that does not fit at `minZoom` sits on that axis: "start" anchors its top-left
+   *  corner (the studio's default), "center" crops both ends evenly. */
+  readonly overflow?: "start" | "center";
+}
+
+/** A rectangle in world units. */
+export interface Rect { readonly x: number; readonly y: number; readonly width: number; readonly height: number }
+
+/** Pan (CSS pixels) and zoom, as gratify's runtime holds them. */
+export interface Viewport { readonly zoom: number; readonly pan: Point }
+
+/** The rectangle every node covers, or undefined for an empty graph. */
+export function contentBounds(nodes: readonly NodeBounds[]): Rect | undefined {
+  if (!nodes.length) return undefined;
+  const x = Math.min(...nodes.map(n => n.x));
+  const y = Math.min(...nodes.map(n => n.y));
+  return {
+    x, y,
+    width: Math.max(...nodes.map(n => n.x + n.w)) - x,
+    height: Math.max(...nodes.map(n => n.y + n.h)) - y,
+  };
+}
+
+/** The viewport that frames `content` in a view of `view` CSS pixels: the largest zoom up to 1 that
+ *  fits inside the margins, never below `minZoom`, centred on each axis where it fits. */
+export function fitViewport(content: Rect, view: { readonly width: number; readonly height: number },
+  options: FitOptions = {}): Viewport {
+  const m = options.margin;
+  const [top, right, bottom, left] = m === undefined ? [48, 24, 24, 24] : [m, m, m, m];
+  const boxW = view.width - left - right;
+  const boxH = view.height - top - bottom;
+  const zoom = Math.max(options.minZoom ?? 0.1, Math.min(1, boxW / content.width, boxH / content.height));
+  // Centred inside the margin box; a graph that overflows at the floor is centred too, or held at the box's start.
+  const place = (start: number, box: number, size: number, origin: number): number =>
+    (size * zoom <= box || options.overflow === "center" ? start + (box - size * zoom) / 2 : start) - origin * zoom;
+  return { zoom, pan: {
+    x: place(left, boxW, content.width, content.x),
+    y: place(top, boxH, content.height, content.y),
+  } };
 }
 
 export interface GraphEditor {
@@ -66,8 +107,10 @@ export interface GraphEditor {
   refresh(): void;
   /** The row counts and open peek the canvas draws; empty without a readPort. */
   results(): PortResultsView;
-  /** Frames every node: centred when the graph fits, else anchored top-left (see FitOptions). */
+  /** Frames every node with fitViewport (see FitOptions). */
   fit(options?: FitOptions): void;
+  /** The rectangle the nodes cover in world units, as laid out now; undefined for an empty graph. */
+  bounds(): Rect | undefined;
   focus(nodeId?: string): void;
   /** Re-reads the column options of every column selector (after an evaluation update). */
   refreshSuggestions(): void;
@@ -199,21 +242,13 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
       sync();
     },
     fit(fitOptions = {}) {
-      const nodes = model().nodes;
-      if (!nodes.length) return;
-      const left = Math.min(...nodes.map(n => n.x));
-      const top = Math.min(...nodes.map(n => n.y));
-      const width = Math.max(...nodes.map(n => n.x + n.w)) - left;
-      const height = Math.max(...nodes.map(n => n.y + n.h)) - top;
-      const minZoom = fitOptions.minZoom ?? 0.1;
-      const zoom = Math.max(minZoom, Math.min(1, (canvas.clientWidth - 48) / width, (canvas.clientHeight - 72) / height));
-      const fitsX = width * zoom <= canvas.clientWidth - 48;
-      const fitsY = height * zoom <= canvas.clientHeight - 72;
-      runtime.viewport = { zoom, pan: v(
-        fitsX ? (canvas.clientWidth - width * zoom) / 2 - left * zoom : 24 - left * zoom,
-        fitsY ? (canvas.clientHeight - height * zoom) / 2 - top * zoom + 12 : 24 - top * zoom) };
+      const content = contentBounds(model().nodes);
+      if (!content) return;
+      const { zoom, pan } = fitViewport(content, { width: canvas.clientWidth, height: canvas.clientHeight }, fitOptions);
+      runtime.viewport = { zoom, pan: v(pan.x, pan.y) };
       sync();
     },
+    bounds: () => contentBounds(model().nodes),
     refreshSuggestions: () => instance.columnSelects.refresh(),
     // Live swap: gratify retargets its tokens and cross-fades; the sync wakes
     // the runtime's frame loop so the fade actually runs. Pan/zoom untouched.

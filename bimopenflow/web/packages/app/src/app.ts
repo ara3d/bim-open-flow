@@ -210,7 +210,9 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     nodes.textContent = "Nodes";
     nodes.setAttribute("aria-expanded", "false");
     nodes.addEventListener("click", () => {
-      nodes.setAttribute("aria-expanded", String(root.classList.toggle("bof-app-catalog-open")));
+      const open = root.classList.toggle("bof-app-catalog-open");
+      nodes.setAttribute("aria-expanded", String(open));
+      if (open) sidebar.showTab("nodes");
     });
     const fit = root.ownerDocument.createElement("button");
     fit.textContent = "Fit graph";
@@ -245,11 +247,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   topbar.setTheme(loadThemeChoice());
   topbar.setNodeStyle(loadNodeStyleChoice());
 
-  const sidebar = createSidebar(
-    shell.sidebarEl,
-    (id) => void openAnalysis(id),
-    (desc) => addNode(desc),
-  );
+  const sidebar = createSidebar(shell.sidebarEl, (desc) => addNode(desc));
   const stepList = createStepList(sidebar.stepsEl, { onSelect: selectAndFocus });
 
   // The start page (TKT-14): one card per sample flow, over the canvas. Shown
@@ -365,7 +363,6 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   // ── actions ────────────────────────────────────────────────────────────────
   const refreshAnalyses = async () => {
     analyses = await api.listAnalyses();
-    sidebar.setAnalyses(analyses, currentId);
     topbar.setAnalyses(analyses, currentId);
     startPage.setPresent(analyses.map((a) => a.id));
   };
@@ -407,7 +404,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       });
       reportSession();
       canvasEditor.refreshSuggestions();
-      sidebar.setAnalyses(analyses, id);
+      sidebar.flowOpened(store.getState().document.structure.nodes.length > 0);
       topbar.setAnalyses(analyses, id);
       if (options.syncUrl) {
         const loc = root.ownerDocument.defaultView?.location;

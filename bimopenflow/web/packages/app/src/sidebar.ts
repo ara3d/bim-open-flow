@@ -1,66 +1,94 @@
-// Left sidebar: the analysis list, the open flow's steps, and the searchable
-// node catalog.
+// Left sidebar: two tabs, the open flow's steps and the searchable node
+// catalog, each with the sidebar's full height. Switching flows is the top
+// bar's picker (topbar.ts), so the sidebar lists no flows (TKT-116).
 
-import type { AnalysisSummary, NodeDescriptor } from "@bimopenflow/contracts";
+import type { NodeDescriptor } from "@bimopenflow/contracts";
 import { groupCatalog, loadExpandedPacks, saveExpandedPacks } from "./catalogFilter.js";
+import { readPref, writePref } from "./prefs.js";
+
+export type SidebarTab = "steps" | "nodes";
 
 export interface Sidebar {
-  setAnalyses(list: AnalysisSummary[], activeId: string | null): void;
   setCatalog(nodes: NodeDescriptor[]): void;
+  /** Called when a flow opens: with no tab remembered, a flow with nodes
+   *  shows Steps and an empty one shows Nodes. A remembered tab stays. */
+  flowOpened(hasNodes: boolean): void;
+  /** Shows a tab without remembering it (the graph demo's Nodes button). */
+  showTab(tab: SidebarTab): void;
   /** Empty host for the open flow's step list (stepList.ts's createStepList). */
   readonly stepsEl: HTMLElement;
 }
 
-const SIDEBAR_TREE_STYLE_ID = "bof-app-sidebar-tree-styles";
+const TAB_PREF_KEY = "bof-app-sidebar-tab";
+const TAB_LABELS: Record<SidebarTab, string> = { steps: "Steps", nodes: "Nodes" };
 
-// The tree's own layout rules, kept out of styles.ts for now; a later sweep
-// may fold this into the shared stylesheet.
-function ensureSidebarStyles(doc: Document): void {
-  if (doc.getElementById(SIDEBAR_TREE_STYLE_ID)) return;
-  const style = doc.createElement("style");
-  style.id = SIDEBAR_TREE_STYLE_ID;
-  style.textContent = `
-    .bof-app-catalog-group { cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; }
-    .bof-app-catalog-group-count { opacity: 0.65; font-weight: normal; }
-    .bof-app-steps { flex: 0 1 auto; max-height: 30%; overflow-y: auto; }
-  `;
-  doc.head.appendChild(style);
+const isTab = (value: string | null): value is SidebarTab => value === "steps" || value === "nodes";
+
+/** The tab to show when a flow opens: the remembered one, else Steps for a
+ *  flow with nodes and Nodes for an empty flow. */
+export function tabForFlow(remembered: string | null, hasNodes: boolean): SidebarTab {
+  if (isTab(remembered)) return remembered;
+  return hasNodes ? "steps" : "nodes";
 }
 
 export function createSidebar(
   root: HTMLElement,
-  onOpenAnalysis: (id: string) => void,
   onAddNode: (desc: NodeDescriptor) => void,
 ): Sidebar {
   const doc = root.ownerDocument;
-  ensureSidebarStyles(doc);
   root.classList.add("bof-app-sidebar");
 
-  // Each list scrolls on its own (bof-app-analyses / bof-app-steps /
-  // bof-app-catalog) so the headers and the filter box stay visible when
-  // content overflows; Flows and Steps are capped so the catalog keeps room.
-  const section = (title: string, listClass: string): HTMLElement => {
-    const h = doc.createElement("h3");
-    h.textContent = title;
-    root.appendChild(h);
-    const list = doc.createElement("div");
-    list.className = `bof-app-list ${listClass}`;
-    root.appendChild(list);
-    return list;
+  // The tab strip reuses the pane area's look (styles.ts, bof-app-tabs).
+  const tabStrip = doc.createElement("div");
+  tabStrip.className = "bof-app-tabs";
+  tabStrip.setAttribute("role", "tablist");
+  root.appendChild(tabStrip);
+
+  const panel = (tab: SidebarTab): HTMLElement => {
+    const el = doc.createElement("div");
+    el.className = `bof-app-sidebar-panel bof-app-sidebar-panel-${tab}`;
+    el.setAttribute("role", "tabpanel");
+    el.setAttribute("aria-label", TAB_LABELS[tab]);
+    root.appendChild(el);
+    return el;
   };
+  const panels: Record<SidebarTab, HTMLElement> = { steps: panel("steps"), nodes: panel("nodes") };
 
-  const analysisList = section("Flows", "bof-app-analyses");
-  const stepsEl = section("Steps", "bof-app-steps");
+  const tabs = (Object.keys(TAB_LABELS) as SidebarTab[]).map((tab) => {
+    const el = doc.createElement("button");
+    el.type = "button";
+    el.className = "bof-app-tab";
+    el.dataset.tab = tab;
+    el.setAttribute("role", "tab");
+    el.textContent = TAB_LABELS[tab];
+    el.addEventListener("click", () => {
+      writePref(TAB_PREF_KEY, tab);
+      showTab(tab);
+    });
+    tabStrip.appendChild(el);
+    return el;
+  });
 
-  const catalogHeader = doc.createElement("h3");
-  catalogHeader.textContent = "Node catalog";
-  root.appendChild(catalogHeader);
+  function showTab(tab: SidebarTab): void {
+    for (const el of tabs) {
+      const active = el.dataset.tab === tab;
+      el.classList.toggle("bof-app-tab-active", active);
+      el.setAttribute("aria-selected", String(active));
+    }
+    for (const [name, el] of Object.entries(panels)) el.hidden = name !== tab;
+  }
+  showTab(tabForFlow(readPref(TAB_PREF_KEY), true));
+
+  // Each list scrolls on its own, so the tabs and the filter box stay visible.
+  const stepsEl = doc.createElement("div");
+  stepsEl.className = "bof-app-list bof-app-steps";
+  panels.steps.appendChild(stepsEl);
+
   const search = doc.createElement("input");
   search.placeholder = "Filter nodes…";
-  root.appendChild(search);
   const catalogList = doc.createElement("div");
   catalogList.className = "bof-app-list bof-app-catalog";
-  root.appendChild(catalogList);
+  panels.nodes.append(search, catalogList);
 
   let catalog: NodeDescriptor[] = [];
   // Packs the user has expanded by hand; persisted so a reload restores them.
@@ -110,20 +138,13 @@ export function createSidebar(
 
   return {
     stepsEl,
-    setAnalyses(list, activeId) {
-      analysisList.textContent = "";
-      for (const a of list) {
-        const item = doc.createElement("div");
-        item.className =
-          "bof-app-item" + (a.id === activeId ? " bof-app-item-active" : "");
-        item.textContent = a.id;
-        item.addEventListener("click", () => onOpenAnalysis(a.id));
-        analysisList.appendChild(item);
-      }
-    },
     setCatalog(nodes) {
       catalog = nodes;
       renderCatalog();
     },
+    flowOpened(hasNodes) {
+      showTab(tabForFlow(readPref(TAB_PREF_KEY), hasNodes));
+    },
+    showTab,
   };
 }

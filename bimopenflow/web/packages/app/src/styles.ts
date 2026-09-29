@@ -52,11 +52,13 @@ html, body { margin: 0; height: 100%; }
   background: var(--bof-app-surface); border-right: 1px solid var(--bof-app-border);
   padding: 8px; gap: 8px;
 }
-.bof-app-sidebar h3 { margin: 4px 0; font-size: 11px; text-transform: uppercase; color: var(--bof-app-dim); flex: none; }
 .bof-app-sidebar input { width: 100%; box-sizing: border-box; flex: none; }
+.bof-app-sidebar > .bof-app-tabs { margin: -8px -8px 0; padding-top: 6px; }
+.bof-app-sidebar .bof-app-tab { font: inherit; }
+.bof-app-sidebar-panel { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.bof-app-sidebar-panel[hidden] { display: none; }
 .bof-app-list { display: flex; flex-direction: column; gap: 2px; }
-.bof-app-analyses { flex: 0 1 auto; max-height: 35%; overflow-y: auto; }
-.bof-app-catalog { flex: 1 1 0; min-height: 0; overflow-y: auto; }
+.bof-app-steps, .bof-app-catalog { flex: 1 1 0; min-height: 0; overflow-y: auto; }
 .bof-app-item {
   padding: 4px 6px; border-radius: 4px; cursor: pointer; border: 1px solid transparent;
 }
@@ -66,7 +68,9 @@ html, body { margin: 0; height: 100%; }
 .bof-app-catalog-group {
   margin: 8px 0 2px; font-size: 10px; text-transform: uppercase;
   letter-spacing: 0.06em; color: var(--bof-app-dim); flex: none;
+  cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none;
 }
+.bof-app-catalog-group-count { opacity: 0.65; font-weight: normal; }
 .bof-app-canvas-host { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
 .bof-app-canvas-host canvas { display: block; width: 100%; height: 100%; }
 .bof-app-graph-demo .bof-app-main { grid-template-columns: minmax(0, 1fr) 6px var(--bof-app-right); position: relative; }

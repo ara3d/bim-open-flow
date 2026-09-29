@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { NodeDescriptor } from "@bimopenflow/contracts";
-import { createSidebar } from "../src/sidebar.js";
+import { createSidebar, tabForFlow } from "../src/sidebar.js";
 
 const desc = (kind: string): NodeDescriptor => ({
   kind,
@@ -14,15 +14,10 @@ const desc = (kind: string): NodeDescriptor => ({
 
 const setup = () => {
   const root = document.createElement("div");
-  const opened: string[] = [];
   const added: NodeDescriptor[] = [];
-  const sidebar = createSidebar(
-    root,
-    (id) => opened.push(id),
-    (d) => added.push(d),
-  );
+  const sidebar = createSidebar(root, (d) => added.push(d));
   const search = root.querySelector("input") as HTMLInputElement;
-  return { root, opened, added, sidebar, search };
+  return { root, added, sidebar, search };
 };
 
 const groupNames = (root: HTMLElement) =>
@@ -57,14 +52,13 @@ describe("sidebar catalog", () => {
   });
 
   it("clicking a pack header expands it, and clicking a node dispatches its descriptor", () => {
-    const { root, opened, added, sidebar } = setup();
+    const { root, added, sidebar } = setup();
     sidebar.setCatalog([desc("source.model"), desc("table.select")]);
     groupHeader(root, "table").click();
     expect(itemKinds(root)).toEqual(["table.select"]);
     const items = root.querySelectorAll(".bof-app-catalog .bof-app-item");
     (items[0] as HTMLElement).click();
     expect(added.map((d) => d.kind)).toEqual(["table.select"]);
-    expect(opened).toEqual([]);
   });
 
   it("filtering opens only packs with a match, listing only matching nodes", () => {
@@ -99,26 +93,73 @@ describe("sidebar catalog", () => {
     expect(groupHeader(second.root, "csv").getAttribute("aria-expanded")).toBe("false");
   });
 
-  it("clicking an analysis entry opens it", () => {
-    const { root, opened, added, sidebar } = setup();
-    sidebar.setAnalyses(
-      [{ id: "untitled-1", graphHash: "h" }],
-      null,
-    );
-    (root.querySelector(".bof-app-analyses .bof-app-item") as HTMLElement).click();
-    expect(opened).toEqual(["untitled-1"]);
-    expect(added).toEqual([]);
+});
+
+const tabLabels = (root: HTMLElement) =>
+  [...root.querySelectorAll(".bof-app-tabs .bof-app-tab")].map((t) => t.textContent);
+
+const activeTab = (root: HTMLElement) =>
+  root.querySelector(".bof-app-tab-active")?.textContent;
+
+const tab = (root: HTMLElement, label: string) =>
+  [...root.querySelectorAll(".bof-app-tab")].find((t) => t.textContent === label) as HTMLElement;
+
+const visiblePanels = (root: HTMLElement) =>
+  [...root.querySelectorAll<HTMLElement>(".bof-app-sidebar-panel")].filter((p) => !p.hidden)
+    .map((p) => p.getAttribute("aria-label"));
+
+describe("sidebar tabs", () => {
+  beforeEach(() => {
+    localStorage.clear();
   });
 
-  it("places an empty Steps section between the flows and the catalog", () => {
+  it("shows two tabs, Steps and Nodes, and lists no flows", () => {
     const { root, sidebar } = setup();
-    const headers = [...root.querySelectorAll("h3")].map((h) => h.textContent);
-    expect(headers).toEqual(["Flows", "Steps", "Node catalog"]);
-    expect(sidebar.stepsEl.classList.contains("bof-app-steps")).toBe(true);
-    expect(sidebar.stepsEl.previousElementSibling?.textContent).toBe("Steps");
+    expect(tabLabels(root)).toEqual(["Steps", "Nodes"]);
+    expect(root.querySelector(".bof-app-analyses")).toBeNull();
+    expect(root.querySelector("h3")).toBeNull();
+    expect(sidebar.stepsEl.closest(".bof-app-sidebar-panel")?.getAttribute("aria-label")).toBe("Steps");
     expect(sidebar.stepsEl.childElementCount).toBe(0);
-    sidebar.setAnalyses([{ id: "untitled-1", graphHash: "h" }], null);
-    sidebar.setCatalog([desc("table.select")]);
-    expect(sidebar.stepsEl.childElementCount).toBe(0);
+    expect(root.querySelector("input")!.closest(".bof-app-sidebar-panel")?.getAttribute("aria-label")).toBe("Nodes");
+  });
+
+  it("opens a flow with nodes on Steps and an empty flow on Nodes when nothing is remembered", () => {
+    const { root, sidebar } = setup();
+    sidebar.flowOpened(true);
+    expect(activeTab(root)).toBe("Steps");
+    expect(visiblePanels(root)).toEqual(["Steps"]);
+    sidebar.flowOpened(false);
+    expect(activeTab(root)).toBe("Nodes");
+    expect(visiblePanels(root)).toEqual(["Nodes"]);
+    expect(tab(root, "Nodes").getAttribute("aria-selected")).toBe("true");
+    expect(tab(root, "Steps").getAttribute("aria-selected")).toBe("false");
+  });
+
+  it("keeps the tab the user picked, across flows and reloads", () => {
+    const first = setup();
+    tab(first.root, "Nodes").click();
+    first.sidebar.flowOpened(true);
+    expect(activeTab(first.root)).toBe("Nodes");
+
+    const second = setup();
+    second.sidebar.flowOpened(true);
+    expect(activeTab(second.root)).toBe("Nodes");
+    tab(second.root, "Steps").click();
+    second.sidebar.flowOpened(false);
+    expect(activeTab(second.root)).toBe("Steps");
+  });
+
+  it("showTab switches without remembering the choice", () => {
+    const { root, sidebar } = setup();
+    sidebar.showTab("nodes");
+    expect(activeTab(root)).toBe("Nodes");
+    sidebar.flowOpened(true);
+    expect(activeTab(root)).toBe("Steps");
+  });
+
+  it("tabForFlow ignores an unknown remembered value", () => {
+    expect(tabForFlow("flows", true)).toBe("steps");
+    expect(tabForFlow(null, false)).toBe("nodes");
+    expect(tabForFlow("steps", false)).toBe("steps");
   });
 });

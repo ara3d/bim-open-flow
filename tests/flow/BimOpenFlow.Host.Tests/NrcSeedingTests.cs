@@ -29,7 +29,7 @@ public sealed class NrcSeedingTests
     public void TablesProfile_SeedsTheNrcGraphsItCanRun_AndReportsTheOthers()
     {
         var log = new StringWriter();
-        var seeded = SampleSeeding.SeedIfEmpty(new AnalysisStore(NewStoreDir()), AppContext.BaseDirectory,
+        var seeded = SampleSeeding.Seed(new AnalysisStore(NewStoreDir()), AppContext.BaseDirectory,
             HostComposition.TablePacks(), log);
         Assert.Multiple(() =>
         {
@@ -44,7 +44,7 @@ public sealed class NrcSeedingTests
     public void BimProfile_SeedsEveryNrcGraph()
     {
         var log = new StringWriter();
-        var seeded = BimSampleSeeding.SeedIfEmpty(new AnalysisStore(NewStoreDir()), AppContext.BaseDirectory,
+        var seeded = BimSampleSeeding.Seed(new AnalysisStore(NewStoreDir()), AppContext.BaseDirectory,
             HostComposition.AllPacks(), log);
         Assert.Multiple(() =>
         {
@@ -61,7 +61,7 @@ public sealed class NrcSeedingTests
 
     [Test]
     public void WithoutARegistry_EverythingIsSeeded()
-        => Assert.That(SampleSeeding.SeedIfEmpty(new AnalysisStore(NewStoreDir()), AppContext.BaseDirectory),
+        => Assert.That(SampleSeeding.Seed(new AnalysisStore(NewStoreDir()), AppContext.BaseDirectory),
             Is.SupersetOf(SharedIds.Concat(BimOnlyIds)));
 
     [Test]

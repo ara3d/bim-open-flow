@@ -4,7 +4,7 @@ using BimOpenFlow.Host.Store;
 namespace BimOpenFlow.TableWorkflows.Tests;
 
 /// <summary>Seeding the sample analyses into an analysis store: an empty store
-/// gets them all with {SAMPLES} rewritten; a non-empty store is never touched.</summary>
+/// gets them all with {SAMPLES} rewritten; a store holding none of them is left alone.</summary>
 [TestFixture]
 public sealed class SampleSeedingTests
 {
@@ -38,7 +38,7 @@ public sealed class SampleSeedingTests
     public void EmptyStore_SeedsAllSamples()
     {
         var store = new AnalysisStore(_storeDir);
-        var seeded = SampleSeeding.SeedIfEmpty(store, SamplePaths.AnalysesDir, SamplePaths.TablesDir);
+        var seeded = SampleSeeding.Seed(store, SamplePaths.AnalysesDir, SamplePaths.TablesDir);
         Assert.That(seeded, Is.EqualTo(ExpectedIds));
         Assert.That(store.List().Select(e => e.Id), Is.EqualTo(ExpectedIds));
     }
@@ -47,7 +47,7 @@ public sealed class SampleSeedingTests
     public void Seeding_RewritesThePathPlaceholder()
     {
         var store = new AnalysisStore(_storeDir);
-        SampleSeeding.SeedIfEmpty(store, SamplePaths.AnalysesDir, SamplePaths.TablesDir);
+        SampleSeeding.Seed(store, SamplePaths.AnalysesDir, SamplePaths.TablesDir);
         foreach (var id in ExpectedIds)
         {
             var values = store.Load(id!).Values.SelectMany(n => n.Value.Values);
@@ -56,11 +56,11 @@ public sealed class SampleSeedingTests
     }
 
     [Test]
-    public void NonEmptyStore_IsUntouched()
+    public void StoreHoldingNoneOfTheSamples_IsUntouched()
     {
         var store = new AnalysisStore(_storeDir);
         store.Create("existing");
-        var seeded = SampleSeeding.SeedIfEmpty(store, SamplePaths.AnalysesDir, SamplePaths.TablesDir);
+        var seeded = SampleSeeding.Seed(store, SamplePaths.AnalysesDir, SamplePaths.TablesDir);
         Assert.That(seeded, Is.Empty);
         Assert.That(store.List().Select(e => e.Id), Is.EqualTo(new[] { "existing" }));
     }
@@ -74,10 +74,10 @@ public sealed class SampleSeedingTests
     }
 
     [Test]
-    public void SeedIfEmpty_MissingAnalysesDir_SeedsNothing()
+    public void Seed_MissingAnalysesDir_SeedsNothing()
     {
         var store = new AnalysisStore(_storeDir);
-        var seeded = SampleSeeding.SeedIfEmpty(store,
+        var seeded = SampleSeeding.Seed(store,
             Path.Combine(_storeDir, "no-such-dir"), SamplePaths.TablesDir);
         Assert.That(seeded, Is.Empty);
         Assert.That(store.List(), Is.Empty);

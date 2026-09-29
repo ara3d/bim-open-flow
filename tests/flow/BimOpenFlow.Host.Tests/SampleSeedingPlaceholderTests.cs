@@ -49,7 +49,7 @@ public sealed class SampleSeedingPlaceholderTests
         File.WriteAllText(Path.Combine(analysesDir, "federation-match.json"), OneUnresolvedParam().ToCanonicalJson());
 
         var log = new StringWriter();
-        var seeded = SampleSeeding.SeedIfEmpty(new AnalysisStore(Path.Combine(_root, "store")),
+        var seeded = SampleSeeding.Seed(new AnalysisStore(Path.Combine(_root, "store")),
             [(analysesDir, SampleSeeding.PathPlaceholder, Path.Combine(_root, "tables"))], registry: null, log);
 
         Assert.That(seeded, Is.Empty);
@@ -65,7 +65,7 @@ public sealed class SampleSeedingPlaceholderTests
         File.WriteAllText(Path.Combine(analysesDir, "ok-graph.json"), FullyResolved().ToCanonicalJson());
 
         var log = new StringWriter();
-        var seeded = SampleSeeding.SeedIfEmpty(new AnalysisStore(Path.Combine(_root, "store")),
+        var seeded = SampleSeeding.Seed(new AnalysisStore(Path.Combine(_root, "store")),
             [(analysesDir, SampleSeeding.PathPlaceholder, Path.Combine(_root, "tables"))], registry: null, log);
 
         Assert.That(seeded, Is.EqualTo(new[] { "ok-graph" }));

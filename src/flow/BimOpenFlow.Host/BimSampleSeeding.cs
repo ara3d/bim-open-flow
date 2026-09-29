@@ -6,20 +6,20 @@ using BimOpenFlow.Nodes.BimAnalysis;
 namespace BimOpenFlow.Host;
 
 /// <summary>
-/// Seeds an empty analysis store with the committed BIM sample analyses:
+/// Seeds an analysis store with the committed BIM sample analyses:
 /// samples/bim-analyses/*.json with {SAMPLES} pointed at samples/bim (the
 /// sample.bos there is generated from BimSampleModel when absent — the model
 /// binary is never committed), and samples/view3d-analyses/*.json with {DATA}
 /// pointed at the repo data directory, samples/nrc-analyses/*.json, which name
-/// their sources, and samples/showcase-analyses/*.json over samples/nrc. A non-empty
-/// store is never touched; graphs the registry cannot validate are skipped and reported.
+/// their sources, and samples/showcase-analyses/*.json over samples/nrc, by the rules of
+/// SampleSeeding.Seed; graphs the registry cannot validate are skipped and reported.
 /// </summary>
 public static class BimSampleSeeding
 {
     public const string SampleFileName = "sample.bos";
     public const string DataPlaceholder = "{DATA}";
 
-    public static IReadOnlyList<string> SeedIfEmpty(AnalysisStore store, string startDir,
+    public static IReadOnlyList<string> Seed(AnalysisStore store, string startDir,
         INodeRegistry? registry = null, TextWriter? log = null)
     {
         if (SampleSeeding.FindRepoRoot(startDir) is not { } root)
@@ -35,7 +35,7 @@ public static class BimSampleSeeding
         };
         if (SnowdonPath() is { } snowdon)
             sources.Add((Path.Combine(root, "samples", "snowdon-analyses"), "{SNOWDON}", snowdon));
-        return SampleSeeding.SeedIfEmpty(store, sources, registry, log);
+        return SampleSeeding.Seed(store, sources, registry, log);
     }
 
     /// <summary>The directories the seeded analyses' model paths point at

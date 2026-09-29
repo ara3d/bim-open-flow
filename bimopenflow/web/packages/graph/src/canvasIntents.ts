@@ -52,6 +52,10 @@ export type CanvasIntent =
   | { kind: "sync"; model: CanvasModel }
   | { kind: "move"; id: string; x: number; y: number } // transient, during drag
   | { kind: "moveEnd"; id: string } // commits the dragged position to the store
+  /** Transient, during a corner-grip drag (TKT-124); w and h arrive already
+   *  clamped by viewModel.fitNodeSize. */
+  | { kind: "resize"; id: string; w: number; h: number }
+  | { kind: "resizeEnd"; id: string } // commits the dragged size to the store
   | { kind: "connect"; a: string; b: string } // two anchor ids, either order
   /** A dragged wire released over empty canvas (no snap): `from` is the
    *  anchor it started at, (x, y) the world point it was dropped on. The
@@ -78,7 +82,7 @@ export interface CanvasHooks {
  *  canvas drops them here, whatever part raised them. Selection, the
  *  transient wire selection, closing an editor, and sync still run. */
 export const MUTATING_INTENTS: ReadonlySet<CanvasIntent["kind"]> = new Set<CanvasIntent["kind"]>([
-  "move", "moveEnd", "connect", "setParam", "deleteSelected", "openEditor", "wireDropped",
+  "move", "moveEnd", "resize", "resizeEnd", "connect", "setParam", "deleteSelected", "openEditor", "wireDropped",
 ]);
 
 /**
@@ -140,6 +144,26 @@ export function makeCanvasUpdate(
       case "moveEnd": {
         const node = doc.nodes.find((n) => n.id === intent.id);
         if (node) dispatch({ type: "setLayout", nodeId: node.id, layout: { x: node.x, y: node.y } });
+        return doc;
+      }
+
+      case "resize":
+        return {
+          ...doc,
+          nodes: doc.nodes.map((n) =>
+            n.id === intent.id ? { ...n, w: intent.w, h: intent.h } : n),
+        };
+
+      case "resizeEnd": {
+        // x and y go too: a node that has never been dragged has no layout
+        // entry, and an entry needs a position. Only a note's height is its
+        // own; any other card's height follows its content, so saving it
+        // would only pin a stale number.
+        const node = doc.nodes.find((n) => n.id === intent.id);
+        if (node) {
+          const size = node.kind === NOTE_KIND ? { w: node.w, h: node.h } : { w: node.w };
+          dispatch({ type: "setLayout", nodeId: node.id, layout: { x: node.x, y: node.y, ...size } });
+        }
         return doc;
       }
 

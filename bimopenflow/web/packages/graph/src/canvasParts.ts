@@ -1,5 +1,6 @@
 // Gratify parts for the graph canvas: surface (grid + pan/zoom + key
-// fallback), node (ports as anchors, drag-to-move, drag-to-wire), wire, and
+// fallback), node (ports as anchors, drag-to-move, drag-to-wire, corner
+// drag-to-resize), wire, and
 // the rubber-wire preview. Patterns adapted from gratify's node-editor
 // example; all state changes travel as CanvasIntents (see canvasIntents.ts).
 
@@ -29,7 +30,8 @@ import {
 import type { PortType } from "@bimopenflow/contracts";
 import type { CanvasEdge, CanvasModel, CanvasNode } from "./viewModel.js";
 import type { WireRows } from "./portResults.js";
-import { NOTE_KIND, NOTE_LINE_H, NOTE_MAX_LINES, NOTE_PAD } from "./viewModel.js";
+import { fitNodeSize, NOTE_KIND, NOTE_LINE_H, NOTE_PAD } from "./viewModel.js";
+import { resizeHandleHit } from "./canvasResize.js";
 import { placeSlots, SLOT_X_PAD } from "./canvasSlots.js";
 import { slotElement } from "./slotRegistry.js";
 import { canvasColors, canvasThemes, currentCanvasTheme } from "./canvasTheme.js";
@@ -208,20 +210,55 @@ const GraphNodePart = part<NodeProps, NodeCardColors>("bof-node", {
     const p = node.props;
     if (p.kind === NOTE_KIND) {
       painter.box(r, 6, style.fill, style.edge, p.contributing ? 2 : 1.2);
-      const lines = wrapParagraphs(painter.measure, p.noteText ?? "", r.w - 2 * NOTE_PAD, 14, NOTE_MAX_LINES);
+      // As many lines as the card's height holds: NOTE_MAX_LINES at the
+      // default height, more once the note is resized taller.
+      const maxLines = Math.max(1, Math.floor((r.h - 2 * NOTE_PAD) / NOTE_LINE_H));
+      const lines = wrapParagraphs(painter.measure, p.noteText ?? "", r.w - 2 * NOTE_PAD, 14, maxLines);
       lines.forEach((line, i) => {
         painter.label(line, v(r.x + NOTE_PAD, r.y + NOTE_PAD + NOTE_LINE_H * (i + 0.7)), style.text, {
           align: "left",
           size: 14,
         });
       });
-      return;
+    } else {
+      const c = canvasColors();
+      renderNodeCard(node, painter, style, { status: c.status, contributing: c.wireSelected }, currentNodeStyle());
     }
-    const c = canvasColors();
-    renderNodeCard(node, painter, style, { status: c.status, contributing: c.wireSelected }, currentNodeStyle());
+    // The resize grip: only where a drag would work, and only on the cards
+    // the pointer or the selection is on, so a full canvas is not dotted
+    // with grips.
+    if (!p.instance.readOnly && (p.selected || (node.ch.hover ?? 0) > 0.5)) {
+      const grip = calpha(style.dim, 0.8);
+      painter.line(v(r.right - 3, r.bottom - 10), v(r.right - 10, r.bottom - 3), grip, 1.2);
+      painter.line(v(r.right - 3, r.bottom - 6), v(r.right - 6, r.bottom - 3), grip, 1.2);
+    }
   },
 
   on: [
+    // Resize drag (TKT-124): starts only when the press lands on the
+    // bottom-right corner, so it runs ahead of the wire and move gestures.
+    // Transient "resize" intents while dragging, one "resizeEnd" commit. The
+    // part API has no cursor, so the grip drawn in render is the only cue.
+    Gesture<NodeProps, { origin: Vec; start: { w: number; h: number } }>({
+      begin(node, pointer) {
+        const p = node.props;
+        if (p.instance.readOnly || !resizeHandleHit({ x: p.pos.x, y: p.pos.y, w: p.w, h: p.h }, pointer)) return null;
+        return { origin: pointer, start: { w: p.w, h: p.h } };
+      },
+      during: (state, node, pointer) => ({
+        kind: "resize",
+        id: node.props.id,
+        ...fitNodeSize(node.props, {
+          w: state.start.w + pointer.x - state.origin.x,
+          h: state.start.h + pointer.y - state.origin.y,
+        }),
+      }) satisfies CanvasIntent,
+      up: (state, node) =>
+        (node.props.w !== state.start.w || node.props.h !== state.start.h
+          ? { kind: "resizeEnd", id: node.props.id }
+          : { kind: "selectNode", id: node.props.id }) satisfies CanvasIntent,
+    }),
+
     // Wire drag: starts only when the press lands near a socket.
     Gesture<NodeProps, { fromId: string; cursor: Vec; snap?: Anchor }>({
       begin(node, pointer, query) {

@@ -4,6 +4,7 @@
 import type { NodeDescriptor, NodeStatus, PortType } from "@bimopenflow/contracts";
 import type { State } from "@bimopenflow/state";
 import { inlineParams, placeSlots, type CanvasParam } from "./canvasSlots.js";
+import { clampNodeSize, type Size } from "./canvasResize.js";
 import { upstreamIds } from "./graphPreview";
 import { nodeBadge, type NodeBadge } from "./nodeBadge.js";
 import { NO_PORT_RESULTS, type PortPeekView, type PortResultsView, type WireRows } from "./portResults.js";
@@ -109,6 +110,24 @@ export function nodeHeight(
   return placeSlots(params, portsBottom).bottom;
 }
 
+/** The fields of a card its default size is computed from. */
+type SizedNode = Pick<CanvasNode, "kind" | "inputs" | "outputs" | "params" | "noteText">;
+
+/** The size `node`'s content needs: its default size, and the smallest a
+ *  resize may make it (TKT-124). */
+export function contentSize(node: SizedNode): Size {
+  return node.kind === NOTE_KIND
+    ? { w: NOTE_WIDTH, h: noteHeight(node.noteText ?? "") }
+    : { w: nodeWidth(node.params), h: nodeHeight(node.inputs.length, node.outputs.length, node.params) };
+}
+
+/** The size `node` is drawn at when `want` is asked for (a saved layout
+ *  entry or a resize drag): see canvasResize.clampNodeSize. Only a note's
+ *  height is resizable. */
+export function fitNodeSize(node: SizedNode, want: { readonly w?: number; readonly h?: number }): Size {
+  return clampNodeSize(contentSize(node), want, node.kind === NOTE_KIND);
+}
+
 /** Deterministic grid position for the n-th node without saved layout. */
 export function defaultPosition(index: number): { x: number; y: number } {
   const cols = 4;
@@ -177,31 +196,29 @@ export function buildCanvasModel(
       const noteText = state.document.values[n.id]?.["text"]
         ?? desc?.params.find((p) => p.name === "text")?.default
         ?? "";
+      const note = { kind: n.kind, inputs: [], outputs: [], params: [], noteText };
       return {
         id: n.id,
-        kind: n.kind,
         x: pos.x,
         y: pos.y,
-        w: layout?.w ?? NOTE_WIDTH,
-        h: layout?.h ?? noteHeight(noteText),
-        inputs: [],
-        outputs: [],
-        params: [],
+        ...fitNodeSize(note, layout ?? {}),
+        ...note,
         selected: selected.has(n.id),
         contributing: contributing.has(n.id),
-        noteText,
       };
     }
-    return {
-      id: n.id,
+    const card = {
       kind: n.kind,
-      x: pos.x,
-      y: pos.y,
-      w: layout?.w ?? nodeWidth(params),
-      h: layout?.h ?? nodeHeight(inputs.length, outputs.length, params),
       inputs: inputs.map((p) => ({ name: p.name, type: p.type })),
       outputs: outputs.map((p) => ({ name: p.name, type: p.type })),
       params,
+    };
+    return {
+      id: n.id,
+      x: pos.x,
+      y: pos.y,
+      ...fitNodeSize(card, layout ?? {}),
+      ...card,
       status: state.evalState[n.id]?.status,
       badge: nodeBadge({ edges: state.document.structure.edges, evalState: state.evalState }, n.id),
       ...(desc?.description ? { description: desc.description } : {}),

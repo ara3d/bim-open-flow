@@ -18,6 +18,9 @@ export interface Step {
   readonly nodeId: string;
   readonly title: string;          // nodeTitle(kind) from graphPreview.ts
   readonly kind: string;
+  /** What the step does: the first sentence of the catalog's description,
+   *  so the list reads as a story; "" for a kind the catalog lacks. */
+  readonly description: string;
   readonly summary: string;        // "table = doors · limit = 10"; "" when no params set
   readonly status?: NodeStatus;
   readonly badge?: string;         // nodeBadge text
@@ -45,6 +48,14 @@ function paramSummary(desc: NodeDescriptor | undefined, values: Readonly<Record<
     .join(" · ");
 }
 
+/** The first sentence (or line) of a catalog description; the whole text
+ *  when it has no sentence end. */
+export const firstSentence = (text: string): string => {
+  const line = text.split("\n", 1)[0]!.trim();
+  const end = line.search(/[.;:]\s/);
+  return end < 0 ? line : line.slice(0, end + 1);
+};
+
 export function stepListModel(
   state: State,
   catalog: ReadonlyMap<string, NodeDescriptor>,
@@ -70,6 +81,7 @@ export function stepListModel(
       nodeId,
       title: nodeTitle(kind),
       kind,
+      description: firstSentence(desc?.description ?? ""),
       summary: paramSummary(desc, document.values[nodeId] ?? {}),
       ...(badge ? { status: badge.status, badge: badge.text } : {}),
       ...(rows !== undefined ? { rows } : {}),
@@ -97,10 +109,11 @@ function ensureStepListStyles(doc: Document): void {
     }
     .bof-app-steps-step:hover { background: var(--bof-app-hover); }
     .bof-app-steps-step.bof-app-steps-selected { border-color: var(--bof-app-accent); }
-    .bof-app-steps-index { color: var(--bof-app-dim); grid-row: span 3; }
+    .bof-app-steps-index { color: var(--bof-app-dim); grid-row: span 4; }
+    .bof-app-steps-description { color: var(--bof-app-text); opacity: 0.8; }
     .bof-app-steps-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .bof-app-steps-id { color: var(--bof-app-dim); font-weight: normal; margin-left: 4px; }
-    .bof-app-steps-summary, .bof-app-steps-meta {
+    .bof-app-steps-description, .bof-app-steps-summary, .bof-app-steps-meta {
       grid-column: 2; font-size: 11px; color: var(--bof-app-dim);
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
@@ -156,6 +169,11 @@ export function createStepList(host: HTMLElement, deps: StepListDeps): StepList 
     const title = span("bof-app-steps-title", step.title);
     title.appendChild(span("bof-app-steps-id", step.nodeId));
     button.appendChild(title);
+    if (step.description) {
+      const description = span("bof-app-steps-description", step.description);
+      description.title = step.description;
+      button.appendChild(description);
+    }
     if (step.summary) {
       const summary = span("bof-app-steps-summary", step.summary);
       summary.title = step.summary;

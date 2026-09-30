@@ -157,13 +157,14 @@ html, body { margin: 0; height: 100%; }
 .bof-studio .bof-app-steps-step:hover { background: #f2f4f7; }
 .bof-studio .bof-app-steps-step.bof-app-steps-selected { background: var(--s-accent-soft); border-color: #c6d6f5; }
 .bof-studio .bof-app-steps-index {
-  grid-row: span 3; width: 22px; height: 22px; border-radius: 50%; background: #eceff3; color: var(--s-dim);
+  grid-row: span 4; width: 22px; height: 22px; border-radius: 50%; background: #eceff3; color: var(--s-dim);
   font: 600 11px/22px var(--s-font); text-align: center;
 }
 .bof-studio .bof-app-steps-selected .bof-app-steps-index { background: var(--s-accent); color: #fff; }
 .bof-studio .bof-app-steps-title { font-size: 13px; }
 .bof-studio .bof-app-steps-id { font: 11px var(--s-mono); color: var(--s-dim); }
-.bof-studio .bof-app-steps-summary { font-size: 11px; color: var(--s-dim); }
+.bof-studio .bof-app-steps-description { font-size: 12px; color: var(--s-text); opacity: 0.85; }
+.bof-studio .bof-app-steps-summary { font-size: 11px; color: var(--s-dim); font-family: var(--s-mono); }
 .bof-studio .bof-app-steps-meta { font-size: 11px; color: var(--s-dim); display: flex; gap: 6px; align-items: center; white-space: normal; }
 .bof-studio .bof-app-steps-status {
   display: inline-block; padding: 1px 7px; border-radius: 999px; font-weight: 600; font-size: 10.5px;

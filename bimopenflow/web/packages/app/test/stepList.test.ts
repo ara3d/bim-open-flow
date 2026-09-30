@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { NodeDescriptor, NodeState, ParamKind } from "@bimopenflow/contracts";
 import { initialState, type State } from "@bimopenflow/state";
 import { NO_PORT_RESULTS, type PortResultsView } from "@bimopenflow/graph";
-import { createStepList, stepListModel, type Step } from "../src/stepList.js";
+import { createStepList, firstSentence, stepListModel, type Step } from "../src/stepList.js";
 
 const desc = (kind: string, params: [string, ParamKind][] = []): NodeDescriptor => ({
   kind,
@@ -119,12 +119,21 @@ describe("stepListModel", () => {
   });
 });
 
+describe("firstSentence", () => {
+  it("keeps the first sentence, the first line, or the whole short text", () => {
+    expect(firstSentence("Emits one row per pair. Boxes come from the model.")).toBe("Emits one row per pair.");
+    expect(firstSentence("Sorts rows\nby a column")).toBe("Sorts rows");
+    expect(firstSentence("Groups by the given columns")).toBe("Groups by the given columns");
+  });
+});
+
 describe("createStepList", () => {
   const step = (patch: Partial<Step> = {}): Step => ({
     index: 1,
     nodeId: "doors",
     title: "duck.query",
     kind: "duck.query",
+    description: "",
     summary: "",
     from: [],
     selected: false,
@@ -138,16 +147,18 @@ describe("createStepList", () => {
     return { host, selected, list };
   };
 
-  it("paints each step with its number, title, summary, and meta line", () => {
+  it("paints each step with its number, title, description, summary, and meta line", () => {
     const { host, list } = mount();
     list.render([
-      step({ summary: "sql = select 1", status: "Ok", badge: "Ok", rows: 1420 }),
+      step({ description: "Runs SQL over DuckDB.", summary: "sql = select 1", status: "Ok", badge: "Ok", rows: 1420 }),
       step({ index: 2, nodeId: "join", title: "table.join", kind: "table.join", from: [1, 2] }),
     ]);
     const buttons = host.querySelectorAll(".bof-app-steps-step");
     expect(buttons).toHaveLength(2);
     expect(buttons[0]!.querySelector(".bof-app-steps-index")!.textContent).toBe("1.");
+    expect(buttons[0]!.querySelector(".bof-app-steps-description")!.textContent).toBe("Runs SQL over DuckDB.");
     expect(buttons[0]!.querySelector(".bof-app-steps-summary")!.textContent).toBe("sql = select 1");
+    expect(buttons[1]!.querySelector(".bof-app-steps-description")).toBeNull();
     expect(buttons[0]!.querySelector(".bof-app-steps-meta")!.textContent).toBe("Ok · 1,420 rows");
     expect(buttons[0]!.querySelector(".bof-app-steps-status-Ok")).not.toBeNull();
     expect(buttons[1]!.querySelector(".bof-app-steps-summary")).toBeNull();

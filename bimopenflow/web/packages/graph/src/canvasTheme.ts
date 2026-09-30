@@ -10,7 +10,7 @@
 import { calpha, rgb, setTheme as setGratifyTheme, themes, tokens, type Color, type Tokens } from "gratify";
 import type { NodeStatus } from "@bimopenflow/contracts";
 
-export const canvasThemeNames = ["light", "dark"] as const;
+export const canvasThemeNames = ["light", "dark", "studio"] as const;
 
 export type CanvasThemeName = (typeof canvasThemeNames)[number];
 
@@ -45,6 +45,10 @@ export interface CanvasExtraColors {
   readonly noteFill: Color;
   readonly noteEdge: Color;
   readonly noteText: Color;
+  /** A stripe colour per node pack (the kind's prefix, nodePack): a card
+   *  whose pack is listed gets a stripe on its left edge, so packs read at
+   *  a glance. Empty for themes that draw none. */
+  readonly packAccents: Readonly<Record<string, Color>>;
 }
 
 export interface CanvasTheme {
@@ -80,6 +84,39 @@ const lightPalette: Palette = {
   danger: rgb(192, 57, 43),
 };
 
+// "studio" = a cooler light palette for the studio look (studio/), with a
+// blue accent for selection and a stripe per pack. Related packs share a
+// hue: sources teal, table work blue, geometry purple, views orange,
+// writers red, checks green.
+const studioPalette: Palette = {
+  bg: rgb(244, 245, 247),
+  surface: rgb(255, 255, 255),
+  surfaceHi: rgb(247, 248, 250),
+  muted: rgb(214, 218, 224),
+  text: rgb(23, 26, 31),
+  textDim: rgb(90, 96, 108),
+  textBright: rgb(12, 14, 18),
+  accent: rgb(47, 102, 206),
+  accent2: rgb(124, 58, 237),
+  danger: rgb(192, 57, 43),
+};
+
+const studioHues = {
+  source: rgb(13, 148, 136), transform: rgb(47, 102, 206), geometry: rgb(124, 58, 237),
+  view: rgb(234, 121, 24), writer: rgb(220, 38, 38), check: rgb(22, 163, 74),
+};
+const studioPackAccents: Readonly<Record<string, Color>> = {
+  bos: studioHues.source, bfast: studioHues.source, csv: studioHues.source, duck: studioHues.source,
+  json: studioHues.source, parquet: studioHues.source, sqlite: studioHues.source, xlsx: studioHues.source,
+  bim: studioHues.source,
+  table: studioHues.transform, rel: studioHues.transform, sql: studioHues.transform,
+  date: studioHues.transform, text: studioHues.transform,
+  spatial: studioHues.geometry,
+  view: studioHues.view, view3d: studioHues.view, chart: studioHues.view,
+  sink: studioHues.writer,
+  check: studioHues.check,
+};
+
 export const canvasThemes: Record<CanvasThemeName, CanvasTheme> = {
   light: {
     palette: lightPalette,
@@ -101,6 +138,7 @@ export const canvasThemes: Record<CanvasThemeName, CanvasTheme> = {
       noteFill: rgb(252, 240, 180),
       noteEdge: rgb(214, 196, 120),
       noteText: rgb(64, 56, 24),
+      packAccents: {},
     },
   },
   dark: {
@@ -122,6 +160,29 @@ export const canvasThemes: Record<CanvasThemeName, CanvasTheme> = {
       noteFill: rgb(74, 66, 34),
       noteEdge: rgb(120, 104, 48),
       noteText: rgb(232, 220, 176),
+      packAccents: {},
+    },
+  },
+  studio: {
+    palette: studioPalette,
+    extras: {
+      status: {
+        Ok: rgb(22, 163, 74),
+        Unready: rgb(148, 155, 166),
+        EffectPending: rgb(217, 119, 6),
+        Unavailable: rgb(96, 116, 146),
+        Error: rgb(220, 38, 38),
+      },
+      wire: rgb(148, 158, 172),
+      wireSelected: rgb(47, 102, 206),
+      wireShadow: calpha(rgb(0, 0, 0), 0.08),
+      rubberSnap: rgb(22, 163, 74),
+      wireFlow: rgb(96, 165, 250),
+      gridDot: calpha(rgb(200, 204, 212), 0.9),
+      noteFill: rgb(254, 249, 195),
+      noteEdge: rgb(234, 214, 120),
+      noteText: rgb(66, 56, 20),
+      packAccents: studioPackAccents,
     },
   },
 };

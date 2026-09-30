@@ -20,7 +20,7 @@ const statusKeys: NodeStatus[] = ["Ok", "Unready", "EffectPending", "Unavailable
 
 const extraKeys = [
   "status", "wire", "wireSelected", "wireShadow", "rubberSnap", "wireFlow", "gridDot",
-  "noteFill", "noteEdge", "noteText",
+  "noteFill", "noteEdge", "noteText", "packAccents",
 ] as const;
 
 const isColor = (c: unknown): c is Color =>
@@ -52,6 +52,13 @@ describe("canvas theme table", () => {
       for (const key of extraKeys) expect(extras[key], `${name}.${key}`).toBeDefined();
       for (const s of statusKeys) expect(isColor(extras.status[s]), `${name}.status.${s}`).toBe(true);
     }
+  });
+
+  it("studio stripes the table pack; light and dark stripe none", () => {
+    expect(isColor(canvasThemes.studio.extras.packAccents["table"])).toBe(true);
+    expect(canvasThemes.studio.extras.packAccents["nosuchpack"]).toBeUndefined();
+    expect(Object.keys(canvasThemes.light.extras.packAccents)).toEqual([]);
+    expect(Object.keys(canvasThemes.dark.extras.packAccents)).toEqual([]);
   });
 
   it("registers each theme with gratify under a bof- prefix", () => {

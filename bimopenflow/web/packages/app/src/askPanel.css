@@ -3,15 +3,25 @@
    --bof-ask-height (set from a pref by askPanel.ts); the log takes whatever
    is left and scrolls, so incoming lines never resize the panel or move the
    panes below it. Collapsed, only the input row shows. */
+/* Colours are tokens with the panel's own defaults, so a look (the studio's
+   stylesheet) recolours the panel by setting --bof-ask-* on an ancestor. */
 .bof-ask-panel {
+  --bof-ask-bg: #f4f7f5;
+  --bof-ask-border: #d5ddd8;
+  --bof-ask-text: #2b3b32;
+  --bof-ask-dim: #4b5d53;
+  --bof-ask-agent: #1f4d36;
+  --bof-ask-bad: #8c3227;
+  --bof-ask-control: #e7ede9;
+  --bof-ask-control-border: #b9c3bd;
   display: flex;
   flex-direction: column;
   height: var(--bof-ask-height, 200px);
   box-sizing: border-box;
   font: 12px/1.4 Inter, 'Segoe UI', system-ui, sans-serif;
-  background: #f4f7f5;
-  border-bottom: 1px solid #d5ddd8;
-  color: #2b3b32;
+  background: var(--bof-ask-bg);
+  border-bottom: 1px solid var(--bof-ask-border);
+  color: var(--bof-ask-text);
 }
 .bof-ask-panel.bof-ask-collapsed { height: auto; }
 .bof-ask-log {
@@ -24,24 +34,24 @@
 .bof-ask-log[hidden], .bof-ask-resize[hidden] { display: none; }
 .bof-ask-line { white-space: pre-wrap; word-break: break-word; }
 .bof-ask-you { font-weight: 600; }
-.bof-ask-note, .bof-ask-tool { color: #4b5d53; }
-.bof-ask-agent { color: #1f4d36; }
-.bof-ask-done { color: #1f4d36; font-weight: 600; }
-.bof-ask-bad { color: #8c3227; }
+.bof-ask-note, .bof-ask-tool { color: var(--bof-ask-dim); }
+.bof-ask-agent { color: var(--bof-ask-agent); }
+.bof-ask-done { color: var(--bof-ask-agent); font-weight: 600; }
+.bof-ask-bad { color: var(--bof-ask-bad); }
 .bof-ask-form {
   flex: none;
   display: flex; gap: 6px; align-items: center;
   padding: 6px 10px;
-  border-top: 1px solid #d5ddd8;
+  border-top: 1px solid var(--bof-ask-border);
 }
 .bof-ask-collapsed .bof-ask-form { border-top: none; }
 .bof-ask-toggle {
   flex: none;
   padding: 3px 8px;
-  border: 1px solid #b9c3bd;
+  border: 1px solid var(--bof-ask-control-border);
   border-radius: 4px;
-  background: #e7ede9;
-  color: #2b3b32;
+  background: var(--bof-ask-control);
+  color: var(--bof-ask-text);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -51,7 +61,7 @@
   min-width: 0;
   padding: 3px 8px;
   font: 13px Inter, 'Segoe UI', system-ui, sans-serif;
-  border: 1px solid #b9c3bd;
+  border: 1px solid var(--bof-ask-control-border);
   border-radius: 4px;
 }
 .bof-ask-form input:disabled, .bof-ask-form button:disabled { opacity: 0.6; }
@@ -59,10 +69,10 @@
   flex: none;
   height: 5px;
   cursor: row-resize;
-  background: #e7ede9;
-  border-top: 1px solid #d5ddd8;
+  background: var(--bof-ask-control);
+  border-top: 1px solid var(--bof-ask-border);
 }
-.bof-ask-resize:hover { background: #d5ddd8; }
+.bof-ask-resize:hover { background: var(--bof-ask-border); }
 .bof-ask-ghost {
   position: fixed; height: 2px;
   background: #3b82c4; z-index: 50; pointer-events: none;

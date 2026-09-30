@@ -143,7 +143,7 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
         try { rig.applyRecipe?.(pendingView); updateLegend(); } catch (error) { reportError(error); }
       });
     };
-    const button = (label: string, action: () => void | Promise<void>) => {
+    const button = (label: string, action: () => void | Promise<void>): HTMLButtonElement => {
       const control = root.ownerDocument.createElement("button");
       control.type = "button";
       control.textContent = label;
@@ -151,6 +151,7 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
         Promise.resolve().then(action).catch(error => { if (!disposed) reportError(error); });
       });
       toolbar.append(control);
+      return control;
     };
     if (rig.fit) button("Fit", () => rig.fit?.());
     if (rig.reset && !options?.followGraph) button("Reset view", () => {
@@ -174,9 +175,12 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 0);
     });
-    button("Retry model", () => {
+    // Shown only once a load has failed: a retry offered before any failure
+    // reads as a warning.
+    const retry = button("Retry model", () => {
       if (lastModel) load(lastModel.url, lastModel.format);
     });
+    retry.hidden = true;
 
     const applyInstances = (slice: TableSlice): void => {
       const plan = planFromSlice(slice);
@@ -212,6 +216,7 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
       loading = true;
       status.setAttribute("role", "status");
       status.textContent = "Loading model…";
+      retry.hidden = true;
       rig.load(ctx.resolveAsset(url), format, () => {
         if (!disposed && token === loadToken) status.textContent = "Coarse preview · loading full detail…";
       }).then(loaded => {
@@ -230,6 +235,7 @@ export const createViewPane3D = (options?: ViewPane3DOptions): Pane =>
       }).catch(error => {
         if (disposed || token !== loadToken) return;
         loading = false;
+        retry.hidden = false;
         status.textContent = String(error);
         status.setAttribute("role", "alert");
         emit({ kind: "action", action: "loadError", payload: { url, message: String(error) } });

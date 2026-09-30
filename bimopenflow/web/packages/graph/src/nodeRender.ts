@@ -276,7 +276,12 @@ export interface NodeCardColors {
 export interface NodeCardPalette {
   readonly status: Readonly<Record<NonNullable<CanvasNode["status"]>, Color>>;
   readonly contributing: Color;
+  /** The theme's stripe for this card's pack, when it draws one. */
+  readonly packAccent?: Color;
 }
+
+/** The pack stripe: inset from the card's rounded corner, header-high. */
+const STRIPE = { x: 1.5, y: 8, w: 3, h: NODE_HEADER - 16 };
 
 const BANNER_TINT = 0.22;
 
@@ -323,6 +328,7 @@ export function renderNodeCard(
   const statusColor = p.status ? palette.status[p.status] : colors.dim;
 
   painter.box(r, 8, colors.fill, p.contributing ? palette.contributing : colors.edge, p.contributing ? 2 : 1.2);
+  if (palette.packAccent) painter.box(rect(r.x + STRIPE.x, r.y + STRIPE.y, STRIPE.w, STRIPE.h), 1.5, palette.packAccent);
   if (layout.status) drawStatus(painter, r, layout.status, statusColor, colors);
   if (layout.footer) {
     const f = layout.footer;

@@ -43,7 +43,15 @@ export interface AskPanelOptions {
   onBuilt(analysisId: string): Promise<void> | void;
   /** A request with no open flow, or a request that failed outright. */
   onError(message: string): void;
+  /** Example requests shown in turn as the input's placeholder until the
+   *  first keystroke, so the box itself says what it can do. */
+  examples?: readonly string[];
 }
+
+/** How long each example placeholder stays. */
+export const EXAMPLE_ROTATE_MS = 4000;
+
+const DEFAULT_PLACEHOLDER = 'Ask Claude to edit this flow, or about the toolkit…';
 
 export interface AskPanel {
   dispose(): void;
@@ -74,7 +82,18 @@ export async function mountAskPanel(root: HTMLElement, options: AskPanelOptions)
   toggle.title = `Model: ${info.model}${info.provider ? ` (${info.provider})` : ''}`;
   const input = doc.createElement('input');
   input.type = 'text';
-  input.placeholder = 'Ask Claude to edit this flow, or about the toolkit…';
+  input.placeholder = DEFAULT_PLACEHOLDER;
+  const examples = options.examples ?? [];
+  let exampleTimer: ReturnType<typeof setInterval> | undefined;
+  if (examples.length > 0) {
+    let at = 0;
+    input.placeholder = `Try: ${examples[0]}`;
+    exampleTimer = setInterval(() => {
+      if (input.value || doc.activeElement === input) return;
+      at = (at + 1) % examples.length;
+      input.placeholder = `Try: ${examples[at]}`;
+    }, EXAMPLE_ROTATE_MS);
+  }
   input.setAttribute('aria-label', 'Ask for an edit to the open flow');
   input.autocomplete = 'off';
   const button = doc.createElement('button');
@@ -218,5 +237,5 @@ export async function mountAskPanel(root: HTMLElement, options: AskPanelOptions)
   root.append(panel);
   // Laid out only now, so clamp again against the real column height.
   setHeight(height);
-  return { dispose() { view?.removeEventListener('resize', onResize); panel.remove(); } };
+  return { dispose() { if (exampleTimer) clearInterval(exampleTimer); view?.removeEventListener('resize', onResize); panel.remove(); } };
 }

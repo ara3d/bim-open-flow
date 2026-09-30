@@ -18,7 +18,7 @@ export { fileName } from "./paramText.js";
 export { portY } from "./portGeometry.js";
 export type { CanvasParam, SlotContext, SlotControl } from "./canvasSlots.js";
 export { autoLayout } from "./autoLayout.js";
-export { nodeTitle, previewAfterEdit, upstreamIds } from "./graphPreview.js";
+export { nodePack, nodeTitle, previewAfterEdit, upstreamIds } from "./graphPreview.js";
 export { nodeBadge } from "./nodeBadge.js";
 export type { NodeBadge } from "./nodeBadge.js";
 export { currentNodeStyle, defaultNodeStyle, isNodeStyleName, nodeStyleNames, onNodeStyleChange, setNodeStyle } from "./nodeStyle.js";

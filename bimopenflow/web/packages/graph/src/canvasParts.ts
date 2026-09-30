@@ -36,6 +36,7 @@ import { placeSlots, SLOT_X_PAD } from "./canvasSlots.js";
 import { slotElement } from "./slotRegistry.js";
 import { canvasColors, canvasThemes, currentCanvasTheme } from "./canvasTheme.js";
 import { currentNodeStyle } from "./nodeStyle.js";
+import { nodePack } from "./graphPreview.js";
 import { portsBottom, renderNodeCard, type NodeCardColors } from "./nodeRender.js";
 import { animateSelection, selectionBorder } from "./selectionBorder";
 import { upstreamEdges } from "./upstreamEdges.js";
@@ -222,7 +223,7 @@ const GraphNodePart = part<NodeProps, NodeCardColors>("bof-node", {
       });
     } else {
       const c = canvasColors();
-      renderNodeCard(node, painter, style, { status: c.status, contributing: c.wireSelected }, currentNodeStyle());
+      renderNodeCard(node, painter, style, { status: c.status, contributing: c.wireSelected, packAccent: c.packAccents[nodePack(p.kind)] }, currentNodeStyle());
     }
     // The resize grip: only where a drag would work, and only on the cards
     // the pointer or the selection is on, so a full canvas is not dotted

@@ -135,6 +135,13 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
   backBtn.style.cssText = "flex:none;";
   backBtn.addEventListener("click", () => deps.onShowAnswer?.());
   header.append(pinBtn, source, backBtn);
+  /** One piece of the header line, classed so a look can style it. */
+  const headerLine = (className: string, text: string): HTMLSpanElement => {
+    const el = root.ownerDocument.createElement("span");
+    el.className = className;
+    el.textContent = text;
+    return el;
+  };
   const tabs = root.ownerDocument.createElement("div");
   tabs.className = "bof-app-tabs";
   const body = root.ownerDocument.createElement("div");
@@ -231,7 +238,7 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
         // the host re-evaluated or the node went away between the evaluation
         // update and this request, and the next update re-feeds the pane.
         // Say so on the pane's header line instead of raising an error box.
-        if (current()) source.textContent += `\nNo rows to show: ${hostMessage(e)}`;
+        if (current()) source.append(headerLine("bof-app-pane-note", `\nNo rows to show: ${hostMessage(e)}`));
         return;
       }
       if (!data) return;
@@ -297,11 +304,15 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
       // (TKT-81): "Answer: ..." while the pane follows the flow's answer,
       // "Showing ..." once an explicit request (double-click, the pin)
       // replaced it, each with its own detail/lineage line underneath.
+      // Three classed spans whose text reads as one line: "Answer: Title
+      // (id) · detail", then the lineage on a second line.
       const prefix = !next ? "" : next.default ? "Answer: " : "Showing ";
       const detail = error ?? (next?.pending ? "live · saving…" : "live graph output");
-      source.textContent = !next
-        ? ""
-        : `${prefix}${nodeTitle(next.desc?.kind ?? "")} (${next.nodeId}) · ${detail}${next.lineage ? `\n${next.lineage}` : ""}`;
+      source.replaceChildren(...(!next ? [] : [
+        headerLine("bof-app-pane-title", `${prefix}${nodeTitle(next.desc?.kind ?? "")} (${next.nodeId})`),
+        headerLine(`bof-app-pane-detail${error ? " bof-app-pane-detail-error" : ""}`, ` · ${detail}`),
+        ...(next.lineage ? [headerLine("bof-app-pane-lineage", `\n${next.lineage}`)] : []),
+      ]));
       source.setAttribute("role", error ? "alert" : "status");
       body.style.visibility = error ? "hidden" : "";
       pinBtn.hidden = !next;

@@ -1,4 +1,5 @@
 import type { NodeDescriptor } from "@bimopenflow/contracts";
+import { nodePack } from "@bimopenflow/graph";
 import { readPref, writePref } from "./prefs.js";
 
 /**
@@ -16,10 +17,6 @@ export function filterCatalog(
   });
 }
 
-/** A node's pack is the text before the first dot in its kind ("table.sort" -> "table"). */
-function packOf(kind: string): string {
-  return kind.split(".")[0]!;
-}
 
 export interface CatalogGroup {
   /** The pack name, e.g. "table". */
@@ -47,13 +44,13 @@ export function groupCatalog(
   const filtering = query.trim().length > 0;
   const allByPack = new Map<string, NodeDescriptor[]>();
   for (const n of nodes) {
-    const pack = packOf(n.kind);
+    const pack = nodePack(n.kind);
     (allByPack.get(pack) ?? allByPack.set(pack, []).get(pack)!).push(n);
   }
   const visibleByPack = new Map<string, NodeDescriptor[]>();
   if (filtering) {
     for (const n of filterCatalog(nodes, query)) {
-      const pack = packOf(n.kind);
+      const pack = nodePack(n.kind);
       (visibleByPack.get(pack) ?? visibleByPack.set(pack, []).get(pack)!).push(n);
     }
   }

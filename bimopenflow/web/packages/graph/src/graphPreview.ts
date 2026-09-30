@@ -1,5 +1,8 @@
 import type { GraphDocument } from "@bimopenflow/state";
 
+/** A node's pack is the text before the first dot in its kind ("table.sort" -> "table"). */
+export const nodePack = (kind: string): string => kind.split(".")[0]!;
+
 export const nodeTitle = (kind: string): string => ({
   "view3d.scene": "Model",
   "view3d.categoryStyle": "Color by category",

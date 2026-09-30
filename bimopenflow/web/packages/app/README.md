@@ -36,8 +36,31 @@ npm run -w @bimopenflow/app build   # vite production build
 
 ## Structure
 
-- `shell.ts` / `styles.ts` — the DOM layout (topbar, sidebar, canvas,
-  splitter, pane area) under the `bof-app-` class/custom-property prefix.
+The controller (`app.ts`) and the look are separate. `chrome.ts` is the
+seam: a chrome provides the slots the shared content mounts into (canvas,
+pane area, Ask host, step list) and a few setters (analyses, dirty,
+connection, catalog, nodes), and raises `ChromeActions` (open, new, save,
+run, fit, tidy, add node, select, show in pane, theme, node style). Two
+chromes exist:
+
+- `classicChrome.ts` — `shell.ts` / `styles.ts` (the DOM layout under the
+  `bof-app-` class/custom-property prefix), `topbar.ts`, `sidebar.ts`, and
+  the graph demo's toolbar. `index.html`, `3d.html`, and `duckdb.html` use it.
+- `studio/studioChrome.ts` + `studio/studio.css` — the studio look at
+  `/studio.html` (`studio.ts`): a command bar with the flow's title
+  (`studio/flowTitle.ts`), a primary Run, a View menu, a floating canvas
+  toolbar (Fit, Tidy, Add node), an empty-flow card, a gestures popover, and
+  the Ask box over the panes. It reuses the sidebar, step list, problems
+  strip, start page, Ask panel, and pane area unchanged and restyles their
+  classes under `.bof-studio`; it keeps its own canvas theme choice
+  (`studio`, the light palette with a stripe per node pack) and hides the
+  canvas's own hint line. A third look is one more factory passed as
+  `AppOptions.chrome`.
+
+`columnSplitter.ts` holds the ghost-line column splitters both layouts use;
+`bootEditor.ts` boots either page over the same-origin host.
+
+
 - The graph canvas (view model, intents, parts, inline controls, peeks, node
   styles, theme) is `@bimopenflow/graph` (`packages/graph`), mounted here by
   `app.ts` through `createGraphEditor`; `themeChoice.ts` and

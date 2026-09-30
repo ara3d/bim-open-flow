@@ -1,6 +1,8 @@
-// The application controller: wires shell, store, canvas, sidebar, topbar,
-// and pane area together around one ApiClient. Every graph mutation flows
-// through store.dispatch; this module owns no graph logic.
+// The application controller: wires the store, the canvas, the shared
+// content (step list, problems strip, start page, Ask panel, pane area), and
+// a chrome (chrome.ts: the look, classic by default) together around one
+// ApiClient. Every graph mutation flows through store.dispatch; this module
+// owns no graph logic and reads no chrome DOM.
 
 import type { AnalysisSummary, EditorSession, NodeDescriptor } from "@bimopenflow/contracts";
 import type { ApiClient } from "@bimopenflow/api-client";
@@ -13,9 +15,6 @@ import {
   type AnalysisConnection,
   type State,
 } from "@bimopenflow/state";
-import { buildShell } from "./shell.js";
-import { createSidebar } from "./sidebar.js";
-import { createTopbar } from "./topbar.js";
 import { createPaneArea } from "./paneArea.js";
 import { makePaneContext } from "./paneContext.js";
 import { modelPathFor } from "./modelRef.js";
@@ -42,6 +41,8 @@ import { mountAskPanel, type AskPanel } from "./askPanel.js";
 import { nodeTitle, upstreamIds } from "@bimopenflow/graph";
 import { primaryNodeId, reopenKeepingSelection, selectedNodeIds } from "./selection.js";
 import { createSessionReporter } from "./editorSession.js";
+import { classicChrome } from "./classicChrome.js";
+import type { ChromeActions, ChromeFactory } from "./chrome.js";
 import {
   backToAnswer,
   initialShownChoice,
@@ -73,8 +74,12 @@ export interface AppOptions {
   /** Keep `?analysis=<id>` in the address bar in step with the open analysis
    *  (main editor page only; other query parameters are kept). */
   syncUrl?: boolean;
-  /** Topbar heading; defaults to the BimOpenFlow / Snowdon 3D link. */
+  /** Topbar heading of the classic chrome; defaults to the BimOpenFlow /
+   *  Snowdon 3D link. Ignored when `chrome` is given. */
   heading?: string;
+  /** The look (chrome.ts). Defaults to classicChrome with `graphDemo` and
+   *  `heading`; studio/studioChrome.ts is the other one. */
+  chrome?: ChromeFactory;
   /** The host status the api reports into (see watchHost). Without one the
    *  app only learns about the host from its own periodic probe. */
   host?: HostStatusSource;
@@ -82,7 +87,6 @@ export interface AppOptions {
 
 export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions = {}): App {
   const store = createStore();
-  const shell = buildShell(root, options.graphDemo);
   const catalog = new Map<string, NodeDescriptor>();
 
   let analyses: AnalysisSummary[] = [];
@@ -120,6 +124,35 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     }
   };
 
+  // ── chrome ─────────────────────────────────────────────────────────────────
+  // The look is built first so its slots exist for the content below; every
+  // action it can raise forwards to a function defined later in this closure.
+  const actions: ChromeActions = {
+    openAnalysis: (id) => void openAnalysis(id),
+    // "New" opens the start page (TKT-14); its Blank card creates an empty flow.
+    newAnalysis: () => startPage.show(),
+    save: () => void save(),
+    run: () => void run(),
+    setTheme: (name) => {
+      saveThemeChoice(name);
+      canvasEditor.setTheme(name);
+    },
+    setNodeStyle: (name) => {
+      saveNodeStyleChoice(name);
+      setNodeStyle(name);
+      canvasEditor.refresh();
+    },
+    addNode: (desc) => addNode(desc),
+    selectAndFocus: (nodeId) => selectAndFocus(nodeId),
+    showInPane: (nodeId) => {
+      showPickedInPane(nodeId);
+      selectAndFocus(nodeId);
+    },
+    fit: () => canvasEditor.fit(),
+    tidy: () => { layoutAll(); canvasEditor.fit(); },
+  };
+  const chrome = (options.chrome ?? classicChrome({ graphDemo: options.graphDemo, heading: options.heading }))(root, actions);
+
   // ── panes ──────────────────────────────────────────────────────────────────
   // The pane area outlives analysis switches, so the context late-binds the
   // current analysis id on every request.
@@ -146,7 +179,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   // re-fetched once on a miss (a model may have appeared since).
   const resolveModelId = modelCatalog(() => api.listModels());
 
-  const paneArea = createPaneArea(shell.paneEl, {
+  const paneArea = createPaneArea(chrome.paneEl, {
     tableOnly: options.tableOnly,
     ctx: boundCtx,
     // Result object IDs are a different identity space from graph node IDs.
@@ -163,7 +196,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   // the node as one undo step through the batch action. Space has no world
   // point (the graph package keeps its client-to-world conversion private),
   // so its pick lands on the first free spot, as the Nodes tab's add does.
-  const palette = installCanvasPalette(shell.canvas, {
+  const palette = installCanvasPalette(chrome.canvas, {
     getCatalog: () => [...catalog.values()],
     onPick: (entry, at, wire) => {
       if (!currentId) return fail("Open a flow first");
@@ -174,7 +207,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     },
   });
   setNodeStyle(loadNodeStyleChoice());
-  const canvasEditor = createGraphEditor(shell.canvas, {
+  const canvasEditor = createGraphEditor(chrome.canvas, {
     store,
     catalog: () => catalog,
     onError: fail,
@@ -200,66 +233,20 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     dispatch({ type: "select", ids: [nodeId] });
     canvasEditor.focus(nodeId);
   };
-  const problems = createProblemsPanel(shell.canvasHost, { onSelect: selectAndFocus });
-  const preview = root.ownerDocument.createElement("select");
-  preview.setAttribute("aria-label", "Preview node");
-  // TKT-113: choosing in the picker is an explicit choice, like a
-  // double-click, so the pane shows the chosen node (or returns to the answer
-  // when the answer is chosen); the node is also selected and brought into view.
-  preview.addEventListener("change", () => {
-    const nodeId = preview.value;
-    showPickedInPane(nodeId);
-    dispatch({ type: "select", ids: [nodeId] });
-    canvasEditor.focus(nodeId);
-  });
-  if (options.graphDemo) {
-    const nodes = root.ownerDocument.createElement("button");
-    nodes.textContent = "Nodes";
-    nodes.setAttribute("aria-expanded", "false");
-    nodes.addEventListener("click", () => {
-      const open = root.classList.toggle("bof-app-catalog-open");
-      nodes.setAttribute("aria-expanded", String(open));
-      if (open) sidebar.showTab("nodes");
-    });
-    const fit = root.ownerDocument.createElement("button");
-    fit.textContent = "Fit graph";
-    fit.addEventListener("click", () => canvasEditor.fit());
-    const label = root.ownerDocument.createElement("label");
-    label.append("Preview ", preview);
-    const readable = root.ownerDocument.createElement("button");
-    readable.textContent = "100%";
-    readable.title = "Readable size: focus the preview node";
-    readable.addEventListener("click", () => canvasEditor.focus(preview.value));
-    shell.graphToolbar.append(nodes, fit, readable, label);
-  }
+  const problems = createProblemsPanel(chrome.canvasHost, { onSelect: selectAndFocus });
+  /** Every node placed by autoLayout, as one undo step. */
+  const layoutAll = () => {
+    const positions = autoLayout(buildCanvasModel(store.getState(), catalog), { width: chrome.canvas.clientWidth, height: chrome.canvas.clientHeight });
+    dispatch({ type: "batch", actions: Object.entries(positions).map(([nodeId, layout]) => ({ type: "setLayout", nodeId, layout })) });
+  };
 
-  // ── chrome ─────────────────────────────────────────────────────────────────
-  const topbar = createTopbar(shell.topbarEl, {
-    heading: options.heading,
-    onOpenAnalysis: (id) => void openAnalysis(id),
-    // "New" opens the start page (TKT-14); its Blank card creates an empty flow.
-    onNewAnalysis: () => startPage.show(),
-    onSave: () => void save(),
-    onRun: () => void run(),
-    onThemeChange: (name) => {
-      saveThemeChoice(name);
-      canvasEditor.setTheme(name);
-    },
-    onNodeStyleChange: (name) => {
-      saveNodeStyleChoice(name);
-      setNodeStyle(name);
-      canvasEditor.refresh();
-    },
-  });
-  topbar.setTheme(loadThemeChoice());
-  topbar.setNodeStyle(loadNodeStyleChoice());
-
-  const sidebar = createSidebar(shell.sidebarEl, (desc) => addNode(desc));
-  const stepList = createStepList(sidebar.stepsEl, { onSelect: selectAndFocus });
+  chrome.setTheme(loadThemeChoice());
+  chrome.setNodeStyle(loadNodeStyleChoice());
+  const stepList = createStepList(chrome.stepsEl, { onSelect: selectAndFocus });
 
   // The start page (TKT-14): one card per sample flow, over the canvas. Shown
   // at boot in the plain editor, and from the topbar's New button.
-  const startPage = createStartPage(shell.canvasHost, {
+  const startPage = createStartPage(chrome.canvasHost, {
     templates: TEMPLATES,
     onOpen: (id) => { startPage.hide(); void openAnalysis(id); },
     onCopy: (id) => { startPage.hide(); void copyAnalysis(id); },
@@ -305,7 +292,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   // touches no store state).
   function applyShown(state: State, dataChanged: boolean): void {
     const { id: shownId, isAnswer } = resolveShown(state.document, state.evalState, catalog, shownChoice);
-    preview.value = shownId ?? "";
+    chrome.setShownNode(shownId);
     if (shownId === null) {
       if (lastPrimary !== null) paneArea.showNode(null);
     } else if (shownId !== lastPrimary || dataChanged) {
@@ -343,21 +330,15 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
 
   const unsubscribe = store.subscribe(() => {
     const state = store.getState();
-    topbar.setDirty(state.dirty);
+    chrome.setDirty(state.dirty);
     // Deferred one microtask so it runs after canvasEditor's own subscriber
     // (registered first, above) has pruned the previous document's column
     // selects; otherwise a flow switch re-requests suggestions for the old
     // flow's node ids against the new analysis id and the host 404s.
     if (state.evalState !== lastEval) queueMicrotask(() => canvasEditor.refreshSuggestions());
     const dataChanged = state.document !== lastDoc || state.evalState !== lastEval || state.dirty !== lastDirty;
-    if (options.graphDemo && state.document !== lastDoc) {
-      preview.replaceChildren(...state.document.structure.nodes.map(n => {
-        const option = root.ownerDocument.createElement("option");
-        option.value = n.id;
-        option.textContent = `${nodeTitle(n.kind)} · ${n.id}`;
-        return option;
-      }));
-    }
+    if (state.document !== lastDoc)
+      chrome.setNodes(state.document.structure.nodes.map((n) => ({ id: n.id, title: nodeTitle(n.kind) })));
     applyShown(state, dataChanged);
     if (dataChanged || state.selection !== lastSelection) renderGraphViews(state);
     lastSelection = state.selection;
@@ -378,7 +359,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   // ── actions ────────────────────────────────────────────────────────────────
   const refreshAnalyses = async () => {
     analyses = await api.listAnalyses();
-    topbar.setAnalyses(analyses, currentId);
+    chrome.setAnalyses(analyses, currentId);
     startPage.setPresent(analyses.map((a) => a.id));
   };
 
@@ -419,17 +400,14 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       });
       reportSession();
       canvasEditor.refreshSuggestions();
-      sidebar.flowOpened(store.getState().document.structure.nodes.length > 0);
-      topbar.setAnalyses(analyses, id);
+      chrome.flowOpened(store.getState().document.structure.nodes.length > 0);
+      chrome.setAnalyses(analyses, id);
       if (options.syncUrl) {
         const loc = root.ownerDocument.defaultView?.location;
         if (loc) root.ownerDocument.defaultView!.history.replaceState(null, "", loc.pathname + searchWithAnalysis(loc.search, id) + loc.hash);
       }
       if (options.graphDemo) {
-        if (options.autoLayout) {
-          const positions = autoLayout(buildCanvasModel(store.getState(), catalog), { width: shell.canvas.clientWidth, height: shell.canvas.clientHeight });
-          for (const [nodeId, layout] of Object.entries(positions)) dispatch({ type: 'setLayout', nodeId, layout });
-        }
+        if (options.autoLayout) layoutAll();
         const nodes = store.getState().document.structure.nodes;
         const initial = nodes.find(n => n.kind === "view3d.categoryStyle") ??
           nodes.find(n => n.kind.startsWith("view3d.")) ?? nodes[0];
@@ -486,25 +464,23 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     const state = store.getState();
     // Add, place, and select are one undo step (the batch action).
     dispatch({ type: "batch", actions: addNodeActions(state, desc, freeSpot(state, catalog, desc)) });
-    root.classList.remove("bof-app-catalog-open");
-    shell.graphToolbar.querySelector("button")?.setAttribute("aria-expanded", "false");
   }
 
   // The last pointer position over the canvas, where Space opens the palette.
   let canvasPointer: { x: number; y: number } | null = null;
   const onCanvasPointerMove = (e: PointerEvent) => { canvasPointer = { x: e.clientX, y: e.clientY }; };
   const onCanvasPointerLeave = () => { canvasPointer = null; };
-  shell.canvas.addEventListener("pointermove", onCanvasPointerMove);
-  shell.canvas.addEventListener("pointerleave", onCanvasPointerLeave);
+  chrome.canvas.addEventListener("pointermove", onCanvasPointerMove);
+  chrome.canvas.addEventListener("pointerleave", onCanvasPointerLeave);
 
   // Undo/redo and palette shortcuts (skipped while typing in a field).
   const onKeyDown = (e: KeyboardEvent) => {
     const target = e.target as HTMLElement | null;
     if (target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
-    if (paletteKeyOpens(e, shell.canvas)) {
+    if (paletteKeyOpens(e, chrome.canvas)) {
       if (!currentId || palette.isOpen()) return;
       e.preventDefault(); // Space would otherwise scroll the page
-      palette.open(paletteClientPoint(shell.canvas, canvasPointer), undefined);
+      palette.open(paletteClientPoint(chrome.canvas, canvasPointer), undefined);
     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
       dispatch({ type: e.shiftKey ? "redo" : "undo" });
       e.preventDefault();
@@ -535,7 +511,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       for (const n of cat.nodes) catalog.set(n.kind, n);
       if (options.graphDemo && catalog.has("view3d.section") && catalog.get("view3d.section")?.params.find(p => p.name === "fraction")?.control?.kind !== "slider")
         fail("The 3D backend is out of date. Rebuild and restart BimOpenFlow.Host, then reload this page to enable the node controls.");
-      sidebar.setCatalog(cat.nodes);
+      chrome.setCatalog(cat.nodes);
       canvasEditor.refresh();
       booted = true;
       // Always land in an open analysis so no click can fail for lack of one;
@@ -576,7 +552,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   // TKT-112: it docks at the top of the right column, above the pane tabs.
   let askPanel: AskPanel | undefined;
   let askPanelDisposed = false;
-  void mountAskPanel(shell.askHost, {
+  void mountAskPanel(chrome.askHost, {
     host,
     getAnalysisId: () => currentId ?? undefined,
     onBuilt: async (id) => { await refreshAnalyses(); await openAnalysis(id); },
@@ -590,9 +566,9 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   };
 
   let lastStatus = host.get().status;
-  topbar.setConnection(lastStatus);
+  chrome.setConnection(lastStatus);
   const unsubscribeHost = host.subscribe((state) => {
-    topbar.setConnection(state.status);
+    chrome.setConnection(state.status);
     if (state.status === "connected" && lastStatus !== "connected") syncOnce();
     lastStatus = state.status;
   });
@@ -616,11 +592,11 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       problems.dispose();
       startPage.dispose();
       paneArea.dispose();
-      shell.dispose();
+      chrome.dispose();
       sessionReporter.dispose();
       root.ownerDocument.removeEventListener("keydown", onKeyDown);
-      shell.canvas.removeEventListener("pointermove", onCanvasPointerMove);
-      shell.canvas.removeEventListener("pointerleave", onCanvasPointerLeave);
+      chrome.canvas.removeEventListener("pointermove", onCanvasPointerMove);
+      chrome.canvas.removeEventListener("pointerleave", onCanvasPointerLeave);
       root.ownerDocument.removeEventListener("visibilitychange", onVisibilityChange);
     },
   };

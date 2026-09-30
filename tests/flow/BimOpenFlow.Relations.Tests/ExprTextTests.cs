@@ -12,12 +12,15 @@ public class ExprTextTests
     [TestCase("'it\\'s' & \"a\"", "('it\\'s' & 'a')")]
     [TestCase("[odd]]name] == null", "([odd]]name] == null)")]
     [TestCase("-1.5e10", "(- 15000000000)")]
+    [TestCase("isnull(w)", "isnull([w])")]
+    [TestCase("c not in ('a', -1)", "([c] not in ('a', (- 1)))")]
     public void RendersCanonically(string text, string expected)
         => Assert.That(text.ParseExpr().Render(), Is.EqualTo(expected));
 
     [TestCase("a + b * c - d / e % f")]
     [TestCase("len(lower([Name])) >= 3 or startswith([Name], 'x\\ty')")]
     [TestCase("a ? b ? 1 : 2 : 3")]
+    [TestCase("x in (1, 2.5) and not isnull(y) or z not in ('q')")]
     public void RoundTrips(string text)
     {
         var once = text.ParseExpr().Render();

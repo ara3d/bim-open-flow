@@ -5,8 +5,9 @@ using Ara3D.DataFlowEngine.Expressions.Typing;
 namespace BimOpenFlow.Relations;
 
 /// <summary>Emits an expression as DuckDB SQL, fully parenthesized. Division is always
-/// floating point, the text operator is ||, and toNumber is TRY_CAST (null on failure),
-/// matching the language's static semantics.</summary>
+/// floating point, the text operator is ||, toNumber is TRY_CAST (null on failure), and
+/// isnull is IS NULL, matching the language's static semantics. An in list holds only
+/// non-null literals, so SQL IN gives the language's result.</summary>
 public static class ExprSql
 {
     public static string ToSql(this Expr expr)
@@ -24,6 +25,8 @@ public static class ExprSql
             Binary b => $"({b.Left.ToSql()} {Operator(b.Op)} {b.Right.ToSql()})",
             Conditional c => $"(CASE WHEN {c.Condition.ToSql()} THEN {c.WhenTrue.ToSql()} ELSE {c.WhenFalse.ToSql()} END)",
             Call c when Builtins.FromName(c.Name) == Builtin.ToNumber => $"TRY_CAST({c.Args[0].ToSql()} AS DOUBLE)",
+            Call c when Builtins.FromName(c.Name) == Builtin.IsNull => $"({c.Args[0].ToSql()} IS NULL)",
+            InList l => $"({l.Value.ToSql()} {(l.Negated ? "NOT IN" : "IN")} ({string.Join(", ", l.Items.Select(ToSql))}))",
             Call c => $"{Function(c.Name)}({string.Join(", ", c.Args.Select(ToSql))})",
             _ => throw new ArgumentException($"Unknown expression node {expr.GetType().Name}", nameof(expr)),
         };

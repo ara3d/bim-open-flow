@@ -1,3 +1,4 @@
+using Ara3D.DataFlowEngine.Expressions;
 using Ara3D.DataTable;
 
 namespace BimOpenFlow.Relations.DuckDb.Tests;
@@ -46,6 +47,42 @@ public sealed class InlineTableExecuteTests
     {
         var table = Plan().Filter("[tag] == 'keep'").Execute(_f.Catalog, _f.Registry, inlines: Store());
         Assert.That(table.ColumnCells("id"), Is.EqualTo(new object?[] { 1L }));
+    }
+
+    /// <summary>isnull, in, and not in keep the same rows in DuckDB as the expression
+    /// evaluator does in memory (table.filter), including around a null cell.</summary>
+    [TestCase("isnull([tag])", new long[] { 2 })]
+    [TestCase("not isnull([tag])", new long[] { 1, 3 })]
+    [TestCase("[tag] in ('keep', 'drop')", new long[] { 1, 3 })]
+    [TestCase("[tag] not in ('keep')", new long[] { 3 })]
+    [TestCase("[id] in (1, 2.0, -7)", new long[] { 1, 2 })]
+    [TestCase("[id] not in (2) and not isnull([tag])", new long[] { 1, 3 })]
+    public void MissingAndMembershipMatchTheEvaluator(string expr, long[] expected)
+    {
+        var ids = new long[] { 1, 2, 3 };
+        var tags = new[] { "keep", null, "drop" };
+        var rows = NodeTestHelpers.Table(("id", typeof(long), ids.Cast<object?>().ToArray()),
+            ("tag", typeof(string), tags.Cast<object?>().ToArray())).Table;
+        var store = new InlineTableStore();
+        store.Add("hash-of-three-rows", rows);
+        var plan = new InlineTable("t", "hash-of-three-rows", RowSchema).Filter(expr).SortBy("id");
+        var fromDuckDb = plan.Execute(_f.Catalog, _f.Registry, inlines: store).ColumnCells("id");
+
+        var check = Expression.Parse(expr).Check(
+            new Dictionary<string, ScalarType>
+            {
+                ["id"] = ScalarType.Integer,
+                ["tag"] = ScalarType.Text,
+            });
+        var inMemory = ids.Zip(tags)
+            .Where(r => check.Eval(name => name == "id"
+                    ? new IntegerScalar(r.First)
+                    : r.Second is { } t ? new TextScalar(t) : null)
+                is BooleanScalar { Value: true })
+            .Select(r => (object?)r.First);
+
+        Assert.That(fromDuckDb, Is.EqualTo(expected.Cast<object?>()));
+        Assert.That(inMemory, Is.EqualTo(expected.Cast<object?>()));
     }
 
     [Test]

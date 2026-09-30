@@ -21,6 +21,7 @@ public static class ExprText
             Binary b => $"({b.Left.Render()} {b.Op.Text()} {b.Right.Render()})",
             Conditional c => $"({c.Condition.Render()} ? {c.WhenTrue.Render()} : {c.WhenFalse.Render()})",
             Call c => $"{c.Name}({string.Join(", ", c.Args.Select(Render))})",
+            InList l => $"({l.Value.Render()} {(l.Negated ? "not in" : "in")} ({string.Join(", ", l.Items.Select(Render))}))",
             _ => throw new ArgumentException($"Unknown expression node {expr.GetType().Name}", nameof(expr)),
         };
 

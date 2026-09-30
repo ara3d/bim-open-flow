@@ -14,6 +14,10 @@ public class ExprSqlTests
     [TestCase("coalesce(toNumber('x'), 0)", "coalesce(TRY_CAST('x' AS DOUBLE), 0)")]
     [TestCase("2.0", "2.0")]
     [TestCase("-1", "(-1)")]
+    [TestCase("isnull(w)", "(\"w\" IS NULL)")]
+    [TestCase("not isnull(w)", "(NOT (\"w\" IS NULL))")]
+    [TestCase("c in ('IFCDOOR', 'IFCWINDOW')", "(\"c\" IN ('IFCDOOR', 'IFCWINDOW'))")]
+    [TestCase("n not in (1, -2.5)", "(\"n\" NOT IN (1, (-2.5)))")]
     public void EmitsDuckDbSql(string text, string expected)
         => Assert.That(text.ParseExpr().ToSql(), Is.EqualTo(expected));
 

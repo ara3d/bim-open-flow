@@ -475,7 +475,7 @@ export function canvasView(model: CanvasModel, instance: CanvasInstance): Elemen
         ), selectedBorder, peekAdorn(model.peek))),
     ]),
     onScreenLayer(
-      Stack("hud", { pad: 10 }, [
+      Stack("hud", { pad: 10 }, instance.hint ? [
         Label("hint", {
           text: instance.readOnly
             ? "click = select · drag/wheel = pan/zoom"
@@ -483,7 +483,7 @@ export function canvasView(model: CanvasModel, instance: CanvasInstance): Elemen
           dim: true,
           size: 11,
         }),
-      ]),
+      ] : []),
     ),
   ]);
 }

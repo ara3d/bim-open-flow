@@ -134,7 +134,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     save: () => void save(),
     run: () => void run(),
     setTheme: (name) => {
-      saveThemeChoice(name);
+      saveThemeChoice(name, themePrefs);
       canvasEditor.setTheme(name);
     },
     setNodeStyle: (name) => {
@@ -152,6 +152,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     tidy: () => { layoutAll(); canvasEditor.fit(); },
   };
   const chrome = (options.chrome ?? classicChrome({ graphDemo: options.graphDemo, heading: options.heading }))(root, actions);
+  const themePrefs = chrome.themePrefs;
 
   // ── panes ──────────────────────────────────────────────────────────────────
   // The pane area outlives analysis switches, so the context late-binds the
@@ -211,7 +212,8 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     store,
     catalog: () => catalog,
     onError: fail,
-    theme: loadThemeChoice(),
+    theme: loadThemeChoice(themePrefs),
+    hint: !chrome.ownsCanvasHint,
     getPreview: () => primaryNodeId(store.getState()) ?? lastPrimary,
     onShowNode: (nodeId) => showNodeInPane(nodeId),
     readPort: boundCtx.requestTable, // TKT-11: peek cards and row counts
@@ -240,7 +242,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     dispatch({ type: "batch", actions: Object.entries(positions).map(([nodeId, layout]) => ({ type: "setLayout", nodeId, layout })) });
   };
 
-  chrome.setTheme(loadThemeChoice());
+  chrome.setTheme(loadThemeChoice(themePrefs));
   chrome.setNodeStyle(loadNodeStyleChoice());
   const stepList = createStepList(chrome.stepsEl, { onSelect: selectAndFocus });
 
@@ -557,6 +559,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     getAnalysisId: () => currentId ?? undefined,
     onBuilt: async (id) => { await refreshAnalyses(); await openAnalysis(id); },
     onError: fail,
+    examples: chrome.askExamples,
   }).then((panel) => { if (askPanelDisposed) panel.dispose(); else askPanel = panel; });
 
   let syncing: Promise<void> | null = null;

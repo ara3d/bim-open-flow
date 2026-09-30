@@ -1,14 +1,10 @@
-// The shell layout: topbar over sidebar | splitter | canvas | splitter | right
-// column, where the right column stacks an Ask host (empty unless the host
-// has /api/ask, TKT-112) over the pane area. Plain DOM under the bof-app- prefix. Splitters drag a ghost line and
-// apply the column width once on release — resizing the columns live would
-// resize the <canvas> bitmap on every pointermove, which clears it until the
-// next gratify frame and makes the canvas flash. Widths persist per splitter
-// in localStorage.
+// The classic shell layout: topbar over sidebar | splitter | canvas | splitter
+// | right column, where the right column stacks an Ask host (empty unless the
+// host has /api/ask, TKT-112) over the pane area. Plain DOM under the
+// bof-app- prefix; the splitters are columnSplitter.ts's.
 
 import { ensureAppStyles } from "./styles.js";
-import { readPref, writePref } from "./prefs.js";
-import { clampWidth, dragWidth, ghostX, type SplitSpec } from "./splitMath.js";
+import { installSplitter, LEFT_SPLIT, MIN_CANVAS, restoreWidth, RIGHT_SPLIT } from "./columnSplitter.js";
 
 export interface Shell {
   topbarEl: HTMLElement;
@@ -25,57 +21,17 @@ export interface Shell {
   dispose(): void;
 }
 
-interface SplitterConfig {
-  cssVar: string;
-  storageKey: string;
-  sign: 1 | -1;
-  min: number;
-  max(root: HTMLElement): number;
-  fallback: number;
-}
-
-// The canvas column is the grid remainder; both splitter maxima subtract the
-// other column so it can never collapse to zero (narrow-window regression:
-// 240px sidebar + 420px pane area left a 0px canvas at ~670px windows).
-const MIN_CANVAS = 220;
-const SPLITTER_TOTAL = 12;
-
-const columnWidth = (root: HTMLElement, cssVar: string, fallback: number): number =>
-  parseFloat(getComputedStyle(root).getPropertyValue(cssVar)) || fallback;
-
-const LEFT: SplitterConfig = {
-  cssVar: "--bof-app-left",
-  storageKey: "bof-app-left-width",
-  sign: 1,
-  min: 160,
-  max: (root) => Math.max(160, Math.min(
-    520,
-    window.innerWidth - columnWidth(root, "--bof-app-right", 420) - SPLITTER_TOTAL - MIN_CANVAS,
-  )),
-  fallback: 240,
-};
-
-const RIGHT: SplitterConfig = {
-  cssVar: "--bof-app-right",
-  storageKey: "bof-app-right-width",
-  sign: -1,
-  min: 240,
-  max: (root) => Math.max(240,
-    window.innerWidth - columnWidth(root, "--bof-app-left", 240) - SPLITTER_TOTAL - MIN_CANVAS),
-  fallback: 420,
-};
-
 export function buildShell(root: HTMLElement, graphDemo = false): Shell {
   ensureAppStyles(root.ownerDocument);
   const doc = root.ownerDocument;
   root.classList.add("bof-app-root");
   root.classList.toggle("bof-app-graph-demo", graphDemo);
   const right = graphDemo ? {
-    ...RIGHT,
+    ...RIGHT_SPLIT,
     storageKey: "bof-demo-right-width",
     fallback: Math.round(window.innerWidth * 0.5),
     max: () => Math.max(240, window.innerWidth - 6 - MIN_CANVAS),
-  } : RIGHT;
+  } : RIGHT_SPLIT;
   if (graphDemo) root.style.setProperty("--bof-app-right", `${right.fallback}px`);
 
   const topbarEl = doc.createElement("div");
@@ -87,7 +43,7 @@ export function buildShell(root: HTMLElement, graphDemo = false): Shell {
   const leftSplitter = doc.createElement("div");
   leftSplitter.className = "bof-app-splitter";
   leftSplitter.hidden = graphDemo;
-  installSplitter(leftSplitter, root, LEFT);
+  installSplitter(leftSplitter, root, LEFT_SPLIT);
 
   const canvasHost = doc.createElement("div");
   canvasHost.className = "bof-app-canvas-host";
@@ -111,67 +67,15 @@ export function buildShell(root: HTMLElement, graphDemo = false): Shell {
 
   main.append(sidebarEl, leftSplitter, canvasHost, rightSplitter, rightColumn);
   root.append(topbarEl, main);
-  if (!graphDemo) restoreWidth(root, LEFT);
+  if (!graphDemo) restoreWidth(root, LEFT_SPLIT);
   restoreWidth(root, right);
   // Re-clamp on window resize so the canvas column never collapses to zero.
   const resize = () => {
-    if (!graphDemo) restoreWidth(root, LEFT);
+    if (!graphDemo) restoreWidth(root, LEFT_SPLIT);
     restoreWidth(root, right);
   };
   root.ownerDocument.defaultView?.addEventListener("resize", resize);
   return { topbarEl, sidebarEl, canvas, canvasHost, paneEl, askHost, graphToolbar,
     dispose: () => root.ownerDocument.defaultView?.removeEventListener("resize", resize),
   };
-}
-
-function restoreWidth(root: HTMLElement, cfg: SplitterConfig): void {
-  const saved = parseFloat(readPref(cfg.storageKey) ?? "");
-  const width = Number.isFinite(saved) ? saved : columnWidth(root, cfg.cssVar, cfg.fallback);
-  root.style.setProperty(cfg.cssVar, `${clampWidth(width, cfg.min, cfg.max(root))}px`);
-}
-
-/** Ghost-line drag: track the pointer with a fixed overlay line, then set the
- *  CSS column variable once on pointerup (see the module comment for why). */
-function installSplitter(
-  splitter: HTMLElement,
-  root: HTMLElement,
-  cfg: SplitterConfig,
-): void {
-  splitter.addEventListener("pointerdown", (down) => {
-    if (down.button !== 0) return;
-    down.preventDefault();
-    splitter.setPointerCapture(down.pointerId);
-    const doc = root.ownerDocument;
-    const startX = down.clientX;
-    const startWidth =
-      parseFloat(getComputedStyle(root).getPropertyValue(cfg.cssVar)) || cfg.fallback;
-    const spec: SplitSpec = { min: cfg.min, max: cfg.max(root), sign: cfg.sign };
-
-    const ghost = doc.createElement("div");
-    ghost.className = "bof-app-split-ghost";
-    ghost.style.left = `${startX}px`;
-    doc.body.appendChild(ghost);
-
-    let width = startWidth;
-    const move = (e: PointerEvent) => {
-      width = dragWidth(startWidth, startX, e.clientX, spec);
-      ghost.style.left = `${ghostX(startX, startWidth, width, spec.sign)}px`;
-    };
-    const finish = (apply: boolean) => {
-      splitter.removeEventListener("pointermove", move);
-      splitter.removeEventListener("pointerup", up);
-      splitter.removeEventListener("pointercancel", cancel);
-      splitter.removeEventListener("lostpointercapture", cancel);
-      ghost.remove();
-      if (!apply) return;
-      root.style.setProperty(cfg.cssVar, `${width}px`);
-      writePref(cfg.storageKey, String(Math.round(width)));
-    };
-    const up = () => finish(true);
-    const cancel = () => finish(false);
-    splitter.addEventListener("pointermove", move);
-    splitter.addEventListener("pointerup", up);
-    splitter.addEventListener("pointercancel", cancel);
-    splitter.addEventListener("lostpointercapture", cancel);
-  });
 }

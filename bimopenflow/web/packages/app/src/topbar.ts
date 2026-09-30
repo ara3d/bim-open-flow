@@ -35,7 +35,7 @@ export interface Topbar {
 }
 
 /** A <select> over `names` that calls `onPick` with a validated choice. */
-function namePicker<T extends string>(
+export function namePicker<T extends string>(
   doc: Document,
   label: string,
   names: readonly T[],

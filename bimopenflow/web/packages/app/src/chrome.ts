@@ -10,6 +10,7 @@
 import type { AnalysisSummary, NodeDescriptor } from "@bimopenflow/contracts";
 import type { CanvasThemeName, NodeStyleName } from "@bimopenflow/graph";
 import type { HostStatus } from "./hostStatus.js";
+import type { ThemePrefs } from "./themeChoice.js";
 
 /** What a chrome may ask the controller to do. Every call is fire-and-forget;
  *  failures surface as toasts, never as return values. */
@@ -53,6 +54,14 @@ export interface ChromeSlots {
 }
 
 export interface AppChrome extends ChromeSlots {
+  /** Where this look keeps its canvas theme choice and what it opens with;
+   *  the classic key and fallback when absent (themeChoice.ts). */
+  readonly themePrefs?: ThemePrefs;
+  /** Example requests the Ask panel offers as placeholders (askPanel.ts). */
+  readonly askExamples?: readonly string[];
+  /** True when the look explains the gestures itself, so the canvas draws no
+   *  hint line of its own. */
+  readonly ownsCanvasHint?: boolean;
   setAnalyses(list: readonly AnalysisSummary[], activeId: string | null): void;
   setDirty(dirty: boolean): void;
   setConnection(status: HostStatus): void;

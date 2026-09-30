@@ -41,6 +41,8 @@ export interface GraphEditorOptions {
   readonly onError: (message: string) => void;
   /** A viewer: pans, zooms, hovers, and selects, and never changes the document. Default false. */
   readonly readOnly?: boolean;
+  /** The one-line gesture hint in the canvas corner. Default true. */
+  readonly hint?: boolean;
   /** The canvas theme at mount. The theme is page-wide (gratify's tokens are), so every mounted canvas follows a later setTheme. */
   readonly theme?: CanvasThemeName;
   /** The node whose upstream path is highlighted; defaults to the last selected node. */
@@ -131,6 +133,7 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
   const instance = createCanvasInstance({
     document: canvas.ownerDocument,
     readOnly,
+    hint: options.hint,
     suggestionProvider: options.suggestions ?? null,
   });
   let wiring: PeekWiring | null = null; // created once the runtime exists

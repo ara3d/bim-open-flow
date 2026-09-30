@@ -26,6 +26,9 @@ export interface CanvasInstance {
   /** A viewer: gestures never begin a mutation, islands are disabled, and
    *  the update function drops mutating intents. */
   readonly readOnly: boolean;
+  /** Whether the canvas draws its one-line gesture hint in the corner; a
+   *  chrome with its own help turns it off. */
+  readonly hint: boolean;
   /** The DOM document islands are created in; tests pass jsdom's. */
   readonly document: Document;
   /** One native input per parameter row, keyed by islandKey. */
@@ -45,6 +48,8 @@ export interface CanvasInstance {
 export interface CanvasInstanceOptions {
   readonly document: Document;
   readonly readOnly?: boolean;
+  /** Default true. */
+  readonly hint?: boolean;
   readonly suggestionProvider?: SuggestionProvider | null;
 }
 
@@ -52,6 +57,7 @@ export function createCanvasInstance(options: CanvasInstanceOptions): CanvasInst
   const instance: CanvasInstance = {
     dispatch: () => {},
     readOnly: options.readOnly ?? false,
+    hint: options.hint ?? true,
     document: options.document,
     islands: new Map(),
     openDropdowns: new Set(),

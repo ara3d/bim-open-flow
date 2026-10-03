@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { emptyObject, instanceRecords, objectKey, objectRef, mesh, translation } from "@bim-open-toolkit/model";
-import { loadedModel } from "@bim-open-toolkit/formats";
-import { buildInstanceTable } from "@bim-open-toolkit/render";
+import { emptyObject, instanceRecords, objectKey, objectRef, mesh, translation } from "@bim-open-viewer/model";
+import { loadedModel } from "@bim-open-viewer/formats";
+import { buildInstanceTable } from "@bim-open-viewer/render";
 import { restoreSourceColors, visibleSource } from "../src/toolkitSource";
 import { layoutModel, requireResult } from "../src/toolkitRecipe";
 

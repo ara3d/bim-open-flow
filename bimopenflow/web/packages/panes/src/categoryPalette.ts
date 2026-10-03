@@ -1,4 +1,4 @@
-import type { Vec3 } from "@bim-open-toolkit/model";
+import type { Vec3 } from "@bim-open-viewer/model";
 
 export const categoryPaletteNames = ["classic", "vivid", "pastel", "earth", "grayscale"] as const;
 export type CategoryPaletteName = typeof categoryPaletteNames[number];

@@ -3,7 +3,7 @@
 // id ("bos:<entity row>") and `sourceId` to the authoring id (the STEP express
 // id for BOS files converted from IFC), and the geometry pack keys its tables
 // by that source id.
-import type { ObjectRecord } from "@bim-open-toolkit/model";
+import type { ObjectRecord } from "@bim-open-viewer/model";
 
 /** An object's entity key: its numeric source id when present, else the `bos:<row>` id. NaN for no record. */
 export const entityKeyOf = (record: ObjectRecord | undefined): number => {

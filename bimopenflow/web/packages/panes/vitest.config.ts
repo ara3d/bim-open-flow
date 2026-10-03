@@ -1,8 +1,8 @@
 import { defineConfig } from "vitest/config";
-import { toolkitAlias } from "../../toolkit.config";
+import { viewerAlias } from "../../viewer.config";
 
 export default defineConfig({
-  resolve: { alias: [toolkitAlias], dedupe: ["three"] },
+  resolve: { alias: [viewerAlias], dedupe: ["three"] },
   test: {
     environment: "jsdom",
   },

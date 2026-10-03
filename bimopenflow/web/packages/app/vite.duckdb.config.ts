@@ -1,10 +1,10 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'node:path';
-import { toolkitAlias } from '../../toolkit.config';
+import { viewerAlias } from '../../viewer.config';
 
 export default defineConfig({
   resolve: {
-    alias: [toolkitAlias, { find: 'gratify', replacement: resolve(__dirname, '../../../../deps/gratify/src/gratify') }],
+    alias: [viewerAlias, { find: 'gratify', replacement: resolve(__dirname, '../../../../deps/gratify/src/gratify') }],
     dedupe: ['three'],
   },
   build: {

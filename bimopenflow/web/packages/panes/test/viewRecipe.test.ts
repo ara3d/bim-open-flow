@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { parseViewRecipe, sectionElevation } from "../src/viewRecipe";
 import { categoryRules } from "../src/toolkitRecipe";
-import { emptyObject, objectRef } from "@bim-open-toolkit/model";
+import { emptyObject, objectRef } from "@bim-open-viewer/model";
 import { makeSlice } from "./helpers";
 const table = (steps: readonly (readonly [string, unknown])[]) => makeSlice([["operation","Text"],["input","Text"]], steps.map(([op, input]) => [op, JSON.stringify(input)]));
 describe("view recipes", () => {

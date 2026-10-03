@@ -1,5 +1,5 @@
 {
-  "extends": "../../toolkit.tsconfig.json",
+  "extends": "../../viewer.tsconfig.json",
   "compilerOptions": {
     "target": "ES2020",
     "module": "ESNext",
@@ -15,7 +15,7 @@
     // vitest.config.ts carries the runtime twin of this alias.
     "paths": {
       "gratify": ["../../../../deps/gratify/src/gratify/index.ts"],
-      "@bim-open-toolkit/*": ["../../../../viz/packages/*/src/index.ts"]
+      "@bim-open-viewer/*": ["../../../../deps/bim-open-viewer/packages/*/src/index.ts"]
     }
   },
   "include": ["src", "test", "scripts"]

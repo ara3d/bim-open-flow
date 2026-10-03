@@ -5,7 +5,7 @@ inspector, and verdict list. Each pane is an isolated module behind one pane
 contract — data in, events out. This package owns the contract.
 
 Depends on `@bimopenflow/contracts` (generated types), `@bimopenflow/viz`
-(table/chart rendering), and `@ara3d/viewer-core/-loaders/-controls` (3D pane
+(table/chart rendering), and `@bim-open-viewer/core/-loaders/-controls` (3D pane
 only). Plain TS + DOM, no UI framework. Styling is injected once per document
 under the `bof-panes-` class/custom-property prefix, the same approach as viz.
 
@@ -97,7 +97,7 @@ border coloring by the group's most severe verdict
 
 ### ViewPane3D — `createViewPane3D(options?)`
 
-A `@ara3d/viewer-core` Viewer with `OrbitControls` and `PickControls` on a
+A `@bim-open-viewer/core` Viewer with `OrbitControls` and `PickControls` on a
 canvas. Scene/color/mapping logic is pure and viewer-free
 (`src/instanceTable.ts`); `src/viewerDeps.ts` is the thin real wiring, and
 `options.deps` swaps it for a fake in headless tests. Without a WebGL context
@@ -135,7 +135,7 @@ workspaces' existing installs:
 
 - `@bimopenflow/contracts` and `@bimopenflow/viz` resolve through
   `bimopenflow/web/node_modules` (already installed).
-- `@ara3d/viewer-*` are aliased to their `src/index.ts` in `tsconfig.json`
+- `@bim-open-viewer/*` are aliased to their `src/index.ts` in `tsconfig.json`
   (`paths`) and `vitest.config.ts` (`resolve.alias`); `three`, `jszip`, and
   `hyparquet` resolve naturally from `viewer/node_modules`.
 

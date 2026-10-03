@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 import { resolve } from "path";
-import { toolkitAlias } from "../../toolkit.config";
+import { viewerAlias } from "../../viewer.config";
 import { snowdonFixture } from "./snowdonFixture";
 
 // Gratify is imported from its source in deps/gratify (pattern copied from
@@ -14,7 +14,7 @@ const host = process.env.BOF_HOST ?? "http://127.0.0.1:5214";
 export default defineConfig({
   plugins: [snowdonFixture()],
   build: { rollupOptions: { input: { app: resolve(__dirname, "index.html"), studio: resolve(__dirname, "studio.html"), graphDemo: resolve(__dirname, "3d.html"), showcase: resolve(__dirname, "showcase.html") } } },
-  resolve: { alias: [toolkitAlias, { find: "gratify", replacement: gratify }], dedupe: ["three"] },
+  resolve: { alias: [viewerAlias, { find: "gratify", replacement: gratify }], dedupe: ["three"] },
   server: {
     // Bind the IPv4 loopback explicitly. Vite's default host is the name
     // "localhost", and Node binds only the first address dns.lookup returns,

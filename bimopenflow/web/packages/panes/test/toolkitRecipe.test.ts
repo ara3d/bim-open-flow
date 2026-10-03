@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createViewer, defaultFeatures } from "@bim-open-toolkit/viewer";
-import { translation } from "@bim-open-toolkit/model";
-import { clippingSlice, layoutsSlice } from "@bim-open-toolkit/features";
-import { fakeRenderer, testFrames } from "../../../../../viz/packages/viewer/test/support/fake-renderer";
-import { twoObjectModel } from "../../../../../viz/packages/viewer/test/support/model-fixture";
+import { createViewer, defaultFeatures } from "@bim-open-viewer/viewer";
+import { translation } from "@bim-open-viewer/model";
+import { clippingSlice, layoutsSlice } from "@bim-open-viewer/features";
+import { fakeRenderer, testFrames } from "../../../../../deps/bim-open-viewer/packages/viewer/test/support/fake-renderer";
+import { twoObjectModel } from "../../../../../deps/bim-open-viewer/packages/viewer/test/support/model-fixture";
 import { mountRecipe, recipeFeatures, requireResult } from "../src/toolkitRecipe";
 import { restoreSourceColors } from "../src/toolkitSource";
 import type { ViewStep } from "../src/viewRecipe";

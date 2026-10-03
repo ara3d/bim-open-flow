@@ -1,6 +1,6 @@
-import { isInstanceVisible, noMesh } from "@bim-open-toolkit/model";
-import type { LoadedModel } from "@bim-open-toolkit/formats";
-import type { InstanceTable } from "@bim-open-toolkit/render";
+import { isInstanceVisible, noMesh } from "@bim-open-viewer/model";
+import type { LoadedModel } from "@bim-open-viewer/formats";
+import type { InstanceTable } from "@bim-open-viewer/render";
 
 /** Keep source-hidden placements out of the render binding and its fit bounds, retaining every object identity. */
 export function visibleSource(model: LoadedModel): LoadedModel {

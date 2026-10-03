@@ -1,5 +1,5 @@
 {
-  "extends": "../../toolkit.tsconfig.json",
+  "extends": "../../viewer.tsconfig.json",
   "compilerOptions": {
     "target": "ES2020",
     "module": "ESNext",

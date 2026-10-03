@@ -1,6 +1,6 @@
-import { InstancedGroup, groupBounds } from "@ara3d/viewer-core";
-import { fitBounds } from "@bim-open-toolkit/interact";
-import { createViewer, defaultFeatures, loadWithPreview, webglRenderer } from "@bim-open-toolkit/viewer";
+import { InstancedGroup, groupBounds } from "@bim-open-viewer/core";
+import { fitBounds } from "@bim-open-viewer/interact";
+import { createViewer, defaultFeatures, loadWithPreview, webglRenderer } from "@bim-open-viewer/viewer";
 import type { TableSlice } from "@bimopenflow/contracts";
 import type { ModelFormat } from "./pane";
 import type { GroupEntityMap } from "./instanceTable";

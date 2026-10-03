@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
-import { toolkitAlias } from "../../toolkit.config";
+import { viewerAlias } from "../../viewer.config";
 
 // The same gratify source alias as packages/app, so every module under test
 // resolves gratify from the submodule.
@@ -9,7 +9,7 @@ const gratify = fileURLToPath(
 );
 
 export default defineConfig({
-  resolve: { alias: [toolkitAlias, { find: "gratify", replacement: gratify }], dedupe: ["three"] },
+  resolve: { alias: [viewerAlias, { find: "gratify", replacement: gratify }], dedupe: ["three"] },
   test: {
     environment: "jsdom",
   },

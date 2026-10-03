@@ -1,8 +1,8 @@
-import { objectKey, styleRule, translation, type Bounds, type ModelData, type Result, type StyleRule, type Vec3 } from "@bim-open-toolkit/model";
-import { clippingFeature, clippingSlice, environmentFeature, environmentSlice, layoutsFeature, layoutsHook } from "@bim-open-toolkit/features";
-import { defaultEnvironment, dirtySets, publishDirty, noClipping, type InstanceTable } from "@bim-open-toolkit/render";
-import { setProjectionKind } from "@bim-open-toolkit/interact";
-import type { Viewer } from "@bim-open-toolkit/viewer";
+import { objectKey, styleRule, translation, type Bounds, type ModelData, type Result, type StyleRule, type Vec3 } from "@bim-open-viewer/model";
+import { clippingFeature, clippingSlice, environmentFeature, environmentSlice, layoutsFeature, layoutsHook } from "@bim-open-viewer/features";
+import { defaultEnvironment, dirtySets, publishDirty, noClipping, type InstanceTable } from "@bim-open-viewer/render";
+import { setProjectionKind } from "@bim-open-viewer/interact";
+import type { Viewer } from "@bim-open-viewer/viewer";
 import { sectionElevation, type ViewStep } from "./viewRecipe";
 import { categoryPalettes, type CategoryPaletteName } from "./categoryPalette";
 

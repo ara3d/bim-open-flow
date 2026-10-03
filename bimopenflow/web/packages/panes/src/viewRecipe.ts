@@ -1,5 +1,5 @@
 import type { TableSlice } from "@bimopenflow/contracts";
-import { boolean, literal, number, object, optional, string, tuple, union, type Bounds, type Schema } from "@bim-open-toolkit/model";
+import { boolean, literal, number, object, optional, string, tuple, union, type Bounds, type Schema } from "@bim-open-viewer/model";
 import { categoryPaletteNames, type CategoryPaletteName } from "./categoryPalette";
 
 export type ViewStep =

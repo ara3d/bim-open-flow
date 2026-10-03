@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { emptyObject, objectKey, objectRef } from "@bim-open-toolkit/model";
+import { emptyObject, objectKey, objectRef } from "@bim-open-viewer/model";
 import { entityKeyOf, entityKeysByObjectId } from "../src/entityKeys";
 
 const ref = { id: "m", revision: "r" };

@@ -1,7 +1,7 @@
 // Pure parsing of a boxes table (src/BimOpenFlow.Nodes.Geometry/README.md,
 // "Boxes table columns") into instanced-unit-cube transforms and colors.
 // No viewer or WebGL dependency, so it is fully testable headless.
-import type { MeshBuffers } from "@ara3d/viewer-core";
+import type { MeshBuffers } from "@bim-open-viewer/core";
 import type { TableSlice } from "@bimopenflow/contracts";
 import { columnIndex } from "./columns";
 

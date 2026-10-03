@@ -55,7 +55,8 @@ const icon = (doc: Document, path: string): SVGSVGElement => {
 };
 
 const ICON = {
-  mark: "M12 2 3 7v10l9 5 9-5V7Zm0 2.3L18.6 8 12 11.7 5.4 8ZM5 9.7l6 3.4v6.6l-6-3.4Zm8 10V13l6-3.4v6.6Z",
+  /** Rows to Flow (docs/BRANDING.md, docs/brand/mark.svg): three rows whose wires gather into one node. */
+  mark: "M2 3h5v4H2ZM2 10h5v4H2ZM2 17h5v4H2ZM8.5 4C12.5 4 11.5 11 15.5 11V13C11.5 13 12.5 6 8.5 6ZM8.5 11h7v2h-7ZM8.5 18C12.5 18 11.5 11 15.5 11V13C11.5 13 12.5 20 8.5 20ZM14.8 12a3.2 3.2 0 1 1 6.4 0a3.2 3.2 0 1 1-6.4 0Z",
   fit: "M3 9V3h6v2H5v4Zm12-6h6v6h-2V5h-4ZM3 15h2v4h4v2H3Zm16 0h2v6h-6v-2h4Z",
   tidy: "M3 5h6v4H3Zm0 10h6v4H3Zm12-5h6v4h-6ZM9 7h3v4l3-1V9h0M9 17h3v-4l3 1v1",
   plus: "M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6Z",

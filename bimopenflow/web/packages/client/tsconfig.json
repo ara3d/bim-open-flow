@@ -1,0 +1,17 @@
+{
+  "extends": "../../viewer.tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  // vitest.config.ts is excluded: it imports node:url and @types/node is not
+  // installed in this workspace yet (vitest transpiles its own config).
+  "include": ["src", "test"]
+}

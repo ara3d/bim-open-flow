@@ -9,7 +9,7 @@ import { previewText } from "@bimopenflow/graph";
 import { dataflowOrder, feeders } from "./graphOrder.js";
 import { nodeTitle } from "@bimopenflow/graph";
 import { nodeBadge } from "@bimopenflow/graph";
-import { firstTableOutput } from "./paneChoice.js";
+import { firstTableOutput } from "@bimopenflow/client";
 import { fileName } from "@bimopenflow/graph";
 import type { PortResultsView } from "@bimopenflow/graph";
 

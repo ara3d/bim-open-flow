@@ -7,8 +7,7 @@ import { ApiClient } from "@bimopenflow/api-client";
 import { analysisParam } from "./analysisParam.js";
 import { createApp, type App } from "./app.js";
 import type { ChromeFactory } from "./chrome.js";
-import { watchHost } from "./hostStatus.js";
-import { mountHostBanner } from "./topbar.js";
+import { mountHostBanner, watchHost } from "@bimopenflow/client/host";
 
 export function bootEditor(chrome?: ChromeFactory): App {
   // Every call reports into one host status; the banner and the chrome show it.

@@ -1,6 +1,6 @@
 // Top bar: analysis picker + new, save (with dirty indicator), run, canvas
-// theme picker, node style picker, and host connection status. Also the page-level host banner
-// that every page mounts, inside or outside the shell.
+// theme picker, node style picker, and host connection status. The page-level
+// host banner is mountHostBanner in @bimopenflow/client/host.
 
 import type { AnalysisSummary } from "@bimopenflow/contracts";
 import {
@@ -9,8 +9,7 @@ import {
   type CanvasThemeName,
 } from "@bimopenflow/graph";
 import { isNodeStyleName, nodeStyleNames, type NodeStyleName } from "@bimopenflow/graph";
-import { hostStatusMessage, type HostStatus, type HostStatusSource } from "./hostStatus.js";
-import { ensureAppStyles } from "./styles.js";
+import type { HostStatus } from "@bimopenflow/client/host";
 import { brandMark } from "./brand.js";
 
 export interface TopbarHandlers {
@@ -137,33 +136,5 @@ export function createTopbar(root: HTMLElement, handlers: TopbarHandlers): Topba
       conn.classList.toggle("bof-app-conn-ok", status === "connected");
       conn.classList.toggle("bof-app-conn-bad", status === "offline");
     },
-  };
-}
-
-/**
- * A fixed strip along the bottom of the page that names the host API url and
- * how to recover whenever the host is not connected; hidden while it is.
- * Returns the unsubscribe.
- */
-export function mountHostBanner(
-  doc: Document,
-  host: HostStatusSource,
-  apiUrl = new URL("/api", doc.baseURI).href,
-): () => void {
-  ensureAppStyles(doc);
-  const banner = doc.createElement("div");
-  banner.className = "bof-app-host-banner";
-  banner.setAttribute("role", "alert");
-  const render = (status: HostStatus) => {
-    banner.textContent = hostStatusMessage(status, apiUrl);
-    banner.hidden = status === "connected";
-    banner.classList.toggle("bof-app-host-banner-offline", status === "offline");
-  };
-  render(host.get().status);
-  doc.body.appendChild(banner);
-  const unsubscribe = host.subscribe((state) => render(state.status));
-  return () => {
-    unsubscribe();
-    banner.remove();
   };
 }

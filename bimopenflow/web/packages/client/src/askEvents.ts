@@ -1,13 +1,13 @@
-// The /api/ask event stream: its event shape and a reader for it.
-// Duplicates the page-local reader in packages/app/src/duckdbDemo.ts; the
-// plan (docs/plans/notebook.md, "Debt") says how the two become one.
+// The client half of POST /api/ask (AskEndpoint.cs, AskHandler.cs): the event
+// shape, the server-sent event reader, and a transport that posts a request.
+// The editor's Ask panel, the DuckDB demo page, and the notebook all use it.
 
 /** One server-sent event from POST /api/ask (src/studio/BimOpenFlow.Studio/AskHandler.cs). */
 export interface AskEvent {
   readonly type: "start" | "tool" | "text" | "check" | "done" | "error";
   readonly analysisId?: string;
   readonly model?: string;
-  readonly effort?: string;
+  readonly effort?: string | null;
   readonly continuing?: boolean;
   readonly name?: string;
   readonly args?: Record<string, unknown> | null;
@@ -23,13 +23,16 @@ export interface AskEvent {
   readonly outputTokens?: number;
 }
 
+/** Receives one event; a returned promise is awaited before the next event is read. */
+export type AskEventHandler = (event: AskEvent) => Promise<void> | void;
+
 /** Sends one request to the agent and streams its events. */
 export interface AskTransport {
   /** Resolves after the last event; rejects when the host refuses the request. */
   ask(
     request: string,
     analysisId: string | undefined,
-    onEvent: (event: AskEvent) => void,
+    onEvent: AskEventHandler,
     signal?: AbortSignal,
   ): Promise<void>;
 }
@@ -44,7 +47,7 @@ export const ASK_ROUTE = "/api/ask";
  */
 export async function readAskEvents(
   response: Response,
-  onEvent: (event: AskEvent) => void,
+  onEvent: AskEventHandler,
   signal?: AbortSignal,
 ): Promise<void> {
   if (!response.body) throw new Error(`${ASK_ROUTE} answered ${response.status} with no body`);
@@ -62,27 +65,28 @@ export async function readAskEvents(
       buffer = (buffer + (done ? decoder.decode() : decoder.decode(value, { stream: true }))).replace(/\r\n/g, "\n");
       let end: number;
       while ((end = buffer.indexOf("\n\n")) >= 0) {
-        deliver(buffer.slice(0, end), onEvent);
+        const block = buffer.slice(0, end);
         buffer = buffer.slice(end + 2);
+        await deliver(block, onEvent);
       }
       if (done) break;
     }
     // A last event the host did not close with a blank line.
-    deliver(buffer, onEvent);
+    await deliver(buffer, onEvent);
   } finally {
     signal?.removeEventListener("abort", cancel);
   }
 }
 
 /** One block: its `data:` lines joined by newlines, parsed. Other SSE fields are ignored. */
-function deliver(block: string, onEvent: (event: AskEvent) => void): void {
+async function deliver(block: string, onEvent: AskEventHandler): Promise<void> {
   const data = block
     .split("\n")
     .filter((line) => line.startsWith("data:"))
     .map((line) => line.slice(line.startsWith("data: ") ? 6 : 5))
     .join("\n");
   if (data.trim() === "") return;
-  onEvent(parseEvent(data));
+  await onEvent(parseEvent(data));
 }
 
 function parseEvent(data: string): AskEvent {

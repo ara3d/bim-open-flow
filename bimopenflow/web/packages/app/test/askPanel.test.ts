@@ -3,7 +3,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { ASK_DEFAULT_HEIGHT, clampAskHeight, mountAskPanel } from "../src/askPanel.js";
 import { buildShell, type Shell } from "../src/shell.js";
-import type { HostStatusSource } from "../src/hostStatus.js";
+import type { HostStatusSource } from "@bimopenflow/client/host";
 
 /** A minimal HostStatusSource whose fetch is the one under test; the panel
  *  never reads any other member. */

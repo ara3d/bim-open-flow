@@ -5,8 +5,7 @@
 import { ApiClient } from "@bimopenflow/api-client";
 import { analysisFromSearch } from "./analysisParam.js";
 import { createApp } from "./app.js";
-import { watchHost } from "./hostStatus.js";
-import { mountHostBanner } from "./topbar.js";
+import { mountHostBanner, watchHost } from "@bimopenflow/client/host";
 
 class GraphDemoApi extends ApiClient {
   override getModelBosUrl(id: string): string {

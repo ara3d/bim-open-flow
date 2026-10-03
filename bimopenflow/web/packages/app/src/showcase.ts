@@ -1,7 +1,6 @@
 import { ApiClient } from "@bimopenflow/api-client";
 import { createViewPane3D, ensurePaneStyles } from "@bimopenflow/panes";
-import { watchHost } from "./hostStatus.js";
-import { mountHostBanner } from "./topbar.js";
+import { mountHostBanner, watchHost } from "@bimopenflow/client/host";
 import type { TableSlice } from "@bimopenflow/contracts";
 import type { ViewStep } from "../../panes/src/viewRecipe";
 import "./showcase.css";

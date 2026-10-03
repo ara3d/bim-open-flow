@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import type { NodeDescriptor, NodeState, TableSlice } from "@bimopenflow/contracts";
 import { createPaneArea } from "../src/paneArea.js";
-import { studioPanes } from "../src/paneChoice.js";
+import { studioPanes } from "@bimopenflow/client";
 
 const desc = (kind: string): NodeDescriptor => ({
   kind,

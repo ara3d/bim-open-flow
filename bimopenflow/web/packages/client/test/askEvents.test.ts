@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createAskTransport, readAskEvents, type AskEvent } from "../src/ask/events";
+import { createAskTransport, readAskEvents, type AskEvent } from "../src/askEvents";
 
 const encoder = new TextEncoder();
 
@@ -22,7 +22,7 @@ function cut(text: string, ...at: number[]): string[] {
 
 async function read(response: Response): Promise<AskEvent[]> {
   const events: AskEvent[] = [];
-  await readAskEvents(response, (e) => events.push(e));
+  await readAskEvents(response, (e) => { events.push(e); });
   return events;
 }
 
@@ -93,7 +93,7 @@ describe("createAskTransport", () => {
   it("posts the request as JSON and streams the events", async () => {
     const { fetchFn, calls } = fakeFetch(() => streamOf(cut(recorded, 17, 200)));
     const events: AskEvent[] = [];
-    await createAskTransport(fetchFn).ask("total operational carbon", undefined, (e) => events.push(e));
+    await createAskTransport(fetchFn).ask("total operational carbon", undefined, (e) => { events.push(e); });
     expect(calls).toHaveLength(1);
     expect(calls[0].url).toBe("/api/ask");
     expect(calls[0].init.method).toBe("POST");

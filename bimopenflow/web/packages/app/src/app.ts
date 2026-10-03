@@ -16,9 +16,13 @@ import {
   type State,
 } from "@bimopenflow/state";
 import { createPaneArea } from "./paneArea.js";
-import { makePaneContext } from "./paneContext.js";
-import { modelPathFor } from "./modelRef.js";
-import { modelCatalog } from "./modelCatalog.js";
+import {
+  buildLiveViewRecipe,
+  makePaneContext,
+  modelCatalog,
+  modelPathFor,
+} from "@bimopenflow/client";
+import { createHostStatus, type HostStatusSource } from "@bimopenflow/client/host";
 import { createGraphEditor } from "@bimopenflow/graph";
 import { autoLayout } from "@bimopenflow/graph";
 import { buildCanvasModel } from "@bimopenflow/graph";
@@ -35,8 +39,6 @@ import { createStartPage } from "./startPage.js";
 import { TEMPLATES } from "./templates.generated.js";
 import { chooseInitialAnalysis, searchWithAnalysis } from "./analysisParam.js";
 import { showToast } from "./toast.js";
-import { buildLiveViewRecipe } from "./liveViewRecipe";
-import { createHostStatus, type HostStatusSource } from "./hostStatus.js";
 import { mountAskPanel, type AskPanel } from "./askPanel.js";
 import { nodeTitle, upstreamIds } from "@bimopenflow/graph";
 import { primaryNodeId, reopenKeepingSelection, selectedNodeIds } from "./selection.js";

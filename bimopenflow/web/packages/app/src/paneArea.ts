@@ -11,7 +11,6 @@ import {
   createVerdictPane,
   createViewPane3D,
   ensurePaneStyles,
-  isBoxTable,
   type ChartPaneOptions,
   type Pane,
   type PaneContext,
@@ -20,13 +19,16 @@ import {
 import {
   chartPaneOptions,
   choosePanes,
+  completeTable,
   firstTableOutput,
-  studioPanes,
   hasResults,
+  modelUrlFor,
+  studioPanes,
+  view3dDataKind,
+  type LiveViewRecipe,
   type PaneKind,
-} from "./paneChoice.js";
-import { completeTable } from "./completeTable.js";
-import type { LiveViewRecipe } from "./liveViewRecipe";
+} from "@bimopenflow/client";
+import { hostMessage } from "@bimopenflow/client/host";
 import { nodeTitle } from "@bimopenflow/graph";
 
 const PANE_LABELS: Record<PaneKind, string> = {
@@ -46,20 +48,6 @@ const paneFactory = (kind: PaneKind, chartOptions: ChartPaneOptions): Pane => {
     case "inspector": return createInspectorPane();
   }
 };
-
-/** The host's own sentence from an ApiClient error ("GET <path> -> 404: {"error":"..."}"),
- *  or the whole message when it carries none. */
-export function hostMessage(e: unknown): string {
-  const message = e instanceof Error ? e.message : String(e);
-  const body = message.indexOf("{");
-  if (body < 0) return message;
-  try {
-    const parsed = JSON.parse(message.slice(body)) as { error?: unknown };
-    return typeof parsed.error === "string" ? parsed.error : message;
-  } catch {
-    return message;
-  }
-}
 
 interface ShownNode {
   nodeId: string;
@@ -195,8 +183,7 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
     if (!path || !deps.resolveModelId) return;
     const id = await deps.resolveModelId(path);
     if (token !== fetchToken || pane !== activePane) return; // stale
-    const url = id ? `model:${id}` : null;
-    if (!url) throw new Error(`Model is not in the host catalog: ${path}. Add its directory to ModelRoots.`);
+    const url = modelUrlFor(path, id);
     if (url === loadedModelUrl) return;
     loadedModelUrl = url;
     // The model-bytes endpoint always serves BOS; the id in the url may keep
@@ -246,10 +233,7 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
       if (activeKind === "view3d") {
         // The pane queues an instances slice that arrives before the model
         // finishes loading, so pushing the table right after is safe.
-        if (port.name === "view") pane.update({ kind: "view", data });
-        else if (port.name === "boxes" || isBoxTable(data.columns))
-          pane.update({ kind: "boxes", data });
-        else pane.update({ kind: "instances", data });
+        pane.update({ kind: view3dDataKind(port.name, data), data });
       } else {
         pane.update({ kind: "table", data });
       }

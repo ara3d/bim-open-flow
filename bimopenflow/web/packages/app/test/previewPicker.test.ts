@@ -7,7 +7,7 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ApiClient } from "@bimopenflow/api-client";
 import type { NodeDescriptor } from "@bimopenflow/contracts";
 import { createApp, type App } from "../src/app.js";
-import type { HostStatusSource } from "../src/hostStatus.js";
+import type { HostStatusSource } from "@bimopenflow/client/host";
 
 const tableDesc: NodeDescriptor = {
   kind: "table.select",

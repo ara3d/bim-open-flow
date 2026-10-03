@@ -5,10 +5,9 @@
 // opens when it is done.
 import { ApiClient } from '@bimopenflow/api-client';
 import type { App } from './app.js';
-import { watchHost } from './hostStatus.js';
-import { mountHostBanner } from './topbar.js';
+import { createAskTransport, mountHostBanner, watchHost } from '@bimopenflow/client/host';
 import { startOnce } from './startOnce.js';
-import { appendAskLine as sharedAppendAskLine, readEvents, shortArgs, type AskEvent } from './askClient.js';
+import { appendAskLine as sharedAppendAskLine, shortArgs } from './askClient.js';
 import './duckdbDemo.css';
 
 /** One entry of samples/duckdb-analyses/workflows.json, loaded lazily below. */
@@ -75,8 +74,9 @@ async function download() {
 }
 
 // ── Ask ──────────────────────────────────────────────────────────────────────
-// The event shape, shortArgs, and readEvents live in askClient.ts, shared with
-// the editor's Ask panel (askPanel.ts, TKT-84).
+// The event shape and the transport live in @bimopenflow/client/host; shortArgs and
+// the transcript line live in askClient.ts, shared with the editor's Ask panel
+// (askPanel.ts, TKT-84).
 
 /** Bound to this page's log element and its 'duck-ask' classes, so every
  *  existing caller (including the transcript-height test) is unaffected. */
@@ -93,13 +93,7 @@ async function ask(request: string, form: HTMLFormElement, followUp: HTMLInputEl
   appendAskLine('you', `You: ${request}`);
   let analysisId: string | undefined;
   try {
-    const response = await host.fetch('/api/ask', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(continuing ? { request, analysisId: continuing } : { request }),
-    });
-    if (!response.ok || !response.body) throw new Error(`${response.status} ${response.statusText}`);
-    await readEvents(response, async event => {
+    await createAskTransport(host.fetch).ask(request, continuing, async event => {
       switch (event.type) {
         case 'start':
           analysisId = event.analysisId;

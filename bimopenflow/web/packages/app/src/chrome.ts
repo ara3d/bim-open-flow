@@ -9,7 +9,7 @@
 
 import type { AnalysisSummary, NodeDescriptor } from "@bimopenflow/contracts";
 import type { CanvasThemeName, NodeStyleName } from "@bimopenflow/graph";
-import type { HostStatus } from "./hostStatus.js";
+import type { HostStatus } from "@bimopenflow/client/host";
 import type { ThemePrefs } from "./themeChoice.js";
 
 /** What a chrome may ask the controller to do. Every call is fire-and-forget;

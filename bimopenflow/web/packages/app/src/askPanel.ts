@@ -13,9 +13,8 @@
 // plain BimOpenFlow.Host has no /api/ask, so most editor sessions show
 // nothing here at all, and a mount against such a host resolves to a no-op
 // handle instead of an empty or broken panel.
-import { appendAskLine, postAsk, probeAsk } from './askClient.js';
-import { shortArgs } from './askClient.js';
-import type { HostStatusSource } from './hostStatus.js';
+import { createAskTransport, type HostStatusSource } from '@bimopenflow/client/host';
+import { appendAskLine, probeAsk, shortArgs } from './askClient.js';
 import { readPref, writePref } from './prefs.js';
 import './askPanel.css';
 
@@ -187,7 +186,7 @@ export async function mountAskPanel(root: HTMLElement, options: AskPanelOptions)
     let built = false;
     let builtId: string | undefined;
     try {
-      await postAsk(options.host.fetch, { request, analysisId }, event => {
+      await createAskTransport(options.host.fetch).ask(request, analysisId, event => {
         switch (event.type) {
           case 'start':
             appendAskLine(log, 'note', `Editing "${event.analysisId}" with ${event.model}…`, PREFIX);

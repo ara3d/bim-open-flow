@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BIM Open Flow</title>
+<meta name="description" content="Graphs over building data that people and agents build the same way. On 2026-10-03 the code is still in bim-open-toolkit.">
+<link rel="icon" href="assets/mark.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@600;700&family=Public+Sans:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --font-brand: "Instrument Sans", "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --font-ui: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Fira Code", "Cascadia Mono", Consolas, ui-monospace, monospace;
+  --text: #171a1f; --dim: #5a606c; --surface: #ffffff; --bg: #f4f5f7; --border: #e3e6ea;
+  --accent: #2f66ce; --soft: #e8eefb; --amber: #d97706;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 400 15px/1.55 var(--font-ui); }
+main { max-width: 860px; margin: 0 auto; padding: 32px 16px 64px; }
+h1, h2 { font-family: var(--font-brand); line-height: 1.2; }
+h2 { font-size: 20px; margin: 40px 0 12px; }
+p { margin: 0 0 12px; max-width: 72ch; }
+a { color: var(--accent); text-underline-offset: 2px; }
+code { font: 400 13px var(--font-mono); background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; }
+.lockup { width: 320px; max-width: 100%; height: auto; display: block; margin: 0 0 16px -8px; }
+.lede { font-size: 17px; }
+.status { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--amber); border-radius: 6px; padding: 12px 16px; margin: 20px 0; }
+.status p { margin: 0; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; font-size: 14px; width: 100%; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { font-weight: 600; background: var(--soft); }
+tr:last-child td { border-bottom: 0; }
+td code { white-space: nowrap; }
+@media (max-width: 600px) { td code { white-space: normal; overflow-wrap: anywhere; } th, td { padding: 8px; } td:first-child { width: 45%; } }
+footer { margin-top: 48px; color: var(--dim); font-size: 13px; }
+footer a { color: var(--dim); }
+pre { font: 400 12.5px/1.5 var(--font-mono); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 12px 14px; overflow-x: auto; }
+ul { padding-left: 20px; max-width: 72ch; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <img class="lockup" src="assets/lockup.svg" alt="BIM Open Flow">
+  <p class="lede">Graphs that turn questions about building data into small, inspectable, reproducible computations, built the same way by people in a web editor and by AI agents over MCP (Model Context Protocol).</p>
+</header>
+
+<div class="status">
+  <p><strong>Status on 2026-10-03:</strong> the code is not in this repository yet. It lives in <a href="https://github.com/ara3d/bim-open-toolkit">bim-open-toolkit</a> under <code>src/flow</code>, <code>bimopenflow/web</code>, <code>src/mcp/BimOpenMcp.Flow</code>, and <code>src/studio/BimOpenFlow.Ask</code>, and its generic part moves here with its history in phase 5 of the <a href="https://github.com/ara3d/bim-open-toolkit/blob/main/docs/plans/repository-split.md">repository split plan</a>.</p>
+</div>
+
+<h2>What a graph is</h2>
+<p>A graph is a JSON document of nodes and wires. Each node is a small function with typed ports and parameters edited on the node itself. A door schedule, rooms per storey, a check that every door leaf is at least 850 mm wide, or a 3D view coloured by category are each a graph of a handful of nodes.</p>
+<pre>load ──┬─► table.filter ──► table.aggregate ──┬─► chart.bar        (chart)
+       │                                      └─► sink.exportCsv  (effect, waits for Run)
+       └─► view3d.instances ──► view3d.color ────► 3D pane         (3D view)</pre>
+<p>Every edit is one of four operations, <code>addNode</code>, <code>connect</code>, <code>setParam</code>, and <code>removeNode</code>, whether it comes from a mouse gesture, the HTTP API, or an MCP tool. A graph an agent builds is one a person could have built.</p>
+
+<h2>What travels on a wire</h2>
+<p>Six kinds of value: Boolean, Integer, Number, Text, Table, and Relation. Almost everything is an immutable <strong>Table</strong>; a <strong>Relation</strong> is a query plan and its schema, which becomes rows only when executed. One vocabulary covers loading, SQL, table operations, charts, 3D, and rule checks, so a graph that computes a table can also colour the model.</p>
+
+<h2>Nothing writes until Run</h2>
+<p>Pure nodes only compute, and their results are memoized. Effect nodes write files or IFC property sets, all live in one pack, and stay <code>EffectPending</code> until an explicit Run. Exploring a model, by a person or an agent, never touches a file. Each node reports <code>Ok</code>, <code>Unready</code>, <code>EffectPending</code>, <code>Unavailable</code>, or <code>Error</code>.</p>
+
+<h2>Runs are the evidence</h2>
+<p>A run record pins the graph's hash and every input's content hash beside the outputs, and replays. A number an agent reports comes from a run or a tool result, not from memory. A run can be published as a self-contained HTML report or an evidence package: a zip whose <code>manifest.json</code> lists a SHA-256 per member.</p>
+
+<h2>What will arrive</h2>
+<ul>
+  <li>The node packs: 124 node kinds in the toolkit's catalog on 2026-10-03, each declaring its ports, parameter kinds, and purity. The packs that know about buildings stay in the toolkit.</li>
+  <li>The headless host: graphs and runs on disk, and the four operations over HTTP.</li>
+  <li>The web editor: a canvas built on <a href="https://github.com/ara3d/gratify">Gratify</a>, tables and charts beside the graph, and an Ask box where an agent builds the graph from a question in plain language.</li>
+  <li>The MCP server, so an agent in Claude Code edits, evaluates, and reads graphs with the same operations.</li>
+  <li>The publishing projects: reports, dashboards, and evidence packages.</li>
+</ul>
+<p>The engine itself, <a href="https://github.com/ara3d/ara3d-dataflow">ara3d-dataflow</a>, is specified separately with its own conformance suite and knows nothing about buildings.</p>
+
+<footer>
+  <p>Part of the BIM Open family: <a href="https://github.com/ara3d/bim-open-toolkit">Toolkit</a>, <a href="https://github.com/ara3d/bim-open-data">Data</a>, <a href="https://github.com/ara3d/bim-open-notebook">Notebook</a>, <a href="https://github.com/ara3d/bim-open-viewer">Viewer</a>, <a href="https://github.com/ara3d/bim-open-schema">Schema</a>. Source: <a href="https://github.com/ara3d/bim-open-flow">ara3d/bim-open-flow</a>. MIT licensed.</p>
+</footer>
+
+</main>
+</body>
+</html>

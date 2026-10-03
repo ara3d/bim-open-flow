@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 32" width="320" height="64">
+<style>@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@600;700&amp;display=swap');text{font-family:'Instrument Sans','Public Sans',system-ui,sans-serif;font-size:15px;letter-spacing:-0.01em}</style>
+<g transform="translate(4 4)"><path fill="#2f66ce" d="M2 3h5v4H2ZM2 10h5v4H2ZM2 17h5v4H2ZM8.5 4C12.5 4 11.5 11 15.5 11V13C11.5 13 12.5 6 8.5 6ZM8.5 11h7v2h-7ZM8.5 18C12.5 18 11.5 11 15.5 11V13C11.5 13 12.5 20 8.5 20ZM14.8 12a3.2 3.2 0 1 1 6.4 0a3.2 3.2 0 1 1-6.4 0Z"/></g>
+<text x="36" y="21.5"><tspan font-weight="600" fill="#5a606c">BIM Open</tspan><tspan font-weight="700" fill="#171a1f" dx="4">Flow</tspan></text>
+</svg>

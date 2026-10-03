@@ -80,7 +80,9 @@ export const studioChrome = (options: StudioChromeOptions = {}): ChromeFactory =
     // ── command bar ──────────────────────────────────────────────────────────
     const top = el("header", "bof-studio-top");
     const brand = el("div", "bof-studio-brand");
-    brand.append(brandMark(doc), el("span", "bof-studio-wordmark", "BimOpenFlow"));
+    const wordmark = el("span", "bof-studio-wordmark");
+    wordmark.append(el("span", "bof-studio-wordmark-family", "BIM Open"), el("span", "bof-studio-wordmark-product", "Flow"));
+    brand.append(brandMark(doc), wordmark);
 
     const flow = el("div", "bof-studio-flow");
     const picker = el("select", "bof-studio-picker");
@@ -209,7 +211,7 @@ export const studioChrome = (options: StudioChromeOptions = {}): ChromeFactory =
           return option;
         }));
         flowId.textContent = activeId ?? "";
-        doc.title = activeId ? `${flowTitle(activeId, templates)} · BimOpenFlow Studio` : "BimOpenFlow Studio";
+        doc.title = activeId ? `${flowTitle(activeId, templates)} · BIM Open Flow` : "BIM Open Flow";
       },
       setDirty(dirty) {
         root.classList.toggle("bof-studio-is-dirty", dirty);

@@ -1,4 +1,4 @@
-// Copied from submodules/gratify/examples/shared/ (planned debt in docs/plans/graph-editor-package.md:
+// Copied from deps/gratify/examples/shared/ (planned debt in docs/plans/graph-editor-package.md:
 // the package must not import gratify's example code; TKT-23 rebuilds the slider and range as
 // this package's own parts and deletes this copy).
 // Pure thumb math for a dual-thumb range control (min..max inside [lo..hi]).

@@ -16,7 +16,7 @@ const forbidden = [
   "@bimopenflow/api-client",
   "@bimopenflow/bim-open-notebook",
   "@bimopenflow/viz",
-  "submodules/gratify/examples",
+  "deps/gratify/examples",
 ];
 
 /** Every import or export specifier in a TypeScript source, static or dynamic. */

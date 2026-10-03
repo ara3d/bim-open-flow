@@ -3,9 +3,9 @@ import { resolve } from "path";
 import { toolkitAlias } from "../../toolkit.config";
 import { snowdonFixture } from "./snowdonFixture";
 
-// Gratify is imported from the submodule source (pattern copied from
+// Gratify is imported from its source in deps/gratify (pattern copied from
 // the former platoflow/web/vite.config.ts).
-const gratify = resolve(__dirname, "../../../../submodules/gratify/src/gratify");
+const gratify = resolve(__dirname, "../../../../deps/gratify/src/gratify");
 
 // The dev server proxies /api to the host; override the target with
 // BOF_HOST (e.g. BOF_HOST=http://127.0.0.1:5999 npm run dev).

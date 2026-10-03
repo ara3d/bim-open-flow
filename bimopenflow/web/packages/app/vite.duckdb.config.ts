@@ -4,7 +4,7 @@ import { toolkitAlias } from '../../toolkit.config';
 
 export default defineConfig({
   resolve: {
-    alias: [toolkitAlias, { find: 'gratify', replacement: resolve(__dirname, '../../../../submodules/gratify/src/gratify') }],
+    alias: [toolkitAlias, { find: 'gratify', replacement: resolve(__dirname, '../../../../deps/gratify/src/gratify') }],
     dedupe: ['three'],
   },
   build: {

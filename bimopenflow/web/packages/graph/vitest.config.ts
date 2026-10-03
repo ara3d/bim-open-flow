@@ -5,7 +5,7 @@ import { toolkitAlias } from "../../toolkit.config";
 // The same gratify source alias as packages/app, so every module under test
 // resolves gratify from the submodule.
 const gratify = fileURLToPath(
-  new URL("../../../../submodules/gratify/src/gratify", import.meta.url),
+  new URL("../../../../deps/gratify/src/gratify", import.meta.url),
 );
 
 export default defineConfig({

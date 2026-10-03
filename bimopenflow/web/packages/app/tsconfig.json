@@ -11,10 +11,10 @@
     "forceConsistentCasingInFileNames": true,
     "types": ["vite/client"],
     "baseUrl": ".",
-    // gratify is consumed from the submodule source (same pattern as
+    // gratify is consumed from its source in deps/gratify (same pattern as
     // the former platoflow/web); the vite alias in vite.config.ts is the runtime twin.
     "paths": {
-      "gratify": ["../../../../submodules/gratify/src/gratify/index.ts"],
+      "gratify": ["../../../../deps/gratify/src/gratify/index.ts"],
       "@bim-open-toolkit/*": ["../../../../viz/packages/*/src/index.ts"]
     }
   },

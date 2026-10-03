@@ -11,10 +11,10 @@
     "forceConsistentCasingInFileNames": true,
     "types": ["vite/client"],
     "baseUrl": ".",
-    // gratify is consumed from the submodule source, as packages/app does;
+    // gratify is consumed from its source in deps/gratify, as packages/app does;
     // vitest.config.ts carries the runtime twin of this alias.
     "paths": {
-      "gratify": ["../../../../submodules/gratify/src/gratify/index.ts"],
+      "gratify": ["../../../../deps/gratify/src/gratify/index.ts"],
       "@bim-open-toolkit/*": ["../../../../viz/packages/*/src/index.ts"]
     }
   },

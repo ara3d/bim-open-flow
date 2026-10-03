@@ -5,7 +5,7 @@
 import type { TableSlice } from "@bimopenflow/contracts";
 import { columnIndex } from "./columns";
 import { LEGEND_MAX_ENTRIES } from "./instanceLegend";
-import type { LegendEntry } from "./toolkitRecipe";
+import type { LegendEntry } from "./legend";
 
 export type Rgb3 = readonly [number, number, number];
 export type ScaleRole = "stop" | "category" | "below" | "above" | "missing";

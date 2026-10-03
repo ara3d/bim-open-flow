@@ -46,6 +46,7 @@ export {
   LEGEND_MAX_ENTRIES,
   type InstanceLegend,
 } from "./instanceLegend";
+export type { LegendEntry, Vec3 } from "./legend";
 export { isBoxTable, parseBoxTable, UNIT_CUBE, type BoxPlan } from "./boxTable";
 export {
   entriesLegendView,

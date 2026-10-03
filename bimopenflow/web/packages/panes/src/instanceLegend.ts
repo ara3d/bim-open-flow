@@ -3,7 +3,7 @@
 // counts, capped so a long-tail column stays readable. Pure; no DOM.
 import type { ColumnSchema, TableSlice } from "@bimopenflow/contracts";
 import { columnIndex } from "./columns";
-import type { LegendEntry } from "./toolkitRecipe";
+import type { LegendEntry } from "./legend";
 
 /** Columns that drive colouring, most specific first: a check verdict, else the category. */
 export const LEGEND_COLUMNS = ["verdict", "category"] as const;

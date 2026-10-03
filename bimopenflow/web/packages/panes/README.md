@@ -1,12 +1,11 @@
 # @bimopenflow/panes
 
-Pane implementations for the BimOpenFlow editor: table, chart, 3D view,
-inspector, and verdict list. Each pane is an isolated module behind one pane
+Pane implementations for the BimOpenFlow editor: table, chart, inspector,
+and verdict list. Each pane is an isolated module behind one pane
 contract — data in, events out. This package owns the contract.
 
-Depends on `@bimopenflow/contracts` (generated types), `@bimopenflow/viz`
-(table/chart rendering), and `@bim-open-viewer/core/-loaders/-controls` (3D pane
-only). Plain TS + DOM, no UI framework. Styling is injected once per document
+Depends on `@bimopenflow/contracts` (generated types) and `@bimopenflow/viz`
+(table/chart rendering). Plain TS + DOM, no UI framework. Styling is injected once per document
 under the `bof-panes-` class/custom-property prefix, the same approach as viz.
 
 ## The pane contract (`src/pane.ts`)
@@ -95,37 +94,14 @@ border coloring by the group's most severe verdict
 - Emits: `selection` with `source: "verdict"` on check click — the distinct
   ids of that check's rows, using the same id column heuristic as TablePane.
 
-### ViewPane3D — `createViewPane3D(options?)`
+### The 3D pane
 
-A `@bim-open-viewer/core` Viewer with `OrbitControls` and `PickControls` on a
-canvas. Scene/color/mapping logic is pure and viewer-free
-(`src/instanceTable.ts`); `src/viewerDeps.ts` is the thin real wiring, and
-`options.deps` swaps it for a fake in headless tests. Without a WebGL context
-(e.g. jsdom) the renderer is never attached but the pane still mounts.
-
-- Accepts:
-  - `model`: loads via `ctx.resolveAsset(url)`; format inferred from the URL
-    (`.bos` → BOS, else GLB) unless `format` is given.
-  - `instances`: an instance table per
-    `src/BimOpenFlow.Nodes.Geometry/README.md` — keyed by `entityId` (else
-    `instanceIndex`); rows present define the visible set (absent instances
-    are hidden via alpha 0), and `r`/`g`/`b`/`a` columns (0..1 floats), when
-    all four are present, recolor. Arriving before the model finishes
-    loading, it is held and applied afterwards. When the rig has no recipe
-    legend, the legend strip lists the table's distinct `verdict` (else
-    `category`) values with their colours and counts, capped at 12 with an
-    "and N more" row (`src/instanceLegend.ts`).
-- Emits:
-  - `selection` with `source: "view3d"` and `ids: [entityId]` on pick, using
-    the BOS loader's `groupEntities` mapping. GLB models carry no mapping,
-    so picks emit nothing.
-  - `action` `modelLoaded` / `loadError` with `{ url }` payloads.
-- Property panel: a pick also calls `ctx.requestEntityProperties(modelUrl,
-  localId)` — when the context supplies it — and renders the entity's name,
-  category, GlobalId, and one section per property set in a scrollable panel
-  under the status line (`src/entityProperties.ts`). A failed fetch shows one
-  line there and leaves the view alone; a later pick supersedes an in-flight
-  request, and loading a model clears the panel.
+`createViewPane3D` and its registration `view3dPane` live in
+`@bimopenflow/pane-3d` (`packages/pane-3d/README.md`), so this package does
+not depend on the BIM Open viewer. It uses this package's contract,
+`instanceTable`, `boxTable`, the legends (`legend.ts`, `instanceLegend.ts`,
+`scaleLegend.ts`), and `entityProperties`; its tests use the conformance suite
+and helpers exported as `@bimopenflow/panes/testing`.
 
 ## Development
 
@@ -135,9 +111,6 @@ workspaces' existing installs:
 
 - `@bimopenflow/contracts` and `@bimopenflow/viz` resolve through
   `bimopenflow/web/node_modules` (already installed).
-- `@bim-open-viewer/*` are aliased to their `src/index.ts` in `tsconfig.json`
-  (`paths`) and `vitest.config.ts` (`resolve.alias`); `three`, `jszip`, and
-  `hyparquet` resolve naturally from `viewer/node_modules`.
 
 ```sh
 npx tsc -p . --noEmit   # typecheck

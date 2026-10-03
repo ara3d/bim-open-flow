@@ -1,6 +1,5 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
-import { viewerAlias } from "../../viewer.config";
 
 // Same gratify source alias as vite.config.ts, so any module under test that
 // imports gratify resolves it from deps/gratify.
@@ -9,7 +8,7 @@ const gratify = fileURLToPath(
 );
 
 export default defineConfig({
-  resolve: { alias: [viewerAlias, { find: "gratify", replacement: gratify }], dedupe: ["three"] },
+  resolve: { alias: [{ find: "gratify", replacement: gratify }], dedupe: ["three"] },
   test: {
     environment: "jsdom",
     // duckdbAskLog.test.ts imports the whole DuckDB page in beforeAll; a cold transform under

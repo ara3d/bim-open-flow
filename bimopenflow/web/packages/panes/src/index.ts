@@ -19,7 +19,6 @@ export {
   type CheckGroup,
   type VerdictCounts,
 } from "./verdictGroups";
-export { createViewPane3D, inferFormat, type ViewPane3DOptions } from "./viewPane3D";
 export {
   groupParameters,
   parameterText,
@@ -47,7 +46,7 @@ export {
   type InstanceLegend,
 } from "./instanceLegend";
 export type { LegendEntry, Vec3 } from "./legend";
-export { isBoxTable, parseBoxTable, UNIT_CUBE, type BoxPlan } from "./boxTable";
+export { isBoxTable, parseBoxTable, type BoxPlan } from "./boxTable";
 export {
   entriesLegendView,
   parseScaleLegend,
@@ -60,4 +59,3 @@ export {
   type ScaleRole,
   type ScaleRow,
 } from "./scaleLegend";
-export { defaultView3DDeps, type View3DDeps, type ViewerRig } from "./viewerDeps";

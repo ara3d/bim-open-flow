@@ -2,7 +2,7 @@
   "name": "@bimopenflow/panes",
   "version": "0.1.0",
   "type": "module",
-  "description": "Pane implementations for the BimOpenFlow editor: table, chart, 3D view, inspector, verdict list. Each pane is an isolated module behind the single pane contract (data in, events out).",
+  "description": "Generic pane implementations for the BimOpenFlow editor: table, chart, inspector, verdict list, and the legends. Each pane is an isolated module behind the single pane contract (data in, events out), which this package owns. The 3D pane is @bimopenflow/pane-3d.",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
@@ -17,24 +17,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@bim-open-viewer/model": "file:../../../../deps/bim-open-viewer/packages/model",
-    "@bim-open-viewer/formats": "file:../../../../deps/bim-open-viewer/packages/formats",
-    "@bim-open-viewer/render": "file:../../../../deps/bim-open-viewer/packages/render",
-    "@bim-open-viewer/interact": "file:../../../../deps/bim-open-viewer/packages/interact",
-    "@bim-open-viewer/features": "file:../../../../deps/bim-open-viewer/packages/features",
-    "@bim-open-viewer/viewer": "file:../../../../deps/bim-open-viewer/packages/viewer",
-    "@bim-open-viewer/controls": "file:../../../../deps/bim-open-viewer/packages/controls",
-    "@bim-open-viewer/core": "file:../../../../deps/bim-open-viewer/packages/core",
-    "@bim-open-viewer/loaders": "file:../../../../deps/bim-open-viewer/packages/loaders",
     "@bimopenflow/contracts": "0.1.0",
     "@bimopenflow/viz": "0.1.0"
   },
-  "peerDependencies": {
-    "three": ">=0.180.0"
-  },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "@types/three": "^0.180.0",
     "jsdom": "^26.0.0",
     "typescript": "^5.6.0",
     "vitest": "^3.0.0"

@@ -5,7 +5,6 @@
 // "@bimopenflow/client/host", which an entry page can load without them.
 
 export * from "./completeTable";
-export * from "./liveViewRecipe";
 export * from "./modelCatalog";
 export * from "./modelRef";
 export * from "./paneChoice";

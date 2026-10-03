@@ -1,8 +1,8 @@
 // @vitest-environment node
 // The package boundary, enforced: the client library sits below the editor
 // and the notebook, so nothing under src imports either of them or reaches
-// into another package's files by a relative path, except the one recorded
-// below; and the "/host" entry reaches no pane or viewer code.
+// into another package's files by a relative path; and the "/host" entry
+// reaches no pane or viewer code.
 
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -13,8 +13,6 @@ const src = fileURLToPath(new URL("../src", import.meta.url));
 
 const forbidden = ["@bimopenflow/app", "@bimopenflow/bim-open-notebook", "deps/gratify"];
 
-/** liveViewRecipe reads the panes' view-recipe parser, which panes does not export yet. */
-const allowed = new Set(["liveViewRecipe.ts -> ../../panes/src/viewRecipe"]);
 
 /** Every import or export specifier in a TypeScript source, static or dynamic. */
 function specifiers(source: string): string[] {
@@ -35,7 +33,7 @@ describe("layering", () => {
     for (const file of sourceFiles(src)) {
       for (const spec of specifiers(readFileSync(file, "utf8"))) {
         const offence = `${relative(src, file).split("\\").join("/")} -> ${spec}`;
-        if ((spec.startsWith("..") || forbidden.some((f) => spec.includes(f))) && !allowed.has(offence))
+        if (spec.startsWith("..") || forbidden.some((f) => spec.includes(f)))
           offences.push(offence);
       }
     }

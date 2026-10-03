@@ -4,12 +4,20 @@ using BimOpenMcp.Flow;
 
 namespace BimOpenMcp.Flow.Tests;
 
-/// <summary>TKT-127: searchDocs and readDoc read the allowlisted documents of this checkout and
-/// refuse every other path.</summary>
+/// <summary>TKT-127: searchDocs and readDoc read the allowlisted documents of a repository and
+/// refuse every other path. The repository is a fixture written to a temporary folder, so the
+/// tests do not depend on which repository's documents this project is built in.</summary>
 public sealed class RepoDocToolTests
 {
-    private static readonly RepoDocs Docs = RepoDocs.Locate()
-        ?? throw new InvalidOperationException("The tests run from a repository checkout.");
+    private static readonly RepoDocs Docs = new(DocsFixture.Write());
+
+    [OneTimeTearDown]
+    public void DeleteFixture()
+        => Directory.Delete(Docs.Root, recursive: true);
+
+    [Test]
+    public void Locate_FindsTheCheckoutThisProjectIsBuiltIn()
+        => Assert.That(RepoDocs.Locate(), Is.Not.Null, "the tests run from a repository checkout");
 
     private static JsonElement Json(object payload)
     {
@@ -21,7 +29,7 @@ public sealed class RepoDocToolTests
     [TestCase("PROJECT.md")]
     [TestCase("docs/OVERVIEW.md")]
     [TestCase("docs\\OVERVIEW.md")]
-    [TestCase("samples/nrc/README.md")]
+    [TestCase("samples/tables/README.md")]
     [TestCase("tickets/TKT-127-ask-about-the-toolkit.md")]
     public void ReadDoc_ReturnsAllowedDocuments(string path)
     {
@@ -81,22 +89,22 @@ public sealed class RepoDocToolTests
         {
             Assert.That(files, Does.Contain("README.md"));
             Assert.That(files, Does.Contain("docs/OVERVIEW.md"));
-            Assert.That(files, Does.Contain("samples/nrc/README.md"));
+            Assert.That(files, Does.Contain("samples/tables/README.md"));
             Assert.That(files.Where(f => f.StartsWith("tickets/", StringComparison.Ordinal)), Is.Not.Empty);
             Assert.That(files.Where(f => RepoDocs.Allowed(f) is null), Is.Empty);
         });
     }
 
     [Test]
-    public void SearchDocs_FindsTheNrcWalkthrough()
+    public void SearchDocs_FindsAPhrase()
     {
-        var result = Json(FlowRepoDocTools.Search(Docs, "nrc:walkthrough"));
+        var result = Json(FlowRepoDocTools.Search(Docs, "demo:walkthrough"));
         var files = result.GetProperty("files").EnumerateArray().ToList();
         Assert.Multiple(() =>
         {
             Assert.That(files, Is.Not.Empty);
             Assert.That(files.SelectMany(f => f.GetProperty("lines").EnumerateArray())
-                .Select(l => l.GetProperty("text").GetString()), Has.Some.Contains("nrc:walkthrough"));
+                .Select(l => l.GetProperty("text").GetString()), Has.Some.Contains("demo:walkthrough"));
         });
     }
 

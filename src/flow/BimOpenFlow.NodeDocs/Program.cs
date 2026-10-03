@@ -9,4 +9,4 @@ if (args.Length != 1)
     Console.Error.WriteLine("For the toolkit's docs/nodes.md, run: dotnet run --project src/studio/BimOpenFlow.Studio -- nodedocs");
     return 2;
 }
-return NodeDocsProgram.Run(args[0], NodeDocsProgram.GenericPacks);
+return NodeDocsProgram.Run(args[0], NodeDocsProgram.GenericPacks, NodeNotes.Generic);

@@ -12,8 +12,8 @@ using BimOpenFlow.Nodes.Viz;
 namespace BimOpenFlow.NodeDocs;
 
 /// <summary>Writes the node reference for a list of packs. This project names only the
-/// generic packs; a front end that composes more (the studio's BIM packs) puts its own
-/// in front of them and calls Run.</summary>
+/// generic packs and their notes; a front end that composes more (the studio's BIM packs)
+/// puts its own packs in front of them, adds its notes, and calls Run.</summary>
 public static class NodeDocsProgram
 {
     /// <summary>The packs that need no BIM Open Schema, in the order the reference lists them.</summary>
@@ -54,10 +54,11 @@ public static class NodeDocsProgram
             RelationNodes.All(RelationRuntime.FromRoots([]))),
     ];
 
-    /// <summary>Writes the reference for the packs to outputPath and says where.</summary>
-    public static int Run(string outputPath, IReadOnlyList<Pack> packs)
+    /// <summary>Writes the reference for the packs, with the notes keyed by node kind, to
+    /// outputPath and says where.</summary>
+    public static int Run(string outputPath, IReadOnlyList<Pack> packs, IReadOnlyDictionary<string, string> notes)
     {
-        File.WriteAllText(outputPath, MarkdownEmitter.Render(packs));
+        File.WriteAllText(outputPath, MarkdownEmitter.Render(packs, notes));
         Console.WriteLine($"Wrote {outputPath}");
         return 0;
     }

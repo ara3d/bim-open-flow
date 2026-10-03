@@ -8,17 +8,17 @@ namespace BimOpenFlow.NodeDocs;
 public sealed record Pack(string Name, string Intro, IReadOnlyList<IFlowNode> Nodes);
 
 /// <summary>Renders the full nodes.md text (LF line endings, no timestamps) from
-/// the preamble, the per-node notes, and the packs' NodeSpecs.</summary>
+/// the preamble, the packs' NodeSpecs, and the hand-written notes keyed by node kind.</summary>
 public static class MarkdownEmitter
 {
-    public static string Render(IReadOnlyList<Pack> packs)
+    public static string Render(IReadOnlyList<Pack> packs, IReadOnlyDictionary<string, string> notes)
     {
         var sb = new StringBuilder();
         sb.Append(Preamble.Text.ReplaceLineEndings("\n"));
         sb.Append("\n\n## Packs\n\n");
         AppendIndex(sb, packs);
         foreach (var pack in packs)
-            AppendPack(sb, pack);
+            AppendPack(sb, pack, notes);
         return sb.ToString();
     }
 
@@ -32,18 +32,18 @@ public static class MarkdownEmitter
         }
     }
 
-    private static void AppendPack(StringBuilder sb, Pack pack)
+    private static void AppendPack(StringBuilder sb, Pack pack, IReadOnlyDictionary<string, string> notes)
     {
         sb.Append($"\n## {pack.Name}\n\n{pack.Intro}\n");
         foreach (var node in pack.Nodes)
-            AppendNode(sb, node.Spec);
+            AppendNode(sb, node.Spec, notes);
     }
 
-    private static void AppendNode(StringBuilder sb, NodeSpec spec)
+    private static void AppendNode(StringBuilder sb, NodeSpec spec, IReadOnlyDictionary<string, string> notes)
     {
         sb.Append($"\n### `{spec.Kind}` (v{spec.Version}) — {spec.Capability}\n\n");
         sb.Append($"{spec.Description}\n");
-        if (NodeNotes.For(spec.Kind) is { } note)
+        if (notes.TryGetValue(spec.Kind, out var note))
             sb.Append($"\n{note}\n");
 
         AppendPorts(sb, "Inputs", spec.Inputs, withOptional: true);

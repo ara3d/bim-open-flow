@@ -6,68 +6,52 @@ using BimOpenFlow.Host.Store;
 namespace BimOpenFlow.Host;
 
 /// <summary>
-/// Seeds an analysis store with the committed sample analyses
-/// (samples/analyses/*.json, rewriting the {SAMPLES} path placeholder to the
-/// absolute samples/tables directory; samples/relations/*.json and
-/// samples/nrc-analyses/*.json, which name their sources; and
-/// samples/showcase-analyses/*.json over samples/nrc), and keeps the store's untouched
-/// copies current when a sample changes (see Seed). Given the profile's registry, a graph whose node kinds the profile does
-/// not carry is skipped and reported, so every seeded graph can be evaluated.
+/// Seeds an analysis store with committed sample analyses, rewriting a path placeholder
+/// such as {SAMPLES} in each graph to an absolute directory, and keeps the store's untouched
+/// copies current when a sample changes (see Seed). The tables profile's samples are
+/// samples/analyses/*.json and samples/relations/*.json over samples/tables; a host that
+/// composes other profiles passes its own sources. Given the profile's registry, a graph whose
+/// node kinds the profile does not carry is skipped and reported, so every seeded graph can
+/// be evaluated.
 /// </summary>
 public static class SampleSeeding
 {
     public const string PathPlaceholder = "{SAMPLES}";
-    public const string SolutionFileName = "BimOpenToolkit.sln";
 
-    /// <summary>
-    /// Seeds from the repo's samples directories, located by walking up from
-    /// startDir to the solution file, by the rules of the sources overload. Skips
-    /// silently (returns empty) when the repo root is not found (installed deployments).
-    /// Returns the ids seeded for the first time, in seed order.
-    /// </summary>
+    /// <summary>The checkout root is the nearest folder holding a solution file.</summary>
+    public const string SolutionPattern = "*.sln";
+
+    /// <summary>The tables profile's seeding: TableSources from the checkout containing
+    /// startDir. Returns the ids seeded for the first time, in seed order.</summary>
     public static IReadOnlyList<string> Seed(AnalysisStore store, string startDir,
         INodeRegistry? registry = null, TextWriter? log = null)
-        => FindRepoRoot(startDir) is { } root
-            ? Seed(store,
-            [
-                (Path.Combine(root, "samples", "analyses"), PathPlaceholder, Path.Combine(root, "samples", "tables")),
-                (Path.Combine(root, "samples", "relations"), PathPlaceholder, Path.Combine(root, "samples", "tables")),
-                NrcAnalyses(root),
-                ShowcaseAnalyses(root),
-            ], registry, log)
-            : [];
+        => SeedFromCheckout(store, startDir, TableSources, registry, log);
 
-    /// <summary>The sample data directories the relation samples name as sources:
-    /// "tables" (the folder) and "sample" (sample.duckdb), and "nrc" (the folder) and
-    /// "duplex-enriched" (its database, prepared in the background by SamplePreparation),
-    /// so the tables host can add them to its model roots. Empty outside a repo checkout.</summary>
+    /// <summary>Seeds from the sources the checkout containing startDir names, by the rules of
+    /// the sources overload. Skips silently (returns empty) when no checkout is found
+    /// (installed deployments).</summary>
+    public static IReadOnlyList<string> SeedFromCheckout(AnalysisStore store, string startDir,
+        Func<string, IReadOnlyList<(string AnalysesDir, string Placeholder, string TargetDir)>> sources,
+        INodeRegistry? registry = null, TextWriter? log = null)
+        => FindRepoRoot(startDir) is { } root ? Seed(store, sources(root), registry, log) : [];
+
+    /// <summary>samples/analyses and samples/relations, both with {SAMPLES} pointed at samples/tables.</summary>
+    public static IReadOnlyList<(string AnalysesDir, string Placeholder, string TargetDir)> TableSources(string root)
+        =>
+        [
+            (Path.Combine(root, "samples", "analyses"), PathPlaceholder, TablesDir(root)),
+            (Path.Combine(root, "samples", "relations"), PathPlaceholder, TablesDir(root)),
+        ];
+
+    /// <summary>samples/tables: the folder the relation samples name as source "tables", holding
+    /// sample.duckdb (source "sample").</summary>
+    public static string TablesDir(string root)
+        => Path.Combine(root, "samples", "tables");
+
+    /// <summary>The sample data directories the tables profile adds to its model roots:
+    /// samples/tables. Empty outside a checkout.</summary>
     public static IReadOnlyList<string> SeededModelRoots(string startDir)
-        => FindRepoRoot(startDir) is { } root ? [Path.Combine(root, "samples", "tables"), NrcSamplesDir(root)] : [];
-
-    /// <summary>samples/nrc: the NRC paper's CSVs and IFC, named as sources "nrc" and "duplex-enriched".</summary>
-    public static string NrcSamplesDir(string root)
-        => Path.Combine(root, "samples", "nrc");
-
-    public const string NrcIfcFileName = "duplex-enriched.ifc";
-    public const string NrcDatabaseFileName = "duplex-enriched.duckdb";
-    public const string NrcBosFileName = "duplex-enriched.bos";
-
-    /// <summary>The unenriched Duplex that nrc-enrich-run writes into; its database is the
-    /// "duplex-base" source the NRC graphs read StepIds and storeys from, so no graph reads the
-    /// output of its own last Run.</summary>
-    public const string NrcBaseIfcFileName = "duplex-base.ifc";
-    public const string NrcBaseDatabaseFileName = "duplex-base.duckdb";
-
-    /// <summary>The seeding source for samples/nrc-analyses, whose graphs name their sources
-    /// and so need no placeholder. Seeded by both host profiles.</summary>
-    public static (string AnalysesDir, string Placeholder, string TargetDir) NrcAnalyses(string root)
-        => (Path.Combine(root, "samples", "nrc-analyses"), PathPlaceholder, NrcSamplesDir(root));
-
-    /// <summary>The seeding source for samples/showcase-analyses: the end-to-end demos over
-    /// samples/nrc (CSV, the IFC, and the BOS and DuckDB prepared from it). Both profiles seed
-    /// the graphs their registry can run.</summary>
-    public static (string AnalysesDir, string Placeholder, string TargetDir) ShowcaseAnalyses(string root)
-        => (Path.Combine(root, "samples", "showcase-analyses"), PathPlaceholder, NrcSamplesDir(root));
+        => FindRepoRoot(startDir) is { } root ? [TablesDir(root)] : [];
 
     /// <summary>Seeds every analysesDir *.json (file stem = analysis id), pointing {SAMPLES}
     /// at samplesDir. Returns the ids seeded for the first time.</summary>
@@ -228,11 +212,11 @@ public static class SampleSeeding
         };
     }
 
-    /// <summary>The nearest ancestor of startDir containing the solution file, or null.</summary>
+    /// <summary>The nearest ancestor of startDir containing a solution file, or null.</summary>
     public static string? FindRepoRoot(string startDir)
     {
         for (var dir = new DirectoryInfo(startDir); dir != null; dir = dir.Parent)
-            if (File.Exists(Path.Combine(dir.FullName, SolutionFileName)))
+            if (dir.EnumerateFiles(SolutionPattern).Any())
                 return dir.FullName;
         return null;
     }

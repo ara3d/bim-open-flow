@@ -25,7 +25,7 @@ public sealed class HostHttpTests
 
         var config = new HostConfig([modelsDir], Path.Combine(_root, "cache"),
             Path.Combine(_root, "analyses"), Port: 0);
-        _host = HostComposition.Build(config);
+        _host = HostComposition.Build(config, HostComposition.Tables);
         await _host.App.StartAsync();
         _client = new HttpClient { BaseAddress = new Uri(_host.App.Urls.First()) };
     }
@@ -46,19 +46,19 @@ public sealed class HostHttpTests
     }
 
     /// <summary>A tiny graph of real nodes that needs no model file.</summary>
-    private static GraphDocument CameraSort()
+    private static GraphDocument InlineSort()
         => GraphDocument.Empty
-            .AddNode("cam", "view3d.camera", 1)
-            .SetParam("cam", "name", "front")
+            .AddNode("rows", "table.inline", 1)
+            .SetParam("rows", "rows", """[{"name":"front"}]""")
             .AddNode("sort", "table.sort", 1)
             .SetParam("sort", "by", "name")
-            .Connect("cam.camera", "sort.table");
+            .Connect("rows.table", "sort.table");
 
     [Test]
     public async Task PutAnalysis_ThenState_EndToEnd()
     {
         var put = await _client.PutAsync("/api/analyses/smoke",
-            new StringContent(CameraSort().ToCanonicalJson(), Encoding.UTF8, "application/json"));
+            new StringContent(InlineSort().ToCanonicalJson(), Encoding.UTF8, "application/json"));
         Assert.That((int)put.StatusCode, Is.EqualTo(200));
 
         var state = await _client.GetAsync("/api/analyses/smoke/state");
@@ -148,7 +148,7 @@ public sealed class HostHttpTests
         => Assert.That((int)(await _client.GetAsync("/api/models/no-such/bos")).StatusCode, Is.EqualTo(404));
 
     [Test]
-    public async Task NodeCatalog_ServesAllPacks()
+    public async Task NodeCatalog_ServesTheTablesProfile()
     {
         var response = await _client.GetAsync("/api/catalog/nodes");
         Assert.That((int)response.StatusCode, Is.EqualTo(200));
@@ -156,6 +156,10 @@ public sealed class HostHttpTests
         var kinds = catalog.RootElement.GetProperty("nodes").EnumerateArray()
             .Select(n => n.GetProperty("kind").GetString())
             .ToList();
-        Assert.That(kinds, Is.SupersetOf(new[] { "bos.load", "view3d.instances", "check.rule", "sink.exportCsv" }));
+        Assert.Multiple(() =>
+        {
+            Assert.That(kinds, Is.SupersetOf(new[] { "table.inline", "table.sort", "rel.csv", "sink.exportCsv" }));
+            Assert.That(kinds, Has.None.StartsWith("bos.").And.None.StartsWith("view3d."));
+        });
     }
 }

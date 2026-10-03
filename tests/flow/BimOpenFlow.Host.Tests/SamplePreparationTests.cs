@@ -1,5 +1,3 @@
-using BimOpenToolkit.TestSupport;
-
 namespace BimOpenFlow.Host.Tests;
 
 /// <summary>Background preparation of generated samples: staleness, the "not ready yet"
@@ -123,20 +121,5 @@ public sealed class SamplePreparationTests
         var task = SamplePreparation.RunInBackground([Job()], _ => { }, TextWriter.Null);
         Assert.That(task.IsCompleted, Is.True);
         await task;
-    }
-
-    [Test]
-    public void NrcDatabaseJob_NamesTheSourceTheGraphsUse()
-    {
-        var root = RepoPaths.Root;
-        var job = SamplePreparation.NrcDatabase(root);
-        Assert.That(job, Is.Not.Null);
-        Assert.Multiple(() =>
-        {
-            Assert.That(job!.Source, Is.EqualTo("duplex-enriched"));
-            Assert.That(Path.GetFileName(job.Input), Is.EqualTo(SampleSeeding.NrcIfcFileName));
-            Assert.That(Path.GetFileName(job.Output), Is.EqualTo(SampleSeeding.NrcDatabaseFileName));
-            Assert.That(Path.GetDirectoryName(job.Output), Is.EqualTo(SampleSeeding.NrcSamplesDir(root)));
-        });
     }
 }

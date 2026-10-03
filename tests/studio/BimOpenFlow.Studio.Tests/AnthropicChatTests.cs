@@ -24,7 +24,7 @@ public sealed class AnthropicChatTests
         var models = Path.Combine(_root, "models");
         Directory.CreateDirectory(models);
         var services = FlowServices.Create(new HostConfig(
-            [models], Path.Combine(_root, "cache"), Path.Combine(_root, "analyses"), Port: 0, Profile: HostConfig.TablesProfile));
+            [models], Path.Combine(_root, "cache"), Path.Combine(_root, "analyses"), Port: 0, Profile: HostConfig.TablesProfile), HostComposition.Tables);
         _tools = FlowMcpServer.RegisterTools(
             new McpServer(McpServer.DefaultPort, "test", "0", transport: McpTransport.Http), services);
     }
@@ -314,7 +314,7 @@ public sealed class ChatSelectionTests
         var models = Path.Combine(root, "models");
         Directory.CreateDirectory(models);
         var services = FlowServices.Create(new HostConfig(
-            [models], Path.Combine(root, "cache"), Path.Combine(root, "analyses"), Port: 0, Profile: HostConfig.TablesProfile));
+            [models], Path.Combine(root, "cache"), Path.Combine(root, "analyses"), Port: 0, Profile: HostConfig.TablesProfile), HostComposition.Tables);
         var flow = FlowMcpServer.RegisterTools(
             new McpServer(LoopbackPorts.Free(), "test", "0", transport: McpTransport.Http), services);
         try

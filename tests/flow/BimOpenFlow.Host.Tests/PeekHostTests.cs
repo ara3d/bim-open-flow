@@ -27,7 +27,7 @@ public sealed class PeekHostTests
 
         var config = new HostConfig([modelsDir], Path.Combine(_root, "cache"),
             Path.Combine(_root, "analyses"), Port: 0);
-        _host = HostComposition.Build(config);
+        _host = HostComposition.Build(config, HostComposition.Tables);
         await _host.App.StartAsync();
         _client = new HttpClient { BaseAddress = new Uri(_host.App.Urls.First()) };
     }

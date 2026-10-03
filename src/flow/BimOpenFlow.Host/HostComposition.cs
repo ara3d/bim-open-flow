@@ -2,14 +2,10 @@ using Ara3D.DataFlowEngine.Abstractions;
 using BimOpenFlow.Host.Api;
 using BimOpenFlow.Host.Catalog;
 using BimOpenFlow.Host.Store;
-using BimOpenFlow.Nodes.BimAnalysis;
-using BimOpenFlow.Nodes.Bos;
 using BimOpenFlow.Nodes.Cleaning;
-using BimOpenFlow.Nodes.Compliance;
 using BimOpenFlow.Nodes.Dates;
 using BimOpenFlow.Nodes.DuckDb;
 using BimOpenFlow.Nodes.Effects;
-using BimOpenFlow.Nodes.Geometry;
 using BimOpenFlow.Nodes.Relations;
 using BimOpenFlow.Nodes.Spatial;
 using BimOpenFlow.Nodes.TableOps;
@@ -29,16 +25,6 @@ public sealed record HostApp(HostConfig Config, HostServices Services, WebApplic
 /// <summary>The composition root. Wiring only; any logic belongs in the modules.</summary>
 public static class HostComposition
 {
-    /// <summary>The "bim" profile registry: the Bos, TableOps, BimAnalysis, Geometry,
-    /// Compliance, Effects, and Viz packs, the DuckDB and Tables packs so an external value
-    /// table (CSV, Parquet, a DuckDB query) can be joined to a model and drive a 3D
-    /// colouring, the Spatial pack, plus the rel.* pack. Without a runtime the rel.* pack sees no sources,
-    /// which is enough for validation, catalogs, and docs.</summary>
-    public static NodeRegistry AllPacks(RelationRuntime? relations = null)
-        => NodeRegistry.Combine(BosNodes.All, TableOpsNodes.All, BimAnalysisNodes.All, GeometryNodes.All,
-            ComplianceNodes.All, EffectNodes.All, VizNodes.All, DuckDbNodes.All, TableNodes.All,
-            SpatialNodes.All, RelationNodes.All(relations ?? NoSources()));
-
     /// <summary>The "tables" profile registry: the DuckDB, Tables, TableOps, Cleaning,
     /// Dates, Viz, and Spatial packs, the table writers from the Effects pack, plus the
     /// rel.* pack. Nothing here references BIM Open Schema.</summary>
@@ -47,9 +33,14 @@ public static class HostComposition
             TableOpsNodes.All, CleaningNodes.All, DatesNodes.All, VizNodes.All, SpatialNodes.All,
             EffectNodes.TableSinks, RelationNodes.All(relations ?? NoSources()));
 
-    /// <summary>The registry a profile name selects, over the given relation sources.</summary>
-    public static NodeRegistry Registry(string profile, RelationRuntime relations)
-        => profile == HostConfig.TablesProfile ? TablePacks(relations) : AllPacks(relations);
+    /// <summary>The generic "tables" profile: the table packs, seeded with samples/analyses and
+    /// samples/relations over samples/tables, with nothing to prepare in the background.</summary>
+    public static readonly HostProfile Tables = new(HostConfig.TablesProfile, TablePacks,
+        SampleSeeding.SeededModelRoots, SampleSeeding.Seed, _ => []);
+
+    /// <summary>The profiles bimopenflow-host offers on its own: only "tables". The studio
+    /// composes the "bim" profile (src/studio/BimOpenFlow.Studio/StudioComposition.cs).</summary>
+    public static readonly HostProfiles Generic = new(HostConfig.TablesProfile, [Tables]);
 
     /// <summary>A relation runtime with no sources: rel.csv and rel.table resolve nothing.</summary>
     public static RelationRuntime NoSources()
@@ -59,12 +50,13 @@ public static class HostComposition
     /// roots, rescanned on use: each root folder by name for CSV files, each .duckdb file
     /// inside one by file name. Sources a preparation job is still building answer
     /// "not ready yet" instead of "unknown".</summary>
-    public static HostServices BuildServices(HostConfig config, IReadOnlyList<SamplePreparation.Job>? preparing = null)
+    public static HostServices BuildServices(HostConfig config, HostProfile profile,
+        IReadOnlyList<SamplePreparation.Job>? preparing = null)
     {
         var relations = new RelationRuntime(new PreparingRegistry(
             new RootScanRegistry(config.ModelRoots), SamplePreparation.PendingReason(preparing ?? [])));
         var store = new AnalysisStore(config.StoreDir);
-        var registry = Registry(config.Profile, relations);
+        var registry = profile.Packs(relations);
         return new(
             new ModelCatalog(config.ModelRoots, config.CacheDir),
             store,
@@ -74,9 +66,10 @@ public static class HostComposition
             new EditorSessions(store));
     }
 
-    public static HostApp Build(HostConfig config, IReadOnlyList<SamplePreparation.Job>? preparing = null)
+    public static HostApp Build(HostConfig config, HostProfile profile,
+        IReadOnlyList<SamplePreparation.Job>? preparing = null)
     {
-        var services = BuildServices(config, preparing);
+        var services = BuildServices(config, profile, preparing);
         var app = ApiServer.Create(services.Catalog, services.Store, services.Registry,
             DuckDbTableProbe.Tables, relations: new RelationHostResults(services.Relations), sessions: services.Sessions,
             editor: services.Editor);

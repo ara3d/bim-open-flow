@@ -70,7 +70,7 @@ public sealed class SampleSeedingTests
     {
         var root = SampleSeeding.FindRepoRoot(AppContext.BaseDirectory);
         Assert.That(root, Is.Not.Null);
-        Assert.That(File.Exists(Path.Combine(root!, SampleSeeding.SolutionFileName)), Is.True);
+        Assert.That(Directory.EnumerateFiles(root!, SampleSeeding.SolutionPattern), Is.Not.Empty);
     }
 
     [Test]

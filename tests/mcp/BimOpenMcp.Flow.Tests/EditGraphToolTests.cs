@@ -8,11 +8,11 @@ public sealed class EditGraphToolTests : FlowToolFixture
 {
     private const string Build = """
         [
-          {"op":"addNode","nodeId":"cam","kind":"view3d.camera"},
-          {"op":"setParam","nodeId":"cam","name":"name","value":"front"},
+          {"op":"addNode","nodeId":"data","kind":"table.inline"},
+          {"op":"setParam","nodeId":"data","name":"rows","value":"[{\"name\":\"front\"}]"},
           {"op":"addNode","nodeId":"sort","kind":"table.sort"},
           {"op":"setParam","nodeId":"sort","name":"by","value":"name"},
-          {"op":"connect","from":"cam.camera","to":"sort.table"}
+          {"op":"connect","from":"data.table","to":"sort.table"}
         ]
         """;
 
@@ -22,9 +22,9 @@ public sealed class EditGraphToolTests : FlowToolFixture
         var result = Json(FlowEditTools.EditGraph(Services, "batch", Build));
         Assert.That(result.GetProperty("applied").GetInt32(), Is.EqualTo(5));
         var doc = Services.Host.Store.Load("batch");
-        Assert.That(doc.Nodes.Select(n => n.Id), Is.EqualTo(new[] { "cam", "sort" }));
+        Assert.That(doc.Nodes.Select(n => n.Id), Is.EqualTo(new[] { "data", "sort" }));
         Assert.That(doc.Edges, Has.Count.EqualTo(1));
-        Assert.That(doc.Values["cam"]["name"], Is.EqualTo("front"));
+        Assert.That(doc.Values["data"]["rows"], Is.EqualTo("""[{"name":"front"}]"""));
         Assert.That(result.GetProperty("graphHash").GetString(), Is.EqualTo(doc.ComputeGraphHash()));
         Assert.That(Services.Host.Store.History("batch"), Is.Empty, "one save, no archived versions");
     }
@@ -34,7 +34,7 @@ public sealed class EditGraphToolTests : FlowToolFixture
     {
         FlowEditTools.EditGraph(Services, "batch", Build);
         FlowEditTools.EditGraph(Services, "batch", """[{"op":"removeNode","nodeId":"sort"}]""");
-        Assert.That(Services.Host.Store.Load("batch").Nodes.Select(n => n.Id), Is.EqualTo(new[] { "cam" }));
+        Assert.That(Services.Host.Store.Load("batch").Nodes.Select(n => n.Id), Is.EqualTo(new[] { "data" }));
     }
 
     [Test]
@@ -42,7 +42,7 @@ public sealed class EditGraphToolTests : FlowToolFixture
     {
         var error = Assert.Throws<ArgumentException>(() => FlowEditTools.EditGraph(Services, "batch", """
             [
-              {"op":"addNode","nodeId":"cam","kind":"view3d.camera"},
+              {"op":"addNode","nodeId":"data","kind":"table.inline"},
               {"op":"addNode","nodeId":"x","kind":"no.such"}
             ]
             """));
@@ -68,9 +68,9 @@ public sealed class EditGraphToolTests : FlowToolFixture
     public void LineBreaksInsideValuesAreAccepted()
     {
         // Models write multi-line SQL as real line breaks inside the JSON string.
-        FlowEditTools.EditGraph(Services, "batch", "[{\"op\":\"addNode\",\"nodeId\":\"cam\",\"kind\":\"view3d.camera\"},\n"
-            + "{\"op\":\"setParam\",\"nodeId\":\"cam\",\"name\":\"name\",\"value\":\"line one\nline two\ttabbed\"}]");
-        Assert.That(Services.Host.Store.Load("batch").Values["cam"]["name"], Is.EqualTo("line one\nline two\ttabbed"));
+        FlowEditTools.EditGraph(Services, "batch", "[{\"op\":\"addNode\",\"nodeId\":\"data\",\"kind\":\"table.inline\"},\n"
+            + "{\"op\":\"setParam\",\"nodeId\":\"data\",\"name\":\"rows\",\"value\":\"line one\nline two\ttabbed\"}]");
+        Assert.That(Services.Host.Store.Load("batch").Values["data"]["rows"], Is.EqualTo("line one\nline two\ttabbed"));
         Assert.That(FlowEditTools.EscapeControlCharactersInStrings("[\"a\\\"b\nc\"]"), Is.EqualTo("[\"a\\\"b\\nc\"]"),
             "an escaped quote does not end the string");
     }

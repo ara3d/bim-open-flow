@@ -9,8 +9,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\submodules\ara3d-dataflow\src\Ara3D.DataFlowEngine.Abstractions\Ara3D.DataFlowEngine.Abstractions.csproj" />
-    <ProjectReference Include="..\BimOpenFlow.Nodes.Bos\BimOpenFlow.Nodes.Bos.csproj" />
-    <ProjectReference Include="..\BimOpenFlow.Nodes.Geometry\BimOpenFlow.Nodes.Geometry.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Compliance\BimOpenFlow.Nodes.Compliance.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Effects\BimOpenFlow.Nodes.Effects.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.DuckDb\BimOpenFlow.Nodes.DuckDb.csproj" />
@@ -20,7 +18,6 @@
     <ProjectReference Include="..\BimOpenFlow.Nodes.Dates\BimOpenFlow.Nodes.Dates.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Spatial\BimOpenFlow.Nodes.Spatial.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Viz\BimOpenFlow.Nodes.Viz.csproj" />
-    <ProjectReference Include="..\BimOpenFlow.Nodes.BimAnalysis\BimOpenFlow.Nodes.BimAnalysis.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Relations\BimOpenFlow.Nodes.Relations.csproj" />
   </ItemGroup>
 

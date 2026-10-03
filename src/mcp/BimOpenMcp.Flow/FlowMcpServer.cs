@@ -12,9 +12,9 @@ namespace BimOpenMcp.Flow;
 /// </summary>
 public sealed record FlowServices(HostServices Host, AnalysisSessions Sessions)
 {
-    public static FlowServices Create(HostConfig config)
+    public static FlowServices Create(HostConfig config, HostProfile profile)
     {
-        var host = HostComposition.BuildServices(config);
+        var host = HostComposition.BuildServices(config, profile);
         return new(host, new AnalysisSessions(host.Store, host.Registry));
     }
 }

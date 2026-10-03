@@ -21,7 +21,7 @@ public sealed class DocumentToolTests : FlowToolFixture
     [Test]
     public void GetAnalysis_RoundTripsThroughSaveAnalysis()
     {
-        AuthorCameraSort("original");
+        AuthorInlineSort("original");
         var original = Json(FlowDocumentTools.GetAnalysis(Services, "original"));
 
         FlowDocumentTools.SaveAnalysis(Services, "copy", original.GetProperty("json").GetString()!);
@@ -47,19 +47,19 @@ public sealed class DocumentToolTests : FlowToolFixture
     [Test]
     public void ListAnalyses_ReportsSavedGraphs()
     {
-        AuthorCameraSort("one");
+        AuthorInlineSort("one");
         var analyses = Json(FlowDocumentTools.ListAnalyses(Services)).EnumerateArray().ToList();
         Assert.That(analyses.Single().GetProperty("id").GetString(), Is.EqualTo("one"));
     }
 
     [Test]
-    public void GetNodeCatalog_CoversAllFourPacks()
+    public void GetNodeCatalog_CoversTheTablesProfile()
     {
         var kinds = Json(FlowDocumentTools.GetNodeCatalog(Services)).EnumerateArray()
             .Select(n => n.GetProperty("kind").GetString())
             .ToList();
         Assert.That(kinds,
-            Is.SupersetOf(new[] { "bos.load", "view3d.instances", "check.rule", "sink.exportCsv" }));
+            Is.SupersetOf(new[] { "table.inline", "table.sort", "rel.csv", "sink.exportCsv" }));
     }
 
     [Test]

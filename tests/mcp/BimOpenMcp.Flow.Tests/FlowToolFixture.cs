@@ -19,7 +19,7 @@ public abstract class FlowToolFixture
         Directory.CreateDirectory(modelsDir);
         File.WriteAllBytes(Path.Combine(modelsDir, "sample.bos"), "hello"u8.ToArray());
         Services = FlowServices.Create(new HostConfig(
-            [modelsDir], Path.Combine(Root, "cache"), Path.Combine(Root, "analyses"), Port: 0));
+            [modelsDir], Path.Combine(Root, "cache"), Path.Combine(Root, "analyses"), Port: 0), HostComposition.Tables);
     }
 
     [TearDown]
@@ -41,13 +41,13 @@ public abstract class FlowToolFixture
         return doc.RootElement.Clone();
     }
 
-    /// <summary>Authors camera -> sort via the edit tools, as an agent would.</summary>
-    protected void AuthorCameraSort(string id)
+    /// <summary>Authors an inline table -> sort via the edit tools, as an agent would.</summary>
+    protected void AuthorInlineSort(string id)
     {
-        FlowEditTools.AddNode(Services, id, "cam", "view3d.camera", version: null);
-        FlowEditTools.SetParam(Services, id, "cam", "name", "front");
+        FlowEditTools.AddNode(Services, id, "data", "table.inline", version: null);
+        FlowEditTools.SetParam(Services, id, "data", "rows", """[{"name":"front"}]""");
         FlowEditTools.AddNode(Services, id, "sort", "table.sort", version: null);
         FlowEditTools.SetParam(Services, id, "sort", "by", "name");
-        FlowEditTools.Connect(Services, id, "cam.camera", "sort.table");
+        FlowEditTools.Connect(Services, id, "data.table", "sort.table");
     }
 }

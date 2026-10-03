@@ -14,16 +14,15 @@ public sealed record HostConfig(
     string CacheDir,
     string StoreDir,
     int Port,
-    string Profile = HostConfig.BimProfile)
+    string Profile = HostConfig.TablesProfile)
 {
     // Matches the web editor's default proxy target (bimopenflow/web/packages/app/vite.config.ts),
     // so the host and the editor agree on a port without either side passing --port or BOF_HOST.
     public const int DefaultPort = 5214;
     public const string SettingsFileName = "appsettings.json";
     public const char RootSeparator = ';';
-    public const string BimProfile = "bim";
+    /// <summary>The generic profile's name, and the default when no profile set is given.</summary>
     public const string TablesProfile = "tables";
-    public static readonly IReadOnlyList<string> Profiles = [BimProfile, TablesProfile];
 
     public static HostConfig Default(string baseDir)
         => new(
@@ -31,15 +30,21 @@ public sealed record HostConfig(
             Path.Combine(baseDir, "cache"),
             Path.Combine(baseDir, "analyses"),
             DefaultPort,
-            BimProfile);
+            TablesProfile);
 
-    public static HostConfig Resolve(string[] args, string baseDir)
-        => Default(baseDir)
+    /// <summary>Layers the settings over the profile set's default profile, then checks that
+    /// the profile they name is one of the set's.</summary>
+    public static HostConfig Resolve(string[] args, string baseDir, HostProfiles profiles)
+    {
+        var config = (Default(baseDir) with { Profile = profiles.Default })
             .ApplySettingsFile(Path.Combine(baseDir, SettingsFileName))
             .ApplyEnvironment()
             .ApplyArgs(args);
+        _ = profiles[config.Profile];
+        return config;
+    }
 
-    /// <summary>Optional file: {"modelRoots": [...], "cacheDir": "...", "storeDir": "...", "port": n, "profile": "bim"|"tables"}.</summary>
+    /// <summary>Optional file: {"modelRoots": [...], "cacheDir": "...", "storeDir": "...", "port": n, "profile": "name"}.</summary>
     public HostConfig ApplySettingsFile(string path)
     {
         if (!File.Exists(path))
@@ -54,7 +59,7 @@ public sealed record HostConfig(
             CacheDir = StringOr(root, "cacheDir", CacheDir),
             StoreDir = StringOr(root, "storeDir", StoreDir),
             Port = root.TryGetProperty("port", out var port) ? port.GetInt32() : Port,
-            Profile = ValidProfile(StringOr(root, "profile", Profile)),
+            Profile = StringOr(root, "profile", Profile),
         };
     }
 
@@ -65,10 +70,10 @@ public sealed record HostConfig(
             CacheDir = Environment.GetEnvironmentVariable("BIMOPENFLOW_CACHE_DIR") ?? CacheDir,
             StoreDir = Environment.GetEnvironmentVariable("BIMOPENFLOW_STORE_DIR") ?? StoreDir,
             Port = ParsePort(Environment.GetEnvironmentVariable("BIMOPENFLOW_PORT")) ?? Port,
-            Profile = ValidProfile(Environment.GetEnvironmentVariable("BIMOPENFLOW_PROFILE") ?? Profile),
+            Profile = Environment.GetEnvironmentVariable("BIMOPENFLOW_PROFILE") ?? Profile,
         };
 
-    /// <summary>--models a;b --cache dir --store dir --port n --profile bim|tables</summary>
+    /// <summary>--models a;b --cache dir --store dir --port n --profile name</summary>
     public HostConfig ApplyArgs(string[] args)
     {
         var config = this;
@@ -86,19 +91,13 @@ public sealed record HostConfig(
                 {
                     Port = ParsePort(value) ?? throw new ArgumentException($"Invalid port '{value}'"),
                 },
-                "--profile" => config with { Profile = ValidProfile(value) },
+                "--profile" => config with { Profile = value },
                 _ => throw new ArgumentException(
                     $"Unknown option '{args[i]}'. Expected --models, --cache, --store, --port, or --profile."),
             };
         }
         return config;
     }
-
-    private static string ValidProfile(string value)
-        => Profiles.Contains(value)
-            ? value
-            : throw new ArgumentException(
-                $"Invalid profile '{value}'. Allowed values: {string.Join(", ", Profiles)}.");
 
     private static string StringOr(JsonElement root, string name, string fallback)
         => root.TryGetProperty(name, out var value) ? value.GetString() ?? fallback : fallback;

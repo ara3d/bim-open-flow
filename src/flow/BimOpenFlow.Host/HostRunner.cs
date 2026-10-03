@@ -7,18 +7,17 @@ namespace BimOpenFlow.Host;
 /// second or two; nothing that takes longer runs before the port is open.</summary>
 public static class HostRunner
 {
-    public static async Task<int> RunAsync(string[] args, Action<HostApp>? configure = null, string name = "BimOpenFlow host")
+    /// <summary>Runs the host with the profile the settings select from the given set.</summary>
+    public static async Task<int> RunAsync(string[] args, HostProfiles profiles, Action<HostApp>? configure = null,
+        string name = "BimOpenFlow host")
     {
-        var config = HostConfig.Resolve(args, Environment.CurrentDirectory);
-        config = WithSeededRoots(config, config.Profile == HostConfig.TablesProfile
-            ? SampleSeeding.SeededModelRoots(AppContext.BaseDirectory)
-            : BimSampleSeeding.SeededModelRoots(AppContext.BaseDirectory));
-        var preparing = SamplePreparation.Jobs(AppContext.BaseDirectory);
-        var host = HostComposition.Build(config, preparing);
+        var config = HostConfig.Resolve(args, Environment.CurrentDirectory, profiles);
+        var profile = profiles[config.Profile];
+        config = WithSeededRoots(config, profile.SeededModelRoots(AppContext.BaseDirectory));
+        var preparing = profile.Preparation(AppContext.BaseDirectory);
+        var host = HostComposition.Build(config, profile, preparing);
 
-        var seeded = config.Profile == HostConfig.TablesProfile
-            ? SampleSeeding.Seed(host.Services.Store, AppContext.BaseDirectory, host.Services.Registry, Console.Out)
-            : BimSampleSeeding.Seed(host.Services.Store, AppContext.BaseDirectory, host.Services.Registry, Console.Out);
+        var seeded = profile.Seed(host.Services.Store, AppContext.BaseDirectory, host.Services.Registry, Console.Out);
         foreach (var id in seeded)
             Console.WriteLine($"  seeded sample analysis: {id}");
 

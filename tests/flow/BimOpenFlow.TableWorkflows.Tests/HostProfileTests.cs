@@ -56,8 +56,8 @@ public sealed class HostProfileTests
                 || k == "sink.writePsets" || k == "sink.report"));
 
     [Test]
-    public void DefaultProfile_IsBim()
-        => Assert.That(HostConfig.Default(Path.GetTempPath()).Profile, Is.EqualTo("bim"));
+    public void DefaultProfile_IsTables()
+        => Assert.That(HostConfig.Default(Path.GetTempPath()).Profile, Is.EqualTo("tables"));
 
     [Test]
     public void ApplyArgs_ProfileTables_RoundTrips()
@@ -66,10 +66,11 @@ public sealed class HostProfileTests
             Is.EqualTo("tables"));
 
     [Test]
-    public void ApplyArgs_InvalidProfile_ThrowsListingAllowedValues()
+    public void Resolve_InvalidProfile_ThrowsListingAllowedValues()
         => Assert.That(
-            () => HostConfig.Default(Path.GetTempPath()).ApplyArgs(["--profile", "spreadsheets"]),
-            Throws.ArgumentException.With.Message.Contains("bim").And.Message.Contains("tables"));
+            () => HostConfig.Resolve(["--profile", "spreadsheets"],
+                Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N")), HostComposition.Generic),
+            Throws.ArgumentException.With.Message.Contains("spreadsheets").And.Message.Contains("tables"));
 
     [Test]
     public void ApplySettingsFile_ReadsProfile()

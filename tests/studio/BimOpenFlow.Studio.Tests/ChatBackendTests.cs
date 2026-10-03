@@ -22,7 +22,7 @@ public sealed class ChatBackendTests
         var models = Path.Combine(_root, "models");
         Directory.CreateDirectory(models);
         _services = FlowServices.Create(new HostConfig(
-            [models], Path.Combine(_root, "cache"), Path.Combine(_root, "analyses"), Port: 0, Profile: HostConfig.TablesProfile));
+            [models], Path.Combine(_root, "cache"), Path.Combine(_root, "analyses"), Port: 0, Profile: HostConfig.TablesProfile), HostComposition.Tables);
         _tools = FlowMcpServer.RegisterTools(
             new McpServer(McpServer.DefaultPort, "test", "0", transport: McpTransport.Http), _services);
     }

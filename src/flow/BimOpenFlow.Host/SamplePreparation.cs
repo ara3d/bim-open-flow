@@ -1,21 +1,12 @@
-using Ara3D.Ifc.DuckDb;
-using Ara3D.Utils;
-
 namespace BimOpenFlow.Host;
 
-/// <summary>Generated sample data that takes longer than a start-up may: today the NRC
-/// DuckDBs built from samples/nrc/duplex-enriched.ifc and duplex-base.ifc, about 30 s each cold. The host opens its
-/// port first and runs these jobs afterwards; until a job lands, the relation registry
+/// <summary>Generated sample data that takes longer than a start-up may (the studio's NRC
+/// DuckDBs, built from IFC files, take about 30 s each cold). A profile names its jobs; the
+/// host opens its port first and runs them afterwards; until a job lands, the relation registry
 /// answers "not ready yet" for its source name, and when it lands the caller re-evaluates
 /// every open analysis so the waiting nodes recover without a reload.</summary>
 public static class SamplePreparation
 {
-    public const string NrcSourceName = "duplex-enriched";
-
-    /// <summary>The BOS file is a path for bos.load, not a named relation source; the job
-    /// carries this name only for its log lines.</summary>
-    public const string NrcBosName = "duplex-enriched.bos";
-
     /// <summary>Suffix of the file a build writes before it is moved into place, so a
     /// registry scanning for *.duckdb never sees a half-written database.</summary>
     public const string PartSuffix = ".part";
@@ -39,45 +30,6 @@ public static class SamplePreparation
             File.Move(part, Output, overwrite: true);
         }
     }
-
-    /// <summary>The source name of the database built from samples/nrc/duplex-base.ifc.</summary>
-    public const string NrcBaseSourceName = "duplex-base";
-
-    /// <summary>The NRC database job for a repo root, or null when the IFC is not there.</summary>
-    public static Job? NrcDatabase(string root)
-        => DatabaseJob(root, NrcSourceName, SampleSeeding.NrcIfcFileName, SampleSeeding.NrcDatabaseFileName);
-
-    /// <summary>The database job for the unenriched Duplex, or null when its IFC is not there.</summary>
-    public static Job? NrcBaseDatabase(string root)
-        => DatabaseJob(root, NrcBaseSourceName, SampleSeeding.NrcBaseIfcFileName, SampleSeeding.NrcBaseDatabaseFileName);
-
-    private static Job? DatabaseJob(string root, string source, string ifcName, string databaseName)
-    {
-        var dir = SampleSeeding.NrcSamplesDir(root);
-        var ifc = Path.Combine(dir, ifcName);
-        return File.Exists(ifc)
-            ? new(source, ifc, Path.Combine(dir, databaseName),
-                (input, output) => IfcDuckDbBuild.Build(new FilePath(input), new FilePath(output)))
-            : null;
-    }
-
-    /// <summary>The NRC BOS job (the IFC converted to a .bos file for bos.load), or null when
-    /// the IFC is not there.</summary>
-    public static Job? NrcBos(string root)
-    {
-        var dir = SampleSeeding.NrcSamplesDir(root);
-        var ifc = Path.Combine(dir, SampleSeeding.NrcIfcFileName);
-        return File.Exists(ifc)
-            ? new(NrcBosName, ifc, Path.Combine(dir, SampleSeeding.NrcBosFileName),
-                (input, output) => IfcDuckDbBuild.SaveBos(new FilePath(input), new FilePath(output)))
-            : null;
-    }
-
-    /// <summary>Every job for the checkout that contains startDir; empty outside a checkout.</summary>
-    public static IReadOnlyList<Job> Jobs(string startDir)
-        => SampleSeeding.FindRepoRoot(startDir) is { } root
-            ? new[] { NrcDatabase(root), NrcBaseDatabase(root), NrcBos(root) }.Where(j => j is not null).Select(j => j!).ToList()
-            : [];
 
     /// <summary>Why a source name cannot be resolved yet, or null when no stale job owns it.</summary>
     public static Func<string, string?> PendingReason(IReadOnlyList<Job> jobs)

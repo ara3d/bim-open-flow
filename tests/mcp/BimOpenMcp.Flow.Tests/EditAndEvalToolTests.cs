@@ -7,7 +7,7 @@ public sealed class EditAndEvalToolTests : FlowToolFixture
     [Test]
     public void AuthorEvaluateAndReadResult()
     {
-        AuthorCameraSort("smoke");
+        AuthorInlineSort("smoke");
 
         var state = Json(FlowEvalTools.Evaluate(Services, "smoke"));
         var statuses = state.GetProperty("nodes").EnumerateArray()
@@ -34,12 +34,12 @@ public sealed class EditAndEvalToolTests : FlowToolFixture
     [Test]
     public void Connect_ToMissingNodeFailsValidationAndDoesNotSave()
     {
-        FlowEditTools.AddNode(Services, "a", "cam", "view3d.camera", version: null);
+        FlowEditTools.AddNode(Services, "a", "data", "table.inline", version: null);
         var before = Json(FlowDocumentTools.GetAnalysis(Services, "a")).GetProperty("graphHash").GetString();
 
         Assert.That(
             Assert.Throws<ArgumentException>(() =>
-                FlowEditTools.Connect(Services, "a", "cam.camera", "ghost.table"))!.Message,
+                FlowEditTools.Connect(Services, "a", "data.table", "ghost.table"))!.Message,
             Does.Contain("Invalid graph"));
 
         var after = Json(FlowDocumentTools.GetAnalysis(Services, "a")).GetProperty("graphHash").GetString();
@@ -49,13 +49,13 @@ public sealed class EditAndEvalToolTests : FlowToolFixture
     [Test]
     public void RemoveNode_DropsEdgesAndParams()
     {
-        AuthorCameraSort("smoke");
+        AuthorInlineSort("smoke");
         FlowEditTools.RemoveNode(Services, "smoke", "sort");
         var json = Json(FlowDocumentTools.GetAnalysis(Services, "smoke")).GetProperty("json").GetString()!;
         Assert.Multiple(() =>
         {
             Assert.That(json, Does.Not.Contain("sort"));
-            Assert.That(json, Does.Contain("cam"));
+            Assert.That(json, Does.Contain("data"));
         });
     }
 
@@ -66,7 +66,7 @@ public sealed class EditAndEvalToolTests : FlowToolFixture
     [Test]
     public void CreateRun_ThenListRuns()
     {
-        AuthorCameraSort("smoke");
+        AuthorInlineSort("smoke");
         var created = Json(FlowEvalTools.CreateRun(Services, "smoke"));
         Assert.That(created.GetProperty("fileName").GetString(), Does.EndWith(".run.json"));
 

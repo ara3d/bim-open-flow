@@ -8,8 +8,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BimOpenFlow.Nodes.Support\BimOpenFlow.Nodes.Support.csproj" />
-    <ProjectReference Include="..\..\..\submodules\ara3d-dataflow\src\Ara3D.DataFlowEngine\Ara3D.DataFlowEngine.csproj" />
-    <ProjectReference Include="..\..\..\submodules\ara3d-dataflow\src\Ara3D.NodeGraph\Ara3D.NodeGraph.csproj" />
+    <ProjectReference Include="$(DepsRoot)ara3d-dataflow\src\Ara3D.DataFlowEngine\Ara3D.DataFlowEngine.csproj" />
+    <ProjectReference Include="$(DepsRoot)ara3d-dataflow\src\Ara3D.NodeGraph\Ara3D.NodeGraph.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,5 +1,4 @@
 {
-  "extends": "../../viewer.tsconfig.json",
   "compilerOptions": {
     "target": "ES2020",
     "module": "ESNext",
@@ -14,8 +13,7 @@
     // gratify is consumed from its source in deps/gratify, as packages/app does;
     // vitest.config.ts carries the runtime twin of this alias.
     "paths": {
-      "gratify": ["../../../../deps/gratify/src/gratify/index.ts"],
-      "@bim-open-viewer/*": ["../../../../deps/bim-open-viewer/packages/*/src/index.ts"]
+      "gratify": ["../../../../deps/gratify/src/gratify/index.ts"]
     }
   },
   "include": ["src", "test", "scripts"]

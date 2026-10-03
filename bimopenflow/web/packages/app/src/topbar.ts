@@ -11,6 +11,7 @@ import {
 import { isNodeStyleName, nodeStyleNames, type NodeStyleName } from "@bimopenflow/graph";
 import { hostStatusMessage, type HostStatus, type HostStatusSource } from "./hostStatus.js";
 import { ensureAppStyles } from "./styles.js";
+import { brandMark } from "./brand.js";
 
 export interface TopbarHandlers {
   /** Replaces the default "BimOpenFlow · Snowdon 3D graphs" heading. */
@@ -62,9 +63,11 @@ export function createTopbar(root: HTMLElement, handlers: TopbarHandlers): Topba
   root.classList.add("bof-app-topbar");
 
   const title = doc.createElement("strong");
-  if (handlers.heading) title.textContent = handlers.heading;
+  title.className = "bof-app-brand";
+  title.appendChild(brandMark(doc, "bof-app-brand-mark"));
+  if (handlers.heading) title.append(handlers.heading);
   else {
-    title.textContent = "BimOpenFlow";
+    title.append("BimOpenFlow");
     const lab = doc.createElement("a");
     lab.href = "/3d.html";
     lab.textContent = "Snowdon 3D graphs";

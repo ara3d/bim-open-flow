@@ -111,8 +111,9 @@ function ensureStepListStyles(doc: Document): void {
     .bof-app-steps-step.bof-app-steps-selected { border-color: var(--bof-app-accent); }
     .bof-app-steps-index { color: var(--bof-app-dim); grid-row: span 4; }
     .bof-app-steps-description { color: var(--bof-app-text); opacity: 0.8; }
+    .bof-app-steps-summary, .bof-app-steps-rows { font-family: var(--bof-app-mono, monospace); }
     .bof-app-steps-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .bof-app-steps-id { color: var(--bof-app-dim); font-weight: normal; margin-left: 4px; }
+    .bof-app-steps-id { color: var(--bof-app-dim); font: 11px var(--bof-app-mono, monospace); margin-left: 4px; }
     .bof-app-steps-description, .bof-app-steps-summary, .bof-app-steps-meta {
       grid-column: 2; font-size: 11px; color: var(--bof-app-dim);
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;

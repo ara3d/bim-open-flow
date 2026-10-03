@@ -18,7 +18,7 @@
   flex-direction: column;
   height: var(--bof-ask-height, 200px);
   box-sizing: border-box;
-  font: 12px/1.4 Inter, 'Segoe UI', system-ui, sans-serif;
+  font: 12px/1.4 'Public Sans', 'Segoe UI', system-ui, sans-serif;
   background: var(--bof-ask-bg);
   border-bottom: 1px solid var(--bof-ask-border);
   color: var(--bof-ask-text);
@@ -29,7 +29,7 @@
   min-height: 0;
   overflow-y: auto;
   padding: 6px 10px;
-  font: 12px/1.5 ui-monospace, Consolas, 'Cascadia Mono', monospace;
+  font: 12px/1.5 'Fira Code', 'Cascadia Mono', Consolas, ui-monospace, monospace;
 }
 .bof-ask-log[hidden], .bof-ask-resize[hidden] { display: none; }
 .bof-ask-line { white-space: pre-wrap; word-break: break-word; }
@@ -60,7 +60,7 @@
   flex: 1;
   min-width: 0;
   padding: 3px 8px;
-  font: 13px Inter, 'Segoe UI', system-ui, sans-serif;
+  font: 13px 'Public Sans', 'Segoe UI', system-ui, sans-serif;
   border: 1px solid var(--bof-ask-control-border);
   border-radius: 4px;
 }

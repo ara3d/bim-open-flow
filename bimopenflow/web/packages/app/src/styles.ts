@@ -13,7 +13,11 @@ export const appCss = `
   --bof-app-amber: #d99a2b;
   --bof-app-red: #c0392b;
   --bof-app-hover: #ecebe4;
-  --bof-app-font: Inter, "Segoe UI", system-ui, sans-serif;
+  /* docs/BRANDING.md: Public Sans for the interface, Instrument Sans for the
+     wordmark and headings, Fira Code for ids, parameters, and numbers. */
+  --bof-app-font: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --bof-app-font-brand: "Instrument Sans", "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --bof-app-mono: "Fira Code", "Cascadia Mono", Consolas, ui-monospace, monospace;
   --bof-app-left: 240px;
   --bof-app-right: 420px;
 }
@@ -36,6 +40,9 @@ html, body { margin: 0; height: 100%; }
   display: flex; align-items: center; gap: 8px; padding: 0 10px;
   background: var(--bof-app-surface); border-bottom: 1px solid var(--bof-app-border);
 }
+.bof-app-brand { display: inline-flex; align-items: center; gap: 7px; font: 700 15px/1 var(--bof-app-font-brand); letter-spacing: -0.01em; white-space: nowrap; }
+.bof-app-brand a { font-weight: 600; }
+.bof-app-brand-mark { width: 20px; height: 20px; fill: var(--bof-app-accent); flex: none; }
 .bof-app-topbar select, .bof-app-topbar button, .bof-app-sidebar input {
   font: inherit; color: inherit;
   background: var(--bof-app-bg); border: 1px solid var(--bof-app-border);
@@ -108,6 +115,7 @@ html, body { margin: 0; height: 100%; }
   background: var(--bof-app-surface);
 }
 .bof-app-preview-source { padding: 8px 12px; font-size: 14px; font-weight: 600; white-space: pre-line; line-height: 1.6; border-bottom: 1px solid var(--bof-app-border); }
+.bof-app-pane-lineage { font: 12px var(--bof-app-mono); color: var(--bof-app-dim); }
 .bof-app-preview-source:empty { display: none; }
 .bof-app-preview-source[role="alert"] { color: #b91c1c; }
 .bof-app-tabs {

@@ -32,7 +32,7 @@ function ensureStartStyles(doc: Document): void {
       background: var(--bof-app-bg); color: var(--bof-app-text); font: 13px var(--bof-app-font); }
     .bof-app-start[hidden] { display: none; }
     .bof-app-start-head { display: flex; justify-content: space-between; align-items: center; }
-    .bof-app-start-head h2 { margin: 0; font-size: 18px; }
+    .bof-app-start-head h2 { margin: 0; font: 600 18px/1.3 var(--bof-app-font-brand, var(--bof-app-font)); }
     .bof-app-start-close { cursor: pointer; }
     .bof-app-start-group h3 { margin: 20px 0 8px; font-size: 13px; opacity: 0.8; }
     .bof-app-start-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }

@@ -1,0 +1,3478 @@
+{
+  "nodes": [
+    {
+      "kind": "bfast.buffer",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "path",
+          "kind": "FilePath",
+          "default": ""
+        },
+        {
+          "name": "name",
+          "kind": "Text",
+          "default": ""
+        },
+        {
+          "name": "type",
+          "kind": "Enum",
+          "default": "float32",
+          "enumValues": [
+            "uint8",
+            "int16",
+            "int32",
+            "int64",
+            "float32",
+            "float64"
+          ]
+        }
+      ],
+      "description": "Reads one buffer of a BFAST file as a table with a single \u0060value\u0060 column, interpreting its bytes as the given element type (integers widen to long, floats to double). An unknown buffer name or a byte length that is not a multiple of the element size is an error."
+    },
+    {
+      "kind": "bfast.read",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "buffers",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "path",
+          "kind": "FilePath",
+          "default": ""
+        }
+      ],
+      "description": "Lists the buffers in a BFAST file: name, byteLength, index (0-based file order). BFAST records no element types; bfast.buffer reads one buffer under a type you name."
+    },
+    {
+      "kind": "chart.bar",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        },
+        {
+          "name": "scale",
+          "type": "Table",
+          "optional": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        },
+        {
+          "name": "legend",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "labelColumn",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "valueColumns",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "title",
+          "kind": "Text",
+          "default": ""
+        },
+        {
+          "name": "sort",
+          "kind": "Enum",
+          "default": "none",
+          "enumValues": [
+            "none",
+            "asc",
+            "desc"
+          ]
+        }
+      ],
+      "description": "Projects \u0027labelColumn\u0027 plus the comma-separated numeric \u0027valueColumns\u0027 for the bar-chart pane; \u0027sort\u0027 orders rows by the first value column. With a \u0027scale\u0027 input, appends \u0027r g b\u0027 colour columns computed from the scale\u0027s column (or the first value column) and passes the scale through on \u0027legend\u0027; without one, \u0027legend\u0027 is the empty legend table."
+    },
+    {
+      "kind": "chart.line",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "xColumn",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "yColumns",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "title",
+          "kind": "Text",
+          "default": ""
+        }
+      ],
+      "description": "Projects \u0027xColumn\u0027 plus the comma-separated numeric \u0027yColumns\u0027 for the line-chart pane; rows are ordered by \u0027xColumn\u0027."
+    },
+    {
+      "kind": "csv.read",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "path",
+          "kind": "FilePath",
+          "default": ""
+        },
+        {
+          "name": "delimiter",
+          "kind": "Text",
+          "default": ","
+        },
+        {
+          "name": "header",
+          "kind": "Boolean",
+          "default": "true"
+        },
+        {
+          "name": "skipRows",
+          "kind": "Integer",
+          "default": "0"
+        },
+        {
+          "name": "quote",
+          "kind": "Text",
+          "default": "\u0022"
+        },
+        {
+          "name": "nullText",
+          "kind": "Text",
+          "default": ""
+        },
+        {
+          "name": "encoding",
+          "kind": "Enum",
+          "default": "utf8",
+          "enumValues": [
+            "utf8",
+            "utf16",
+            "latin1"
+          ]
+        },
+        {
+          "name": "inferTypes",
+          "kind": "Boolean",
+          "default": "true"
+        }
+      ],
+      "description": "Reads a CSV file or glob of files into a table, with typed delimiter, header, skip, quote, null-text, and encoding options."
+    },
+    {
+      "kind": "date.diff",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "a",
+          "kind": "Text",
+          "default": ""
+        },
+        {
+          "name": "b",
+          "kind": "Text",
+          "default": ""
+        },
+        {
+          "name": "unit",
+          "kind": "Enum",
+          "default": "days",
+          "enumValues": [
+            "years",
+            "months",
+            "days",
+            "hours",
+            "minutes",
+            "seconds"
+          ]
+        },
+        {
+          "name": "name",
+          "kind": "Text",
+          "default": ""
+        }
+      ],
+      "description": "Adds new Integer column \u0027name\u0027 counting \u0027unit\u0027 boundaries from ISO date column \u0027a\u0027 to column \u0027b\u0027 (negative when b is earlier)."
+    },
+    {
+      "kind": "date.filter",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "column",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "from",
+          "kind": "DateTime",
+          "default": ""
+        },
+        {
+          "name": "to",
+          "kind": "DateTime",
+          "default": ""
+        }
+      ],
+      "description": "Keeps rows where ISO date \u0027column\u0027 \u003E= \u0027from\u0027 (inclusive) and \u003C \u0027to\u0027 (exclusive); an empty bound is open. Rows with a null date are dropped."
+    },
+    {
+      "kind": "date.offset",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "column",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "amount",
+          "kind": "Integer",
+          "default": ""
+        },
+        {
+          "name": "unit",
+          "kind": "Enum",
+          "default": "days",
+          "enumValues": [
+            "years",
+            "months",
+            "days",
+            "hours",
+            "minutes"
+          ]
+        },
+        {
+          "name": "name",
+          "kind": "Text",
+          "default": ""
+        }
+      ],
+      "description": "Shifts the ISO date \u0027column\u0027 by \u0027amount\u0027 (may be negative) whole \u0027unit\u0027s, calendar-aware (Jan 31 \u002B 1 month = end of February); empty \u0027name\u0027 replaces in place."
+    },
+    {
+      "kind": "date.parse",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "column",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "format",
+          "kind": "Text",
+          "default": ""
+        },
+        {
+          "name": "onError",
+          "kind": "Enum",
+          "default": "error",
+          "enumValues": [
+            "error",
+            "null"
+          ]
+        },
+        {
+          "name": "name",
+          "kind": "Text",
+          "default": ""
+        }
+      ],
+      "description": "Parses \u0027column\u0027 with the strptime \u0027format\u0027 (empty = ISO-8601) into ISO date text; \u0027onError\u0027 nulls or rejects unparseable values; empty \u0027name\u0027 replaces the column in place."
+    },
+    {
+      "kind": "date.part",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "column",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "part",
+          "kind": "Enum",
+          "default": "",
+          "enumValues": [
+            "year",
+            "quarter",
+            "month",
+            "week",
+            "dayOfMonth",
+            "dayOfWeek",
+            "dayOfYear",
+            "hour",
+            "minute",
+            "second"
+          ]
+        },
+        {
+          "name": "name",
+          "kind": "Text",
+          "default": ""
+        }
+      ],
+      "description": "Adds the integer \u0027part\u0027 of the ISO date \u0027column\u0027 as new column \u0027name\u0027; dayOfWeek is ISO (Monday = 1)."
+    },
+    {
+      "kind": "date.truncate",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "column",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "period",
+          "kind": "Enum",
+          "default": "",
+          "enumValues": [
+            "year",
+            "quarter",
+            "month",
+            "week",
+            "day",
+            "hour"
+          ]
+        },
+        {
+          "name": "name",
+          "kind": "Text",
+          "default": ""
+        }
+      ],
+      "description": "Truncates the ISO date \u0027column\u0027 down to the start of its \u0027period\u0027 (week starts Monday); empty \u0027name\u0027 replaces the column in place."
+    },
+    {
+      "kind": "duck.query",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "source",
+          "type": "Text",
+          "optional": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "path",
+          "kind": "FilePath",
+          "default": "",
+          "control": {
+            "kind": "hidden"
+          }
+        },
+        {
+          "name": "sql",
+          "kind": "Text",
+          "default": ""
+        }
+      ],
+      "description": "Runs read-only SQL against a connected shared DuckDB source."
+    },
+    {
+      "kind": "duck.read",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "path",
+          "kind": "FilePath",
+          "default": ""
+        },
+        {
+          "name": "format",
+          "kind": "Enum",
+          "default": "auto",
+          "enumValues": [
+            "auto",
+            "csv",
+            "parquet",
+            "json"
+          ]
+        }
+      ],
+      "description": "Loads a CSV, Parquet, or JSON file into a table using DuckDB\u0027s readers."
+    },
+    {
+      "kind": "duck.source",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "source",
+          "type": "Text",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "path",
+          "kind": "FilePath",
+          "default": ""
+        }
+      ],
+      "description": "Opens one shared read-only DuckDB source for connected query branches."
+    },
+    {
+      "kind": "duck.table",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "path",
+          "kind": "FilePath",
+          "default": ""
+        },
+        {
+          "name": "table",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "TablesInFile",
+            "source": "path"
+          }
+        }
+      ],
+      "description": "Reads one named table from a .duckdb database file, read-only."
+    },
+    {
+      "kind": "duck.tables",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "tables",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "path",
+          "kind": "FilePath",
+          "default": ""
+        }
+      ],
+      "description": "Lists the tables in a .duckdb database file with their column and row counts."
+    },
+    {
+      "kind": "json.read",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "path",
+          "kind": "FilePath",
+          "default": ""
+        },
+        {
+          "name": "layout",
+          "kind": "Enum",
+          "default": "auto",
+          "enumValues": [
+            "auto",
+            "records",
+            "lines"
+          ]
+        },
+        {
+          "name": "flatten",
+          "kind": "Boolean",
+          "default": "false"
+        }
+      ],
+      "description": "Reads a JSON file (record array or newline-delimited) into a table, optionally flattening one level of nested objects into dotted columns."
+    },
+    {
+      "kind": "parquet.read",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "path",
+          "kind": "FilePath",
+          "default": ""
+        }
+      ],
+      "description": "Reads a Parquet file or glob of files into a table using DuckDB read_parquet."
+    },
+    {
+      "kind": "rel.aggregate",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "input",
+          "type": "Relation",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "relation",
+          "type": "Relation",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "groupBy",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "input"
+          }
+        },
+        {
+          "name": "aggregates",
+          "kind": "Text",
+          "default": ""
+        }
+      ],
+      "description": "Groups by the comma-separated columns (may be empty) and computes \u0027func(column) as name\u0027 aggregates (count/sum/min/max/avg)."
+    },
+    {
+      "kind": "rel.csv",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "relation",
+          "type": "Relation",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "source",
+          "kind": "Text",
+          "default": ""
+        },
+        {
+          "name": "path",
+          "kind": "Text",
+          "default": ""
+        }
+      ],
+      "description": "A CSV file, named by its registered source folder and relative path. Nothing is read until a node is inspected."
+    },
+    {
+      "kind": "rel.derive",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "input",
+          "type": "Relation",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "relation",
+          "type": "Relation",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "name",
+          "kind": "Text",
+          "default": ""
+        },
+        {
+          "name": "expr",
+          "kind": "Expression",
+          "default": ""
+        }
+      ],
+      "description": "Appends a column computed from the expression."
+    },
+    {
+      "kind": "rel.filter",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "input",
+          "type": "Relation",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "relation",
+          "type": "Relation",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "expr",
+          "kind": "Expression",
+          "default": ""
+        }
+      ],
+      "description": "Keeps rows where the Boolean expression is true."
+    },
+    {
+      "kind": "rel.fromTable",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "relation",
+          "type": "Relation",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "name",
+          "kind": "Text",
+          "default": "t"
+        }
+      ],
+      "description": "Makes the input table available to rel.* nodes as a relation, keyed by the table\u0027s content."
+    },
+    {
+      "kind": "rel.join",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "left",
+          "type": "Relation",
+          "optional": false
+        },
+        {
+          "name": "right",
+          "type": "Relation",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "relation",
+          "type": "Relation",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "leftKey",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "left"
+          }
+        },
+        {
+          "name": "rightKey",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "right"
+          }
+        },
+        {
+          "name": "kind",
+          "kind": "Enum",
+          "default": "inner",
+          "enumValues": [
+            "inner",
+            "left",
+            "right",
+            "full",
+            "semi",
+            "anti"
+          ]
+        }
+      ],
+      "description": "Joins left to right on one key each. Right columns that collide with left ones get a _right suffix."
+    },
+    {
+      "kind": "rel.limit",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "input",
+          "type": "Relation",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "relation",
+          "type": "Relation",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "count",
+          "kind": "Integer",
+          "default": "100"
+        },
+        {
+          "name": "offset",
+          "kind": "Integer",
+          "default": "0"
+        }
+      ],
+      "description": "Keeps count rows after skipping offset rows."
+    },
+    {
+      "kind": "rel.materialize",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "input",
+          "type": "Relation",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "limit",
+          "kind": "Integer",
+          "default": "0"
+        }
+      ],
+      "description": "Runs the relation and outputs its rows as a Table; limit 0 means every row."
+    },
+    {
+      "kind": "rel.select",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "input",
+          "type": "Relation",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "relation",
+          "type": "Relation",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "columns",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "input"
+          }
+        }
+      ],
+      "description": "Keeps only the comma-separated columns, in that order."
+    },
+    {
+      "kind": "rel.sort",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "input",
+          "type": "Relation",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "relation",
+          "type": "Relation",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "by",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "input"
+          }
+        }
+      ],
+      "description": "Sorts by comma-separated terms such as \u0027height desc, name\u0027."
+    },
+    {
+      "kind": "rel.sql",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "t1",
+          "type": "Relation",
+          "optional": false
+        },
+        {
+          "name": "t2",
+          "type": "Relation",
+          "optional": true
+        },
+        {
+          "name": "t3",
+          "type": "Relation",
+          "optional": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "relation",
+          "type": "Relation",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "sql",
+          "kind": "Text",
+          "default": ""
+        }
+      ],
+      "description": "One read-only SELECT over the connected relations, which it sees as t1, t2, and t3."
+    },
+    {
+      "kind": "rel.table",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "relation",
+          "type": "Relation",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "source",
+          "kind": "Text",
+          "default": ""
+        },
+        {
+          "name": "table",
+          "kind": "Text",
+          "default": ""
+        }
+      ],
+      "description": "A table in a registered database source. Nothing is read until a node is inspected."
+    },
+    {
+      "kind": "sink.exportCsv",
+      "version": 1,
+      "capability": "Effect",
+      "inputs": [
+        {
+          "name": "in",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "out",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "path",
+          "kind": "FilePath",
+          "default": ""
+        },
+        {
+          "name": "delimiter",
+          "kind": "Text",
+          "default": ","
+        },
+        {
+          "name": "header",
+          "kind": "Boolean",
+          "default": "true"
+        }
+      ],
+      "description": "Writes the input table as RFC-4180 CSV (invariant formatting; configurable delimiter, optional header row). Outputs a one-row summary (path, rowCount)."
+    },
+    {
+      "kind": "sink.exportDuckDb",
+      "version": 1,
+      "capability": "Effect",
+      "inputs": [
+        {
+          "name": "in",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "out",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "path",
+          "kind": "FilePath",
+          "default": ""
+        },
+        {
+          "name": "table",
+          "kind": "Text",
+          "default": ""
+        },
+        {
+          "name": "mode",
+          "kind": "Enum",
+          "default": "replace",
+          "enumValues": [
+            "replace",
+            "append",
+            "failIfExists"
+          ]
+        }
+      ],
+      "description": "Writes the input table into a DuckDB database file (booleans/integers as BIGINT, numbers as DOUBLE, text as VARCHAR). \u0027replace\u0027 drops and recreates the table, \u0027append\u0027 adds rows to a column-compatible table, \u0027failIfExists\u0027 refuses to touch an existing one. Outputs a one-row summary (path, rowCount, table)."
+    },
+    {
+      "kind": "sink.exportJson",
+      "version": 1,
+      "capability": "Effect",
+      "inputs": [
+        {
+          "name": "in",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "out",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "path",
+          "kind": "FilePath",
+          "default": ""
+        },
+        {
+          "name": "layout",
+          "kind": "Enum",
+          "default": "records",
+          "enumValues": [
+            "records",
+            "lines"
+          ]
+        },
+        {
+          "name": "indent",
+          "kind": "Boolean",
+          "default": "false"
+        }
+      ],
+      "description": "Writes the input table as JSON: \u0027records\u0027 is one array of objects (optionally indented), \u0027lines\u0027 is newline-delimited objects. Outputs a one-row summary (path, rowCount)."
+    },
+    {
+      "kind": "sink.exportParquet",
+      "version": 1,
+      "capability": "Effect",
+      "inputs": [
+        {
+          "name": "in",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "out",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "path",
+          "kind": "FilePath",
+          "default": ""
+        },
+        {
+          "name": "compression",
+          "kind": "Enum",
+          "default": "zstd",
+          "enumValues": [
+            "zstd",
+            "snappy",
+            "none"
+          ]
+        }
+      ],
+      "description": "Writes the input table as a Parquet file (zstd, snappy, or uncompressed). Outputs a one-row summary (path, rowCount)."
+    },
+    {
+      "kind": "sink.exportSqlite",
+      "version": 1,
+      "capability": "Effect",
+      "inputs": [
+        {
+          "name": "in",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "out",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "path",
+          "kind": "FilePath",
+          "default": ""
+        },
+        {
+          "name": "table",
+          "kind": "Text",
+          "default": ""
+        },
+        {
+          "name": "mode",
+          "kind": "Enum",
+          "default": "replace",
+          "enumValues": [
+            "replace",
+            "append",
+            "failIfExists"
+          ]
+        }
+      ],
+      "description": "Writes the input table into a SQLite database (booleans/integers as INTEGER, numbers as REAL, text as TEXT). \u0027replace\u0027 drops and recreates the table, \u0027append\u0027 adds rows to a column-compatible table, \u0027failIfExists\u0027 refuses to touch an existing one. Outputs a one-row summary (path, rowCount, table)."
+    },
+    {
+      "kind": "sink.exportXlsx",
+      "version": 1,
+      "capability": "Effect",
+      "inputs": [
+        {
+          "name": "in",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "out",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "path",
+          "kind": "FilePath",
+          "default": ""
+        },
+        {
+          "name": "sheet",
+          "kind": "Text",
+          "default": "Sheet1"
+        },
+        {
+          "name": "mode",
+          "kind": "Enum",
+          "default": "replaceFile",
+          "enumValues": [
+            "replaceFile",
+            "replaceSheet"
+          ]
+        },
+        {
+          "name": "autoWidth",
+          "kind": "Boolean",
+          "default": "true"
+        },
+        {
+          "name": "headerBold",
+          "kind": "Boolean",
+          "default": "true"
+        }
+      ],
+      "description": "Writes the input table to an Excel workbook sheet. \u0027replaceFile\u0027 writes a fresh single-sheet workbook; \u0027replaceSheet\u0027 refreshes one sheet of an existing workbook, leaving other sheets alone (the file is created if absent). Outputs a one-row summary (path, rowCount, sheet)."
+    },
+    {
+      "kind": "spatial.contains",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "Table",
+          "optional": false
+        },
+        {
+          "name": "boxes",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "aKey",
+          "kind": "Text",
+          "default": "Name",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "a"
+          }
+        },
+        {
+          "name": "bKey",
+          "kind": "Text",
+          "default": "Name",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "boxes"
+          }
+        },
+        {
+          "name": "x",
+          "kind": "Text",
+          "default": "CenterX",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "a"
+          }
+        },
+        {
+          "name": "y",
+          "kind": "Text",
+          "default": "CenterY",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "a"
+          }
+        },
+        {
+          "name": "z",
+          "kind": "Text",
+          "default": "CenterZ",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "a"
+          }
+        },
+        {
+          "name": "smallest",
+          "kind": "Boolean",
+          "default": "true"
+        },
+        {
+          "name": "ignoreZ",
+          "kind": "Boolean",
+          "default": "false"
+        },
+        {
+          "name": "excludeSelf",
+          "kind": "Boolean",
+          "default": "true"
+        }
+      ],
+      "description": "Emits one row per (a, boxes) pair where the boxes row\u0027s box contains a\u0027s box or point entirely: A, B, and ContainerVolume. With smallest (the default) only the smallest container of each a row is kept, so the output has at most one row per a row; with ignoreZ containment and smallest are judged in plan (XY) only. a is read as boxes when it has MinX..MaxZ columns, else as points from the x, y, z columns. excludeSelf drops pairs whose keys are equal. Rows in no box produce nothing. Typical use: element centers from bim.bounds against room boxes from bim.rooms."
+    },
+    {
+      "kind": "spatial.footprint",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "boxes",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "as",
+          "kind": "Text",
+          "default": "Footprint"
+        }
+      ],
+      "description": "Adds a Text column (\u0027as\u0027, default Footprint) holding the WKT POLYGON of each row\u0027s MinX..MaxY rectangle; rows with a missing bound get null. The column feeds spatial.polygon, spatial.polygonContains, and spatial.polygonIntersects, and reads unchanged in DuckDB spatial, PostGIS, or QGIS. Errors if the column already exists."
+    },
+    {
+      "kind": "spatial.intersects",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "Table",
+          "optional": false
+        },
+        {
+          "name": "b",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "aKey",
+          "kind": "Text",
+          "default": "Name",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "a"
+          }
+        },
+        {
+          "name": "bKey",
+          "kind": "Text",
+          "default": "Name",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "b"
+          }
+        },
+        {
+          "name": "x",
+          "kind": "Text",
+          "default": "CenterX",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "a"
+          }
+        },
+        {
+          "name": "y",
+          "kind": "Text",
+          "default": "CenterY",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "a"
+          }
+        },
+        {
+          "name": "z",
+          "kind": "Text",
+          "default": "CenterZ",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "a"
+          }
+        },
+        {
+          "name": "excludeSelf",
+          "kind": "Boolean",
+          "default": "true"
+        }
+      ],
+      "description": "Emits one row per (a, b) pair whose boxes intersect: A (\u0027aKey\u0027 of the a row), B (\u0027bKey\u0027 of the b row), and OverlapVolume (zero when the boxes only touch). Each input is read as boxes when it has MinX..MaxZ columns, else as points from the x, y, z columns. With excludeSelf, pairs whose two keys are equal are dropped, so a table joined to itself lists only distinct clash candidates (each unordered pair twice, once per direction). Axis-aligned-box semantics: candidates, not mesh clashes. Rows with missing coordinates never match."
+    },
+    {
+      "kind": "spatial.nearest",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "Table",
+          "optional": false
+        },
+        {
+          "name": "b",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "k",
+          "kind": "Integer",
+          "default": "1"
+        },
+        {
+          "name": "measure",
+          "kind": "Enum",
+          "default": "box",
+          "enumValues": [
+            "box",
+            "center"
+          ]
+        },
+        {
+          "name": "aKey",
+          "kind": "Text",
+          "default": "Name",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "a"
+          }
+        },
+        {
+          "name": "bKey",
+          "kind": "Text",
+          "default": "Name",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "b"
+          }
+        },
+        {
+          "name": "x",
+          "kind": "Text",
+          "default": "CenterX",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "a"
+          }
+        },
+        {
+          "name": "y",
+          "kind": "Text",
+          "default": "CenterY",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "a"
+          }
+        },
+        {
+          "name": "z",
+          "kind": "Text",
+          "default": "CenterZ",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "a"
+          }
+        },
+        {
+          "name": "excludeSelf",
+          "kind": "Boolean",
+          "default": "true"
+        }
+      ],
+      "description": "Emits, for each a row, its \u0027k\u0027 nearest b rows: A, B, Distance, and Rank (1 = closest). With measure = box the distance is between the boxes\u0027 surfaces (zero when they intersect); with center it is between their centers. Ties keep b\u0027s row order. Each input is read as boxes when it has MinX..MaxZ columns, else as points from the x, y, z columns. excludeSelf drops the b row whose key equals a\u0027s. An a row with missing coordinates, or an empty b, produces no rows. Typical use: the three nearest fire extinguishers to each room."
+    },
+    {
+      "kind": "spatial.polygon",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "polygon",
+          "kind": "Text",
+          "default": "Footprint",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        }
+      ],
+      "description": "Adds Area, Perimeter, CentroidX, CentroidY (area-weighted), Vertices, and IsConvex computed from the WKT POLYGON in the \u0027polygon\u0027 column (default Footprint); rows with an empty cell get nulls, unparsable text is an error naming the row, and holes are ignored with a warning. Errors if any added column already exists."
+    },
+    {
+      "kind": "spatial.polygonContains",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "Table",
+          "optional": false
+        },
+        {
+          "name": "polygons",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "aKey",
+          "kind": "Text",
+          "default": "Name",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "a"
+          }
+        },
+        {
+          "name": "bKey",
+          "kind": "Text",
+          "default": "Name",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "polygons"
+          }
+        },
+        {
+          "name": "x",
+          "kind": "Text",
+          "default": "CenterX",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "a"
+          }
+        },
+        {
+          "name": "y",
+          "kind": "Text",
+          "default": "CenterY",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "a"
+          }
+        },
+        {
+          "name": "z",
+          "kind": "Text",
+          "default": "CenterZ",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "a"
+          }
+        },
+        {
+          "name": "polygon",
+          "kind": "Text",
+          "default": "Footprint",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "polygons"
+          }
+        },
+        {
+          "name": "smallest",
+          "kind": "Boolean",
+          "default": "true"
+        },
+        {
+          "name": "excludeSelf",
+          "kind": "Boolean",
+          "default": "true"
+        }
+      ],
+      "description": "Emits one row per (a, polygons) pair where the WKT POLYGON in the \u0027polygon\u0027 column (default Footprint) contains a\u0027s point in plan, boundary included: A, B, and Area of the polygon. a\u0027s point is the x, y columns, or the box center when a has MinX..MaxZ columns; Z is ignored. With smallest (the default) only the smallest containing polygon is kept per a row; excludeSelf drops pairs whose keys are equal. Typical use: columns inside zone outlines from a CSV."
+    },
+    {
+      "kind": "spatial.polygonIntersects",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "Table",
+          "optional": false
+        },
+        {
+          "name": "b",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "aKey",
+          "kind": "Text",
+          "default": "Name",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "a"
+          }
+        },
+        {
+          "name": "bKey",
+          "kind": "Text",
+          "default": "Name",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "b"
+          }
+        },
+        {
+          "name": "polygon",
+          "kind": "Text",
+          "default": "Footprint",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "a"
+          }
+        },
+        {
+          "name": "excludeSelf",
+          "kind": "Boolean",
+          "default": "true"
+        }
+      ],
+      "description": "Emits one row per (a, b) pair whose WKT POLYGONs (the \u0027polygon\u0027 column of both inputs, default Footprint) intersect in plan, touching included: A and B. With excludeSelf, pairs whose two keys are equal are dropped. Rows with an empty polygon cell never match; holes are ignored with a warning."
+    },
+    {
+      "kind": "spatial.within",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "Table",
+          "optional": false
+        },
+        {
+          "name": "b",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "distance",
+          "kind": "Number",
+          "default": ""
+        },
+        {
+          "name": "measure",
+          "kind": "Enum",
+          "default": "box",
+          "enumValues": [
+            "box",
+            "center"
+          ]
+        },
+        {
+          "name": "aKey",
+          "kind": "Text",
+          "default": "Name",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "a"
+          }
+        },
+        {
+          "name": "bKey",
+          "kind": "Text",
+          "default": "Name",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "b"
+          }
+        },
+        {
+          "name": "x",
+          "kind": "Text",
+          "default": "CenterX",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "a"
+          }
+        },
+        {
+          "name": "y",
+          "kind": "Text",
+          "default": "CenterY",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "a"
+          }
+        },
+        {
+          "name": "z",
+          "kind": "Text",
+          "default": "CenterZ",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "a"
+          }
+        },
+        {
+          "name": "excludeSelf",
+          "kind": "Boolean",
+          "default": "true"
+        }
+      ],
+      "description": "Emits one row per (a, b) pair whose boxes are at most \u0027distance\u0027 apart: A, B, and Distance. With measure = box the distance is between the boxes\u0027 surfaces (zero when they intersect); with center it is between their centers. Each input is read as boxes when it has MinX..MaxZ columns, else as points from the x, y, z columns. excludeSelf drops pairs whose keys are equal. Axis-aligned-box semantics: candidates, not clearances. Typical use: rooms within 3 m of a stair."
+    },
+    {
+      "kind": "sql.query",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "t1",
+          "type": "Table",
+          "optional": false
+        },
+        {
+          "name": "t2",
+          "type": "Table",
+          "optional": true
+        },
+        {
+          "name": "t3",
+          "type": "Table",
+          "optional": true
+        },
+        {
+          "name": "t4",
+          "type": "Table",
+          "optional": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "sql",
+          "kind": "Text",
+          "default": ""
+        }
+      ],
+      "description": "Runs one read-only SQL query over the connected input tables t1..t4 (t = t1)."
+    },
+    {
+      "kind": "sqlite.query",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "path",
+          "kind": "FilePath",
+          "default": ""
+        },
+        {
+          "name": "sql",
+          "kind": "Text",
+          "default": ""
+        }
+      ],
+      "description": "Runs one read-only SQL query against a SQLite database file."
+    },
+    {
+      "kind": "sqlite.table",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "path",
+          "kind": "FilePath",
+          "default": ""
+        },
+        {
+          "name": "table",
+          "kind": "Text",
+          "default": ""
+        }
+      ],
+      "description": "Reads one whole table from a SQLite database file (SELECT *, read-only)."
+    },
+    {
+      "kind": "sqlite.tables",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "tables",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "path",
+          "kind": "FilePath",
+          "default": ""
+        }
+      ],
+      "description": "Lists the tables in a SQLite database file: name, columnCount, rowCount (read-only)."
+    },
+    {
+      "kind": "table.aggregate",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "groupBy",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "aggregates",
+          "kind": "Text",
+          "default": ""
+        }
+      ],
+      "description": "Groups by the comma-separated groupBy columns (may be empty) and computes comma-separated \u0027func(column) as name\u0027 aggregates (count/sum/min/max/avg)."
+    },
+    {
+      "kind": "table.calendar",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "name",
+          "kind": "Text",
+          "default": "date"
+        },
+        {
+          "name": "start",
+          "kind": "DateTime",
+          "default": ""
+        },
+        {
+          "name": "end",
+          "kind": "DateTime",
+          "default": ""
+        },
+        {
+          "name": "step",
+          "kind": "Enum",
+          "default": "day",
+          "enumValues": [
+            "day",
+            "week",
+            "month",
+            "quarter",
+            "year"
+          ]
+        }
+      ],
+      "description": "Generates one ISO-8601 date column from start to end inclusive; month/quarter/year steps use calendar arithmetic."
+    },
+    {
+      "kind": "table.cast",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "column",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "type",
+          "kind": "Enum",
+          "default": "",
+          "enumValues": [
+            "boolean",
+            "integer",
+            "number",
+            "text",
+            "date",
+            "datetime"
+          ]
+        },
+        {
+          "name": "onError",
+          "kind": "Enum",
+          "default": "error",
+          "enumValues": [
+            "error",
+            "null"
+          ]
+        },
+        {
+          "name": "name",
+          "kind": "Text",
+          "default": ""
+        }
+      ],
+      "description": "Converts a column to boolean, integer, number, text, date, or datetime."
+    },
+    {
+      "kind": "table.concat",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "Table",
+          "optional": false
+        },
+        {
+          "name": "b",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "columns",
+          "kind": "Enum",
+          "default": "strict",
+          "enumValues": [
+            "strict",
+            "byName"
+          ]
+        }
+      ],
+      "description": "Appends b\u0027s rows after a\u0027s, matching columns strictly by position or loosely by name."
+    },
+    {
+      "kind": "table.dedupe",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "keys",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "keep",
+          "kind": "Enum",
+          "default": "first",
+          "enumValues": [
+            "first",
+            "last"
+          ]
+        },
+        {
+          "name": "orderBy",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        }
+      ],
+      "description": "Keeps the first/last row per \u0027keys\u0027 by \u0027orderBy\u0027 (empty = input row order); warns with the duplicate count."
+    },
+    {
+      "kind": "table.derive",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "name",
+          "kind": "Text",
+          "default": ""
+        },
+        {
+          "name": "expr",
+          "kind": "Expression",
+          "default": ""
+        }
+      ],
+      "description": "Outputs the input table plus one computed column."
+    },
+    {
+      "kind": "table.distinct",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "columns",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        }
+      ],
+      "description": "Removes duplicate rows; with key columns named, keeps the first row per key with all columns."
+    },
+    {
+      "kind": "table.drop",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "columns",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        }
+      ],
+      "description": "Removes the named columns and keeps all others."
+    },
+    {
+      "kind": "table.dropNulls",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "columns",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "mode",
+          "kind": "Enum",
+          "default": "any",
+          "enumValues": [
+            "any",
+            "all"
+          ]
+        }
+      ],
+      "description": "Drops rows where any/all of \u0027columns\u0027 (empty = all columns) are null; warns with the dropped count."
+    },
+    {
+      "kind": "table.fillNulls",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "columns",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "strategy",
+          "kind": "Enum",
+          "default": "constant",
+          "enumValues": [
+            "constant",
+            "forward",
+            "backward"
+          ]
+        },
+        {
+          "name": "value",
+          "kind": "Text",
+          "default": ""
+        },
+        {
+          "name": "partitionBy",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        }
+      ],
+      "description": "Fills nulls in \u0027columns\u0027 with a constant, or the nearest earlier/later non-null value in row order."
+    },
+    {
+      "kind": "table.filter",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "expr",
+          "kind": "Expression",
+          "default": ""
+        }
+      ],
+      "description": "Keeps rows where the Boolean expression is true; null results exclude the row."
+    },
+    {
+      "kind": "table.inline",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "rows",
+          "kind": "Json",
+          "default": ""
+        }
+      ],
+      "description": "Builds a table from a JSON array of objects, e.g. [{\u0022type\u0022:\u0022Wall\u0022,\u0022rate\u0022:120.5}]. Column types are inferred (bool/integer/number/text); a column mixing value types is an error; nulls and missing keys are allowed."
+    },
+    {
+      "kind": "table.join",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "Table",
+          "optional": false
+        },
+        {
+          "name": "b",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "aKey",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "a"
+          }
+        },
+        {
+          "name": "bKey",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "b"
+          }
+        },
+        {
+          "name": "mode",
+          "kind": "Enum",
+          "default": "left",
+          "enumValues": [
+            "left",
+            "inner",
+            "full",
+            "semi",
+            "anti"
+          ]
+        }
+      ],
+      "description": "Joins b\u0027s columns onto a by key (bKey defaults to aKey). left keeps all a rows; inner keeps matches; full also appends unmatched b rows; semi/anti keep only a rows with/without a match and attach no b columns."
+    },
+    {
+      "kind": "table.limit",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "count",
+          "kind": "Integer",
+          "default": ""
+        },
+        {
+          "name": "offset",
+          "kind": "Integer",
+          "default": "0"
+        }
+      ],
+      "description": "Keeps \u0027count\u0027 rows starting at \u0027offset\u0027 in the table\u0027s order."
+    },
+    {
+      "kind": "table.pivot",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "groupBy",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "nameColumn",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "valueColumn",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "aggregate",
+          "kind": "Enum",
+          "default": "first",
+          "enumValues": [
+            "first",
+            "sum",
+            "count",
+            "min",
+            "max",
+            "avg"
+          ]
+        }
+      ],
+      "description": "Pivots long data wide: one new column per distinct value of nameColumn."
+    },
+    {
+      "kind": "table.profile",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "profile",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [],
+      "description": "Profiles every column: type, counts, distinct count, min, max, and mean."
+    },
+    {
+      "kind": "table.project",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "columns",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        }
+      ],
+      "description": "Keeps the comma-separated columns, in that order; unknown names warn."
+    },
+    {
+      "kind": "table.range",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "name",
+          "kind": "Text",
+          "default": "value"
+        },
+        {
+          "name": "start",
+          "kind": "Number",
+          "default": "0"
+        },
+        {
+          "name": "stop",
+          "kind": "Number",
+          "default": ""
+        },
+        {
+          "name": "step",
+          "kind": "Number",
+          "default": "1"
+        }
+      ],
+      "description": "Generates one numeric column from start to stop (inclusive when a step lands on it) by step; a negative step counts down."
+    },
+    {
+      "kind": "table.rename",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "renames",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        }
+      ],
+      "description": "Renames columns using comma-separated \u0027old=new\u0027 pairs."
+    },
+    {
+      "kind": "table.replace",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "column",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "find",
+          "kind": "Text",
+          "default": ""
+        },
+        {
+          "name": "replaceWith",
+          "kind": "Text",
+          "default": ""
+        },
+        {
+          "name": "match",
+          "kind": "Enum",
+          "default": "exact",
+          "enumValues": [
+            "exact",
+            "substring",
+            "regex"
+          ]
+        },
+        {
+          "name": "caseSensitive",
+          "kind": "Boolean",
+          "default": "true"
+        }
+      ],
+      "description": "Replaces \u0027find\u0027 with \u0027replaceWith\u0027 in a text column, by exact/substring/regex match."
+    },
+    {
+      "kind": "table.sample",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "mode",
+          "kind": "Enum",
+          "default": "rows",
+          "enumValues": [
+            "rows",
+            "fraction"
+          ]
+        },
+        {
+          "name": "rows",
+          "kind": "Integer",
+          "default": "100"
+        },
+        {
+          "name": "fraction",
+          "kind": "Number",
+          "default": "0.1"
+        },
+        {
+          "name": "seed",
+          "kind": "Integer",
+          "default": "1"
+        }
+      ],
+      "description": "Takes a seeded random sample: a fixed number of rows, or a fraction of them."
+    },
+    {
+      "kind": "table.schema",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "schema",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [],
+      "description": "Outputs the table\u0027s columns as a table: name, type, and index."
+    },
+    {
+      "kind": "table.setOp",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "Table",
+          "optional": false
+        },
+        {
+          "name": "b",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "op",
+          "kind": "Enum",
+          "default": "intersect",
+          "enumValues": [
+            "union",
+            "intersect",
+            "subtract"
+          ]
+        },
+        {
+          "name": "key",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "a"
+          }
+        }
+      ],
+      "description": "Keeps a\u0027s rows by key-set operation with b: union, intersect, or subtract."
+    },
+    {
+      "kind": "table.sort",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "A",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          },
+          "control": {
+            "kind": "sortColumn"
+          }
+        },
+        {
+          "name": "B",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          },
+          "control": {
+            "kind": "sortColumn"
+          }
+        },
+        {
+          "name": "C",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          },
+          "control": {
+            "kind": "sortColumn"
+          }
+        },
+        {
+          "name": "descendingA",
+          "kind": "Boolean",
+          "default": "false",
+          "control": {
+            "kind": "hidden"
+          }
+        },
+        {
+          "name": "descendingB",
+          "kind": "Boolean",
+          "default": "false",
+          "control": {
+            "kind": "hidden"
+          }
+        },
+        {
+          "name": "descendingC",
+          "kind": "Boolean",
+          "default": "false",
+          "control": {
+            "kind": "hidden"
+          }
+        },
+        {
+          "name": "by",
+          "kind": "Text",
+          "default": "",
+          "control": {
+            "kind": "hidden"
+          }
+        }
+      ],
+      "description": "Sorts by columns A, B, then C, each with its own ascending or descending direction."
+    },
+    {
+      "kind": "table.splitColumn",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "column",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "separator",
+          "kind": "Text",
+          "default": "-"
+        },
+        {
+          "name": "names",
+          "kind": "Text",
+          "default": ""
+        },
+        {
+          "name": "keep",
+          "kind": "Boolean",
+          "default": "false"
+        }
+      ],
+      "description": "Splits a column on a separator into new columns named by \u0027names\u0027."
+    },
+    {
+      "kind": "table.transpose",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "headerColumn",
+          "kind": "Text",
+          "default": ""
+        }
+      ],
+      "description": "Turns rows into columns, using the header column\u0027s values as the new column names."
+    },
+    {
+      "kind": "table.unpivot",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "keep",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "columns",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "nameColumn",
+          "kind": "Text",
+          "default": "name"
+        },
+        {
+          "name": "valueColumn",
+          "kind": "Text",
+          "default": "value"
+        }
+      ],
+      "description": "Unpivots columns into name/value rows, keeping the \u0027keep\u0027 columns as row ids."
+    },
+    {
+      "kind": "table.window",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "function",
+          "kind": "Enum",
+          "default": "",
+          "enumValues": [
+            "rowNumber",
+            "rank",
+            "denseRank",
+            "lag",
+            "lead",
+            "cumSum",
+            "movingAvg",
+            "percentOfTotal"
+          ]
+        },
+        {
+          "name": "column",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "partitionBy",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "orderBy",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "offset",
+          "kind": "Integer",
+          "default": "1"
+        },
+        {
+          "name": "windowSize",
+          "kind": "Integer",
+          "default": "3"
+        },
+        {
+          "name": "name",
+          "kind": "Text",
+          "default": ""
+        }
+      ],
+      "description": "Adds one window-function column: ranking, lag/lead, cumulative sum, moving average, or percent of total."
+    },
+    {
+      "kind": "text.extract",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "column",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "pattern",
+          "kind": "Text",
+          "default": ""
+        },
+        {
+          "name": "group",
+          "kind": "Integer",
+          "default": "1"
+        },
+        {
+          "name": "name",
+          "kind": "Text",
+          "default": ""
+        }
+      ],
+      "description": "Adds column \u0027name\u0027 holding capture group \u0027group\u0027 (0 = whole match) of \u0027pattern\u0027 from \u0027column\u0027; null when no match."
+    },
+    {
+      "kind": "text.transform",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "columns",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        },
+        {
+          "name": "op",
+          "kind": "Enum",
+          "default": "trim",
+          "enumValues": [
+            "trim",
+            "upper",
+            "lower",
+            "normalizeSpace"
+          ]
+        }
+      ],
+      "description": "Applies trim/upper/lower/normalizeSpace to \u0027columns\u0027 (empty = every text column) in place."
+    },
+    {
+      "kind": "view.colormap",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "values",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "legend",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "valueColumn",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "values"
+          }
+        },
+        {
+          "name": "colorMap",
+          "kind": "Enum",
+          "default": "viridis",
+          "enumValues": [
+            "viridis",
+            "category10",
+            "redgreen"
+          ]
+        },
+        {
+          "name": "auto",
+          "kind": "Boolean",
+          "default": "true"
+        },
+        {
+          "name": "min",
+          "kind": "Number",
+          "default": "0"
+        },
+        {
+          "name": "max",
+          "kind": "Number",
+          "default": "1"
+        }
+      ],
+      "description": "Builds a legend table (the shared colour scale) for \u0027valueColumn\u0027 of \u0027values\u0027; wire the \u0027legend\u0027 output into view3d.color\u0027s or chart.bar\u0027s \u0027scale\u0027 input so both panes share one colour scale. An unknown column warns and emits an empty legend."
+    },
+    {
+      "kind": "view.note",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [],
+      "outputs": [],
+      "params": [
+        {
+          "name": "text",
+          "kind": "Text",
+          "default": ""
+        }
+      ],
+      "description": "A comment on the canvas; computes nothing and has no ports."
+    },
+    {
+      "kind": "view.table",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "title",
+          "kind": "Text",
+          "default": ""
+        },
+        {
+          "name": "columns",
+          "kind": "Text",
+          "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table"
+          }
+        }
+      ],
+      "description": "Titles a table view; comma-separated \u0027columns\u0027 optionally projects (default all, kept in the named order; unknown names warn)."
+    },
+    {
+      "kind": "xlsx.read",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "table",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "path",
+          "kind": "FilePath",
+          "default": ""
+        },
+        {
+          "name": "sheet",
+          "kind": "Text",
+          "default": ""
+        },
+        {
+          "name": "headerRow",
+          "kind": "Integer",
+          "default": "1"
+        },
+        {
+          "name": "range",
+          "kind": "Text",
+          "default": ""
+        }
+      ],
+      "description": "Reads a worksheet (named, or the first) from an .xlsx file. headerRow is the header\u0027s row within the range (rows above are skipped); range is an A1-style rectangle like B3:F100 (empty = used range)."
+    },
+    {
+      "kind": "xlsx.sheets",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "sheets",
+          "type": "Table",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "path",
+          "kind": "FilePath",
+          "default": ""
+        }
+      ],
+      "description": "Lists the worksheets in an .xlsx file: name, index (1-based), rowCount, columnCount of the used range."
+    }
+  ]
+}

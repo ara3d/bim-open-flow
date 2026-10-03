@@ -2,10 +2,14 @@
 // autoLayout.tidyLayout: columns and reading order stay as stored, cards move
 // right or down only as far as their painted footprints need.
 //
-//   npm run relayout-samples -- [--host http://127.0.0.1:5214] [--dry] [path-substring ...]
+//   npm run relayout-samples -- [--host http://127.0.0.1:5214] [--catalog file] [--samples dir,dir]
+//                                [--dry] [path-substring ...]
 //
-// Sizes cards from the committed docs/nodes.catalog.json, or from a running
-// host's catalog with --host (or BOF_HOST). Rewrites only the x and y
+// Covers the graph tool's own samples (FLOW_SAMPLE_DIRS) unless --samples names
+// other folders. Sizes cards from the committed test/nodes.catalog.json (the
+// generic packs), from another committed catalog with --catalog (the toolkit's
+// docs/nodes.catalog.json for its BIM samples), or from a running host's
+// catalog with --host (or BOF_HOST). Rewrites only the x and y
 // numbers of the layout entries, in place, so each file keeps its formatting;
 // the graph hash ignores layout, so golden files and run records stay valid.
 // A file with uncommitted changes is skipped, since another session owns it.
@@ -15,7 +19,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tidyLayout } from "../src/autoLayout.js";
-import { committedCatalog, fetchCatalog, overlappingPairs, repoRoot, sampleGraphs, sampleModel } from "./sampleGraphs.js";
+import { committedCatalog, fetchCatalog, FLOW_SAMPLE_DIRS, overlappingPairs, repoRoot, sampleGraphs, sampleModel } from "./sampleGraphs.js";
 
 const args = process.argv.slice(2);
 const option = (name: string) => {
@@ -23,6 +27,8 @@ const option = (name: string) => {
   return i >= 0 ? args.splice(i, 2)[1] : undefined;
 };
 const host = option("--host") ?? process.env["BOF_HOST"];
+const catalogFile = option("--catalog");
+const sampleDirs = option("--samples")?.split(",") ?? FLOW_SAMPLE_DIRS;
 const dry = args.includes("--dry");
 const filters = args.filter((a) => a !== "--dry");
 
@@ -54,11 +60,12 @@ const dirty = new Set(
     .map((line) => line.slice(3)),
 );
 
-const catalog = host === undefined ? committedCatalog() : await fetchCatalog(host);
+const catalog = host !== undefined ? await fetchCatalog(host)
+  : committedCatalog(catalogFile === undefined ? undefined : join(repoRoot, catalogFile));
 const texts = new Map<string, string>();
 // Workflow lists (samples/duckdb-analyses/workflows.json) are skipped: the
 // DuckDB studio lays each graph out afresh with autoLayout when it opens it.
-for (const sample of sampleGraphs()) {
+for (const sample of sampleGraphs(sampleDirs)) {
   if (filters.length && !filters.some((f) => sample.name.includes(f))) continue;
   const model = sampleModel(sample.document, catalog);
   const before = overlappingPairs(model);

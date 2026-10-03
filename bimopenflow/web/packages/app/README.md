@@ -101,7 +101,7 @@ chromes exist:
   (TKT-98).
 - `app.ts` — the controller wiring all of the above around one `ApiClient`.
 
-gratify is consumed from the submodule source via a vite/tsc alias to
+gratify is consumed from the `deps/gratify` source via a vite/tsc alias to
 `deps/gratify/src/gratify` (pattern copied from the former `platoflow/web`).
 
 ## Assumptions and stubs

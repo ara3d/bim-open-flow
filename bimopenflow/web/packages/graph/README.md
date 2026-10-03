@@ -15,7 +15,7 @@ Why the canvas is a package of this repository and not part of gratify:
 
 ## Depends on
 
-`gratify` (the submodule source, through the alias in `tsconfig.json` and
+`gratify` (the `deps/gratify` source, through the alias in `tsconfig.json` and
 `vitest.config.ts`), `@bimopenflow/state`, and `@bimopenflow/contracts`.
 `test/layering.test.ts` fails on an import of the application, the panes, the
 host client, the notebook, or gratify's example code.

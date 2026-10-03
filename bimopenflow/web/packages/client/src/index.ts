@@ -10,4 +10,6 @@ export * from "./modelCatalog";
 export * from "./modelRef";
 export * from "./paneChoice";
 export * from "./paneContext";
+export * from "./paneRegistry";
+export * from "./shownNode";
 export * from "./view3dFeed";

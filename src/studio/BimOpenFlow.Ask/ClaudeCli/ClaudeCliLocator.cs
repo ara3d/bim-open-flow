@@ -13,7 +13,7 @@ public static class ClaudeCliLocator
 
     /// <summary>ASK_CLAUDE_CLI (throws FileNotFoundException when it names a missing file); else
     /// the first Names match on PATH, when runs says it starts; else the numerically newest
-    /// claude.exe across %LOCALAPPDATA%\Packages\Claude_*\LocalCache\Roaming\Claude\claude-code
+    /// claude.exe (in a version folder or one folder below it) across %LOCALAPPDATA%\Packages\Claude_*\LocalCache\Roaming\Claude\claude-code
     /// (the MSIX-packaged desktop app's real folder) and %APPDATA%\Claude\claude-code, the
     /// packaged copy winning a tie; else null. runs defaults to ClaudeCliProbe.Runs, which
     /// spawns the PATH hit with --version.</summary>
@@ -40,8 +40,12 @@ public static class ClaudeCliLocator
 
         return BundledRoots(environment, subdirectories)
             .SelectMany(subdirectories)
-            .Select(dir => (Exe: Path.Combine(dir, "claude.exe"), Version: ParseVersion(Path.GetFileName(dir))))
-            .Where(entry => entry.Version is not null && fileExists(entry.Exe))
+            .Select(dir => (Dir: dir, Version: ParseVersion(Path.GetFileName(dir))))
+            .Where(entry => entry.Version is not null)
+            .SelectMany(entry => BundledExes(entry.Dir, subdirectories)
+                .Where(fileExists)
+                .Take(1)
+                .Select(exe => (Exe: exe, entry.Version)))
             .OrderByDescending(entry => entry.Version, Comparer<int[]?>.Create(CompareVersions))
             .Select(entry => entry.Exe)
             .FirstOrDefault();
@@ -54,6 +58,12 @@ public static class ClaudeCliLocator
                 .Where(dir => !string.IsNullOrWhiteSpace(dir))
                 .SelectMany(dir => Names.Select(name => Path.Combine(dir, name)))
                 .FirstOrDefault(fileExists);
+
+    /// <summary>Where a version folder may hold claude.exe: directly (older desktop apps), or one
+    /// folder below it (2.1.284 and later put it under a content-hash folder, such as
+    /// 2.1.286\635c1867224a\claude.exe).</summary>
+    private static IEnumerable<string> BundledExes(string versionDir, Func<string, IReadOnlyList<string>> subdirectories)
+        => subdirectories(versionDir).Prepend(versionDir).Select(dir => Path.Combine(dir, "claude.exe"));
 
     /// <summary>Every claude-code folder that holds version subfolders, packaged ones first.</summary>
     private static IReadOnlyList<string> BundledRoots(Func<string, string?> environment,

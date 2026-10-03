@@ -158,6 +158,21 @@ public sealed class ClaudeCliLocatorTests
     }
 
     [Test]
+    public void ClaudeExeOneFolderBelowTheVersionIsFound()
+    {
+        var found = ClaudeCliLocator.Find(Env(("LOCALAPPDATA", @"C:\L")),
+            fileExists: path => path == $@"{Packaged}\2.1.286\635c1867224a\claude.exe",
+            subdirectories: dir => dir switch
+            {
+                Packages => [$@"{Packages}\Claude_abc"],
+                Packaged => [$@"{Packaged}\2.1.284", $@"{Packaged}\2.1.286"],
+                $@"{Packaged}\2.1.286" => [$@"{Packaged}\2.1.286\635c1867224a"],
+                _ => [],
+            });
+        Assert.That(found, Is.EqualTo($@"{Packaged}\2.1.286\635c1867224a\claude.exe"));
+    }
+
+    [Test]
     public void NothingFoundGivesNull()
     {
         var found = ClaudeCliLocator.Find(Env(), fileExists: _ => false, subdirectories: _ => []);

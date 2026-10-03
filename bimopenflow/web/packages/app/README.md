@@ -6,12 +6,20 @@ and `session` layers of a graph file; never evaluates anything itself — every
 graph mutation goes through the `@bimopenflow/state` store (the single
 mutation path), and all data comes from the host via `@bimopenflow/api-client`.
 
+As a library (`src/index.ts`) it exports `createApp`, `bootEditor`, and the
+two chromes. A page chooses the panes (`panes`, a list of
+`PaneRegistration` from `@bimopenflow/client`; the generic table, chart,
+verdict, and inspector panes by default) and the start page's `templates`
+(none by default). The toolkit's pages (studio, Snowdon 3D, showcase, DuckDB
+demo), the 3D pane registration, the sample templates, and the Snowdon dev
+fixture are in `packages/studio-web`, which serves them on port 5300.
+
 ## Running
 
 ```sh
 cd bimopenflow/web
 npm install
-npm run dev -w @bimopenflow/app     # http://localhost:5300
+npm run dev -w @bimopenflow/app     # http://localhost:5304, the generic editor
 ```
 
 The dev server proxies `/api` to the host at `http://127.0.0.1:5214`; override
@@ -45,9 +53,10 @@ chromes exist:
 
 - `classicChrome.ts` — `shell.ts` / `styles.ts` (the DOM layout under the
   `bof-app-` class/custom-property prefix), `topbar.ts`, `sidebar.ts`, and
-  the graph demo's toolbar. `index.html`, `3d.html`, and `duckdb.html` use it.
+  the graph demo's toolbar. `index.html` here, and studio-web's `index.html`,
+  `3d.html`, and `duckdb.html`, use it.
 - `studio/studioChrome.ts` + `studio/studio.css` — the studio look at
-  `/studio.html` (`studio.ts`): a command bar with the flow's title
+  studio-web's `/studio.html` (`studio.ts`): a command bar with the flow's title
   (`studio/flowTitle.ts`), a primary Run, a View menu, a floating canvas
   toolbar (Fit, Tidy, Add node), an empty-flow card, a gestures popover, and
   the Ask box over the panes. It reuses the sidebar, step list, problems
@@ -79,7 +88,8 @@ chromes exist:
   `readPort` (TKT-11: hover a socket or wire for its rows, counts on wires).
 - `startPage.ts` / `templates.ts` — the start page: one card per sample flow
   grouped by folder (Open, Copy, Blank flow; dimmed when the host profile does
-  not seed it). The catalog `templates.generated.ts` comes from
+  not seed it). The page passes the catalog; studio-web's
+  `templates.generated.ts` comes from
   `node scripts/build-flow-templates.mjs` (`--check` in CI); rerun it after
   adding or describing a sample (TKT-14).
 - `stepList.ts` / `graphOrder.ts` — the open flow as numbered steps in
@@ -108,15 +118,16 @@ gratify is consumed from the `deps/gratify` source via a vite/tsc alias to
 
 - 3D model URLs: `resolveAsset("model:{id}")` maps to
   `/api/models/{id}/bos` — a stub until the host serves geometry
-  (TODO markers in `paneContext.ts` / `paneArea.ts`); the 3D pane currently
-  receives only the `instances` table.
+  (`@bimopenflow/client` `paneContext.ts`); the 3D pane is
+  `@bimopenflow/pane-3d`, registered by studio-web's pages.
 - "New" creates an analysis by `PUT`-ing an empty document (the API has no
   dedicated create endpoint).
 
 Provenance: new for the BimOpenFlow rewrite (see `docs/bimopenflow-structure.md`).
 # Snowdon 3D graphs
 
-Open **Snowdon 3D graphs** in the editor's top bar, or visit `/3d.html`.
+Open **Snowdon 3D graphs** in the editor's top bar, or visit `/3d.html`
+(served by `packages/studio-web`).
 The editable graph opens on the left with its live 3D preview on the right.
 Edit node fields, connect sockets, and select a node to preview its result.
 The standalone button examples remain at `/showcase.html`.

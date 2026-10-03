@@ -5,7 +5,9 @@ import type {
   ParamDescriptor,
   TableSlice,
 } from "@bimopenflow/contracts";
-import { createPaneArea } from "../src/paneArea.js";
+import type { PaneEvent } from "@bimopenflow/panes";
+import { genericPanes, paneRegistry, type PaneRegistration } from "@bimopenflow/client";
+import { createPaneArea, type PaneArea } from "../src/paneArea.js";
 
 const desc = (kind: string, params: ParamDescriptor[] = []): NodeDescriptor => ({
   kind,
@@ -51,87 +53,92 @@ const makeArea = () => {
   return { root, area };
 };
 
-describe("createPaneArea 3D model wiring", () => {
-  const view3dDesc: NodeDescriptor = {
-    kind: "view3d.instances",
-    version: 1,
-    capability: "Pure",
-    inputs: [],
-    outputs: [{ name: "instances", type: "Table", optional: false }],
-    params: [],
-    description: "",
+describe("createPaneArea with registered panes", () => {
+  const recipeDesc: NodeDescriptor = { ...desc("view.recipe"), outputs: [{ name: "view", type: "Table", optional: false }] };
+
+  /** A registration whose panes record their updates; it keeps its pane across nodes of one model. */
+  const recorder = () => {
+    const created: unknown[][] = [];
+    const fed: string[] = [];
+    let emit: (e: PaneEvent) => void = () => {};
+    const registration: PaneRegistration = {
+      kind: "rec",
+      label: "Recorder",
+      offer: (d) => (d?.kind === "view.recipe" ? 0 : undefined),
+      create: () => {
+        const updates: unknown[] = [];
+        created.push(updates);
+        return { mount: () => {}, update: (i) => { updates.push(i); }, onEvent: (h) => { emit = h; }, destroy: () => {} };
+      },
+      fillHeight: true,
+      feed: async (pane, shown, io) => {
+        fed.push(`${shown.nodeId}:${io.port?.name}`);
+        if (io.current()) pane.update({ kind: "table", data: slice });
+      },
+      keep: (prev, next) => prev.modelPath === next.modelPath,
+    };
+    return { registration, created, fed, emit: (e: PaneEvent) => emit(e) };
   };
 
-  const makeView3dArea = (resolved: Record<string, string>) => {
+  const makeRegisteredArea = (registration: PaneRegistration) => {
     const root = document.createElement("div");
     document.body.appendChild(root);
-    const updates: unknown[] = [];
     const errors: string[] = [];
     const area = createPaneArea(root, {
       ctx: { requestTable: async () => slice, resolveAsset: (url) => url },
       onSelect: () => {},
       onError: (m) => { errors.push(m); },
-      resolveModelId: async (path) => resolved[path] ?? null,
-      paneFactory: () => ({
-        mount: () => {},
-        update: (input: unknown) => {
-          updates.push(input);
-        },
-        onEvent: () => {},
-        destroy: () => {},
-      }),
+      panes: paneRegistry(...genericPanes, registration),
     });
-    return { area, updates, errors };
+    return { root, area, errors };
   };
 
-  const shownWith = (modelPath?: string) => ({
-    nodeId: "n1",
-    desc: view3dDesc,
-    values: {},
-    state: okState,
-    modelPath,
-  });
+  const show = (area: PaneArea, nodeId: string, modelPath: string) =>
+    area.showNode({ nodeId, modelPath, desc: recipeDesc, values: {}, state: { ...okState, nodeId } });
 
-  it("pushes the model before the instances table, once per model", async () => {
-    const { area, updates } = makeView3dArea({ "data/duplex.ifc": "duplex.ifc" });
-    area.showNode(shownWith("data/duplex.ifc"));
+  it("offers a registered pane first by its offer, labelled and full height", async () => {
+    const rec = recorder();
+    const { root, area } = makeRegisteredArea(rec.registration);
+    show(area, "n1", "snowdon");
     await settle();
-    expect(updates).toEqual([
-      { kind: "model", url: "model:duplex.ifc", format: "bos" },
-      { kind: "instances", data: slice },
-    ]);
-
-    // a data refresh re-feeds the table but does not reload the model
-    area.showNode(shownWith("data/duplex.ifc"));
-    await settle();
-    expect(updates.filter((u) => (u as { kind: string }).kind === "model")).toHaveLength(1);
+    const tabs = [...root.querySelectorAll<HTMLElement>(".bof-app-tab")];
+    expect(tabs.map((t) => t.dataset.kind)).toEqual(["rec", "table", "chart", "inspector"]);
+    expect(tabs[0]!.textContent).toBe("Recorder");
+    expect(root.querySelector<HTMLElement>(".bof-app-panebody > div")!.style.height).toBe("100%");
+    expect(rec.fed).toEqual(["n1:view"]);
     area.dispose();
   });
 
-  it("feeds tables without a model path and reports unresolved model paths", async () => {
-    const { area, updates, errors } = makeView3dArea({});
-    area.showNode(shownWith("unknown.ifc"));
+  it("keeps the mounted pane when its registration says so, and rebuilds it otherwise", async () => {
+    const rec = recorder();
+    const { area } = makeRegisteredArea(rec.registration);
+    show(area, "categories", "snowdon");
     await settle();
-    expect(updates).toEqual([]);
-    expect(errors[0]).toContain("not in the host catalog");
+    show(area, "cutaway", "snowdon");
+    await settle();
+    expect(rec.created).toHaveLength(1);
+    expect(rec.fed).toEqual(["categories:view", "cutaway:view"]);
+    show(area, "other", "duplex");
+    await settle();
+    expect(rec.created).toHaveLength(2);
     area.dispose();
   });
 
-  it("keeps one loaded viewer across recipe branches and reloads for a different model", async () => {
-    const { area, updates } = makeView3dArea({ snowdon: "snowdon", duplex: "duplex" });
-    const recipe = { ...view3dDesc, outputs: [{ name: "view", type: "Table" as const, optional: false }] };
-    const show = (nodeId: string, modelPath: string) => area.showNode({
-      nodeId, modelPath, desc: recipe, values: {}, state: { ...okState, nodeId },
-    });
-    show("categories", "snowdon");
+  it("reports a pane's loadError with the pane's label", async () => {
+    const rec = recorder();
+    const { area, errors } = makeRegisteredArea(rec.registration);
+    show(area, "n1", "snowdon");
     await settle();
-    show("cutaway", "snowdon");
+    rec.emit({ kind: "action", action: "loadError", payload: { message: "bad bytes" } });
+    expect(errors).toEqual(["Recorder model load failed: bad bytes"]);
+    area.dispose();
+  });
+
+  it("offers only the generic panes when nothing else is registered", async () => {
+    const { root, area } = makeArea();
+    area.showNode({ nodeId: "n1", desc: { ...desc("view3d.instances"), outputs: [{ name: "instances", type: "Table", optional: false }] }, values: {}, state: okState });
     await settle();
-    expect(updates.filter((u) => (u as { kind: string }).kind === "model")).toHaveLength(1);
-    expect(updates.filter((u) => (u as { kind: string }).kind === "view")).toHaveLength(2);
-    show("other", "duplex");
-    await settle();
-    expect(updates.filter((u) => (u as { kind: string }).kind === "model")).toHaveLength(2);
+    expect([...root.querySelectorAll<HTMLElement>(".bof-app-tab")].map((t) => t.dataset.kind)).toEqual(["table", "chart", "inspector"]);
     area.dispose();
   });
 });

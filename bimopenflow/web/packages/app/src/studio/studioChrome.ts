@@ -18,7 +18,6 @@ import { canvasThemeNames, isCanvasThemeName, isNodeStyleName, nodeStyleNames } 
 import type { AppChrome, ChromeActions, ChromeFactory } from "../chrome.js";
 import { installSplitter, LEFT_SPLIT, restoreWidth, RIGHT_SPLIT } from "../columnSplitter.js";
 import { createSidebar } from "../sidebar.js";
-import { TEMPLATES } from "../templates.generated.js";
 import type { FlowTemplate } from "../templates.js";
 import { namePicker } from "../topbar.js";
 import type { ThemePrefs } from "../themeChoice.js";
@@ -40,7 +39,7 @@ export const STUDIO_ASK_EXAMPLES: readonly string[] = [
 const CONNECTION_LABEL = { connected: "Connected", reconnecting: "Reconnecting…", offline: "Offline" } as const;
 
 export interface StudioChromeOptions {
-  /** The sample catalog for flow titles; the generated one by default. */
+  /** The sample catalog for flow titles; none by default (ids are shown). */
   templates?: readonly FlowTemplate[];
 }
 
@@ -59,7 +58,7 @@ const ICON = {
 export const studioChrome = (options: StudioChromeOptions = {}): ChromeFactory =>
   (root, actions) => {
     const doc = root.ownerDocument;
-    const templates = options.templates ?? TEMPLATES;
+    const templates = options.templates ?? [];
     root.classList.add("bof-studio");
 
     const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text?: string): HTMLElementTagNameMap[K] => {

@@ -17,10 +17,13 @@ import {
 } from "@bimopenflow/state";
 import { createPaneArea } from "./paneArea.js";
 import {
-  buildLiveViewRecipe,
+  genericPanes,
   makePaneContext,
   modelCatalog,
   modelPathFor,
+  paneRegistry,
+  type LiveViewRecipe,
+  type PaneRegistration,
 } from "@bimopenflow/client";
 import { createHostStatus, type HostStatusSource } from "@bimopenflow/client/host";
 import { createGraphEditor } from "@bimopenflow/graph";
@@ -36,7 +39,7 @@ import { createStepList, stepListModel } from "./stepList.js";
 import { createProblemsPanel } from "./problemsPanel.js";
 import { graphProblems } from "./graphProblems.js";
 import { createStartPage } from "./startPage.js";
-import { TEMPLATES } from "./templates.generated.js";
+import type { FlowTemplate } from "./templates.js";
 import { chooseInitialAnalysis, searchWithAnalysis } from "./analysisParam.js";
 import { showToast } from "./toast.js";
 import { mountAskPanel, type AskPanel } from "./askPanel.js";
@@ -85,11 +88,18 @@ export interface AppOptions {
   /** The host status the api reports into (see watchHost). Without one the
    *  app only learns about the host from its own periodic probe. */
   host?: HostStatusSource;
+  /** The panes the pane area offers; the generic panes (table, chart,
+   *  verdict, inspector) when omitted. A toolkit page adds view3dPane
+   *  from @bimopenflow/pane-3d. */
+  panes?: readonly PaneRegistration[];
+  /** The start page's flow templates; none when omitted. */
+  templates?: readonly FlowTemplate[];
 }
 
 export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions = {}): App {
   const store = createStore();
   const catalog = new Map<string, NodeDescriptor>();
+  const panes = paneRegistry(...(options.panes ?? genericPanes));
 
   let analyses: AnalysisSummary[] = [];
   let currentId: string | null = null;
@@ -189,6 +199,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     onSelect: (ids) => { resultSelection = ids; paneArea.updateSelection(ids); },
     onError: fail,
     resolveModelId,
+    panes,
     onTogglePin: () => togglePaneAnswerPin(),
     onShowAnswer: () => showAnswerInPane(),
   });
@@ -251,7 +262,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   // The start page (TKT-14): one card per sample flow, over the canvas. Shown
   // at boot in the plain editor, and from the topbar's New button.
   const startPage = createStartPage(chrome.canvasHost, {
-    templates: TEMPLATES,
+    templates: options.templates ?? [],
     onOpen: (id) => { startPage.hide(); void openAnalysis(id); },
     onCopy: (id) => { startPage.hide(); void copyAnalysis(id); },
     onBlank: () => { startPage.hide(); void newAnalysis(); },
@@ -270,6 +281,15 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   let lastDirty = false;
   let lastSelection = store.getState().selection;
 
+  /** The first registered pane's result drawn from the document alone, if any applies. */
+  const livePreview = (state: State, nodeId: string): LiveViewRecipe | undefined => {
+    for (const pane of panes.values()) {
+      const live = pane.preview?.(state.document, nodeId, catalog);
+      if (live && live.kind !== "unsupported") return live;
+    }
+    return undefined;
+  };
+
   const shownFor = (state: State, nodeId: string, isAnswer: boolean) => ({
     nodeId,
     desc: catalog.get(
@@ -279,7 +299,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     state: state.evalState[nodeId],
     modelPath: modelPathFor(state.document, nodeId),
     pending: state.dirty,
-    live: buildLiveViewRecipe(state.document,nodeId,catalog),
+    live: livePreview(state, nodeId),
     lineage: [...upstreamIds(state.document,nodeId)].reverse().map(id => {
       const node = state.document.structure.nodes.find(n=>n.id===id);
       return node ? nodeTitle(node.kind) : id;

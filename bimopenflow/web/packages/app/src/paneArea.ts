@@ -3,13 +3,7 @@
 // docking/layout manager to gratify); one active pane + tabs covers the
 // editor loop until then.
 
-import type { NodeDescriptor, NodeState } from "@bimopenflow/contracts";
 import {
-  createChartPane,
-  createInspectorPane,
-  createTablePane,
-  createVerdictPane,
-  createViewPane3D,
   ensurePaneStyles,
   type ChartPaneOptions,
   type Pane,
@@ -18,56 +12,18 @@ import {
 } from "@bimopenflow/panes";
 import {
   chartPaneOptions,
-  choosePanes,
-  completeTable,
   firstTableOutput,
+  genericPanes,
   hasResults,
-  modelUrlFor,
+  paneRegistry,
+  panesFor,
   studioPanes,
-  view3dDataKind,
-  type LiveViewRecipe,
-  type PaneKind,
+  type PaneRegistration,
+  type ShownNode,
 } from "@bimopenflow/client";
-import { hostMessage } from "@bimopenflow/client/host";
 import { nodeTitle } from "@bimopenflow/graph";
 
-const PANE_LABELS: Record<PaneKind, string> = {
-  verdict: "Verdicts",
-  view3d: "3D",
-  table: "Table",
-  chart: "Chart",
-  inspector: "Inspector",
-};
-
-const paneFactory = (kind: PaneKind, chartOptions: ChartPaneOptions): Pane => {
-  switch (kind) {
-    case "table": return createTablePane();
-    case "chart": return createChartPane(chartOptions);
-    case "verdict": return createVerdictPane();
-    case "view3d": return createViewPane3D({ followGraph: true });
-    case "inspector": return createInspectorPane();
-  }
-};
-
-interface ShownNode {
-  nodeId: string;
-  desc: NodeDescriptor | undefined;
-  values: Record<string, string>;
-  state: NodeState | undefined;
-  /** Model file path feeding this node (see modelRef.modelPathFor); lets the
-   * 3D pane load the model behind the instance/box tables. */
-  modelPath?: string;
-  pending?: boolean;
-  live?: LiveViewRecipe;
-  lineage?: string;
-  /** True when this node is the flow's answer (TKT-46/TKT-81): the panes
-   *  display it whether or not anything is selected. False means it is shown
-   *  because of an explicit "show" request (double-click, the header's pin),
-   *  not because it is the answer. */
-  default?: boolean;
-  /** True while the pane is pinned to this node regardless of the answer. */
-  pinned?: boolean;
-}
+export type { ShownNode };
 
 export interface PaneAreaDeps {
   /** The DuckDB studio's pane set (see studioPanes): the table, plus a Chart
@@ -78,8 +34,8 @@ export interface PaneAreaDeps {
   onError(message: string): void;
   /** Catalog model id for a node's model file path; null when unknown. */
   resolveModelId?(path: string): Promise<string | null>;
-  /** Pane construction override for tests. */
-  paneFactory?(kind: PaneKind, chartOptions: ChartPaneOptions): Pane;
+  /** The panes on offer (paneRegistry); the generic panes when omitted. */
+  panes?: ReadonlyMap<string, PaneRegistration>;
   /** The pane header's pin toggle was clicked (TKT-81). */
   onTogglePin?(): void;
   /** The pane header's "Back to answer" button was clicked (TKT-81). */
@@ -97,6 +53,7 @@ export interface PaneArea {
 }
 
 export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea {
+  const registry = deps.panes ?? paneRegistry(...genericPanes);
   ensurePaneStyles(root.ownerDocument);
   root.classList.add("bof-app-panearea");
   const header = root.ownerDocument.createElement("div");
@@ -137,11 +94,10 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
   root.append(header, tabs, body);
 
   let shown: ShownNode | null = null;
-  let activeKind: PaneKind | null = null;
+  let active: PaneRegistration | null = null;
   let activePane: Pane | null = null;
   let activeChartOptions: ChartPaneOptions | null = null;
   let fetchToken = 0;
-  let loadedModelUrl: string | null = null;
 
   const currentChartOptions = (): ChartPaneOptions =>
     chartPaneOptions(shown?.desc?.kind, shown?.values ?? {});
@@ -155,7 +111,6 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
     fetchToken++;
     activePane?.destroy();
     activePane = null;
-    loadedModelUrl = null;
     body.textContent = "";
   };
 
@@ -169,107 +124,56 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
 
   const onPaneEvent = (e: PaneEvent) => {
     if (e.kind === "selection") deps.onSelect(e.event.ids);
-    else if (e.action === "loadError") {
-      loadedModelUrl = null;
-      deps.onError(`3D model load failed: ${e.payload?.message ?? "unknown error"}`);
-    }
-  };
-
-  // Loads the shown node's model into the 3D pane once per model: resolves the
-  // node's model path to a catalog id and pushes { kind: "model" } before any
-  // instance/box data, skipping when the same model is already loaded.
-  const feedModel = async (pane: Pane, token: number) => {
-    const path = shown?.modelPath;
-    if (!path || !deps.resolveModelId) return;
-    const id = await deps.resolveModelId(path);
-    if (token !== fetchToken || pane !== activePane) return; // stale
-    const url = modelUrlFor(path, id);
-    if (url === loadedModelUrl) return;
-    loadedModelUrl = url;
-    // The model-bytes endpoint always serves BOS; the id in the url may keep
-    // a source extension (.ifc), so the format cannot be inferred from it.
-    pane.update({ kind: "model", url, format: "bos" });
+    else if (e.action === "loadError")
+      deps.onError(`${active?.label ?? "Pane"} model load failed: ${e.payload?.message ?? "unknown error"}`);
   };
 
   const feedData = async () => {
-    if (!shown || !activePane || !activeKind) return;
+    if (!shown || !activePane || !active) return;
     const pane = activePane;
-    const { nodeId, desc, values, state } = shown;
+    const token = ++fetchToken;
     try {
-      if (activeKind === "inspector") {
-        if (desc) pane.update({ kind: "inspect", node: desc, values, state, nodeId });
-        return;
-      }
-      const port = deps.tableOnly ? desc?.outputs[0] : firstTableOutput(desc);
-      if (!port) return;
-      if (activeKind === "view3d" && shown.live?.kind !== "unsupported" && shown.live) {
-        if (shown.live.kind === "invalid") return;
-        const token = ++fetchToken;
-        const data = shown.live.data;
-        await feedModel(pane,token);
-        if (token === fetchToken && pane === activePane) pane.update({kind:"view",data});
-        return;
-      }
-      if (shown.pending) return; // Wait for autosave/evaluation, not the previous result.
-      if (!hasResults(state)) return; // no result on the host yet; pane stays empty
-      const token = ++fetchToken;
-      const current = () => token === fetchToken && pane === activePane;
-      if (activeKind === "view3d") await feedModel(pane, token);
-      let data;
-      try {
-        data = activeKind === "view3d"
-          ? await completeTable(deps.ctx, nodeId, port.name, current)
-          : await deps.ctx.requestTable(nodeId, port.name);
-      } catch (e) {
-        // A result read that fails is about this node's data, not the app:
-        // the host re-evaluated or the node went away between the evaluation
-        // update and this request, and the next update re-feeds the pane.
-        // Say so on the pane's header line instead of raising an error box.
-        if (current()) source.append(headerLine("bof-app-pane-note", `\nNo rows to show: ${hostMessage(e)}`));
-        return;
-      }
-      if (!data) return;
-      if (!current()) return; // stale
-      if (activeKind === "view3d") {
-        // The pane queues an instances slice that arrives before the model
-        // finishes loading, so pushing the table right after is safe.
-        pane.update({ kind: view3dDataKind(port.name, data), data });
-      } else {
-        pane.update({ kind: "table", data });
-      }
+      await active.feed(pane, shown, {
+        ctx: deps.ctx,
+        port: deps.tableOnly ? shown.desc?.outputs[0] : firstTableOutput(shown.desc),
+        current: () => token === fetchToken && pane === activePane,
+        resolveModelId: deps.resolveModelId,
+        note: (text) => source.append(headerLine("bof-app-pane-note", `
+${text}`)),
+      });
     } catch (e) {
       deps.onError(e instanceof Error ? e.message : String(e));
     }
   };
 
-  const activate = (kind: PaneKind) => {
-    activeKind = kind;
+  const activate = (registration: PaneRegistration) => {
+    active = registration;
     destroyPane();
     for (const el of tabs.children)
-      el.classList.toggle("bof-app-tab-active", (el as HTMLElement).dataset.kind === kind);
+      el.classList.toggle("bof-app-tab-active", (el as HTMLElement).dataset.kind === registration.kind);
     activeChartOptions = currentChartOptions();
-    const pane = (deps.paneFactory ?? paneFactory)(kind, activeChartOptions);
+    const pane = registration.create(activeChartOptions);
     pane.onEvent(onPaneEvent);
     const host = root.ownerDocument.createElement("div");
-    if (kind === "view3d") host.style.height = "100%";
+    if (registration.fillHeight) host.style.height = "100%";
     body.appendChild(host);
     pane.mount(host, deps.ctx);
     activePane = pane;
     void feedData();
   };
 
-  const rebuildTabs = (kinds: PaneKind[]) => {
+  const rebuildTabs = (kinds: readonly PaneRegistration[]) => {
     tabs.textContent = "";
     // .bof-app-tabs sets display:flex, which beats the hidden attribute.
     const noChoice = deps.tableOnly === true && kinds.length < 2;
     tabs.style.display = noChoice ? "none" : "";
     if (noChoice) return;
-    for (const kind of kinds) {
+    for (const registration of kinds) {
       const tab = root.ownerDocument.createElement("div");
       tab.className = "bof-app-tab";
-      tab.dataset.kind = kind;
-      tab.textContent = PANE_LABELS[kind];
-      tab.addEventListener("click", () => activate(kind));
+      tab.dataset.kind = registration.kind;
+      tab.textContent = registration.label;
+      tab.addEventListener("click", () => activate(registration));
       tabs.appendChild(tab);
     }
   };
@@ -277,10 +181,8 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
   return {
     showNode(next) {
       fetchToken++;
-      const sameNode = shown?.nodeId === next?.nodeId;
-      const sameRecipeModel = shown?.modelPath === next?.modelPath &&
-        shown?.desc?.outputs.some(p => p.name === "view") &&
-        next?.desc?.outputs.some(p => p.name === "view");
+      const previous = shown;
+      const sameNode = previous?.nodeId === next?.nodeId;
       shown = next;
       const live = next?.live;
       const error = live?.kind === "invalid" ? live.message : live?.kind === "ready" ? null : next?.state && !hasResults(next.state) ? next.state.error ?? next.state.status : null;
@@ -304,36 +206,39 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
       pinBtn.classList.toggle("bof-app-pin-active", next?.pinned ?? false);
       backBtn.hidden = !next || next.default !== false;
       if (!next) {
-        activeKind = null;
+        active = null;
         rebuildTabs([]);
         showEmpty("Select a node to see its data.");
         return;
       }
-      const kinds: PaneKind[] = deps.tableOnly ? studioPanes(next.desc) : choosePanes(next.desc);
-      // Recipe branches share the loaded model and renderer. Reapply their
-      // complete recipe without reloading Snowdon on every node click.
-      if (!sameNode && sameRecipeModel && activeKind === "view3d" && kinds.includes("view3d")) {
+      const kinds = (deps.tableOnly ? studioPanes(next.desc) : panesFor(next.desc, registry))
+        .flatMap((kind) => registry.get(kind) ?? []);
+      const offered = active !== null && kinds.includes(active);
+      // A registration may keep its mounted pane across nodes (the 3D pane
+      // across recipe branches of one model) and only re-feed it.
+      if (!sameNode && offered && previous && active?.keep?.(previous, next)) {
         rebuildTabs(kinds);
-        tabs.querySelector('[data-kind="view3d"]')?.classList.add("bof-app-tab-active");
+        tabs.querySelector(`[data-kind="${active.kind}"]`)?.classList.add("bof-app-tab-active");
         void feedData();
         return;
       }
-      if (sameNode && activeKind && kinds.includes(activeKind)) {
+      if (sameNode && offered) {
         // Chart options are baked in at pane creation; a param edit that
         // changes them needs a fresh pane, not just fresh data.
         if (
-          activeKind === "chart" &&
+          active!.kind === "chart" &&
           activeChartOptions &&
           !sameChartOptions(currentChartOptions(), activeChartOptions)
         ) {
-          activate("chart");
+          activate(active!);
           return;
         }
         void feedData();
         return;
       }
       rebuildTabs(kinds);
-      activate(kinds[0]!);
+      if (kinds[0]) activate(kinds[0]);
+      else showEmpty("No pane is registered for this node.");
     },
     refreshData() {
       void feedData();

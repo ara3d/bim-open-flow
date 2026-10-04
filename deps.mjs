@@ -12,6 +12,9 @@
 //   3. Otherwise clone the dependency into deps/<name> at the pinned commit.
 // deps/ gets a .deps-root marker, so each dependency's own deps.json resolves
 // to siblings in the same folder: one checkout of every repository.
+// The dependencies of dependencies are linked into this repository's deps/
+// too, so in both modes deps/ holds every repository the build reaches, and
+// the build names each one by a single path: deps/<name>.
 //
 // The same file is copied into every BIM Open repository; keep the copies
 // identical. Design: docs/plans/repository-split.md in bim-open-toolkit.
@@ -23,6 +26,7 @@ import { fileURLToPath } from "node:url";
 const MARKER = ".deps-root";
 const check = process.argv.includes("--check");
 const root = dirname(fileURLToPath(import.meta.url));
+const rootDeps = join(root, "deps");
 
 const git = (cwd, ...args) => execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
 const commitOf = (dir) => { try { return git(dir, "rev-parse", "HEAD"); } catch { return undefined; } };
@@ -85,7 +89,13 @@ const resolveRepo = (repo) => {
   for (const name of names) {
     const spec = deps[name];
     const target = join(depsDir, name);
-    if (check) { report(name, target, pins.get(name)); if (existsSync(target)) resolveRepo(target); continue; }
+    const flat = join(rootDeps, name);
+    if (check) {
+      report(name, target, pins.get(name));
+      if (repo !== root && existsSync(target) && !existsSync(flat)) problems.push(`${name}: missing at ${flat}; run node deps.mjs`);
+      if (existsSync(target)) resolveRepo(target);
+      continue;
+    }
     if (!existsSync(target)) {
       if (isDepsRoot(parent)) {
         const sibling = join(parent, name);
@@ -99,6 +109,7 @@ const resolveRepo = (repo) => {
     const pinned = pins.get(name).commit;
     if (pinned && commit !== pinned) problems.push(`${name}: at ${short(commit)}, pinned ${short(pinned)} (${target})`);
     resolveRepo(target);
+    if (!existsSync(flat)) link(name, realpathSync(target), flat);
   }
 };
 

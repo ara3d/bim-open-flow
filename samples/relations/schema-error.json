@@ -1,0 +1,42 @@
+{
+  "formatVersion": "0.1.0",
+  "layout": {
+    "answer": {
+      "x": 370,
+      "y": 40
+    },
+    "orders": {
+      "x": 40,
+      "y": 40
+    }
+  },
+  "structure": {
+    "edges": [
+      {
+        "from": "orders.relation",
+        "to": "answer.input"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "answer",
+        "kind": "rel.filter",
+        "version": 1
+      },
+      {
+        "id": "orders",
+        "kind": "rel.csv",
+        "version": 1
+      }
+    ]
+  },
+  "values": {
+    "answer": {
+      "expr": "[Quantiy] >= 100"
+    },
+    "orders": {
+      "path": "orders.csv",
+      "source": "tables"
+    }
+  }
+}

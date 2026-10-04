@@ -1,0 +1,29 @@
+{
+  "name": "@bimopenflow/panes",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Generic pane implementations for the BimOpenFlow editor: table, chart, inspector, verdict list, and the legends. Each pane is an isolated module behind the single pane contract (data in, events out), which this package owns. The 3D pane is @bimopenflow/pane-3d.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": "./test/testing.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bimopenflow/contracts": "0.1.0",
+    "@bimopenflow/viz": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "jsdom": "^26.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0"
+  }
+}

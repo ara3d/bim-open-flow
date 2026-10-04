@@ -1,0 +1,201 @@
+// Generated from contracts/contracts.json v0.1.0 by contracts/generate.mjs.
+// Do not edit by hand.
+
+export type ParamKind =
+  | "Boolean"
+  | "Integer"
+  | "Number"
+  | "Text"
+  | "Enum"
+  | "FilePath"
+  | "ModelRef"
+  | "Expression"
+  | "Json"
+  | "DateTime"
+  | "Fraction"
+  | "Percent";
+
+export type PortType =
+  | "Boolean"
+  | "Integer"
+  | "Number"
+  | "Text"
+  | "Table"
+  | "Relation"
+  | "Any";
+
+export type ColumnType =
+  | "Boolean"
+  | "Integer"
+  | "Number"
+  | "Text";
+
+export type NodeCapability =
+  | "Pure"
+  | "Effect";
+
+export type Verdict =
+  | "Pass"
+  | "Fail"
+  | "NeedsReview"
+  | "InfoNotAvailable";
+
+export type ModelKind =
+  | "Ifc"
+  | "Bos";
+
+export type NodeStatus =
+  | "Ok"
+  | "Unready"
+  | "EffectPending"
+  | "Unavailable"
+  | "Error";
+
+export type SuggestKind =
+  | "ColumnsOfInput"
+  | "TablesInFile";
+
+export type SuggestStatus =
+  | "Ok"
+  | "Unready"
+  | "Unavailable";
+
+export interface ColumnSchema {
+  name: string;
+  type: ColumnType;
+}
+
+export interface TableData {
+  columns: ColumnSchema[];
+  rows: unknown[][];
+}
+
+export interface PortDescriptor {
+  name: string;
+  type: PortType;
+  optional: boolean;
+}
+
+export interface ParamDescriptor {
+  name: string;
+  kind: ParamKind;
+  default: string;
+  enumValues?: string[] | undefined;
+  suggest?: SuggestDescriptor | undefined;
+  control?: ControlDescriptor | undefined;
+}
+
+export interface ControlDescriptor {
+  kind: string;
+  min?: number | undefined;
+  max?: number | undefined;
+  step?: number | undefined;
+  unit?: string | undefined;
+  label?: string | undefined;
+}
+
+export interface SuggestDescriptor {
+  kind: SuggestKind;
+  source: string;
+}
+
+export interface Suggestion {
+  value: string;
+  detail?: string | undefined;
+}
+
+export interface SuggestionList {
+  status: SuggestStatus;
+  values: Suggestion[];
+  reason?: string | undefined;
+}
+
+export interface NodeDescriptor {
+  kind: string;
+  version: number;
+  capability: NodeCapability;
+  inputs: PortDescriptor[];
+  outputs: PortDescriptor[];
+  params: ParamDescriptor[];
+  description: string;
+}
+
+export interface NodeCatalog {
+  nodes: NodeDescriptor[];
+}
+
+export interface ModelSummary {
+  id: string;
+  name: string;
+  kind: ModelKind;
+  sizeBytes: number;
+  lastWriteUtc: string;
+  sourcePath: string;
+}
+
+export interface EntityParameter {
+  group: string;
+  name: string;
+  value: string;
+  units?: string | undefined;
+}
+
+export interface EntityProperties {
+  localId: number;
+  globalId?: string | undefined;
+  name?: string | undefined;
+  category?: string | undefined;
+  parameters: EntityParameter[];
+}
+
+export interface AnalysisSummary {
+  id: string;
+  graphHash: string;
+}
+
+export interface AnalysisVersion {
+  version: number;
+  graphHash: string;
+}
+
+export interface NodeState {
+  nodeId: string;
+  status: NodeStatus;
+  error?: string | undefined;
+  warnings: string[];
+}
+
+export interface EvalUpdate {
+  analysisId: string;
+  nodes: NodeState[];
+  graphHash?: string | undefined;
+}
+
+export interface EditorSession {
+  analysisId?: string | undefined;
+  selection: string[];
+  updatedUtc?: string | undefined;
+}
+
+export interface TableSlice {
+  columns: ColumnSchema[];
+  rows: unknown[][];
+  totalRows: number;
+  skip: number;
+}
+
+export interface RunSummary {
+  fileName: string;
+  timestampUtc: string;
+  graphHash: string;
+}
+
+export interface SelectionEvent {
+  source: string;
+  ids: string[];
+}
+
+export interface ApiError {
+  error: string;
+}
+

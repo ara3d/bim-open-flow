@@ -1,0 +1,154 @@
+using Ara3D.DataFlowEngine;
+using Ara3D.DataFlowEngine.Abstractions;
+using Ara3D.NodeGraph;
+using BimOpenFlow.Host.Store;
+
+namespace BimOpenFlow.Host.Api;
+
+/// <summary>
+/// One standing EvalSession per analysis, created on demand from the store.
+/// The engine is single-threaded by design, so every session operation runs
+/// under a per-session lock; SSE fan-out uses the session's own observers.
+/// A session remembers the store stamp of the document it holds and reloads
+/// when the file on disk has been replaced by another writer (the MCP tools,
+/// another process), so readers never see results of a superseded document.
+/// </summary>
+public sealed class AnalysisSessions
+{
+    private sealed class Entry
+    {
+        public readonly object Lock = new();
+        public required EvalSession Session { get; init; }
+        public StoreStamp? Stamp;
+    }
+
+    private readonly AnalysisStore _store;
+    private readonly INodeRegistry _registry;
+    private readonly object _mapLock = new();
+    private readonly Dictionary<string, Entry> _entries = new();
+
+    public AnalysisSessions(AnalysisStore store, INodeRegistry registry)
+    {
+        _store = store;
+        _registry = registry;
+    }
+
+    /// <summary>The current snapshot, evaluating the stored document first if
+    /// this analysis has no session yet or the store has changed underneath it.</summary>
+    public EvalSnapshot Snapshot(string id)
+    {
+        var entry = GetOrCreate(id);
+        lock (entry.Lock)
+        {
+            Refresh(entry, id);
+            return entry.Session.Snapshot;
+        }
+    }
+
+    /// <summary>The engine Run over the analysis's current document (spec semantics §6): effect
+    /// nodes execute once, in order, and the run snapshot becomes the session's current one, so
+    /// subscribers see the effects' outputs. Reloads first if the store changed underneath.</summary>
+    public EvalSnapshot Run(string id, CancellationToken ct = default)
+    {
+        var entry = GetOrCreate(id);
+        lock (entry.Lock)
+        {
+            Refresh(entry, id);
+            return entry.Session.Run(ct);
+        }
+    }
+
+    /// <summary>Sets the (already validated and saved) document as current and runs one pass.</summary>
+    public EvalSnapshot Set(string id, GraphDocument doc)
+    {
+        var entry = GetOrCreate(id);
+        lock (entry.Lock)
+        {
+            var snapshot = entry.Session.SetDocument(doc);
+            entry.Stamp = _store.Stamp(id);
+            return snapshot;
+        }
+    }
+
+    /// <summary>Observes every completed evaluation pass for one analysis.</summary>
+    public IDisposable Subscribe(string id, Action<EvalSnapshot> observer)
+    {
+        var entry = GetOrCreate(id);
+        lock (entry.Lock)
+        {
+            Refresh(entry, id);
+            var subscription = entry.Session.Subscribe(observer);
+            return new LockedDisposable(entry.Lock, subscription);
+        }
+    }
+
+    /// <summary>Evaluates every stored analysis once, so the caches behind them (IFC
+    /// conversion, meshing, DuckDB attachments) are warm before a person opens one. Meant for
+    /// a background task after the port is open; an analysis that fails is logged and skipped.</summary>
+    public void WarmAll(TextWriter log)
+    {
+        var entries = _store.List();
+        var started = System.Diagnostics.Stopwatch.StartNew();
+        log.WriteLine($"  warming {entries.Count} analyses in the background");
+        foreach (var entry in entries)
+        {
+            try
+            {
+                Snapshot(entry.Id);
+            }
+            catch (Exception e) when (e is not OutOfMemoryException)
+            {
+                log.WriteLine($"  warm-up skipped {entry.Id}: {e.Message}");
+            }
+        }
+        log.WriteLine($"  warm-up done in {started.Elapsed.TotalSeconds:F1} s");
+    }
+
+    /// <summary>Re-runs every open session over its current document, for when the data
+    /// behind the nodes changed while the documents did not (a source prepared in the
+    /// background). Successful pure results stay memoized; failed nodes run again, and
+    /// observers see the pass like any other.</summary>
+    public void Reevaluate()
+    {
+        List<Entry> entries;
+        lock (_mapLock)
+            entries = _entries.Values.ToList();
+        foreach (var entry in entries)
+            lock (entry.Lock)
+                entry.Session.SetDocument(entry.Session.Document);
+    }
+
+    /// <summary>Reloads when the stored bytes differ from the ones this session
+    /// evaluated. Cheap: one stat call, no read, when nothing changed.</summary>
+    private void Refresh(Entry entry, string id)
+    {
+        var current = _store.Stamp(id);
+        if (current is null && entry.Stamp is null)
+            throw new FileNotFoundException($"Analysis '{id}' not found");
+        if (current is null || current == entry.Stamp)
+            return;
+        entry.Session.SetDocument(_store.Load(id));
+        entry.Stamp = current;
+    }
+
+    private Entry GetOrCreate(string id)
+    {
+        lock (_mapLock)
+        {
+            if (_entries.TryGetValue(id, out var existing))
+                return existing;
+            var entry = new Entry { Session = new EvalSession(_registry) };
+            _entries[id] = entry;
+            return entry;
+        }
+    }
+
+    private sealed class LockedDisposable(object gate, IDisposable inner) : IDisposable
+    {
+        public void Dispose()
+        {
+            lock (gate)
+                inner.Dispose();
+        }
+    }
+}

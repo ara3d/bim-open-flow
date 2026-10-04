@@ -1,0 +1,29 @@
+{
+  "name": "@bimopenflow/client",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Browser-side helpers between the host API and the panes, shared by the editor and the notebook: pane choice and context, host status and banner, the /api/ask event reader, model lookup, and the 3D feed.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./host": "./src/host.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bimopenflow/contracts": "0.1.0",
+    "@bimopenflow/panes": "0.1.0",
+    "@bimopenflow/state": "0.1.0"
+  },
+  "devDependencies": {
+    "jsdom": "^26.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0"
+  }
+}

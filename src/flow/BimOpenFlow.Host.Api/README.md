@@ -1,0 +1,50 @@
+# BimOpenFlow.Host.Api
+
+The HTTP surface of the BimOpenFlow host, generated-contract-first: every
+endpoint implements one entry of `contracts/contracts.json` on the generated
+`ApiRoutes` templates, and every handler delegates to `BimOpenFlow.Host.Catalog`,
+`BimOpenFlow.Host.Store`, or the dataflow engine. No business logic lives here.
+
+Built on ASP.NET Core minimal APIs (framework only, no extra packages).
+JSON is camelCase with enums serialized by name, matching the generated
+TypeScript contracts exactly.
+
+## Pieces
+
+- `ApiServer` — `Create(catalog, store, registry)` builds the app;
+  `MapBimOpenFlowApi` composes the routes onto any endpoint builder.
+- `AnalysisSessions` — one standing `EvalSession` per analysis, created on
+  demand from the store; per-session lock (the engine is single-threaded);
+  SSE fan-out via the session's observers. `Reevaluate()` re-runs every open
+  session over its unchanged document when data behind the nodes has landed
+  (the host calls it after a background sample build); Ok results stay memoized.
+  `WarmAll(log)` evaluates every stored analysis once, which the host runs in the
+  background after start-up so the first graph a person opens answers from warm caches.
+- `DocumentEndpoints` — models, analysis CRUD/history, node catalog.
+- `ModelBytesEndpoint` / `EntityPropertiesEndpoint` — the BOS bytes of a model,
+  and one entity's parameters by LocalId (grouped by property set, sorted by
+  group then name) out of the catalog's cached `ModelEntityIndex`, which the
+  3D pane calls on a pick.
+- `EvalEndpoints` — evaluation state, result paging (`skip`/`take`,
+  default take 1000; scalar outputs become a one-cell slice), run
+  create/list/get, and the `text/event-stream` endpoint. `POST .../runs`
+  performs the engine Run (`AnalysisSessions.Run`): effect nodes such as
+  `sink.report` execute once, in topological order, the run snapshot is
+  pushed to SSE subscribers, and the archived record lists each executed
+  effect with its status and its terminal outputs.
+  (`data: <EvalUpdate JSON>\n\n` per evaluation pass, initial state on
+  connect, keep-alive comment every 15 s).
+- `ApiMapping` — pure host/engine → contract mapping; enum crossings by name.
+- `RunInputs` — pins ModelRef/FilePath params by content hash when freezing runs.
+- `EditorSessions` / `SessionEndpoints` — the one editor session record per
+  store (which analysis is open, which nodes are selected), kept as
+  `.editor-session.json` at the store root (`AnalysisStore.List` ignores it)
+  and written atomically through `AtomicFile`. Served at `GET`/`PUT
+  /api/session`. Because it lives on the store folder, not in memory, a
+  second process on the same store — the stdio MCP server — reads what the
+  host wrote. `HostRunner` clears it when the host starts.
+
+## Errors
+
+Missing analysis/model/result → 404 `ApiError`; malformed or invalid
+documents → 400 `ApiError`; duplicate run archive → 409 `ApiError`.

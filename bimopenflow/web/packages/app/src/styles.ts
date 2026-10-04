@@ -1,0 +1,150 @@
+// App-shell styling: one injected stylesheet under the bof-app- prefix,
+// themed by CSS custom properties (same approach as viz/panes).
+
+export const appCss = `
+:root {
+  --bof-app-bg: #f7f6f3;
+  --bof-app-surface: #ffffff;
+  --bof-app-border: #e5e3de;
+  --bof-app-text: #1a1a18;
+  --bof-app-dim: #8a8880;
+  --bof-app-accent: #3b82c4;
+  --bof-app-green: #3ba55d;
+  --bof-app-amber: #d99a2b;
+  --bof-app-red: #c0392b;
+  --bof-app-hover: #ecebe4;
+  /* docs/BRANDING.md: Public Sans for the interface, Instrument Sans for the
+     wordmark and headings, Fira Code for ids, parameters, and numbers. */
+  --bof-app-font: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --bof-app-font-brand: "Instrument Sans", "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --bof-app-mono: "Fira Code", "Cascadia Mono", Consolas, ui-monospace, monospace;
+  --bof-app-left: 240px;
+  --bof-app-right: 420px;
+}
+html, body { margin: 0; height: 100%; }
+.bof-app-root {
+  display: grid;
+  grid-template-rows: 40px minmax(0, 1fr);
+  height: 100vh;
+  background: var(--bof-app-bg);
+  color: var(--bof-app-text);
+  font: 13px var(--bof-app-font);
+}
+.bof-app-main {
+  display: grid;
+  grid-template-columns: var(--bof-app-left) 6px minmax(0, 1fr) 6px var(--bof-app-right);
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+}
+.bof-app-topbar {
+  display: flex; align-items: center; gap: 8px; padding: 0 10px;
+  background: var(--bof-app-surface); border-bottom: 1px solid var(--bof-app-border);
+}
+.bof-app-brand { display: inline-flex; align-items: center; gap: 7px; font: 700 15px/1 var(--bof-app-font-brand); letter-spacing: -0.01em; white-space: nowrap; }
+.bof-app-brand a { font-weight: 600; }
+.bof-app-brand-mark { width: 20px; height: 20px; fill: var(--bof-app-accent); flex: none; }
+.bof-app-topbar select, .bof-app-topbar button, .bof-app-sidebar input {
+  font: inherit; color: inherit;
+  background: var(--bof-app-bg); border: 1px solid var(--bof-app-border);
+  border-radius: 4px; padding: 3px 8px;
+}
+.bof-app-topbar button:hover { background: var(--bof-app-hover); cursor: pointer; }
+.bof-app-topbar button:disabled { color: var(--bof-app-dim); cursor: default; }
+.bof-app-dirty { color: var(--bof-app-amber); font-weight: 600; }
+.bof-app-conn { margin-left: auto; color: var(--bof-app-dim); }
+.bof-app-conn.bof-app-conn-ok { color: var(--bof-app-green); }
+.bof-app-conn.bof-app-conn-bad { color: var(--bof-app-red); }
+.bof-app-sidebar {
+  display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+  background: var(--bof-app-surface); border-right: 1px solid var(--bof-app-border);
+  padding: 8px; gap: 8px;
+}
+.bof-app-sidebar input { width: 100%; box-sizing: border-box; flex: none; }
+.bof-app-sidebar > .bof-app-tabs { margin: -8px -8px 0; padding-top: 6px; }
+.bof-app-sidebar .bof-app-tab { font: inherit; }
+.bof-app-sidebar-panel { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.bof-app-sidebar-panel[hidden] { display: none; }
+.bof-app-list { display: flex; flex-direction: column; gap: 2px; }
+.bof-app-steps, .bof-app-catalog { flex: 1 1 0; min-height: 0; overflow-y: auto; }
+.bof-app-item {
+  padding: 4px 6px; border-radius: 4px; cursor: pointer; border: 1px solid transparent;
+}
+.bof-app-item:hover { background: var(--bof-app-hover); }
+.bof-app-item.bof-app-item-active { border-color: var(--bof-app-accent); }
+.bof-app-item small { display: block; color: var(--bof-app-dim); }
+.bof-app-catalog-group {
+  margin: 8px 0 2px; font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--bof-app-dim); flex: none;
+  cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none;
+}
+.bof-app-catalog-group:hover { background: var(--bof-app-hover); }
+.bof-app-catalog-group-triangle { display: inline-block; width: 12px; margin-right: 4px; font-size: 14px; line-height: 1; text-align: center; }
+.bof-app-catalog-group-name { flex: 1; }
+.bof-app-catalog-group-count { opacity: 0.65; font-weight: normal; }
+.bof-app-canvas-host { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
+.bof-app-canvas-host canvas { display: block; width: 100%; height: 100%; }
+.bof-app-graph-demo .bof-app-main { grid-template-columns: minmax(0, 1fr) 6px var(--bof-app-right); position: relative; }
+.bof-app-graph-demo .bof-app-sidebar { display: none; }
+.bof-app-graph-demo.bof-app-catalog-open .bof-app-sidebar {
+  display: flex; position: absolute; z-index: 20; top: 42px; left: 8px; bottom: 8px; width: 260px;
+  border: 1px solid var(--bof-app-border); box-shadow: 0 8px 24px #0002;
+}
+.bof-app-graph-demo .bof-app-canvas-host { display: grid; grid-template-rows: 40px minmax(0, 1fr); min-height: 0; overflow: hidden; }
+.bof-app-graph-demo .bof-app-canvas-host canvas { min-height: 0; }
+.bof-app-graph-toolbar { display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-bottom: 1px solid var(--bof-app-border); }
+.bof-app-graph-toolbar[hidden], .bof-app-splitter[hidden] { display: none; }
+.bof-app-graph-toolbar button, .bof-app-graph-toolbar select { font: inherit; padding: 4px 6px; border: 1px solid var(--bof-app-border); border-radius: 4px; background: var(--bof-app-surface); }
+.bof-app-graph-toolbar select { min-width: 0; max-width: 180px; }
+.bof-app-graph-toolbar label { color: var(--bof-app-dim); }
+.bof-app-graph-demo .bof-app-topbar { overflow-x: auto; white-space: nowrap; }
+.bof-app-splitter {
+  cursor: col-resize; background: var(--bof-app-bg);
+  border-left: 1px solid var(--bof-app-border); border-right: 1px solid var(--bof-app-border);
+}
+.bof-app-splitter:hover { background: var(--bof-app-hover); }
+.bof-app-split-ghost {
+  position: fixed; top: 0; bottom: 0; width: 2px;
+  background: var(--bof-app-accent); z-index: 50; pointer-events: none;
+}
+.bof-app-right-column { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.bof-app-ask-host { flex: none; min-width: 0; }
+.bof-app-ask-host:empty { display: none; }
+.bof-app-right-column > .bof-app-panearea { flex: 1 1 0; }
+.bof-app-panearea {
+  display: flex; flex-direction: column; min-height: 0; min-width: 0;
+  background: var(--bof-app-surface);
+}
+.bof-app-preview-source { padding: 8px 12px; font-size: 14px; font-weight: 600; white-space: pre-line; line-height: 1.6; border-bottom: 1px solid var(--bof-app-border); }
+.bof-app-pane-lineage { font: 12px var(--bof-app-mono); color: var(--bof-app-dim); }
+.bof-app-preview-source:empty { display: none; }
+.bof-app-preview-source[role="alert"] { color: #b91c1c; }
+.bof-app-tabs {
+  display: flex; gap: 2px; padding: 4px 6px 0;
+  border-bottom: 1px solid var(--bof-app-border); flex: none;
+}
+.bof-app-tab {
+  padding: 4px 10px; border: 1px solid var(--bof-app-border); border-bottom: none;
+  border-radius: 5px 5px 0 0; cursor: pointer; background: var(--bof-app-bg);
+  color: var(--bof-app-dim);
+}
+.bof-app-tab.bof-app-tab-active { background: var(--bof-app-surface); color: var(--bof-app-text); }
+.bof-app-panebody { flex: 1; overflow: auto; min-height: 0; padding: 6px; }
+.bof-app-empty { color: var(--bof-app-dim); padding: 12px; }
+.bof-app-toasts { position: fixed; right: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 6px; z-index: 100; }
+.bof-app-toast {
+  background: var(--bof-app-text); color: var(--bof-app-surface);
+  padding: 8px 12px; border-radius: 6px; max-width: 360px; box-shadow: 0 2px 10px rgba(0,0,0,.25);
+}
+.bof-app-toast.bof-app-toast-error { background: var(--bof-app-red); }
+`;
+
+const STYLE_ID = "bof-app-styles";
+
+/** Injects the app stylesheet once per document. */
+export function ensureAppStyles(doc: Document = document): void {
+  if (doc.getElementById(STYLE_ID)) return;
+  const style = doc.createElement("style");
+  style.id = STYLE_ID;
+  style.textContent = appCss;
+  doc.head.appendChild(style);
+}

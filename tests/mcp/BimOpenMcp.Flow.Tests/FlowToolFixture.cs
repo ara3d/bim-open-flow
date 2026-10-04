@@ -1,0 +1,53 @@
+using System.Text.Json;
+using Ara3D.MCP;
+using BimOpenFlow.Host;
+using BimOpenMcp.Flow;
+
+namespace BimOpenMcp.Flow.Tests;
+
+/// <summary>Fresh services over temp directories for every test class.</summary>
+public abstract class FlowToolFixture
+{
+    protected string Root = null!;
+    protected FlowServices Services = null!;
+
+    [SetUp]
+    public void CreateServices()
+    {
+        Root = Path.Combine(Path.GetTempPath(), "bof-mcp-tests-" + Guid.NewGuid().ToString("N"));
+        var modelsDir = Path.Combine(Root, "models");
+        Directory.CreateDirectory(modelsDir);
+        File.WriteAllBytes(Path.Combine(modelsDir, "sample.bos"), "hello"u8.ToArray());
+        Services = FlowServices.Create(new HostConfig(
+            [modelsDir], Path.Combine(Root, "cache"), Path.Combine(Root, "analyses"), Port: 0), HostComposition.Tables);
+    }
+
+    [TearDown]
+    public void DeleteRoot()
+    {
+        try
+        {
+            Directory.Delete(Root, recursive: true);
+        }
+        catch (IOException)
+        {
+        }
+    }
+
+    /// <summary>Tool payloads are anonymous objects; assert on their MCP JSON form.</summary>
+    protected static JsonElement Json(object payload)
+    {
+        using var doc = JsonDocument.Parse(McpJson.Serialize(payload));
+        return doc.RootElement.Clone();
+    }
+
+    /// <summary>Authors an inline table -> sort via the edit tools, as an agent would.</summary>
+    protected void AuthorInlineSort(string id)
+    {
+        FlowEditTools.AddNode(Services, id, "data", "table.inline", version: null);
+        FlowEditTools.SetParam(Services, id, "data", "rows", """[{"name":"front"}]""");
+        FlowEditTools.AddNode(Services, id, "sort", "table.sort", version: null);
+        FlowEditTools.SetParam(Services, id, "sort", "by", "name");
+        FlowEditTools.Connect(Services, id, "data.table", "sort.table");
+    }
+}

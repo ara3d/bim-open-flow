@@ -1,0 +1,5 @@
+[
+  { "id": 1, "name": "Wall-A", "geometry": { "height": 2.5, "width": 4.0 } },
+  { "id": 2, "name": "Wall-B", "geometry": { "height": 3.0, "width": 5.5 } },
+  { "id": 3, "name": "Door-C", "geometry": { "height": 2.1, "width": 0.9 } }
+]

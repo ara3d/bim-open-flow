@@ -1,0 +1,292 @@
+import { describe, expect, it } from "vitest";
+import type { TableData } from "@bimopenflow/contracts";
+import { BarChart } from "../src/barChart";
+
+const data: TableData = {
+  columns: [
+    { name: "Category", type: "Text"},
+    { name: "Value", type: "Number"},
+  ],
+  rows: [
+    ["A", 5],
+    ["B", -3],
+    ["C", 2],
+  ],
+};
+
+const mountChart = (d: TableData = data, options = {}) => {
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const handle = BarChart.mount(container, d, options);
+  return { container, handle };
+};
+
+describe("BarChart", () => {
+  it("renders one rect per row", () => {
+    const { container } = mountChart();
+    expect(container.querySelectorAll("rect.bof-viz-bar")).toHaveLength(3);
+  });
+
+  it("draws negative bars below the zero line with the negative class", () => {
+    const { container } = mountChart();
+    const bars = [...container.querySelectorAll("rect.bof-viz-bar")];
+    const positive = bars[0];
+    const negative = bars[1];
+    expect(negative.classList.contains("bof-viz-bar--neg")).toBe(true);
+    expect(positive.classList.contains("bof-viz-bar--neg")).toBe(false);
+    // positive bar starts above where the negative bar starts (zero line)
+    expect(Number(positive.getAttribute("y"))).toBeLessThan(
+      Number(negative.getAttribute("y")),
+    );
+    // positive bar's bottom edge is the negative bar's top edge (both at zero)
+    const posBottom =
+      Number(positive.getAttribute("y")) +
+      Number(positive.getAttribute("height"));
+    expect(posBottom).toBeCloseTo(Number(negative.getAttribute("y")), 6);
+  });
+
+  it("renders category and value labels", () => {
+    const { container } = mountChart();
+    const axisLabels = [
+      ...container.querySelectorAll("text.bof-viz-axis-label"),
+    ].map((t) => t.textContent);
+    expect(axisLabels).toEqual(["A", "B", "C"]);
+    const valueLabels = [
+      ...container.querySelectorAll("text.bof-viz-value-label"),
+    ].map((t) => t.textContent);
+    expect(valueLabels).toEqual(["5", "-3", "2"]);
+  });
+
+  it("renders y-axis tick labels", () => {
+    const { container } = mountChart();
+    expect(
+      container.querySelectorAll("text.bof-viz-tick-label").length,
+    ).toBeGreaterThan(1);
+  });
+
+  it("update() re-renders", () => {
+    const { container, handle } = mountChart();
+    handle.update({ ...data, rows: [["Z", 7]] });
+    const bars = container.querySelectorAll("rect.bof-viz-bar");
+    expect(bars).toHaveLength(1);
+    expect(bars[0].getAttribute("data-value")).toBe("7");
+  });
+
+  it("destroy() removes everything it added", () => {
+    const { container, handle } = mountChart();
+    handle.destroy();
+    expect(container.children).toHaveLength(0);
+  });
+
+  it("renders a title when given", () => {
+    const { container } = mountChart(data, { title: "My Chart" });
+    const title = container.querySelector("text.bof-viz-title");
+    expect(title?.textContent).toBe("My Chart");
+  });
+
+  it("renders no title element by default", () => {
+    const { container } = mountChart();
+    expect(container.querySelector("text.bof-viz-title")).toBeNull();
+  });
+
+  it("renders grouped bars for multiple series columns", () => {
+    const multi: TableData = {
+      columns: [
+        { name: "Category", type: "Text"},
+        { name: "a", type: "Number"},
+        { name: "b", type: "Number"},
+      ],
+      rows: [
+        ["A", 1, 2],
+        ["B", 3, 4],
+      ],
+    };
+    const { container } = mountChart(multi, { seriesColumns: ["a", "b"] });
+    const bars = [...container.querySelectorAll("rect.bof-viz-bar")];
+    expect(bars).toHaveLength(4);
+    expect(bars.map((b) => b.getAttribute("data-series"))).toEqual([
+      "a", "b", "a", "b",
+    ]);
+    // per-series colors from the palette
+    expect(bars[0].getAttribute("style")).toContain("--bof-viz-series-0");
+    expect(bars[1].getAttribute("style")).toContain("--bof-viz-series-1");
+  });
+
+  it("defaults to all numeric columns except the category column", () => {
+    const multi: TableData = {
+      columns: [
+        { name: "Category", type: "Text"},
+        { name: "a", type: "Number"},
+        { name: "b", type: "Integer"},
+      ],
+      rows: [["A", 1, 2]],
+    };
+    const { container } = mountChart(multi);
+    expect(container.querySelectorAll("rect.bof-viz-bar")).toHaveLength(2);
+  });
+
+  it("skips unknown series names and keeps known ones", () => {
+    const multi: TableData = {
+      columns: [
+        { name: "Category", type: "Text"},
+        { name: "a", type: "Number"},
+        { name: "b", type: "Number"},
+      ],
+      rows: [["A", 1, 2]],
+    };
+    const { container } = mountChart(multi, { seriesColumns: ["nope", "b"] });
+    const bars = [...container.querySelectorAll("rect.bof-viz-bar")];
+    expect(bars).toHaveLength(1);
+    expect(bars[0].getAttribute("data-value")).toBe("2");
+  });
+
+  it("single resolved series renders identically to the classic bar chart", () => {
+    const { container } = mountChart(data, { seriesColumns: ["Value"] });
+    const bars = [...container.querySelectorAll("rect.bof-viz-bar")];
+    expect(bars).toHaveLength(3);
+    expect(bars[0].getAttribute("data-series")).toBeNull();
+    expect(bars[0].getAttribute("style")).toBeNull();
+    expect(
+      container.querySelectorAll("text.bof-viz-value-label"),
+    ).toHaveLength(3);
+  });
+
+  it("falls back to the first text column for an unknown category name", () => {
+    const { container } = mountChart(data, { categoryColumn: "nope" });
+    const labels = [
+      ...container.querySelectorAll("text.bof-viz-axis-label"),
+    ].map((t) => t.textContent);
+    expect(labels).toEqual(["A", "B", "C"]);
+  });
+
+  it("labels bars by row index when the table has no text column", () => {
+    const numbersOnly: TableData = {
+      columns: [{ name: "v", type: "Number"}],
+      rows: [[5], [7]],
+    };
+    const { container } = mountChart(numbersOnly);
+    const labels = [
+      ...container.querySelectorAll("text.bof-viz-axis-label"),
+    ].map((t) => t.textContent);
+    expect(labels).toEqual(["1", "2"]);
+    expect(container.querySelectorAll("rect.bof-viz-bar")).toHaveLength(2);
+  });
+
+  it("renders an empty frame, not a throw, when no value column resolves", () => {
+    const textOnly: TableData = {
+      columns: [{ name: "name", type: "Text"}],
+      rows: [["a"], ["b"]],
+    };
+    const { container } = mountChart(textOnly, { title: "Empty" });
+    expect(container.querySelector("svg.bof-viz-bar-chart")).not.toBeNull();
+    expect(container.querySelectorAll("line.bof-viz-axis-line")).toHaveLength(2);
+    expect(container.querySelector("text.bof-viz-title")?.textContent).toBe("Empty");
+    expect(container.querySelectorAll("rect.bof-viz-bar")).toHaveLength(0);
+  });
+
+  it("resolves column names case-insensitively", () => {
+    const { container } = mountChart(data, {
+      categoryColumn: "CATEGORY",
+      seriesColumns: ["value"],
+    });
+    const bars = [...container.querySelectorAll("rect.bof-viz-bar")];
+    expect(bars).toHaveLength(3);
+    expect(bars[0].getAttribute("data-value")).toBe("5");
+  });
+
+  it("fills bars from barColors, leaving null entries on the default", () => {
+    const { container } = mountChart(data, {
+      barColors: ["rgb(1,2,3)", null, "rgb(4,5,6)"],
+    });
+    const bars = [...container.querySelectorAll("rect.bof-viz-bar")];
+    expect(bars).toHaveLength(3);
+    expect(bars[0].getAttribute("style")).toBe("fill: rgb(1,2,3)");
+    expect(bars[1].getAttribute("style")).toBeNull();
+    expect(bars[2].getAttribute("style")).toBe("fill: rgb(4,5,6)");
+  });
+
+  it("keeps barColors indexed by source row when a non-finite row is skipped", () => {
+    const withGap: TableData = {
+      columns: [
+        { name: "Category", type: "Text" },
+        { name: "Value", type: "Number" },
+      ],
+      rows: [
+        ["A", 5],
+        ["B", NaN],
+        ["C", 2],
+      ],
+    };
+    const { container } = mountChart(withGap, {
+      barColors: ["rgb(1,2,3)", "rgb(9,9,9)", "rgb(4,5,6)"],
+    });
+    const bars = [...container.querySelectorAll("rect.bof-viz-bar")];
+    expect(bars).toHaveLength(2);
+    expect(bars[0].getAttribute("style")).toBe("fill: rgb(1,2,3)");
+    expect(bars[1].getAttribute("style")).toBe("fill: rgb(4,5,6)");
+  });
+
+  it("ignores barColors for multi-series charts", () => {
+    const multi: TableData = {
+      columns: [
+        { name: "Category", type: "Text" },
+        { name: "a", type: "Number" },
+        { name: "b", type: "Number" },
+      ],
+      rows: [
+        ["A", 1, 2],
+        ["B", 3, 4],
+      ],
+    };
+    const { container } = mountChart(multi, {
+      seriesColumns: ["a", "b"],
+      barColors: ["rgb(1,2,3)", "rgb(4,5,6)"],
+    });
+    const bars = [...container.querySelectorAll("rect.bof-viz-bar")];
+    expect(bars).toHaveLength(4);
+    expect(bars[0].getAttribute("style")).toContain("--bof-viz-series-0");
+    expect(bars[1].getAttribute("style")).toContain("--bof-viz-series-1");
+  });
+
+  it("respects explicit column options", () => {
+    const swapped: TableData = {
+      columns: [
+        { name: "x", type: "Number"},
+        { name: "label", type: "Text"},
+        { name: "y", type: "Number"},
+      ],
+      rows: [[1, "p", 10]],
+    };
+    const { container } = mountChart(swapped, {
+      categoryColumn: "label",
+      valueColumn: "y",
+    });
+    const bar = container.querySelector("rect.bof-viz-bar");
+    expect(bar?.getAttribute("data-value")).toBe("10");
+  });
+  it("keeps short labels level and centred under their bars", () => {
+    const { container } = mountChart();
+    const label = container.querySelector("text.bof-viz-axis-label")!;
+    expect(label.getAttribute("text-anchor")).toBe("middle");
+    expect(label.getAttribute("transform")).toBeNull();
+  });
+
+  it("slants labels that are wider than their bars and shortens the plot to fit them", () => {
+    const rows = Array.from({ length: 33 }, (_, i) => [`L1 - Block 43 · ${i + 1}`, i + 1]);
+    const many: TableData = { columns: data.columns, rows };
+    const level = mountChart({ columns: data.columns, rows: [["L1", 33]] }).container;
+    const { container } = mountChart(many);
+    const labels = [...container.querySelectorAll("text.bof-viz-axis-label")];
+    expect(labels).toHaveLength(33);
+    for (const label of labels) {
+      expect(label.getAttribute("text-anchor")).toBe("end");
+      expect(label.getAttribute("transform")).toMatch(/^rotate\(-45 /);
+    }
+    const axisBottom = (c: HTMLElement) =>
+      Number(c.querySelectorAll("line.bof-viz-axis-line")[0]!.getAttribute("y2"));
+    expect(axisBottom(container)).toBeLessThan(axisBottom(level) - 50);
+    // The first label's slant reaches left of the default 48px margin, so the plot starts further right.
+    const yAxisX = Number(container.querySelectorAll("line.bof-viz-axis-line")[0]!.getAttribute("x1"));
+    expect(yAxisX).toBeGreaterThan(48);
+  });
+});

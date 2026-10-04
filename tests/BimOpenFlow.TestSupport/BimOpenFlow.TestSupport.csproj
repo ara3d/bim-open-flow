@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Test support for the projects that move to bim-open-flow: repository paths and the mini
+       IFC fixture. A copy of BimOpenToolkit.TestSupport that finds any *.sln, so it works in
+       the toolkit and in bim-open-flow. References no src project and no test framework. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>

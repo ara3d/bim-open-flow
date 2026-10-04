@@ -1,0 +1,94 @@
+{
+  "formatVersion": "0.1.0",
+  "layout": {
+    "all": {
+      "x": 644,
+      "y": 40
+    },
+    "large": {
+      "x": 370,
+      "y": 40
+    },
+    "orders": {
+      "x": 40,
+      "y": 40
+    },
+    "small": {
+      "x": 370,
+      "y": 136
+    },
+    "tidy": {
+      "x": 974,
+      "y": 40
+    }
+  },
+  "structure": {
+    "edges": [
+      {
+        "from": "large.table",
+        "to": "all.a"
+      },
+      {
+        "from": "small.table",
+        "to": "all.b"
+      },
+      {
+        "from": "orders.table",
+        "to": "large.table"
+      },
+      {
+        "from": "orders.table",
+        "to": "small.table"
+      },
+      {
+        "from": "all.table",
+        "to": "tidy.table"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "all",
+        "kind": "table.setOp",
+        "version": 1
+      },
+      {
+        "id": "large",
+        "kind": "table.filter",
+        "version": 1
+      },
+      {
+        "id": "orders",
+        "kind": "duck.read",
+        "version": 1
+      },
+      {
+        "id": "small",
+        "kind": "table.filter",
+        "version": 1
+      },
+      {
+        "id": "tidy",
+        "kind": "table.project",
+        "version": 1
+      }
+    ]
+  },
+  "values": {
+    "all": {
+      "key": "OrderId",
+      "op": "union"
+    },
+    "large": {
+      "expr": "Quantity > 100"
+    },
+    "orders": {
+      "path": "C:/Users/cdigg/git/bim-open-toolkit/samples/tables/orders.csv"
+    },
+    "small": {
+      "expr": "Quantity <= 100"
+    },
+    "tidy": {
+      "columns": "OrderId, ProductId, Quantity"
+    }
+  }
+}

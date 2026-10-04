@@ -1,0 +1,272 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { EvalUpdate } from "@bimopenflow/contracts";
+import type { ApiClient } from "@bimopenflow/api-client";
+import { connectAnalysis, type AnalysisApi } from "../src/sync.js";
+import { createStore } from "../src/store.js";
+import { parseDocument } from "../src/document.js";
+
+const docJson = JSON.stringify({
+  formatVersion: "0.1.0",
+  structure: { nodes: [{ id: "a", kind: "source.model", version: 1 }], edges: [] },
+  values: { a: { path: "m.bos" } },
+});
+
+function fakeApi() {
+  const calls: string[] = [];
+  let emit: ((e: EvalUpdate) => void) | undefined;
+  let streamError: ((err: unknown) => void) | undefined;
+  let saved: string | undefined;
+  let disposed = false;
+  const api: AnalysisApi = {
+    getAnalysis: async (id) => {
+      calls.push(`getAnalysis:${id}`);
+      return docJson;
+    },
+    getAnalysisState: async (id) => {
+      calls.push(`getAnalysisState:${id}`);
+      return { analysisId: id, nodes: [{ nodeId: "a", status: "Ok", warnings: [] }] };
+    },
+    putAnalysis: async (id, body) => {
+      calls.push(`putAnalysis:${id}`);
+      saved = body;
+      return { id, graphHash: "h" };
+    },
+    analysisEvents: (id, onEvent, onError) => {
+      calls.push(`analysisEvents:${id}`);
+      emit = onEvent;
+      streamError = onError;
+      return () => {
+        disposed = true;
+      };
+    },
+  };
+  return {
+    api,
+    calls,
+    emit: (e: EvalUpdate) => emit!(e),
+    failStream: (err: unknown) => streamError?.(err),
+    getSaved: () => saved,
+    isDisposed: () => disposed,
+  };
+}
+
+describe("connectAnalysis", () => {
+  it("loads the document and initial eval state, then subscribes to events", async () => {
+    const { api, calls } = fakeApi();
+    const store = createStore();
+    await connectAnalysis(store, api, "an1");
+    expect(calls).toEqual(["getAnalysis:an1", "getAnalysisState:an1", "analysisEvents:an1"]);
+    expect(store.getState().document.structure.nodes.map((n) => n.id)).toEqual(["a"]);
+    expect(store.getState().evalState.a?.status).toBe("Ok");
+    expect(store.getState().dirty).toBe(false);
+  });
+
+  it("leaves the store untouched and subscribes nothing when aborted during the load", async () => {
+    const { api, calls } = fakeApi();
+    const store = createStore();
+    const opening = new AbortController();
+    const connecting = connectAnalysis(store, api, "an1", { signal: opening.signal });
+    opening.abort();
+    await expect(connecting).rejects.toThrow();
+    expect(store.getState().document.structure.nodes).toEqual([]);
+    expect(calls).not.toContain("analysisEvents:an1");
+  });
+
+  it("dispatches streamed updates into evalState", async () => {
+    const fake = fakeApi();
+    const store = createStore();
+    await connectAnalysis(store, fake.api, "an1");
+    fake.emit({ analysisId: "an1", nodes: [{ nodeId: "a", status: "Error", error: "boom", warnings: [] }] });
+    expect(store.getState().evalState.a?.status).toBe("Error");
+  });
+
+  it("save puts the serialized document and clears dirty", async () => {
+    const fake = fakeApi();
+    const store = createStore();
+    const connection = await connectAnalysis(store, fake.api, "an1");
+    store.dispatch({ type: "setParam", nodeId: "a", name: "path", value: "n.bos" });
+    expect(store.getState().dirty).toBe(true);
+    await connection.save();
+    expect(store.getState().dirty).toBe(false);
+    const saved = parseDocument(fake.getSaved()!);
+    expect(saved.values).toEqual({ a: { path: "n.bos" } });
+  });
+
+  it("forwards stream errors to onStreamError", async () => {
+    const fake = fakeApi();
+    const errors: unknown[] = [];
+    await connectAnalysis(createStore(), fake.api, "an1", { onStreamError: (e) => errors.push(e) });
+    fake.failStream("closed");
+    expect(errors).toEqual(["closed"]);
+  });
+
+  it("dispose unsubscribes from the event stream", async () => {
+    const fake = fakeApi();
+    const connection = await connectAnalysis(createStore(), fake.api, "an1");
+    expect(fake.isDisposed()).toBe(false);
+    connection.dispose();
+    expect(fake.isDisposed()).toBe(true);
+  });
+
+  it("accepts a real ApiClient structurally", () => {
+    const check: AnalysisApi = null as unknown as ApiClient;
+    expect(check).toBeNull();
+  });
+});
+
+describe("autosave", () => {
+  afterEach(() => vi.useRealTimers());
+
+  const countPuts = (calls: string[]) => calls.filter((c) => c.startsWith("putAnalysis")).length;
+
+  it("saves after the debounce and clears dirty", async () => {
+    vi.useFakeTimers();
+    const fake = fakeApi();
+    const store = createStore();
+    await connectAnalysis(store, fake.api, "an1", { autosaveMs: 400 });
+    store.dispatch({ type: "setParam", nodeId: "a", name: "path", value: "n.bos" });
+    expect(countPuts(fake.calls)).toBe(0);
+    await vi.advanceTimersByTimeAsync(399);
+    expect(countPuts(fake.calls)).toBe(0);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(countPuts(fake.calls)).toBe(1);
+    expect(store.getState().dirty).toBe(false);
+    expect(parseDocument(fake.getSaved()!).values).toEqual({ a: { path: "n.bos" } });
+  });
+
+  it("coalesces rapid edits into one PUT", async () => {
+    vi.useFakeTimers();
+    const fake = fakeApi();
+    const store = createStore();
+    await connectAnalysis(store, fake.api, "an1", { autosaveMs: 400 });
+    store.dispatch({ type: "setParam", nodeId: "a", name: "path", value: "1.bos" });
+    await vi.advanceTimersByTimeAsync(200);
+    store.dispatch({ type: "setParam", nodeId: "a", name: "path", value: "2.bos" });
+    await vi.advanceTimersByTimeAsync(399);
+    expect(countPuts(fake.calls)).toBe(0);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(countPuts(fake.calls)).toBe(1);
+    expect(parseDocument(fake.getSaved()!).values).toEqual({ a: { path: "2.bos" } });
+  });
+
+  it("re-saves when an edit raced an in-flight PUT, and stays dirty meanwhile", async () => {
+    vi.useFakeTimers();
+    const fake = fakeApi();
+    let release!: () => void;
+    const original = fake.api.putAnalysis.bind(fake.api);
+    fake.api.putAnalysis = async (id, body) => {
+      await new Promise<void>((resolve) => (release = resolve));
+      return original(id, body);
+    };
+    const store = createStore();
+    await connectAnalysis(store, fake.api, "an1", { autosaveMs: 100 });
+    store.dispatch({ type: "setParam", nodeId: "a", name: "path", value: "1.bos" });
+    await vi.advanceTimersByTimeAsync(100); // PUT now blocked in flight
+    store.dispatch({ type: "setParam", nodeId: "a", name: "path", value: "2.bos" });
+    release();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(store.getState().dirty).toBe(true); // stale PUT must not mark saved
+    await vi.advanceTimersByTimeAsync(100);
+    release();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(countPuts(fake.calls)).toBe(2);
+    expect(store.getState().dirty).toBe(false);
+    expect(parseDocument(fake.getSaved()!).values).toEqual({ a: { path: "2.bos" } });
+  });
+
+  it("reports a failed autosave and does not retry until the next edit", async () => {
+    vi.useFakeTimers();
+    const fake = fakeApi();
+    fake.api.putAnalysis = async () => {
+      throw new Error("boom");
+    };
+    const errors: unknown[] = [];
+    const store = createStore();
+    await connectAnalysis(store, fake.api, "an1", {
+      autosaveMs: 100,
+      onSaveError: (e) => errors.push(e),
+    });
+    store.dispatch({ type: "setParam", nodeId: "a", name: "path", value: "1.bos" });
+    await vi.advanceTimersByTimeAsync(500);
+    expect(errors.length).toBe(1);
+    expect(store.getState().dirty).toBe(true);
+  });
+
+  it("serializes manual save with an in-flight autosave and finishes with the latest edit", async () => {
+    vi.useFakeTimers();
+    const fake = fakeApi();
+    const pending: { body: string; release: () => void }[] = [];
+    fake.api.putAnalysis = (_id, body) => new Promise<void>(release => pending.push({ body, release }));
+    const store = createStore();
+    const connection = await connectAnalysis(store, fake.api, "an1", { autosaveMs: 100 });
+    store.dispatch({ type: "setParam", nodeId: "a", name: "path", value: "first.bos" });
+    await vi.advanceTimersByTimeAsync(100);
+    store.dispatch({ type: "setParam", nodeId: "a", name: "path", value: "final.bos" });
+    const manualSave = connection.save();
+    expect(pending).toHaveLength(1);
+    pending[0].release();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(pending).toHaveLength(2);
+    expect(parseDocument(pending[1].body).values.a.path).toBe("final.bos");
+    expect(store.getState().dirty).toBe(true);
+    pending[1].release();
+    await manualSave;
+    expect(store.getState().dirty).toBe(false);
+    await vi.advanceTimersByTimeAsync(500);
+    expect(pending).toHaveLength(2);
+    connection.dispose();
+  });
+
+  it("does not lose a later edit when its debounce expires during a failed PUT", async () => {
+    vi.useFakeTimers();
+    const fake = fakeApi();
+    let reject!: (error: Error) => void;
+    const realPut = fake.api.putAnalysis;
+    fake.api.putAnalysis = vi.fn().mockImplementationOnce(() => new Promise((_resolve, fail) => { reject = fail; }))
+      .mockImplementation(realPut);
+    const errors: unknown[] = [];
+    const store = createStore();
+    const connection = await connectAnalysis(store, fake.api, "an1", { autosaveMs: 100, onSaveError: error => errors.push(error) });
+    store.dispatch({ type: "setParam", nodeId: "a", name: "path", value: "first.bos" });
+    await vi.advanceTimersByTimeAsync(100);
+    store.dispatch({ type: "setParam", nodeId: "a", name: "path", value: "final.bos" });
+    await vi.advanceTimersByTimeAsync(200);
+    reject(new Error("transient failure"));
+    await vi.advanceTimersByTimeAsync(100);
+    expect(errors).toHaveLength(1);
+    expect(fake.api.putAnalysis).toHaveBeenCalledTimes(2);
+    expect(parseDocument(fake.getSaved()!).values.a.path).toBe("final.bos");
+    expect(store.getState().dirty).toBe(false);
+    connection.dispose();
+  });
+
+  it("does not save later edits or mark a newly opened document saved after disposal", async () => {
+    vi.useFakeTimers();
+    const fake = fakeApi();
+    let release!: () => void;
+    fake.api.putAnalysis = vi.fn(() => new Promise<void>(resolve => { release = resolve; }));
+    const store = createStore();
+    const connection = await connectAnalysis(store, fake.api, "an1", { autosaveMs: 100 });
+    store.dispatch({ type: "setParam", nodeId: "a", name: "path", value: "first.bos" });
+    await vi.advanceTimersByTimeAsync(100);
+    connection.dispose();
+    store.dispatch({ type: "setParam", nodeId: "a", name: "path", value: "other-analysis.bos" });
+    release();
+    await vi.advanceTimersByTimeAsync(500);
+    expect(fake.api.putAnalysis).toHaveBeenCalledTimes(1);
+    expect(store.getState().dirty).toBe(true);
+    await connection.save();
+    expect(fake.api.putAnalysis).toHaveBeenCalledTimes(1);
+  });
+
+  it("dispose cancels a pending autosave", async () => {
+    vi.useFakeTimers();
+    const fake = fakeApi();
+    const store = createStore();
+    const connection = await connectAnalysis(store, fake.api, "an1", { autosaveMs: 100 });
+    store.dispatch({ type: "setParam", nodeId: "a", name: "path", value: "1.bos" });
+    connection.dispose();
+    await vi.advanceTimersByTimeAsync(500);
+    expect(countPuts(fake.calls)).toBe(0);
+  });
+});

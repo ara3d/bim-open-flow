@@ -1,0 +1,42 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  dotnet:
+    # Ara3D.IfcLoader (through Host.Catalog) carries the native web-ifc library,
+    # so the solution builds on Windows only.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      # ara3d-dataflow, bim-open-data, and gratify (deps.json), and bim-open-data's
+      # own pins, cloned into deps/.
+      - run: node deps.mjs
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - run: dotnet build BimOpenFlow.sln -c Release
+      # Tests that need fetched model data are tagged RequiresTestData or skip
+      # themselves when the file is missing.
+      - run: dotnet test BimOpenFlow.sln -c Release --no-build --filter "TestCategory!=RequiresTestData"
+      - run: node gates/host-smoke.mjs
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: bimopenflow/web/package-lock.json
+      # The editor imports Gratify from its source in deps/gratify.
+      - run: node deps.mjs
+      - run: npm ci
+        working-directory: bimopenflow/web
+      - run: node gates/web-smoke.mjs

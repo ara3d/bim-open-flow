@@ -147,3 +147,23 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# ---- BIM Open Flow ----
+
+# Dependencies filled by deps.mjs from deps.json (see README, "Dependencies")
+deps/
+
+# Model data is never committed; the sample databases in samples/tables are the exception.
+*.ifc
+*.bos
+*.parquet
+*.duckdb
+!samples/tables/*.duckdb
+
+# .NET build output and editor state
+bin/
+obj/
+artifacts/
+*.user
+.vs/
+.idea/

@@ -1,0 +1,48 @@
+<Project>
+  <PropertyGroup>
+    <Ara3DVersion>1.6.1</Ara3DVersion>
+    <Version Condition="'$(Version)' == ''">$(Ara3DVersion)</Version>
+    <AssemblyVersion Condition="'$(AssemblyVersion)' == ''">$(Ara3DVersion)</AssemblyVersion>
+    <FileVersion Condition="'$(FileVersion)' == ''">$(Ara3DVersion)</FileVersion>
+    <AssemblyFileVersion Condition="'$(AssemblyFileVersion)' == ''">$(Ara3DVersion)</AssemblyFileVersion>
+
+    <Authors Condition="'$(Authors)' == ''">Ara 3D Inc.</Authors>
+    <Company Condition="'$(Company)' == ''">Ara 3D Inc.</Company>
+    <PackageLicenseExpression Condition="'$(PackageLicenseExpression)' == ''">MIT</PackageLicenseExpression>
+    <PackageProjectUrl Condition="'$(PackageProjectUrl)' == ''">https://github.com/ara3d/bim-open-flow</PackageProjectUrl>
+    <RepositoryUrl Condition="'$(RepositoryUrl)' == ''">https://github.com/ara3d/bim-open-flow</RepositoryUrl>
+    <RepositoryType Condition="'$(RepositoryType)' == ''">git</RepositoryType>
+    <PackageOutputPath Condition="'$(PackageOutputPath)' == ''">$(MSBuildThisFileDirectory)artifacts</PackageOutputPath>
+    <PublishRepositoryUrl Condition="'$(PublishRepositoryUrl)' == ''">true</PublishRepositoryUrl>
+  </PropertyGroup>
+
+  <!--
+    Where deps.mjs puts this repository's dependencies (deps.json): beside the
+    repository when its parent folder is a deps root (holds a .deps-root marker),
+    otherwise in deps/. This is deps.mjs's own rule, and bim-open-data's and
+    bim-open-toolkit's Directory.Build.props state it the same way, so when this
+    repository is itself a dependency (bim-open-toolkit/deps/bim-open-flow), its
+    projects reach ara3d-dataflow, bim-open-data, and the SDK by the same paths
+    as the host's projects do, and MSBuild sees one project, not two.
+  -->
+  <PropertyGroup>
+    <DepsRoot Condition="'$(DepsRoot)' == '' And Exists('$(MSBuildThisFileDirectory)../.deps-root')">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../'))</DepsRoot>
+    <DepsRoot Condition="'$(DepsRoot)' == ''">$(MSBuildThisFileDirectory)deps\</DepsRoot>
+  </PropertyGroup>
+
+  <!-- Keep in step with bim-open-data's and bim-open-toolkit's Directory.Build.props: the
+       engine's projects (deps/ara3d-dataflow) import whichever of these sits above them. -->
+  <PropertyGroup Label="Central NuGet dependency versions">
+    <Ara3DSdkVersion>1.6.1</Ara3DSdkVersion>
+    <Ara3DClosedXmlVersion>0.105.0</Ara3DClosedXmlVersion>
+    <Ara3DCoverletCollectorVersion>6.0.0</Ara3DCoverletCollectorVersion>
+    <Ara3DDuckDbNetDataFullVersion>1.3.2</Ara3DDuckDbNetDataFullVersion>
+    <Ara3DMicrosoftDataSqliteVersion>8.0.6</Ara3DMicrosoftDataSqliteVersion>
+    <Ara3DMicrosoftNetTestSdkVersion>17.8.0</Ara3DMicrosoftNetTestSdkVersion>
+    <Ara3DNewtonsoftJsonVersion>13.0.3</Ara3DNewtonsoftJsonVersion>
+    <Ara3DNUnitAnalyzersVersion>3.9.0</Ara3DNUnitAnalyzersVersion>
+    <Ara3DNUnitVersion>3.14.0</Ara3DNUnitVersion>
+    <Ara3DNUnit3TestAdapterVersion>4.5.0</Ara3DNUnit3TestAdapterVersion>
+    <Ara3DParquetNetVersion>5.2.0</Ara3DParquetNetVersion>
+  </PropertyGroup>
+</Project>

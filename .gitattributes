@@ -1,0 +1,2 @@
+# Canonical graph documents are byte-sensitive: their hashes are computed over LF text.
+*.dfg.json text eol=lf

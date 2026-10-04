@@ -1,0 +1,45 @@
+<Project>
+  <!--
+    The Ara3D SDK comes from deps/ (deps.json; DepsRoot is set in
+    Directory.Build.props). Every PackageReference whose id matches a
+    project under the SDK's src/, ext/, or wip/ becomes a ProjectReference into it, so
+    the SDK is built from source at the pinned commit and no packed
+    copy has to travel with the repo. Projects keep writing PackageReferences:
+    standalone checkouts of the engine and schema repositories restore the same
+    names from nuget.org. bim-open-data's and bim-open-toolkit's
+    Directory.Build.targets do the same for their own projects, through the same
+    DepsRoot rule, so when the toolkit takes this repository as a dependency all
+    three reach one SDK copy.
+
+    Applies to this repo's projects and to dependencies without their own
+    Directory.Build.targets. The SDK's own projects reference each other by
+    project, so the rewrite is a no-op for them.
+
+    Static item groups cannot batch over metadata in conditions, so membership
+    is computed with Include/Exclude identity matching instead.
+  -->
+  <PropertyGroup>
+    <Ara3DSdkRoot Condition="'$(Ara3DSdkRoot)' == ''">$(DepsRoot)ara3d-sdk</Ara3DSdkRoot>
+  </PropertyGroup>
+
+  <ItemGroup Condition="Exists('$(Ara3DSdkRoot)/src')">
+    <_Ara3DSdkSrcProject Include="$(Ara3DSdkRoot)/src/*/*.csproj" />
+    <_Ara3DSdkExtProject Include="$(Ara3DSdkRoot)/ext/*/*.csproj" />
+    <_Ara3DSdkWipProject Include="$(Ara3DSdkRoot)/wip/*/*.csproj" />
+    <_Ara3DSdkSrcId Include="@(_Ara3DSdkSrcProject->'%(Filename)')" />
+    <_Ara3DSdkExtId Include="@(_Ara3DSdkExtProject->'%(Filename)')" />
+    <_Ara3DSdkWipId Include="@(_Ara3DSdkWipProject->'%(Filename)')" />
+
+    <_Ara3DNotSrcPackage Include="@(PackageReference)" Exclude="@(_Ara3DSdkSrcId)" />
+    <_Ara3DNotExtPackage Include="@(PackageReference)" Exclude="@(_Ara3DSdkExtId)" />
+    <_Ara3DNotWipPackage Include="@(PackageReference)" Exclude="@(_Ara3DSdkWipId)" />
+    <_Ara3DSrcPackage Include="@(PackageReference)" Exclude="@(_Ara3DNotSrcPackage)" />
+    <_Ara3DExtPackage Include="@(PackageReference)" Exclude="@(_Ara3DNotExtPackage)" />
+    <_Ara3DWipPackage Include="@(PackageReference)" Exclude="@(_Ara3DNotWipPackage)" />
+
+    <ProjectReference Include="@(_Ara3DSrcPackage->'$(Ara3DSdkRoot)/src/%(Identity)/%(Identity).csproj')" />
+    <ProjectReference Include="@(_Ara3DExtPackage->'$(Ara3DSdkRoot)/ext/%(Identity)/%(Identity).csproj')" />
+    <ProjectReference Include="@(_Ara3DWipPackage->'$(Ara3DSdkRoot)/wip/%(Identity)/%(Identity).csproj')" />
+    <PackageReference Remove="@(_Ara3DSrcPackage);@(_Ara3DExtPackage);@(_Ara3DWipPackage)" />
+  </ItemGroup>
+</Project>

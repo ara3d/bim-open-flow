@@ -4,7 +4,7 @@ using BimOpenFlow.Ask;
 using BimOpenFlow.Host;
 using BimOpenMcp.Flow;
 
-namespace BimOpenFlow.Studio.Tests;
+namespace BimOpenFlow.Ask.Tests;
 
 /// <summary>ClaudeCliBackend against the real flow tool server, over HTTP on a free loopback
 /// port, and the fake claude.cmd in tests/studio/fake-claude (see its README.md for the script

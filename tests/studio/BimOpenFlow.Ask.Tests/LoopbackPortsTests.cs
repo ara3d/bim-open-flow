@@ -4,7 +4,7 @@ using System.Text;
 using Ara3D.MCP;
 using BimOpenFlow.Ask;
 
-namespace BimOpenFlow.Studio.Tests;
+namespace BimOpenFlow.Ask.Tests;
 
 /// <summary>LoopbackPorts.Free() gives out a port a real McpServer can bind and a real
 /// HttpClient can reach, which is all ClaudeCliBackend (C7) needs from it.</summary>

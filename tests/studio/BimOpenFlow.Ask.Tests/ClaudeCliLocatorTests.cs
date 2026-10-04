@@ -1,6 +1,6 @@
 using BimOpenFlow.Ask;
 
-namespace BimOpenFlow.Studio.Tests;
+namespace BimOpenFlow.Ask.Tests;
 
 /// <summary>Exercises ClaudeCliLocator.Find with fake environment, fileExists, subdirectories, and
 /// runs functions, so no real filesystem or process is needed.</summary>

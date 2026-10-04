@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The Ask agent loop (BimOpenFlow.Ask) against the flow MCP tool server: the Anthropic and
+       OpenAI chat backends over a scripted HttpMessageHandler, and the Claude Code command-line
+       backend over the fake claude.cmd in tests/studio/fake-claude. No key, login, or network. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>BimOpenFlow.Ask.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="$(Ara3DCoverletCollectorVersion)" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(Ara3DMicrosoftNetTestSdkVersion)" />
+    <PackageReference Include="NUnit" Version="$(Ara3DNUnitVersion)" />
+    <PackageReference Include="NUnit.Analyzers" Version="$(Ara3DNUnitAnalyzersVersion)" />
+    <PackageReference Include="NUnit3TestAdapter" Version="$(Ara3DNUnit3TestAdapterVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\studio\BimOpenFlow.Ask\BimOpenFlow.Ask.csproj" />
+    <ProjectReference Include="..\..\..\src\mcp\BimOpenMcp.Flow\BimOpenMcp.Flow.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\fake-claude\**" LinkBase="fake-claude" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="NUnit.Framework" />
+  </ItemGroup>
+
+</Project>

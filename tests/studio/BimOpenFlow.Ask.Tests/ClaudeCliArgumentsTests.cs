@@ -1,7 +1,7 @@
 using Ara3D.MCP;
 using BimOpenFlow.Ask;
 
-namespace BimOpenFlow.Studio.Tests;
+namespace BimOpenFlow.Ask.Tests;
 
 /// <summary>Checks ClaudeCliArguments.Build against the plan's worked example character for
 /// character, McpConfig's JSON, and that PrepareEnvironment removes exactly the named variables

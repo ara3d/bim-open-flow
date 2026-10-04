@@ -2,7 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json.Nodes;
 
-namespace BimOpenFlow.Studio.Tests;
+namespace BimOpenFlow.Ask.Tests;
 
 /// <summary>A fake chat completion endpoint that replays a fixed script of replies, one per
 /// request, and records what it was asked. Shared by AskAgentTests and ChatBackendTests.</summary>

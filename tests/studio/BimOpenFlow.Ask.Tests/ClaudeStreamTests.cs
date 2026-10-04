@@ -1,6 +1,6 @@
 using BimOpenFlow.Ask;
 
-namespace BimOpenFlow.Studio.Tests;
+namespace BimOpenFlow.Ask.Tests;
 
 /// <summary>Exercises ClaudeStream against hand-written stream-json lines, so no real claude
 /// process is needed.</summary>

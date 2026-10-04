@@ -7,7 +7,7 @@ using BimOpenFlow.Ask;
 using BimOpenFlow.Host;
 using BimOpenMcp.Flow;
 
-namespace BimOpenFlow.Studio.Tests;
+namespace BimOpenFlow.Ask.Tests;
 
 /// <summary>The agent loop through the Claude backend against the real tool server, with the
 /// Messages API scripted: covers the request translation (system block, tools, tool results),

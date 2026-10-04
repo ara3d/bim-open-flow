@@ -4,7 +4,7 @@ using BimOpenFlow.Ask;
 using BimOpenFlow.Host;
 using BimOpenMcp.Flow;
 
-namespace BimOpenFlow.Studio.Tests;
+namespace BimOpenFlow.Ask.Tests;
 
 /// <summary>ChatBackend wraps AskAgent over an IChatModel as an IAskConversation. The tool loop
 /// itself is AskAgentTests' concern; these tests cover what the interface adds: continuing a

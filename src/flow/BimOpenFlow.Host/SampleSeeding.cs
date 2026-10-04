@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Ara3D.DataFlowEngine.Abstractions;
 using Ara3D.NodeGraph;
@@ -21,11 +22,29 @@ public static class SampleSeeding
     /// <summary>The checkout root is the nearest folder holding a solution file.</summary>
     public const string SolutionPattern = "*.sln";
 
-    /// <summary>The tables profile's seeding: TableSources from the checkout containing
-    /// startDir. Returns the ids seeded for the first time, in seed order.</summary>
+    /// <summary>The tables profile's seeding: TableSources from SamplesRoot(startDir).
+    /// Returns the ids seeded for the first time, in seed order.</summary>
     public static IReadOnlyList<string> Seed(AnalysisStore store, string startDir,
         INodeRegistry? registry = null, TextWriter? log = null)
-        => SeedFromCheckout(store, startDir, TableSources, registry, log);
+        => SamplesRoot(startDir) is { } root ? Seed(store, TableSources(root), registry, log) : [];
+
+    /// <summary>The root of the bim-open-flow checkout this host was compiled from, found from
+    /// this source file's location, when it still holds samples/tables; null for a host whose
+    /// source tree is gone. A repository that takes bim-open-flow as a dependency (the
+    /// toolkit's deps/bim-open-flow) builds the host from there, so its samples are found
+    /// although the running host's own checkout does not hold them.</summary>
+    public static string? SourceRoot { get; } = FindSourceRoot();
+
+    /// <summary>The folder holding samples/tables, analyses, and relations: SourceRoot, else
+    /// the checkout containing startDir; null outside both.</summary>
+    public static string? SamplesRoot(string startDir)
+        => SourceRoot ?? FindRepoRoot(startDir);
+
+    private static string? FindSourceRoot([CallerFilePath] string thisFile = "")
+    {
+        var root = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(thisFile)!, "..", "..", ".."));
+        return Directory.Exists(TablesDir(root)) ? root : null;
+    }
 
     /// <summary>Seeds from the sources the checkout containing startDir names, by the rules of
     /// the sources overload. Skips silently (returns empty) when no checkout is found
@@ -49,9 +68,9 @@ public static class SampleSeeding
         => Path.Combine(root, "samples", "tables");
 
     /// <summary>The sample data directories the tables profile adds to its model roots:
-    /// samples/tables. Empty outside a checkout.</summary>
+    /// samples/tables under SamplesRoot(startDir). Empty outside a checkout.</summary>
     public static IReadOnlyList<string> SeededModelRoots(string startDir)
-        => FindRepoRoot(startDir) is { } root ? [TablesDir(root)] : [];
+        => SamplesRoot(startDir) is { } root ? [TablesDir(root)] : [];
 
     /// <summary>Seeds every analysesDir *.json (file stem = analysis id), pointing {SAMPLES}
     /// at samplesDir. Returns the ids seeded for the first time.</summary>

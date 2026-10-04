@@ -73,6 +73,15 @@ public sealed class SampleSeedingTests
         Assert.That(Directory.EnumerateFiles(root!, SampleSeeding.SolutionPattern), Is.Not.Empty);
     }
 
+    /// <summary>A host built from this checkout finds its samples here whatever folder it
+    /// starts in, as the toolkit's studio does when it builds the host from deps/bim-open-flow.</summary>
+    [Test]
+    public void SamplesRoot_IsTheCheckoutTheHostWasBuiltFrom()
+    {
+        Assert.That(SampleSeeding.SourceRoot, Is.EqualTo(Path.GetFullPath(Path.Combine(SamplePaths.TablesDir, "..", ".."))));
+        Assert.That(SampleSeeding.SamplesRoot(Path.GetTempPath()), Is.EqualTo(SampleSeeding.SourceRoot));
+    }
+
     [Test]
     public void Seed_MissingAnalysesDir_SeedsNothing()
     {

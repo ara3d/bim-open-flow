@@ -2,7 +2,7 @@
 
 The `.bos` and `.duckdb` files in `samples/public/` are converted from openly licensed IFC files. Ara 3D's code in this repository is MIT licensed (`LICENSE` at the root); the building data keeps its own licence, given below. The source IFC files are not in this repository: `fetch.mjs` downloads them from the commits named here.
 
-What was changed, for every file: each source IFC file was read by this repository's IFC loader and written out as BIM Open Schema tables (entities, parameters, relations, and tessellated geometry, as Parquet in a zip), then loaded into a DuckDB database with text views. Nothing was added to or removed from the building's data on purpose; IFC content the converter does not map (for example 2D annotation) is absent, geometry is triangulated, and repeated meshes are stored once. `digitalhub-federated` and `duplex-federated` are unions of four models each (DigitalHub, Duplex) into one geometry-free document set, each source kept as its own document.
+What was changed, for every file: each source IFC file was read by this repository's IFC loader and written out as BIM Open Schema tables (entities, parameters, relations, and tessellated geometry, as Parquet in a zip), then loaded into a DuckDB database with text views. Nothing was added to or removed from the building's data on purpose; IFC content the converter does not map (for example 2D annotation) is absent, geometry is triangulated, and repeated meshes are stored once. `digitalhub-federated` and `duplex-federated` are unions of four models each (DigitalHub, Duplex) into one document set with the geometry of all four, each source kept as its own document and nothing merged.
 
 ## Schependomlaan
 
@@ -17,7 +17,7 @@ Attribution:
 
 ## DigitalHub
 
-Files: `digitalhub-arc.bos`, `digitalhub-arc.duckdb`, `digitalhub-hzg.bos`, `digitalhub-hzg.duckdb`, `digitalhub-federated.bos`, `digitalhub-federated.duckdb`.
+Files: `digitalhub-arc.bos`, `digitalhub-arc.duckdb`, `digitalhub-hzg.bos`, `digitalhub-hzg.duckdb`, `digitalhub-lft.bos`, `digitalhub-lft.duckdb`, `digitalhub-san.bos`, `digitalhub-san.duckdb`, `digitalhub-federated.bos`, `digitalhub-federated.duckdb`.
 
 - Source: `Version_2/DigitalHub_FM-ARC_v2.ifc`, `DigitalHub_FM-HZG_v2.ifc`, `DigitalHub_FM-LFT_v2.ifc`, and `DigitalHub_FM-SAN_v2.ifc` in https://github.com/RWTH-E3D/DigitalHub at commit `36565d529b4dadeca625de2b793d7e16700171e9`.
 - Licence: MIT. Converted to BIM Open Schema tables by Ara 3D. The licence's copyright and permission notice, in full:

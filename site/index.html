@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BIM Open Flow</title>
-<meta name="description" content="Graphs over building data that people and agents build the same way. On 2026-10-03 the code is still in bim-open-toolkit.">
+<meta name="description" content="Graphs over building data that people and agents build the same way, shown over two openly licensed buildings.">
 <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@600;700&family=Public+Sans:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
@@ -26,7 +26,7 @@ a { color: var(--accent); text-underline-offset: 2px; }
 code { font: 400 13px var(--font-mono); background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; }
 .lockup { width: 320px; max-width: 100%; height: auto; display: block; margin: 0 0 16px -8px; }
 .lede { font-size: 17px; }
-.status { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--amber); border-radius: 6px; padding: 12px 16px; margin: 20px 0; }
+.status { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 6px; padding: 12px 16px; margin: 20px 0; }
 .status p { margin: 0; }
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
 table { border-collapse: collapse; font-size: 14px; width: 100%; }
@@ -39,6 +39,50 @@ footer { margin-top: 48px; color: var(--dim); font-size: 13px; }
 footer a { color: var(--dim); }
 pre { font: 400 12.5px/1.5 var(--font-mono); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 12px 14px; overflow-x: auto; }
 ul { padding-left: 20px; max-width: 72ch; }
+.dim { color: var(--dim); }
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.tabs button { font: 500 14px var(--font-ui); color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; text-align: left; }
+.tabs button:hover { border-color: var(--accent); }
+.tabs button[aria-selected="true"] { border-color: var(--accent); background: var(--soft); box-shadow: inset 0 -2px 0 var(--accent); }
+.tab-building { font-size: 12px; color: var(--dim); }
+.buildings { width: min(1180px, calc(100vw - 32px)); position: relative; left: 50%; transform: translateX(-50%); }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+.question { font: 600 17px/1.35 var(--font-brand); margin-bottom: 4px; }
+.graph-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 6px; background: #fafbfc; margin: 12px 0 4px; }
+.graph-wrap svg { display: block; max-width: none; }
+.hint { font-size: 13px; }
+.wire { fill: none; stroke: #9aa3b2; stroke-width: 2; }
+.wire-label { font: 500 11px var(--font-mono); fill: var(--dim); paint-order: stroke; stroke: #fafbfc; stroke-width: 4px; }
+.card { cursor: pointer; }
+.card:focus { outline: none; }
+.card-box { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
+.card-head { fill: var(--soft); }
+.card.selected .card-box, .card:focus-visible .card-box { stroke: var(--accent); stroke-width: 2.5; }
+.card:hover .card-box { stroke: var(--accent); }
+.card-kind { font: 600 13px var(--font-mono); fill: var(--accent); }
+.card-id { font: 500 12px var(--font-ui); fill: var(--dim); }
+.card-param { font: 400 11.5px var(--font-mono); fill: var(--text); }
+.port { fill: var(--surface); stroke: #9aa3b2; stroke-width: 1.5; }
+.dot { fill: #9aa3b2; }
+.dot-Ok { fill: #1f9d55; }
+.dot-Error { fill: #c2416c; }
+.result { display: grid; gap: 16px; margin-top: 8px; }
+.chart { margin: 0; }
+.chart figcaption { font-weight: 600; margin-bottom: 8px; }
+.legend { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 0; margin: 0 0 8px; font-size: 13px; }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
+.bar-row { display: grid; grid-template-columns: minmax(90px, 200px) 1fr; gap: 12px; align-items: center; padding: 3px 0; border-bottom: 1px solid var(--border); }
+.bar-row:last-of-type { border-bottom: 0; }
+@media (max-width: 600px) { .bar-row { grid-template-columns: 38% 1fr; gap: 8px; } .bar-label { font-size: 11.5px; } .panel { padding: 12px; } }
+.bar-label { font: 400 13px var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bars { display: grid; gap: 2px; min-width: 0; }
+.bar-line { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.bar { display: block; height: 12px; border-radius: 2px; min-width: 1px; }
+.bar-value { font: 500 12px var(--font-mono); color: var(--dim); white-space: nowrap; }
+.table-head { margin-bottom: 8px; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.notice pre { white-space: pre-wrap; max-height: 420px; overflow-y: auto; }
+.notice summary { cursor: pointer; }
 </style>
 </head>
 <body>
@@ -50,8 +94,13 @@ ul { padding-left: 20px; max-width: 72ch; }
 </header>
 
 <div class="status">
-  <p><strong>Status on 2026-10-03:</strong> the code is not in this repository yet. It lives in <a href="https://github.com/ara3d/bim-open-toolkit">bim-open-toolkit</a> under <code>src/flow</code>, <code>bimopenflow/web</code>, <code>src/mcp/BimOpenMcp.Flow</code>, and <code>src/studio/BimOpenFlow.Ask</code>, and its generic part moves here with its history in phase 5 of the <a href="https://github.com/ara3d/bim-open-toolkit/blob/main/docs/plans/repository-split.md">repository split plan</a>.</p>
+  <p><strong>Status on 2026-10-03:</strong> the code is in this repository, moved with its history from <a href="https://github.com/ara3d/bim-open-toolkit">bim-open-toolkit</a> in phase 5 of the <a href="https://github.com/ara3d/bim-open-toolkit/blob/main/docs/plans/repository-split.md">repository split</a>. The graphs below run in the tests, not in your browser: this page shows their committed results.</p>
 </div>
+
+<h2 id="try">Six graphs over two real buildings</h2>
+<p>Each graph below reads a public building that <a href="https://github.com/ara3d/bim-open-data">BIM Open Data</a> converted from IFC to DuckDB tables, and answers one question with the generic table nodes: <code>duck.table</code>, <code>table.filter</code>, <code>table.join</code>, <code>table.aggregate</code>, <code>table.pivot</code>, <code>table.sort</code>, <code>duck.query</code>, and <code>chart.bar</code>. None of them is a building-specific node. Select a node to see the table it outputs.</p>
+<p class="dim">How the results got here: a test in <code>tests/flow/BimOpenFlow.TableWorkflows.Tests</code> evaluates every graph in <code>samples/buildings</code> with the same packs the host serves, checks the numbers, and writes <code>data/buildings.json</code>; another test fails when that file no longer matches. To change a graph and rerun it, clone the repository and open it in the editor (see the README).</p>
+<div id="buildings" class="buildings"></div>
 
 <h2>What a graph is</h2>
 <p>A graph is a JSON document of nodes and wires. Each node is a small function with typed ports and parameters edited on the node itself. A door schedule, rooms per storey, a check that every door leaf is at least 850 mm wide, or a 3D view coloured by category are each a graph of a handful of nodes.</p>
@@ -69,9 +118,9 @@ ul { padding-left: 20px; max-width: 72ch; }
 <h2>Runs are the evidence</h2>
 <p>A run record pins the graph's hash and every input's content hash beside the outputs, and replays. A number an agent reports comes from a run or a tool result, not from memory. A run can be published as a self-contained HTML report or an evidence package: a zip whose <code>manifest.json</code> lists a SHA-256 per member.</p>
 
-<h2>What will arrive</h2>
+<h2>What is in the repository</h2>
 <ul>
-  <li>The node packs: 124 node kinds in the toolkit's catalog on 2026-10-03, each declaring its ports, parameter kinds, and purity. The packs that know about buildings stay in the toolkit.</li>
+  <li>The node packs: 83 generic node kinds on 2026-10-03, each declaring its ports, parameter kinds, and purity. The packs that know about buildings stay in the toolkit.</li>
   <li>The headless host: graphs and runs on disk, and the four operations over HTTP.</li>
   <li>The web editor: a canvas built on <a href="https://github.com/ara3d/gratify">Gratify</a>, tables and charts beside the graph, and an Ask box where an agent builds the graph from a question in plain language.</li>
   <li>The MCP server, so an agent in Claude Code edits, evaluates, and reads graphs with the same operations.</li>
@@ -79,10 +128,23 @@ ul { padding-left: 20px; max-width: 72ch; }
 </ul>
 <p>The engine itself, <a href="https://github.com/ara3d/ara3d-dataflow">ara3d-dataflow</a>, is specified separately with its own conformance suite and knows nothing about buildings.</p>
 
+<h2 id="data">The buildings and their licences</h2>
+<p>The tables behind these results are converted from openly licensed IFC files. The building data keeps its own licence; this repository's code is MIT licensed.</p>
+<ul>
+  <li><strong>Schependomlaan</strong>, a ten-apartment block in the Netherlands (design model). Schependomlaan dataset, (C) original owners, licensed <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>; source <a href="https://github.com/openBIMstandards/Archive-DataSetSchependomlaan">openBIMstandards/Archive-DataSetSchependomlaan</a>; converted to BIM Open Schema tables by Ara 3D.</li>
+  <li><strong>DigitalHub</strong>, an office building of RWTH Aachen University (architecture, heating, ventilation, and plumbing models). MIT License, Copyright (c) 2020 RWTH Aachen University - E3D Institute of Energy Efficiency and Sustainable Building; source <a href="https://github.com/RWTH-E3D/DigitalHub">RWTH-E3D/DigitalHub</a>; converted to BIM Open Schema tables by Ara 3D.</li>
+</ul>
+<details class="notice">
+  <summary>Full notice, including the MIT licence text (<a href="data/NOTICE.md">NOTICE.md</a>)</summary>
+  <pre id="notice-text">Loading data/NOTICE.md…</pre>
+</details>
+
 <footer>
   <p>Part of the BIM Open family: <a href="https://github.com/ara3d/bim-open-toolkit">Toolkit</a>, <a href="https://github.com/ara3d/bim-open-data">Data</a>, <a href="https://github.com/ara3d/bim-open-notebook">Notebook</a>, <a href="https://github.com/ara3d/bim-open-viewer">Viewer</a>, <a href="https://ara3d.github.io/bim-open-schema/">Schema</a>. Source: <a href="https://github.com/ara3d/bim-open-flow">ara3d/bim-open-flow</a>. MIT licensed.</p>
 </footer>
 
 </main>
+<script type="module" src="buildings.js"></script>
+<script type="module" src="notice.js"></script>
 </body>
 </html>

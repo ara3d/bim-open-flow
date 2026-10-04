@@ -47,12 +47,12 @@ A run record pins the hash of the graph and the content hash of every input alon
 | MCP server | `src/mcp/BimOpenMcp.Flow` | The graph operations, evaluation, results, and runs as MCP tools; stdio, or HTTP with `--http <port>` |
 | Ask | `src/studio/BimOpenFlow.Ask` | The agent loop behind the toolkit's Ask box, over any in-process MCP server, with Anthropic, OpenAI, and Claude Code command-line backends |
 | Editor | `bimopenflow/web/packages/` `contracts`, `api-client`, `state`, `graph`, `viz`, `client`, `panes`, `app` | The web editor: a canvas built on Gratify, table, chart, verdict, and inspector panes, and a registry other panes plug into |
-| Samples | `samples/tables`, `samples/analyses`, `samples/relations` | Small CSV, XLSX, SQLite, DuckDB, JSON, and BFAST tables, and the graphs over them that the tests evaluate |
+| Samples | `samples/tables`, `samples/analyses`, `samples/relations`, `samples/buildings` | Small CSV, XLSX, SQLite, DuckDB, JSON, and BFAST tables, and the graphs over them that the tests evaluate; six graphs over two public buildings |
 | Tests and gates | `tests/`, `gates/` | NUnit projects per library, a layering test, and the host and web smoke gates CI runs |
 
 The generic host's catalog (`bimopenflow/web/packages/graph/test/nodes.catalog.json`, kept current by `GenericNodeCatalogFileTests`) lists 83 node kinds on 2026-10-03. Each declares its ports, parameter kinds, enum values, and whether it is pure or an effect, and the node reference is generated from that, so the catalog is the documentation an agent reads.
 
-What stays in the toolkit: the packs that know about buildings (`Nodes.Bos`, `Nodes.BimAnalysis`, `Nodes.Geometry`); the studio host, which composes them with these packs and serves the Ask box (`/api/ask`, whose system prompt is the toolkit's `bim-flow` agent skill); the 3D pane, which the toolkit registers with the editor; and the BIM, NRC, and Snowdon samples. A small public building shipped as DuckDB tables is planned (phase 5d), so this repository can show BIM questions without any toolkit code; it waits on whether the Duplex model may be redistributed (the toolkit's TKT-144).
+What stays in the toolkit: the packs that know about buildings (`Nodes.Bos`, `Nodes.BimAnalysis`, `Nodes.Geometry`); the studio host, which composes them with these packs and serves the Ask box (`/api/ask`, whose system prompt is the toolkit's `bim-flow` agent skill); the 3D pane, which the toolkit registers with the editor; and the BIM, NRC, and Snowdon samples. BIM questions over public buildings need none of that code: see "Graphs over public buildings" below.
 
 ## The editor
 
@@ -89,9 +89,13 @@ node gates/web-smoke.mjs
 
 `npm run host --prefix bimopenflow/web` starts the generic host on port 5214, and `npm run web --prefix bimopenflow/web` serves the editor on port 5304 against it. CI (`.github/workflows/build.yml`) runs the same steps.
 
+## Graphs over public buildings
+
+`samples/buildings` holds six graphs over two openly licensed buildings that [BIM Open Data](https://github.com/ara3d/bim-open-data) converted from IFC to DuckDB: Schependomlaan, a Dutch apartment block (CC BY 4.0), and DigitalHub, an office building of RWTH Aachen University (MIT). `node deps.mjs` puts them at `deps/bim-open-data/samples/public`. The graphs use only generic nodes (`duck.table`, `table.filter`, `table.join`, `table.aggregate`, `table.pivot`, `table.sort`, `duck.query`, `chart.bar`) and answer questions such as spaces per storey (Schependomlaan: 32, 29, 20, 19) or doors, windows, and spaces per storey (DigitalHub: 64, 47, 64 in all). `samples/buildings/README.md` lists every graph and the numbers it produces, and `PublicBuildingsTests` checks them.
+
 ## Web page
 
-`site/index.html` is the repository's page, deployed to `https://ara3d.github.io/bim-open-flow/` by `.github/workflows/pages.yml` on each push to `main` that changes `site/`. The owner must first switch Pages on in this repository's settings (Settings, Pages, Source: GitHub Actions); until then the workflow's deploy step fails.
+`site/index.html` is the repository's page, deployed to `https://ara3d.github.io/bim-open-flow/` by `.github/workflows/pages.yml` on each push to `main` that changes `site/`. It shows the six building graphs with their results, which are precomputed rather than evaluated in the browser: the page has no host to evaluate with. The explicit test `PublicBuildingsSiteData.Write` evaluates the graphs into `site/data/buildings.json` and copies the buildings' `NOTICE.md` beside it, and the regular tests fail when either copy is stale. A visitor can switch graphs, select any node to read the table it outputs, see the row count on each wire, and read the licences. To serve the page locally, run any static file server over `site/`. The owner must first switch Pages on in this repository's settings (Settings, Pages, Source: GitHub Actions); until then the workflow's deploy step fails.
 
 ## The family
 

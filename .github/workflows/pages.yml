@@ -1,6 +1,9 @@
 name: pages
 
-# Publishes site/ (this repository's page) to GitHub Pages.
+# Publishes site/ (this repository's page) to GitHub Pages. The page is
+# static: site/data/buildings.json holds the building graphs' results,
+# written by the explicit test PublicBuildingsSiteData.Write and kept
+# current by the build's tests, so this job needs no .NET or deps/.
 # Pages must be switched on in the repository settings with
 # "Source: GitHub Actions" before the deploy job can succeed.
 

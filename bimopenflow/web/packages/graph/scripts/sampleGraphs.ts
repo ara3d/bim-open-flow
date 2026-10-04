@@ -11,8 +11,8 @@
 //
 // The defaults cover the graph tool's own samples (FLOW_SAMPLE_DIRS), the ones
 // that move with it to bim-open-flow. A repository with more samples and packs
-// (the toolkit's studio: docs/nodes.catalog.json) passes its own folders and
-// catalog path.
+// (the toolkit's studio-web: docs/nodes.catalog.json) passes its own folders,
+// root, and catalog path.
 
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -52,15 +52,16 @@ export const FLOW_SAMPLE_DIRS: readonly string[] = ["samples/analyses", "samples
 /** The generic host's node catalog, committed beside the tests. */
 export const FLOW_CATALOG = fileURLToPath(new URL("../test/nodes.catalog.json", import.meta.url));
 
-/** Every committed sample graph under `dirs` (repository-relative), in path order. */
-export function sampleGraphs(dirs: readonly string[] = FLOW_SAMPLE_DIRS): SampleGraph[] {
+/** Every committed sample graph under `dirs` (relative to `root`, by default
+ *  this package's repository), in path order. */
+export function sampleGraphs(dirs: readonly string[] = FLOW_SAMPLE_DIRS, root: string = repoRoot): SampleGraph[] {
   const patterns = dirs.flatMap((d) => [`${d}/*.json`, `${d}/**/*.json`]);
-  const files = execFileSync("git", ["ls-files", ...patterns], { cwd: repoRoot, encoding: "utf8" })
+  const files = execFileSync("git", ["ls-files", ...patterns], { cwd: root, encoding: "utf8" })
     .split("\n")
     .filter((f) => f.endsWith(".json"))
     .sort();
   return files.flatMap((file): SampleGraph[] => {
-    const json: unknown = JSON.parse(readFileSync(join(repoRoot, file), "utf8"));
+    const json: unknown = JSON.parse(readFileSync(join(root, file), "utf8"));
     if (isGraph(json)) return [{ name: file, file, autoLaidOut: false, document: parseDocument(JSON.stringify(json)) }];
     if (!Array.isArray(json)) return [];
     return json.flatMap((item: { id?: string; graph?: unknown }, entry) =>

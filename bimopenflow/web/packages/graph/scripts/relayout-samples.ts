@@ -3,10 +3,12 @@
 // right or down only as far as their painted footprints need.
 //
 //   npm run relayout-samples -- [--host http://127.0.0.1:5214] [--catalog file] [--samples dir,dir]
-//                                [--dry] [path-substring ...]
+//                                [--root dir] [--dry] [path-substring ...]
 //
 // Covers the graph tool's own samples (FLOW_SAMPLE_DIRS) unless --samples names
-// other folders. Sizes cards from the committed test/nodes.catalog.json (the
+// other folders; --root names the repository they are in (by default this
+// package's), and --catalog and --samples are relative to it. Sizes cards
+// from the committed test/nodes.catalog.json (the
 // generic packs), from another committed catalog with --catalog (the toolkit's
 // docs/nodes.catalog.json for its BIM samples), or from a running host's
 // catalog with --host (or BOF_HOST). Rewrites only the x and y
@@ -27,6 +29,7 @@ const option = (name: string) => {
   return i >= 0 ? args.splice(i, 2)[1] : undefined;
 };
 const host = option("--host") ?? process.env["BOF_HOST"];
+const root = option("--root") ?? repoRoot;
 const catalogFile = option("--catalog");
 const sampleDirs = option("--samples")?.split(",") ?? FLOW_SAMPLE_DIRS;
 const dry = args.includes("--dry");
@@ -54,18 +57,18 @@ function setPosition(text: string, id: string, to: { x: number; y: number }): st
 }
 
 const dirty = new Set(
-  execFileSync("git", ["status", "--porcelain", "--", "samples"], { cwd: repoRoot, encoding: "utf8" })
+  execFileSync("git", ["status", "--porcelain", "--", "samples"], { cwd: root, encoding: "utf8" })
     .split("\n")
     .filter(Boolean)
     .map((line) => line.slice(3)),
 );
 
 const catalog = host !== undefined ? await fetchCatalog(host)
-  : committedCatalog(catalogFile === undefined ? undefined : join(repoRoot, catalogFile));
+  : committedCatalog(catalogFile === undefined ? undefined : join(root, catalogFile));
 const texts = new Map<string, string>();
 // Workflow lists (samples/duckdb-analyses/workflows.json) are skipped: the
 // DuckDB studio lays each graph out afresh with autoLayout when it opens it.
-for (const sample of sampleGraphs(sampleDirs)) {
+for (const sample of sampleGraphs(sampleDirs, root)) {
   if (filters.length && !filters.some((f) => sample.name.includes(f))) continue;
   const model = sampleModel(sample.document, catalog);
   const before = overlappingPairs(model);
@@ -76,10 +79,10 @@ for (const sample of sampleGraphs(sampleDirs)) {
   }
   const positions = tidyLayout(model);
   const after = overlappingPairs({ ...model, nodes: model.nodes.map((n) => ({ ...n, ...positions[n.id]! })) });
-  let text = readFileSync(join(repoRoot, sample.file), "utf8");
+  let text = readFileSync(join(root, sample.file), "utf8");
   for (const node of model.nodes) text = setPosition(text, node.id, positions[node.id]!);
   texts.set(sample.file, text);
   console.log(`${sample.name}: ${before.length} overlapping pairs -> ${after.length}`);
 }
-if (!dry) for (const [file, text] of texts) writeFileSync(join(repoRoot, file), text);
+if (!dry) for (const [file, text] of texts) writeFileSync(join(root, file), text);
 console.log(`${dry ? "would rewrite" : "rewrote"} ${texts.size} file(s)`);

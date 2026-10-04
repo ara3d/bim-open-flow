@@ -1,15 +1,16 @@
 namespace BimOpenFlow.Host.Tests;
 
-/// <summary>Background preparation of generated samples: staleness, the "not ready yet"
-/// reason, building through a .part file, and the ready callback. The build is injected so
-/// these run in milliseconds; the real IFC build is covered by IfcDuckDbBuildTests and the
-/// NRC workflow fixture.</summary>
+/// <summary>Background preparation of generated samples: staleness by stamp (input hash and
+/// producer version), the "not ready yet" reason, building through a .part file, and the ready
+/// callback. The build is injected so these run in milliseconds; the real IFC build is covered
+/// by IfcDuckDbBuildTests and the NRC workflow fixture.</summary>
 [TestFixture]
 public sealed class SamplePreparationTests
 {
     private string _dir = null!;
     private string _input = null!;
     private string _output = null!;
+    private int _builds;
 
     [SetUp]
     public void NewDir()
@@ -19,6 +20,7 @@ public sealed class SamplePreparationTests
         _input = Path.Combine(_dir, "model.ifc");
         _output = Path.Combine(_dir, "model.duckdb");
         File.WriteAllText(_input, "ISO-10303-21;");
+        _builds = 0;
     }
 
     [TearDown]
@@ -28,8 +30,21 @@ public sealed class SamplePreparationTests
         catch (IOException) { }
     }
 
-    private SamplePreparation.Job Job(Action<string, string>? build = null)
-        => new("model", _input, _output, build ?? ((_, output) => File.WriteAllText(output, "db")));
+    private SamplePreparation.Job Job(Action<string, string>? build = null, string producer = "test/1")
+        => new("model", _input, _output, build ?? ((_, output) =>
+        {
+            _builds++;
+            File.WriteAllText(output, "db");
+        }), producer);
+
+    /// <summary>A job whose output was built by an earlier run.</summary>
+    private SamplePreparation.Job Built(string producer = "test/1")
+    {
+        var job = Job(producer: producer);
+        job.Run();
+        _builds = 0;
+        return job;
+    }
 
     [Test]
     public void MissingOutput_IsStale_AndHasAReason()
@@ -45,24 +60,99 @@ public sealed class SamplePreparationTests
     }
 
     [Test]
-    public void OutputNewerThanInput_IsCurrent_AndHasNoReason()
+    public void BuiltOutput_IsCurrent_AndHasNoReason()
     {
-        File.WriteAllText(_output, "db");
-        File.SetLastWriteTimeUtc(_output, File.GetLastWriteTimeUtc(_input).AddMinutes(1));
-        var job = Job();
+        var job = Built();
         Assert.Multiple(() =>
         {
             Assert.That(job.IsCurrent, Is.True);
             Assert.That(SamplePreparation.PendingReason([job])("model"), Is.Null);
+            Assert.That(File.ReadAllText(job.StampPath), Does.Contain("producer: test/1").And.Contain("sha256:"));
         });
     }
 
     [Test]
-    public void OutputOlderThanInput_IsStale()
+    public void CurrentOutput_IsNotRebuilt_EvenWhenOlderThanItsInput()
     {
-        File.WriteAllText(_output, "old");
+        var job = Built();
         File.SetLastWriteTimeUtc(_output, File.GetLastWriteTimeUtc(_input).AddMinutes(-1));
-        Assert.That(Job().IsCurrent, Is.False);
+        SamplePreparation.Run([job], _ => { }, TextWriter.Null);
+        Assert.That(_builds, Is.Zero);
+    }
+
+    [Test]
+    public void InputChange_Rebuilds()
+    {
+        var job = Built();
+        File.WriteAllText(_input, "ISO-10303-21; changed");
+        File.SetLastWriteTimeUtc(_output, File.GetLastWriteTimeUtc(_input).AddMinutes(1));
+        Assert.That(job.IsCurrent, Is.False, "a newer output from different input bytes is still stale");
+        SamplePreparation.Run([job], _ => { }, TextWriter.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(_builds, Is.EqualTo(1));
+            Assert.That(job.IsCurrent, Is.True);
+        });
+    }
+
+    [Test]
+    public void ProducerChange_Rebuilds()
+    {
+        Built(producer: "test/1");
+        var job = Job(producer: "test/2");
+        Assert.That(job.IsCurrent, Is.False);
+        SamplePreparation.Run([job], _ => { }, TextWriter.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(_builds, Is.EqualTo(1));
+            Assert.That(job.IsCurrent, Is.True);
+            Assert.That(Job(producer: "test/1").IsCurrent, Is.False);
+        });
+    }
+
+    [Test]
+    public void StaleStamp_Rebuilds()
+    {
+        var job = Built();
+        File.WriteAllText(job.StampPath, File.ReadAllText(job.StampPath).Replace("sha256:", "sha256:00"));
+        Assert.That(job.IsCurrent, Is.False);
+        SamplePreparation.Run([job], _ => { }, TextWriter.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(_builds, Is.EqualTo(1));
+            Assert.That(job.IsCurrent, Is.True);
+        });
+    }
+
+    [Test]
+    public void MissingStamp_RebuildsOnce()
+    {
+        // An output left by a build from before stamps existed, newer than its input.
+        File.WriteAllText(_output, "old");
+        File.SetLastWriteTimeUtc(_output, File.GetLastWriteTimeUtc(_input).AddMinutes(1));
+        var job = Job();
+        Assert.That(job.IsCurrent, Is.False);
+        SamplePreparation.Run([job], _ => { }, TextWriter.Null);
+        SamplePreparation.Run([job], _ => { }, TextWriter.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(_builds, Is.EqualTo(1));
+            Assert.That(File.ReadAllText(_output), Is.EqualTo("db"));
+            Assert.That(File.Exists(job.StampPath), Is.True);
+        });
+    }
+
+    [Test]
+    public void FailedBuild_LeavesTheOldOutputStale()
+    {
+        var job = Built(producer: "test/1");
+        var next = Job((_, _) => throw new IOException("disk full"), producer: "test/2");
+        SamplePreparation.Run([next], _ => { }, TextWriter.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(next.IsCurrent, Is.False);
+            Assert.That(job.IsCurrent, Is.True, "the old output and its stamp are untouched");
+        });
     }
 
     [Test]
@@ -92,11 +182,9 @@ public sealed class SamplePreparationTests
     [Test]
     public void Run_SkipsCurrentJobs()
     {
-        File.WriteAllText(_output, "db");
-        File.SetLastWriteTimeUtc(_output, File.GetLastWriteTimeUtc(_input).AddMinutes(1));
-        var built = false;
-        SamplePreparation.Run([Job((_, _) => built = true)], _ => { }, TextWriter.Null);
-        Assert.That(built, Is.False);
+        var job = Built();
+        SamplePreparation.Run([job], _ => { }, TextWriter.Null);
+        Assert.That(_builds, Is.Zero);
     }
 
     [Test]
@@ -116,9 +204,7 @@ public sealed class SamplePreparationTests
     [Test]
     public async Task RunInBackground_IsCompleteAtOnceWhenNothingIsStale()
     {
-        File.WriteAllText(_output, "db");
-        File.SetLastWriteTimeUtc(_output, File.GetLastWriteTimeUtc(_input).AddMinutes(1));
-        var task = SamplePreparation.RunInBackground([Job()], _ => { }, TextWriter.Null);
+        var task = SamplePreparation.RunInBackground([Built()], _ => { }, TextWriter.Null);
         Assert.That(task.IsCompleted, Is.True);
         await task;
     }

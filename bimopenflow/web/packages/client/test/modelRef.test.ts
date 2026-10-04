@@ -76,4 +76,22 @@ describe("matchModelId", () => {
     const twins = [model("a", "C:\\x\\m.bos"), model("b", "C:\\y\\m.bos")];
     expect(matchModelId(twins, "m.bos")).toBeUndefined();
   });
+
+  it("retries a .duckdb path as the sibling .bos, then .ifc", () => {
+    const m = [model("x.bos", "C:/d/x.bos"), model("x.ifc", "C:/d/x.ifc")];
+    expect(matchModelId(m, "x.duckdb")).toBe("x.bos");
+    expect(matchModelId([m[1]!], "x.duckdb")).toBe("x.ifc");
+    expect(matchModelId(models, "sample.sqlite")).toBe("sample.bos");
+  });
+
+  it("prefers an exact match over the swapped extension", () => {
+    const m = [model("x.bos", "C:/d/x.bos"), model("x.duckdb", "C:/d/x.duckdb")];
+    expect(matchModelId(m, "x.duckdb")).toBe("x.duckdb");
+  });
+
+  it("leaves a .duckdb path unmatched with no sibling or an ambiguous one", () => {
+    expect(matchModelId(models, "other.duckdb")).toBeUndefined();
+    const twins = [model("a", "C:/x/m.bos"), model("b", "C:/y/m.bos")];
+    expect(matchModelId(twins, "m.duckdb")).toBeUndefined();
+  });
 });

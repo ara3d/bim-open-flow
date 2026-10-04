@@ -41,19 +41,30 @@ export function modelPathFor(
 const normalize = (path: string): string =>
   path.replace(/\\/g, "/").toLowerCase();
 
+const findModel = (
+  models: readonly ModelSummary[],
+  wanted: string,
+): string | undefined => {
+  const exact = models.find((m) => normalize(m.sourcePath) === wanted);
+  if (exact) return exact.id;
+  const suffix = wanted.startsWith("/") ? wanted : `/${wanted}`;
+  const bySuffix = models.filter((m) => normalize(m.sourcePath).endsWith(suffix));
+  return bySuffix.length === 1 ? bySuffix[0]!.id : undefined;
+};
+
 /**
  * The catalog model whose sourcePath matches a node's path param: exact match
  * after separator/case normalization, else the unique model whose sourcePath
- * ends with the (root-relative) path.
+ * ends with the (root-relative) path. A .duckdb or .sqlite path with no match
+ * retries as its sibling .bos, then .ifc (the catalog lists only those).
  */
 export function matchModelId(
   models: readonly ModelSummary[],
   path: string,
 ): string | undefined {
   const wanted = normalize(path);
-  const exact = models.find((m) => normalize(m.sourcePath) === wanted);
-  if (exact) return exact.id;
-  const suffix = wanted.startsWith("/") ? wanted : `/${wanted}`;
-  const bySuffix = models.filter((m) => normalize(m.sourcePath).endsWith(suffix));
-  return bySuffix.length === 1 ? bySuffix[0]!.id : undefined;
+  const found = findModel(models, wanted);
+  if (found || !/\.(duckdb|sqlite)$/.test(wanted)) return found;
+  const stem = wanted.replace(/\.[^./]+$/, "");
+  return findModel(models, `${stem}.bos`) ?? findModel(models, `${stem}.ifc`);
 }

@@ -1,0 +1,23 @@
+{
+  "formatVersion": "0.1.0",
+  "layout": {
+    "chart": { "x": 680, "y": 40 },
+    "heating": { "x": 40, "y": 40 }
+  },
+  "structure": {
+    "edges": [
+      { "from": "heating.table", "to": "chart.table" }
+    ],
+    "nodes": [
+      { "id": "chart", "kind": "chart.bar", "version": 1 },
+      { "id": "heating", "kind": "duck.query", "version": 1 }
+    ]
+  },
+  "values": {
+    "chart": { "labelColumn": "Storey", "title": "Heating parts per storey", "valueColumns": "PipeSegments, PipeFittings, SpaceHeaters, Valves" },
+    "heating": {
+      "path": "{PUBLIC}/digitalhub-hzg.duckdb",
+      "sql": "SELECT s.StoreyName AS Storey, count(*) FILTER (WHERE e.Category = 'IFCPIPESEGMENT') AS PipeSegments, count(*) FILTER (WHERE e.Category = 'IFCPIPEFITTING') AS PipeFittings, count(*) FILTER (WHERE e.Category = 'IFCSPACEHEATER') AS SpaceHeaters, count(*) FILTER (WHERE e.Category = 'IFCVALVE') AS Valves, count(*) AS AllElements FROM EntityText e JOIN StoreyOfElement s ON s.EntityIndex = e.EntityIndex GROUP BY s.StoreyName ORDER BY s.StoreyName"
+    }
+  }
+}

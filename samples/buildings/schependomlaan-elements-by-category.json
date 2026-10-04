@@ -1,0 +1,32 @@
+{
+  "formatVersion": "0.1.0",
+  "layout": {
+    "byCategory": { "x": 680, "y": 40 },
+    "chart": { "x": 1000, "y": 40 },
+    "entities": { "x": 40, "y": 40 },
+    "placed": { "x": 360, "y": 40 },
+    "storeys": { "x": 40, "y": 300 }
+  },
+  "structure": {
+    "edges": [
+      { "from": "entities.table", "to": "placed.a" },
+      { "from": "storeys.table", "to": "placed.b" },
+      { "from": "placed.table", "to": "byCategory.table" },
+      { "from": "byCategory.table", "to": "chart.table" }
+    ],
+    "nodes": [
+      { "id": "byCategory", "kind": "table.aggregate", "version": 1 },
+      { "id": "chart", "kind": "chart.bar", "version": 1 },
+      { "id": "entities", "kind": "duck.table", "version": 1 },
+      { "id": "placed", "kind": "table.join", "version": 1 },
+      { "id": "storeys", "kind": "duck.table", "version": 1 }
+    ]
+  },
+  "values": {
+    "byCategory": { "aggregates": "count(EntityIndex) as Elements", "groupBy": "Category" },
+    "chart": { "labelColumn": "Category", "sort": "desc", "title": "Elements on a storey, by IFC class", "valueColumns": "Elements" },
+    "entities": { "path": "{PUBLIC}/schependomlaan.duckdb", "table": "EntityText" },
+    "placed": { "aKey": "EntityIndex", "mode": "inner" },
+    "storeys": { "path": "{PUBLIC}/schependomlaan.duckdb", "table": "StoreyOfElement" }
+  }
+}

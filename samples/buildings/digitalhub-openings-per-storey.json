@@ -1,0 +1,40 @@
+{
+  "formatVersion": "0.1.0",
+  "layout": {
+    "chart": { "x": 1800, "y": 40 },
+    "entities": { "x": 40, "y": 40 },
+    "openings": { "x": 360, "y": 40 },
+    "pivot": { "x": 1160, "y": 40 },
+    "placed": { "x": 840, "y": 40 },
+    "sorted": { "x": 1480, "y": 40 },
+    "storeys": { "x": 360, "y": 300 }
+  },
+  "structure": {
+    "edges": [
+      { "from": "entities.table", "to": "openings.table" },
+      { "from": "openings.table", "to": "placed.a" },
+      { "from": "storeys.table", "to": "placed.b" },
+      { "from": "placed.table", "to": "pivot.table" },
+      { "from": "pivot.table", "to": "sorted.table" },
+      { "from": "sorted.table", "to": "chart.table" }
+    ],
+    "nodes": [
+      { "id": "chart", "kind": "chart.bar", "version": 1 },
+      { "id": "entities", "kind": "duck.table", "version": 1 },
+      { "id": "openings", "kind": "table.filter", "version": 1 },
+      { "id": "pivot", "kind": "table.pivot", "version": 1 },
+      { "id": "placed", "kind": "table.join", "version": 1 },
+      { "id": "sorted", "kind": "table.sort", "version": 1 },
+      { "id": "storeys", "kind": "duck.table", "version": 1 }
+    ]
+  },
+  "values": {
+    "chart": { "labelColumn": "StoreyName", "title": "Doors, windows, and spaces per storey", "valueColumns": "IFCDOOR, IFCWINDOW, IFCSPACE" },
+    "entities": { "path": "{PUBLIC}/digitalhub-arc.duckdb", "table": "EntityText" },
+    "openings": { "expr": "Category in ('IFCDOOR', 'IFCWINDOW', 'IFCSPACE')" },
+    "pivot": { "aggregate": "count", "groupBy": "StoreyName", "nameColumn": "Category", "valueColumn": "EntityIndex" },
+    "placed": { "aKey": "EntityIndex", "mode": "inner" },
+    "sorted": { "A": "StoreyName" },
+    "storeys": { "path": "{PUBLIC}/digitalhub-arc.duckdb", "table": "StoreyOfElement" }
+  }
+}

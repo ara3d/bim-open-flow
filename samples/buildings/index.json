@@ -1,0 +1,12 @@
+{
+  "data": "deps/bim-open-data/samples/public",
+  "placeholder": "{PUBLIC}",
+  "graphs": [
+    { "id": "schependomlaan-elements-by-category", "building": "schependomlaan", "question": "What is on Schependomlaan's storeys, by IFC class?" },
+    { "id": "schependomlaan-spaces-per-storey", "building": "schependomlaan", "question": "How many spaces does each storey of Schependomlaan have?" },
+    { "id": "schependomlaan-room-names", "building": "schependomlaan", "question": "Which room names occur in Schependomlaan, and how often?" },
+    { "id": "digitalhub-openings-per-storey", "building": "digitalhub-arc", "question": "How many doors, windows, and spaces are on each storey of DigitalHub?" },
+    { "id": "digitalhub-heating-per-storey", "building": "digitalhub-hzg", "question": "How are DigitalHub's heating pipes, fittings, radiators, and valves spread over its storeys?" },
+    { "id": "digitalhub-federated-models", "building": "digitalhub-federated", "question": "How many placed elements does each of DigitalHub's four discipline models contribute?" }
+  ]
+}

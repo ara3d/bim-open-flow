@@ -1,0 +1,32 @@
+{
+  "formatVersion": "0.1.0",
+  "layout": {
+    "byName": { "x": 680, "y": 40 },
+    "chart": { "x": 1320, "y": 40 },
+    "entities": { "x": 40, "y": 40 },
+    "sorted": { "x": 1000, "y": 40 },
+    "spaces": { "x": 360, "y": 40 }
+  },
+  "structure": {
+    "edges": [
+      { "from": "entities.table", "to": "spaces.table" },
+      { "from": "spaces.table", "to": "byName.table" },
+      { "from": "byName.table", "to": "sorted.table" },
+      { "from": "sorted.table", "to": "chart.table" }
+    ],
+    "nodes": [
+      { "id": "byName", "kind": "table.aggregate", "version": 1 },
+      { "id": "chart", "kind": "chart.bar", "version": 1 },
+      { "id": "entities", "kind": "duck.table", "version": 1 },
+      { "id": "sorted", "kind": "table.sort", "version": 1 },
+      { "id": "spaces", "kind": "table.filter", "version": 1 }
+    ]
+  },
+  "values": {
+    "byName": { "aggregates": "count(EntityIndex) as Spaces", "groupBy": "Name" },
+    "chart": { "labelColumn": "Name", "title": "Spaces by name", "valueColumns": "Spaces" },
+    "entities": { "path": "{PUBLIC}/schependomlaan.duckdb", "table": "EntityText" },
+    "sorted": { "A": "Spaces", "B": "Name", "descendingA": "true" },
+    "spaces": { "expr": "Category == 'IFCSPACE'" }
+  }
+}

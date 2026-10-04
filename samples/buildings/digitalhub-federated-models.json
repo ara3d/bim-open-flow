@@ -1,0 +1,23 @@
+{
+  "formatVersion": "0.1.0",
+  "layout": {
+    "chart": { "x": 680, "y": 40 },
+    "models": { "x": 40, "y": 40 }
+  },
+  "structure": {
+    "edges": [
+      { "from": "models.table", "to": "chart.table" }
+    ],
+    "nodes": [
+      { "id": "chart", "kind": "chart.bar", "version": 1 },
+      { "id": "models", "kind": "duck.query", "version": 1 }
+    ]
+  },
+  "values": {
+    "chart": { "labelColumn": "Model", "title": "Elements on a storey, per discipline model", "valueColumns": "Elements" },
+    "models": {
+      "path": "{PUBLIC}/digitalhub-federated.duckdb",
+      "sql": "SELECT d.Strings AS Model, count(*) AS Elements, count(DISTINCT s.StoreyIndex) AS Storeys FROM StoreyOfElement s JOIN Entities e ON e.rowid = s.EntityIndex JOIN Documents doc ON doc.rowid = e.Document JOIN Strings d ON d.rowid = doc.Title GROUP BY d.Strings ORDER BY d.Strings"
+    }
+  }
+}

@@ -22,6 +22,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The synthetic BOS archive the entity-properties tests read; one source, shared with Host.Catalog.Tests. -->
+    <Compile Include="..\BimOpenFlow.Host.Catalog.Tests\SampleBos.cs" Link="SampleBos.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\..\src\flow\BimOpenFlow.Host.Api\BimOpenFlow.Host.Api.csproj" />
     <ProjectReference Include="$(DepsRoot)ara3d-dataflow\src\Ara3D.DataFlowEngine.TestKit\Ara3D.DataFlowEngine.TestKit.csproj" />
   </ItemGroup>

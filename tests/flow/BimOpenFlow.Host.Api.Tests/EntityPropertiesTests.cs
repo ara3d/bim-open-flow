@@ -1,4 +1,5 @@
 using System.Text.Json;
+using BimOpenFlow.Host.Catalog.Tests;
 using static BimOpenFlow.Host.Api.Tests.TestGraphs;
 
 namespace BimOpenFlow.Host.Api.Tests;
@@ -6,18 +7,10 @@ namespace BimOpenFlow.Host.Api.Tests;
 [TestFixture]
 public sealed class EntityPropertiesTests
 {
-    private const string WallCategory = "IFCWALLSTANDARDCASE";
-    private const string CarbonGroup = "Pset_NRCOperationalCarbon";
+    private const string WallCategory = SampleBos.WallCategory;
+    private const string CarbonGroup = SampleBos.CarbonGroup;
 
-    private static string ModelId
-    {
-        get
-        {
-            if (ApiTestServer.SampleBosId is null)
-                Assert.Ignore("samples/nrc/duplex-enriched.bos not reachable from the test binary.");
-            return ApiTestServer.SampleBosId!;
-        }
-    }
+    private static string ModelId => ApiTestServer.SampleBosId;
 
     private static string Path(long localId)
         => $"/api/models/{ModelId}/entities/{localId}/properties";
@@ -48,7 +41,7 @@ public sealed class EntityPropertiesTests
     }
 
     [Test]
-    public async Task EnrichedWall_ReturnsTheNrcCarbonGroupInCamelCase()
+    public async Task Wall_ReturnsItsCarbonGroupInCamelCase()
     {
         var localId = await FindWallLocalId();
         var text = await GetOk(Path(localId));
@@ -64,7 +57,7 @@ public sealed class EntityPropertiesTests
         Assert.That(parameters.Select(p => p.GetProperty("group").GetString()), Does.Contain(CarbonGroup));
         var carbon = parameters.Single(p =>
             p.GetProperty("group").GetString() == CarbonGroup
-            && p.GetProperty("name").GetString() == "OperationalCarbon_kgCO2e_per_year");
+            && p.GetProperty("name").GetString() == SampleBos.CarbonName);
         Assert.That(carbon.GetProperty("value").GetString(), Is.Not.Empty);
     }
 

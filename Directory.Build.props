@@ -17,16 +17,20 @@
   </PropertyGroup>
 
   <!--
-    Where deps.mjs puts this repository's dependencies (deps.json): beside the
-    repository when its parent folder is a deps root (holds a .deps-root marker),
-    otherwise in deps/. This is deps.mjs's own rule, and bim-open-data's and
-    bim-open-toolkit's Directory.Build.props state it the same way, so when this
-    repository is itself a dependency (bim-open-toolkit/deps/bim-open-flow), its
-    projects reach ara3d-dataflow, bim-open-data, and the SDK by the same paths
-    as the host's projects do, and MSBuild sees one project, not two.
+    Every dependency is built from deps\<name>, which deps.mjs fills with every
+    repository the build reaches, cloned or linked to a sibling checkout. When
+    this repository is itself a dependency (bim-open-toolkit/deps/bim-open-flow:
+    its folder sits in a folder named deps that holds a .deps-root marker),
+    that deps folder is used instead, so its projects reach ara3d-dataflow,
+    bim-open-data, and the SDK by the same paths as the host's projects and
+    solution do, and MSBuild sees one project, not two. Paths are kept as
+    written, never resolved through a link. bim-open-data's
+    Directory.Build.props states the same rule.
   -->
   <PropertyGroup>
-    <DepsRoot Condition="'$(DepsRoot)' == '' And Exists('$(MSBuildThisFileDirectory)../.deps-root')">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../'))</DepsRoot>
+    <_DepsParent>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))</_DepsParent>
+    <_DepsParentName>$([System.IO.Path]::GetFileName('$(_DepsParent)'))</_DepsParentName>
+    <DepsRoot Condition="'$(DepsRoot)' == '' And '$(_DepsParentName)' == 'deps' And Exists('$(_DepsParent)\.deps-root')">$(_DepsParent)\</DepsRoot>
     <DepsRoot Condition="'$(DepsRoot)' == ''">$(MSBuildThisFileDirectory)deps\</DepsRoot>
   </PropertyGroup>
 

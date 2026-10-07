@@ -167,3 +167,6 @@ artifacts/
 *.user
 .vs/
 .idea/
+
+# The Pages build of the live graphs (bimopenflow/web/packages/site-web)
+site/app/

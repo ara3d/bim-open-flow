@@ -1,9 +1,13 @@
 name: pages
 
-# Publishes site/ (this repository's page) to GitHub Pages. The page is
-# static: site/data/buildings.json holds the building graphs' results,
-# written by the explicit test PublicBuildingsSiteData.Write and kept
-# current by the build's tests, so this job needs no .NET or deps/.
+# Builds and publishes site/ (this repository's page) to GitHub Pages.
+# site/index.html and site/data/ are committed: data/buildings.json holds the
+# building graphs' results, written by the explicit test
+# PublicBuildingsSiteData.Write and kept current by the build's tests, so this
+# job needs no .NET. site/app (git-ignored) is built here: the live graphs,
+# the web editor over a static API (bimopenflow/web/packages/site-web), which
+# imports Gratify from deps/. gates/pages-smoke.mjs tests and builds it and
+# checks site/ before the upload.
 # Pages must be switched on in the repository settings with
 # "Source: GitHub Actions" before the deploy job can succeed.
 
@@ -12,6 +16,9 @@ on:
     branches: [main]
     paths:
       - "site/**"
+      - "bimopenflow/web/**"
+      - "deps.json"
+      - "gates/pages-smoke.mjs"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -25,16 +32,30 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: bimopenflow/web/package-lock.json
+      - run: node deps.mjs
+      - run: npm ci
+        working-directory: bimopenflow/web
+      - run: node gates/pages-smoke.mjs
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
   deploy:
+    needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
       - id: deployment
         uses: actions/deploy-pages@v4

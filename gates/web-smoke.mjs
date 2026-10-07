@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const web = join(root, "bimopenflow", "web");
 
-const packages = ["api-client", "viz", "state", "panes", "client", "graph", "app"];
+const packages = ["api-client", "viz", "state", "panes", "client", "graph", "app", "site-web"];
 const steps = [
   ...packages.flatMap((p) => [["test", "-w", `@bimopenflow/${p}`], ["run", "typecheck", "-w", `@bimopenflow/${p}`]]),
   ["run", "build", "-w", "@bimopenflow/app"],

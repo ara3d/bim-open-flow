@@ -6,6 +6,7 @@
 <title>BIM Open Flow</title>
 <meta name="description" content="Graphs over building data that people and agents build the same way, shown over two openly licensed buildings.">
 <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="app/site.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@600;700&family=Public+Sans:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -21,66 +22,39 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 400 15px/1.55
 main { max-width: 860px; margin: 0 auto; padding: 32px 16px 64px; }
 h1, h2 { font-family: var(--font-brand); line-height: 1.2; }
 h2 { font-size: 20px; margin: 40px 0 12px; }
-p { margin: 0 0 12px; max-width: 72ch; }
+/* Page text rules stay off the editor's own markup inside #buildings. */
+main > p, header > p, #buildings > p { margin: 0 0 12px; max-width: 72ch; }
 a { color: var(--accent); text-underline-offset: 2px; }
-code { font: 400 13px var(--font-mono); background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; }
+p code, li code { font: 400 13px var(--font-mono); background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; }
 .lockup { width: 320px; max-width: 100%; height: auto; display: block; margin: 0 0 16px -8px; }
 .lede { font-size: 17px; }
-.status { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 6px; padding: 12px 16px; margin: 20px 0; }
-.status p { margin: 0; }
-.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
-table { border-collapse: collapse; font-size: 14px; width: 100%; }
-th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
-th { font-weight: 600; background: var(--soft); }
-tr:last-child td { border-bottom: 0; }
-td code { white-space: nowrap; }
-@media (max-width: 600px) { td code { white-space: normal; overflow-wrap: anywhere; } th, td { padding: 8px; } td:first-child { width: 45%; } }
 footer { margin-top: 48px; color: var(--dim); font-size: 13px; }
 footer a { color: var(--dim); }
-pre { font: 400 12.5px/1.5 var(--font-mono); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 12px 14px; overflow-x: auto; }
-ul { padding-left: 20px; max-width: 72ch; }
+main > pre, .notice pre { font: 400 12.5px/1.5 var(--font-mono); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 12px 14px; overflow-x: auto; }
+main > ul { padding-left: 20px; max-width: 72ch; }
 .dim { color: var(--dim); }
 .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
 .tabs button { font: 500 14px var(--font-ui); color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; text-align: left; }
 .tabs button:hover { border-color: var(--accent); }
 .tabs button[aria-selected="true"] { border-color: var(--accent); background: var(--soft); box-shadow: inset 0 -2px 0 var(--accent); }
 .tab-building { font-size: 12px; color: var(--dim); }
-.buildings { width: min(1180px, calc(100vw - 32px)); position: relative; left: 50%; transform: translateX(-50%); }
-.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
-.question { font: 600 17px/1.35 var(--font-brand); margin-bottom: 4px; }
-.graph-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 6px; background: #fafbfc; margin: 12px 0 4px; }
-.graph-wrap svg { display: block; max-width: none; }
+/* Wider than the text column, centred without a transform, which would misplace the editor's fixed-position popups. */
+.buildings { width: min(1180px, calc(100vw - 32px)); position: relative; left: 50%; margin-left: calc(min(1180px, calc(100vw - 32px)) / -2); }
+.question { font: 600 17px/1.35 var(--font-brand); margin: 8px 0 4px; }
 .hint { font-size: 13px; }
-.wire { fill: none; stroke: #9aa3b2; stroke-width: 2; }
-.wire-label { font: 500 11px var(--font-mono); fill: var(--dim); paint-order: stroke; stroke: #fafbfc; stroke-width: 4px; }
-.card { cursor: pointer; }
-.card:focus { outline: none; }
-.card-box { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
-.card-head { fill: var(--soft); }
-.card.selected .card-box, .card:focus-visible .card-box { stroke: var(--accent); stroke-width: 2.5; }
-.card:hover .card-box { stroke: var(--accent); }
-.card-kind { font: 600 13px var(--font-mono); fill: var(--accent); }
-.card-id { font: 500 12px var(--font-ui); fill: var(--dim); }
-.card-param { font: 400 11.5px var(--font-mono); fill: var(--text); }
-.port { fill: var(--surface); stroke: #9aa3b2; stroke-width: 1.5; }
-.dot { fill: #9aa3b2; }
-.dot-Ok { fill: #1f9d55; }
-.dot-Error { fill: #c2416c; }
-.result { display: grid; gap: 16px; margin-top: 8px; }
-.chart { margin: 0; }
-.chart figcaption { font-weight: 600; margin-bottom: 8px; }
-.legend { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 0; margin: 0 0 8px; font-size: 13px; }
-.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
-.bar-row { display: grid; grid-template-columns: minmax(90px, 200px) 1fr; gap: 12px; align-items: center; padding: 3px 0; border-bottom: 1px solid var(--border); }
-.bar-row:last-of-type { border-bottom: 0; }
-@media (max-width: 600px) { .bar-row { grid-template-columns: 38% 1fr; gap: 8px; } .bar-label { font-size: 11.5px; } .panel { padding: 12px; } }
-.bar-label { font: 400 13px var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bars { display: grid; gap: 2px; min-width: 0; }
-.bar-line { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.bar { display: block; height: 12px; border-radius: 2px; min-width: 1px; }
-.bar-value { font: 500 12px var(--font-mono); color: var(--dim); white-space: nowrap; }
-.table-head { margin-bottom: 8px; }
-td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.tab-title { max-width: 34ch; }
+/* The editor needs a laid-out box before it mounts: Gratify's canvas sizes itself from it. */
+.live-editor.bof-app-root, .live-editor { height: min(720px, calc(100vh - 120px)); min-height: 480px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); position: relative; }
+/* Narrow screens give the canvas the room the step list takes. The shell
+   writes its column widths inline, so the override needs !important. */
+@media (max-width: 900px) {
+  .live-editor { --bof-app-left: 0px !important; --bof-app-right: 50% !important; }
+  /* Kept in the grid (display: none would shift the canvas into its column), just emptied. */
+  .live-editor .bof-app-sidebar { visibility: hidden; overflow: hidden; min-width: 0; padding: 0; border: 0; }
+}
+/* The page's tabs pick the graph, and nothing here saves, creates, or runs one:
+   hide the editor's flow picker, its New, Save, and Run buttons, and the host status. */
+.live-editor .bof-app-topbar > select[aria-label="Open flow"], .live-editor .bof-app-topbar > button, .live-editor .bof-app-conn { display: none; }
 .notice pre { white-space: pre-wrap; max-height: 420px; overflow-y: auto; }
 .notice summary { cursor: pointer; }
 </style>
@@ -93,13 +67,10 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
   <p class="lede">Graphs that turn questions about building data into small, inspectable, reproducible computations, built the same way by people in a web editor and by AI agents over MCP (Model Context Protocol).</p>
 </header>
 
-<div class="status">
-  <p><strong>Status on 2026-10-03:</strong> the code is in this repository, moved with its history from <a href="https://github.com/ara3d/bim-open-toolkit">bim-open-toolkit</a> in phase 5 of the <a href="https://github.com/ara3d/bim-open-toolkit/blob/main/docs/plans/repository-split.md">repository split</a>. The graphs below run in the tests, not in your browser: this page shows their committed results.</p>
-</div>
-
 <h2 id="try">Six graphs over two real buildings</h2>
-<p>Each graph below reads a public building that <a href="https://github.com/ara3d/bim-open-data">BIM Open Data</a> converted from IFC to DuckDB tables, and answers one question with the generic table nodes: <code>duck.table</code>, <code>table.filter</code>, <code>table.join</code>, <code>table.aggregate</code>, <code>table.pivot</code>, <code>table.sort</code>, <code>duck.query</code>, and <code>chart.bar</code>. None of them is a building-specific node. Select a node to see the table it outputs.</p>
-<p class="dim">How the results got here: a test in <code>tests/flow/BimOpenFlow.TableWorkflows.Tests</code> evaluates every graph in <code>samples/buildings</code> with the same packs the host serves, checks the numbers, and writes <code>data/buildings.json</code>; another test fails when that file no longer matches. To change a graph and rerun it, clone the repository and open it in the editor (see the README).</p>
+<p>Each graph below reads a public building that <a href="https://github.com/ara3d/bim-open-data">BIM Open Data</a> converted from IFC to DuckDB tables, and answers one question with the generic table nodes: <code>duck.table</code>, <code>table.filter</code>, <code>table.join</code>, <code>table.aggregate</code>, <code>table.pivot</code>, <code>table.sort</code>, <code>duck.query</code>, and <code>chart.bar</code>. None of them is a building-specific node.</p>
+<p>The graph is the web editor itself. Drag to pan and scroll to zoom; the pane on the right shows the chart; double-click a node to show its table there, and hover a port to peek at the rows on its wire.</p>
+<p class="dim">How the results got here: a test in <code>tests/flow/BimOpenFlow.TableWorkflows.Tests</code> evaluates every graph in <code>samples/buildings</code> with the same packs the host serves, checks the numbers, and writes <code>data/buildings.json</code> with each node's row count and its first rows, which are the rows a table here shows; another test fails when that file no longer matches.</p>
 <div id="buildings" class="buildings"></div>
 
 <h2>What a graph is</h2>
@@ -120,7 +91,7 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 
 <h2>What is in the repository</h2>
 <ul>
-  <li>The node packs: 83 generic node kinds on 2026-10-03, each declaring its ports, parameter kinds, and purity. The packs that know about buildings stay in the toolkit.</li>
+  <li>The generic node packs, each node kind declaring its ports, parameter kinds, and purity. The packs that know about buildings stay in the toolkit.</li>
   <li>The headless host: graphs and runs on disk, and the four operations over HTTP.</li>
   <li>The web editor: a canvas built on <a href="https://github.com/ara3d/gratify">Gratify</a>, tables and charts beside the graph, and an Ask box where an agent builds the graph from a question in plain language.</li>
   <li>The MCP server, so an agent in Claude Code edits, evaluates, and reads graphs with the same operations.</li>
@@ -144,7 +115,7 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 </footer>
 
 </main>
-<script type="module" src="buildings.js"></script>
+<script type="module" src="app/site.js"></script>
 <script type="module" src="notice.js"></script>
 </body>
 </html>

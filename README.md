@@ -2,23 +2,37 @@
 
 ![BIM Open Flow](docs/brand/lockup.svg)
 
-BIM Open Flow is a dataflow engine, a web editor, and an MCP (Model Context Protocol) server for answering questions about tables with small graphs of nodes. It is written for developers who are building tools over building data, and for AI agents that build the graphs on a person's behalf. The building-specific parts live in the companion repository [BIM Open Toolkit](https://github.com/ara3d/bim-open-toolkit); this repository holds everything that does not need to know what a wall is.
+**A question about a building becomes a small graph you can see, run again, and hand to someone else.**
 
-**Maturity, 2026-10-05:** experimental and about five weeks old (first commit 2026-08-30, 390 commits since). It has one author and one serious user, the toolkit. The code was moved here from the toolkit on 2026-10-03 with its history, and a few project READMEs inside the moved folders still describe the toolkit's layout.
+BIM Open Flow is a dataflow engine, a web editor, and an MCP (Model Context Protocol) server for answering questions about tables with graphs of a handful of nodes. A person draws the graph in the editor, or an AI agent builds it through the MCP server; either way the result is the same JSON document, evaluated by the same engine, shown in the same canvas. The building-specific parts (IFC and BOS loaders, the 3D pane, the rule checks for doors and rooms) live in [BIM Open Toolkit](https://github.com/ara3d/bim-open-toolkit); this repository holds everything that does not need to know what a wall is.
 
-## The problem it solves
+**Try it:** <https://ara3d.github.io/bim-open-flow/> opens six graphs over two real buildings in the live editor, with nothing to install. Pan the canvas, select a node to see the table it produces, hover a port to peek at the wire.
 
-Answering a question about a building model ("how many spaces per storey?", "which doors are narrower than 850 mm?") usually means a query someone types into a database shell or a script against an authoring tool's API. The answer is a number in a chat window or a screenshot. Nobody can see how it was produced, rerun it next month on a new export, or hand it to a colleague who does not have the tool.
+[![The editor with the DigitalHub openings graph open: seven node cards from two DuckDB tables through a filter, a join, a pivot, and a sort to a bar chart; the step list on the left shows every node Ok with its row count, and the chart pane on the right shows doors, windows, and spaces per storey, 26, 21, and 26 on the ground floor](docs/images/editor-openings-per-storey.png)](https://ara3d.github.io/bim-open-flow/)
 
-BIM Open Flow stores the computation instead of the answer. A question becomes a graph of a handful of nodes, saved as a JSON document. The same graph can be drawn by a person in the editor, built by an AI agent through the MCP server, evaluated for display without side effects, and replayed later from a run record that pins every input by content hash.
+## The premise
 
-## What it does not do
+Answering a question about a building model, "how many spaces per storey?", "which doors are narrower than 850 mm?", usually means a query typed into a database shell, or a script against an authoring tool's API. The answer is a number in a chat window or a screenshot. Nobody can see how it was produced, rerun it next month on a new export, or hand it to a colleague who does not have the tool.
 
-- It has no node that knows about buildings. The packs that turn an IFC (Industry Foundation Classes) or BOS (BIM Open Schema) file into tables, and the 3D pane, belong to the toolkit. This repository reads building files only through [BIM Open Data](https://github.com/ara3d/bim-open-data), as DuckDB databases of tables.
-- It does not draw 3D geometry. [BIM Open Viewer](https://github.com/ara3d/bim-open-viewer) does.
-- It is not a hosted service. The host is a single-user local process with no accounts and no authentication.
-- It is not a general scripting environment. Every node is a C# class in a pack; adding one needs a build. A script-defined node is an open question in the toolkit (its ticket TKT-162).
-- It does not run on Linux or macOS. The host carries the native web-ifc library through the IFC loader, so the .NET solution builds on Windows only. The web editor and the landing page are portable.
+BIM Open Flow stores the computation instead of the answer. The question becomes a graph: a source node that reads a table, a few nodes that filter, join, group, and sort, and a node that draws a chart or writes a file. The graph is a JSON document of a few dozen lines. It can be drawn by a person, built by an agent, evaluated for display without side effects, and replayed later from a run record that pins every input by content hash.
+
+Three rules follow from that, and they shape everything else here:
+
+- **One edit path.** Every change to a graph is one of four operations: `addNode`, `connect`, `setParam`, `removeNode`. A mouse gesture, an HTTP call, and an MCP tool all go through them, so a graph an agent builds is one a person could have drawn, and the editor can show the agent's work as it happens.
+- **Nothing writes until Run.** Evaluating a graph for display never touches a file. A node that writes a CSV, a report, or property sets back into an IFC stays `EffectPending` until an explicit Run. A person or an agent exploring a model cannot do harm by looking.
+- **Runs are the evidence.** A run record stores the graph's hash and the content hash of every input beside the outputs, and replays. A number reported from a run can be traced to the bytes that produced it.
+
+## What you see
+
+**The editor.** A canvas of node cards wired together, each card carrying its parameters as controls. Every node shows its state: `Ok`, `Unready` when an input is missing, `EffectPending`, `Unavailable` when something upstream failed, or `Error` with the message. Selecting a node shows its output as a table or a chart in the pane beside the canvas; hovering a port shows the rows on that wire. A half-wired graph is a normal thing to look at and repair.
+
+![The same graph with the Table tab chosen: the pane lists StoreyName, IFCDOOR, IFCWINDOW, and IFCSPACE for the three storeys, 13, 0, and 12 in the basement, where the basement's zero windows is a counted zero, not a missing value](docs/images/editor-pivot-table.png)
+
+**The catalog.** Each node kind declares its ports, its parameter kinds, its enum values, and whether it is pure or an effect. The node reference, the editor's palette, and the description an agent reads are all generated from that one declaration, so there is no second place for the documentation to drift.
+
+![The Nodes tab open beside the room-names graph: the catalog collapsed into its packs, BFAST, CHART, CSV, DATE, DUCK, JSON, PARQUET, REL, SINK, SPATIAL, SQL, SQLITE, TABLE, TEXT, VIEW, and XLSX, each with its count, above a filter box; the chart pane shows spaces by name, entree and instal. ruimte at 11](docs/images/editor-catalog.png)
+
+**The agent.** The MCP server exposes the same four operations as tools, plus evaluation and the catalog. An agent in Claude Code lists the databases, adds nodes, connects them, sets a parameter, evaluates, and reads the result table, and the person watching the editor sees the graph grow. The toolkit's Ask box is this loop with a text field in front of it.
 
 ## What a graph looks like
 
@@ -52,22 +66,39 @@ This graph, `samples/buildings/schependomlaan-room-names.json`, counts the rooms
 }
 ```
 
-Evaluated over the sample data, the `sorted` node outputs 15 rows for 100 spaces. The two most common names are `entree` and `instal. ruimte`, 11 each; `badkamer`, `keuken`, `mk`, `toilet`, and `woonkamer` have 10 each, one per apartment. The same graph and five others are shown with their results, without any server, on the repository's page at <https://ara3d.github.io/bim-open-flow/>.
+Evaluated over the sample data, the `sorted` node outputs 15 rows for 100 spaces. The two most common names are `entree` and `instal. ruimte`, 11 each; `badkamer`, `keuken`, `mk`, `toilet`, and `woonkamer` have 10 each, one per apartment.
 
-An agent builds the same graph by calling the MCP server's tools in order: `addNode` five times, `connect` four times, `setParam` for each value, then `evaluate` and `getResult`. Every one of those calls goes through the same four edit operations the editor uses, so a graph an agent builds is one a person could have drawn.
+An agent builds the same graph by calling the MCP server's tools in order: `addNode` five times, `connect` four times, `setParam` for each value, then `evaluate` and `getResult`.
+
+## The sample graphs
+
+`samples/buildings` holds six graphs over two openly licensed buildings from [BIM Open Data](https://github.com/ara3d/bim-open-data): Schependomlaan, a ten-apartment block exported from Archicad, and DigitalHub, an office building of RWTH Aachen University exported from Revit in four discipline models. Each graph answers one question with generic table nodes only, and `samples/buildings/README.md` lists the numbers it produces. These are the graphs on the page.
+
+| Graph | Question | Nodes |
+|---|---|---|
+| `schependomlaan-elements-by-category` | How many elements of each IFC class sit on a storey? | `duck.table`, `table.join`, `table.aggregate`, `chart.bar` |
+| `schependomlaan-spaces-per-storey` | How many spaces on each storey? | `duck.table`, `table.filter`, `table.join`, `table.aggregate`, `table.sort`, `chart.bar` |
+| `schependomlaan-room-names` | Which room names recur, and how often? | `duck.table`, `table.filter`, `table.aggregate`, `table.sort`, `chart.bar` |
+| `digitalhub-openings-per-storey` | Doors, windows, and spaces per storey, side by side? | `duck.table`, `table.filter`, `table.join`, `table.pivot`, `table.sort`, `chart.bar` |
+| `digitalhub-heating-per-storey` | Pipe segments, fittings, heaters, and valves per storey? | `duck.query`, `chart.bar` |
+| `digitalhub-federated-models` | How many elements does each discipline model contribute? | `duck.query`, `chart.bar` |
+
+![The spaces-per-storey graph in the editor: two duck.table nodes, one of them joined through StoreyOfElement, then a filter, an aggregate, a sort, and a bar chart of 32, 29, 20, and 19 spaces on Schependomlaan's four storeys with rooms](docs/images/editor-spaces-per-storey.png)
+
+`samples/analyses` holds six more graphs over small CSV, Excel, SQLite, and DuckDB files, which the host seeds into an empty store so the editor opens with something to look at.
 
 ## How to use it
 
 ### Prerequisites
 
-- Windows. See the Linux and macOS note above.
-- The .NET 8 SDK. Every project in the solution targets .NET 8; CI also installs the .NET 10 SDK, which no project here needs.
+- Windows. The host carries the native web-ifc library through the IFC loader, so the .NET solution builds on Windows only; the web editor and the page are portable.
+- The .NET 8 SDK.
 - Node.js 22, for the dependency script, the web editor, and the gates.
 - Git, which the dependency script calls.
 
 ### Build and test
 
-The repository reads its three dependencies from a git-ignored `deps/` folder, which `node deps.mjs` fills from the commits pinned in `deps.json`. The commands below were run on 2026-10-05: the build finished with 0 errors, and 1,044 tests passed with 2 skipped.
+The repository reads its three dependencies from a git-ignored `deps/` folder, which `node deps.mjs` fills from the commits pinned in `deps.json`.
 
 ```
 node deps.mjs
@@ -87,11 +118,11 @@ npm run host --prefix bimopenflow/web
 npm run web --prefix bimopenflow/web
 ```
 
-The first command starts the host on port 5214 with the `tables` profile and seeds its store with the six graphs in `samples/analyses` over the CSV, Excel, SQLite, and DuckDB files in `samples/tables`. The second serves the editor on port 5304 against it. The editor draws the graph on a canvas, marks each node with its evaluation state, and shows the selected node's output as a table or chart. It has no Ask box; the natural-language entry point lives in the toolkit's studio, which has the endpoint behind it.
+The first command starts the host on port 5214 with the `tables` profile and seeds its store with the graphs in `samples/analyses`. The second serves the editor on port 5304 against it. To open the building graphs, replace `{PUBLIC}` in a `samples/buildings` document with the absolute path of `deps/bim-open-data/samples/public` and save it into the store, or load it through the editor.
 
 ### Register the MCP server with an agent
 
-The MCP server speaks stdio by default, which is how MCP clients launch a server, or HTTP with `--http <port>`. After the Release build, this `.mcp.json` entry registers it with Claude Code, pointed at the two public buildings that `node deps.mjs` places under `deps/bim-open-data/samples/public`:
+The MCP server speaks stdio by default, which is how MCP clients launch a server, or HTTP with `--http <port>`. After the Release build, this `.mcp.json` entry registers it with Claude Code, pointed at the public buildings:
 
 ```json
 {
@@ -115,43 +146,31 @@ The server's tools fall into five groups: models and databases (`listModels`, `l
 
 **A graph** is a JSON document of nodes and the wires between them. Each node is a small function with typed input and output ports and parameters set on the node itself. Six kinds of value travel on wires: Boolean, Integer, Number, Text, Table, and Relation. Almost everything useful is an immutable Table. A Relation is a query plan with its schema, not rows; the rows exist only once a node executes the plan. A new kind of input is a new parameter kind, never a new wire type, so one vocabulary serves loading, SQL, table operations, charts, and checks.
 
-**Four operations** edit a graph: `addNode`, `connect`, `setParam`, and `removeNode`. They back the HTTP API, the MCP tools, and every gesture in the editor. A whole document written at once is validated as if it had been built from them.
+**Pure nodes and effects.** A pure node only computes; its results are memoized and recomputed when an input changes. An effect node writes something: a CSV, Excel, or Parquet file, a report, or property sets back into an IFC file. Every effect node lives in one pack, `BimOpenFlow.Nodes.Effects`, so purity is enforced by project reference rather than by annotation. The publishing projects turn a run into a self-contained HTML report, a dashboard, or an evidence package: a zip whose `manifest.json` lists a SHA-256 per member.
 
-**Pure nodes and effects.** A pure node only computes; its results are memoized and recomputed when an input changes. An effect node writes something: a CSV, Excel, or Parquet file, a report, or property sets back into an IFC file. Every effect node lives in one pack, `BimOpenFlow.Nodes.Effects`, so purity is enforced by project reference. Evaluating a graph for display never runs an effect; the node reports `EffectPending`. Effects run only inside an explicit Run. A person or an agent exploring a model cannot touch a file by accident.
+**Profiles.** A host serves a named set of node packs and the sample data that goes with them. This repository's host offers the `tables` profile, 83 node kinds for loading, cleaning, joining, grouping, dating, charting, and writing tables. The toolkit composes a `bim` profile on top of it with the building packs.
 
-**Every node reports a state**: `Ok`, `Unready` (an input is missing), `EffectPending`, `Unavailable`, or `Error`. A half-wired graph is a normal thing to look at and repair.
-
-**Runs are the evidence.** A run record stores the hash of the graph and the content hash of every input beside the outputs, and can be replayed. The publishing projects turn a run into a self-contained HTML report, a dashboard, or an evidence package: a zip whose `manifest.json` lists a SHA-256 per member.
-
-**The catalog is the documentation.** Each of the 83 node kinds in the generic profile (counted on 2026-10-05 in `bimopenflow/web/packages/graph/test/nodes.catalog.json`, which a test keeps current) declares its ports, parameter kinds, enum values, and whether it is pure or an effect. The node reference is generated from that, and so is the description an agent reads.
+**The web client** is eight npm workspaces: `contracts` (the wire types, generated from the C# ones), `api-client`, `state`, `graph` (the canvas, built on [Gratify](https://github.com/ara3d/gratify)), `viz` (tables and charts), `client`, `panes`, and `app`. The page at `site/` runs the same `app` over a static copy of the sample results, which is why it needs no server.
 
 ## Trade-offs
 
-- **One edit path, so no scripting shortcut.** Routing every edit through four operations keeps the editor, the HTTP API, and the agent in step. The cost is that building a large graph is many small calls, and there is no way to express a loop or a conditional inside a graph.
-- **Tables as the currency.** Treating a scalar as a parameter rather than a value on a wire keeps the node vocabulary small; on 2026-10-05 the 83 nodes use only Table, Text, and Relation ports. The cost is that a count computed by one node reaches another as a one-row table, not as a number.
-- **Effects isolated by project reference.** Purity is checked by the compiler and a layering test rather than by annotation, which is hard to get wrong. The cost is that a node that both reads and writes has to be split in two.
-- **Dependencies by pinned commit, not packages.** `deps.json` pins three sibling repositories by commit and the build reads their source. A change in the engine lands here on the day it is made, with no package publishing step. The cost is a `node deps.mjs` before every build and a second checkout of each dependency on disk.
-- **C# nodes only.** A node is a class with declared ports, so the catalog, the editor, and the agent's tool description are all generated from one declaration. The cost is a host build for every new node.
+- **One edit path, so no scripting shortcut.** Routing every edit through four operations keeps the editor, the HTTP API, and the agent in step. The cost is that building a large graph is many small calls, and there is no loop or conditional inside a graph.
+- **Tables as the currency.** Treating a scalar as a parameter rather than a value on a wire keeps the node vocabulary small. The cost is that a count computed by one node reaches another as a one-row table, not as a number.
+- **Effects isolated by project reference.** Purity is checked by the compiler and a layering test, which is hard to get wrong. The cost is that a node that both reads and writes has to be split in two.
+- **Dependencies by pinned commit, not packages.** `deps.json` pins three sibling repositories by commit and the build reads their source. A change in the engine lands here the day it is made. The cost is a `node deps.mjs` before every build and a second checkout of each dependency on disk.
+- **C# nodes only.** A node is a class with declared ports, so the catalog, the editor, and the agent's tool description are generated from one declaration. The cost is a host build for every new node; a script-defined node is an open question in the toolkit (its ticket TKT-162).
 
-## What is tested and what is not
+## What it does not do
 
-Demonstrated on 2026-10-05:
-
-- The .NET build, the 1,044 tests, and the host smoke gate pass on a Windows machine with the pinned dependencies.
-- The six graphs in `samples/buildings` evaluate with every node `Ok` over two public buildings, and `PublicBuildingsTests` checks the numbers listed in `samples/buildings/README.md`. The same results are on the landing page.
-- The six table graphs in `samples/analyses` evaluate green over the sample files, checked by the `TableWorkflows` tests.
-- The MCP server's tools, the Ask loop over a scripted chat backend, and the graph-to-text rendering have their own test projects (`tests/mcp`, `tests/studio`, `tests/flow/BimOpenFlow.GraphText.Tests`).
-
-Not demonstrated here:
-
-- Performance on a large model. The toolkit's brief sets a budget for a model of about 450,000 instances, and that work and its measurement happen there, not in this repository.
-- Any agent other than Claude driving the MCP server. The toolkit's Ask box has run with Anthropic, OpenAI, and Claude Code command-line backends; the generic server here has been exercised by its tests and by Claude Code.
-- Writing property sets back into an IFC file through an effect node, outside its unit tests.
-- The editor in a real browser by automation. Its tests run under vitest with jsdom, and the host smoke gate covers the HTTP API, not the canvas.
+- It has no node that knows about buildings. The packs that turn an IFC or BOS (BIM Open Schema) file into tables, and the 3D pane, belong to the toolkit. This repository reads building files only through [BIM Open Data](https://github.com/ara3d/bim-open-data), as DuckDB databases of tables.
+- It does not draw 3D geometry. [BIM Open Viewer](https://github.com/ara3d/bim-open-viewer) does.
+- It is not a hosted service. The host is a single-user local process with no accounts and no authentication.
+- It does not evaluate in the browser. The page shows results the tests computed; changing a graph and rerunning it needs the host.
+- It does not run on Linux or macOS.
 
 ## Related work
 
-The category is not new. These are the closest tools, with how this one differs, checked on 2026-10-05; comparisons like these go stale.
+The category is not new. These are the closest tools, with how this one differs; comparisons like these go stale.
 
 - **[Dynamo](https://dynamobim.org/) and [Grasshopper](https://www.grasshopper3d.com/)** are visual programming environments inside Revit and Rhino. They are mature, have thousands of nodes, and are the tools most BIM professionals already know. They run inside an authoring tool and operate on its live model; BIM Open Flow runs outside any authoring tool over an exported file, and is meant to be driven by an agent as much as by a person.
 - **[IfcSverchok](https://github.com/IfcOpenShell/IfcOpenShell)**, part of IfcOpenShell, is a node add-on for Blender that creates and reads IFC through Sverchok nodes. It is geometry-first and lives in Blender; this project is table-first and has no geometry nodes.
@@ -173,28 +192,24 @@ What this repository claims as its own is narrow: one edit path shared by the ed
 | `src/flow/BimOpenFlow.GraphText`, `.NodeDocs` | A graph as readable text, and the node reference generated from the catalog |
 | `src/mcp/BimOpenMcp.Flow` | The MCP server, `bimopenmcp-flow` |
 | `src/studio/BimOpenFlow.Ask` | The agent loop behind the toolkit's Ask box, over any in-process MCP server, with Anthropic, OpenAI, and Claude Code command-line backends |
-| `bimopenflow/web/packages/` | The editor as eight npm workspaces: `contracts`, `api-client`, `state`, `graph`, `viz`, `client`, `panes`, `app`. The canvas is built on [Gratify](https://github.com/ara3d/gratify) |
+| `bimopenflow/web/packages/` | The editor as eight npm workspaces |
 | `samples/tables`, `samples/analyses`, `samples/relations` | Small CSV, Excel, SQLite, DuckDB, JSON, and BFAST tables, and the graphs over them that the tests evaluate |
 | `samples/buildings` | Six graphs over two public buildings, with the numbers they produce |
-| `site/` | The landing page, deployed to GitHub Pages by `.github/workflows/pages.yml`; its results are precomputed by a test, not evaluated in the browser |
-| `tests/`, `gates/` | NUnit projects per library, a layering test, and the two smoke gates |
+| `site/` | The page, deployed to GitHub Pages by `.github/workflows/pages.yml`; `site/README.md` says how it is built |
+| `tests/`, `gates/` | NUnit projects per library, a layering test, and the smoke gates |
 | `deps.json`, `deps.mjs` | The pinned dependencies and the script that fetches them |
 
-The dependencies are [`ara3d-dataflow`](https://github.com/ara3d/ara3d-dataflow), the engine (specification, evaluator, expression language, run records, and conformance suite); [`bim-open-data`](https://github.com/ara3d/bim-open-data), the BIM Open Schema libraries and the IFC loader, which brings its own pins; and [`gratify`](https://github.com/ara3d/gratify), the canvas library. When this repository is itself a dependency, as the toolkit's `deps/bim-open-flow`, `deps.mjs` links its `deps/*` to the host repository's copies so each one is checked out and built once.
+The dependencies are [`ara3d-dataflow`](https://github.com/ara3d/ara3d-dataflow), the engine (specification, evaluator, expression language, run records, and conformance suite); [`bim-open-data`](https://github.com/ara3d/bim-open-data), the BIM Open Schema libraries and the IFC loader; and [`gratify`](https://github.com/ara3d/gratify), the canvas library. When this repository is itself a dependency, as the toolkit's `deps/bim-open-flow`, `deps.mjs` links its `deps/*` to the host repository's copies so each one is checked out and built once.
+
+The tests cover the engine's node packs over the sample tables, the six building graphs with their numbers, the MCP server's tools, the Ask loop over a scripted chat backend, the graph-to-text rendering, and the web packages under vitest. The host smoke gate exercises the HTTP API end to end; the editor's canvas is tested under jsdom, not in a real browser.
 
 ## Who it is for
 
-It is for you if you are:
+- A developer building a tool over building data who wants a graph engine, an editor, and an MCP server that already agree with each other.
+- A developer adding a node pack, a pane, or an MCP tool to the BIM Open family.
+- An agent author who wants a tool surface where exploration cannot write files.
 
-- a developer building a tool over building data who wants a graph engine, an editor, and an MCP server that already agree with each other;
-- a developer adding a node pack, a pane, or an MCP tool to the BIM Open family;
-- an agent author who wants a tool surface where exploration cannot write files.
-
-It is not for you yet if you are:
-
-- a BIM professional with a model and a question. Use the [toolkit](https://github.com/ara3d/bim-open-toolkit), which adds the building nodes, the studio with its Ask box, and the 3D pane;
-- someone who needs it on Linux or macOS;
-- someone who needs more than one user on one host.
+A BIM professional with a model and a question should start with the [toolkit](https://github.com/ara3d/bim-open-toolkit), which adds the building nodes, the studio with its Ask box, and the 3D pane.
 
 ## The family
 

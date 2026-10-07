@@ -13,7 +13,7 @@ import type { HostStatus } from "@bimopenflow/client/host";
 import { brandMark } from "./brand.js";
 
 export interface TopbarHandlers {
-  /** Replaces the default "BIM Open Flow · Snowdon 3D graphs" heading. */
+  /** Replaces the default "BIM Open Flow" heading. */
   heading?: string;
   onOpenAnalysis(id: string): void;
   onNewAnalysis(): void;
@@ -64,14 +64,7 @@ export function createTopbar(root: HTMLElement, handlers: TopbarHandlers): Topba
   const title = doc.createElement("strong");
   title.className = "bof-app-brand";
   title.appendChild(brandMark(doc, "bof-app-brand-mark"));
-  if (handlers.heading) title.append(handlers.heading);
-  else {
-    title.append("BIM Open Flow");
-    const lab = doc.createElement("a");
-    lab.href = "/3d.html";
-    lab.textContent = "Snowdon 3D graphs";
-    title.append(" · ", lab);
-  }
+  title.append(handlers.heading ?? "BIM Open Flow");
 
   const picker = doc.createElement("select");
   picker.setAttribute("aria-label", "Open flow");

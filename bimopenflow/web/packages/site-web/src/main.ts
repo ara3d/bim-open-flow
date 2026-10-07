@@ -53,7 +53,20 @@ function mount(data: SiteData): void {
 
   const first = data.graphs[0]!;
   select(first);
+  widenResultPane();
   app = createApp(editor, api, { host, initialAnalysis: first.id, heading: "BIM Open Flow" });
+}
+
+/** The editor's result column defaults to 420 px and a bar chart is at least 480 px wide, so a
+ *  first-time visitor would see every chart clipped. Start the column at a width that fits the
+ *  chart; a width the visitor drags to is kept, since the editor stores it under the same key. */
+function widenResultPane(): void {
+  try {
+    const key = "bof-app-right-width";
+    if (localStorage.getItem(key) === null) localStorage.setItem(key, "560");
+  } catch {
+    // Storage may be unavailable; the editor then falls back to its default width.
+  }
 }
 
 try {

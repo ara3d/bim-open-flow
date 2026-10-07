@@ -1,0 +1,26 @@
+{
+  "name": "@bimopenflow/site-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The repository's GitHub Pages page: the editor over the public-building graphs, answered by a static API from site/data/buildings.json and the committed node catalog. Builds into site/app (git-ignored).",
+  "scripts": {
+    "build": "vite build",
+    "preview": "vite preview --outDir ../../../../site",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bimopenflow/api-client": "0.1.0",
+    "@bimopenflow/app": "0.1.0",
+    "@bimopenflow/client": "0.1.0",
+    "@bimopenflow/contracts": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "jsdom": "^26.0.0",
+    "typescript": "^5.6.0",
+    "vite": "^7.3.6",
+    "vitest": "^3.0.0"
+  }
+}

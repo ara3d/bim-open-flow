@@ -26,7 +26,10 @@ h2 { font-size: 20px; margin: 40px 0 12px; }
 main > p, header > p, #buildings > p { margin: 0 0 12px; max-width: 72ch; }
 a { color: var(--accent); text-underline-offset: 2px; }
 p code, li code { font: 400 13px var(--font-mono); background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; }
-.lockup { width: 320px; max-width: 100%; height: auto; display: block; margin: 0 0 16px -8px; }
+.lockup { width: 320px; max-width: 100%; height: auto; display: block; margin: 0 0 0 -8px; }
+.masthead { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 0 0 16px; }
+.github { display: inline-flex; align-items: center; gap: 8px; font: 500 14px var(--font-ui); color: var(--text); text-decoration: none; border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; background: var(--surface); }
+.github:hover { border-color: var(--accent); color: var(--accent); }
 .lede { font-size: 17px; }
 footer { margin-top: 48px; color: var(--dim); font-size: 13px; }
 footer a { color: var(--dim); }
@@ -39,18 +42,22 @@ main > ul { padding-left: 20px; max-width: 72ch; }
 .tabs button[aria-selected="true"] { border-color: var(--accent); background: var(--soft); box-shadow: inset 0 -2px 0 var(--accent); }
 .tab-building { font-size: 12px; color: var(--dim); }
 /* Wider than the text column, centred without a transform, which would misplace the editor's fixed-position popups. */
-.buildings { width: min(1180px, calc(100vw - 32px)); position: relative; left: 50%; margin-left: calc(min(1180px, calc(100vw - 32px)) / -2); }
+.buildings { width: min(1500px, calc(100vw - 32px)); position: relative; left: 50%; margin-left: calc(min(1500px, calc(100vw - 32px)) / -2); }
 .question { font: 600 17px/1.35 var(--font-brand); margin: 8px 0 4px; }
 .hint { font-size: 13px; }
 .tab-title { max-width: 34ch; }
-/* The editor needs a laid-out box before it mounts: Gratify's canvas sizes itself from it. */
-.live-editor.bof-app-root, .live-editor { height: min(720px, calc(100vh - 120px)); min-height: 480px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); position: relative; }
-/* Narrow screens give the canvas the room the step list takes. The shell
-   writes its column widths inline, so the override needs !important. */
-@media (max-width: 900px) {
-  .live-editor { --bof-app-left: 0px !important; --bof-app-right: 50% !important; }
-  /* Kept in the grid (display: none would shift the canvas into its column), just emptied. */
-  .live-editor .bof-app-sidebar { visibility: hidden; overflow: hidden; min-width: 0; padding: 0; border: 0; }
+/* The editor needs a laid-out box before it mounts: Gratify's canvas sizes itself from it.
+   On this page the editor is stacked: the answer pane first at full width, the canvas below
+   it, and no step list, so a visitor reads the result and then the graph that made it. The
+   shell writes its column widths inline, so the grid override needs !important. */
+.live-editor.bof-app-root, .live-editor { height: 1000px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); position: relative; }
+.live-editor .bof-app-main { grid-template-columns: minmax(0, 1fr) !important; grid-template-rows: 480px minmax(0, 1fr); }
+.live-editor .bof-app-sidebar, .live-editor .bof-app-splitter { display: none; }
+.live-editor .bof-app-right-column { grid-row: 1; grid-column: 1; border-bottom: 1px solid var(--border); }
+.live-editor .bof-app-canvas-host { grid-row: 2; grid-column: 1; }
+@media (max-width: 700px) {
+  .live-editor { height: 800px; }
+  .live-editor .bof-app-main { grid-template-rows: 420px minmax(0, 1fr); }
 }
 /* The page's tabs pick the graph, and nothing here saves, creates, or runs one:
    hide the editor's flow picker, its New, Save, and Run buttons, and the host status. */
@@ -63,13 +70,16 @@ main > ul { padding-left: 20px; max-width: 72ch; }
 <main>
 
 <header>
-  <img class="lockup" src="assets/lockup.svg" alt="BIM Open Flow">
+  <div class="masthead">
+    <img class="lockup" src="assets/lockup.svg" alt="BIM Open Flow">
+    <a class="github" href="https://github.com/ara3d/bim-open-flow" aria-label="ara3d/bim-open-flow on GitHub"><svg viewBox="0 0 16 16" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg><span>ara3d/bim-open-flow</span></a>
+  </div>
   <p class="lede">Graphs that turn questions about building data into small, inspectable, reproducible computations, built the same way by people in a web editor and by AI agents over MCP (Model Context Protocol).</p>
 </header>
 
 <h2 id="try">Six graphs over two real buildings</h2>
 <p>Each graph below reads a public building that <a href="https://github.com/ara3d/bim-open-data">BIM Open Data</a> converted from IFC to DuckDB tables, and answers one question with the generic table nodes: <code>duck.table</code>, <code>table.filter</code>, <code>table.join</code>, <code>table.aggregate</code>, <code>table.pivot</code>, <code>table.sort</code>, <code>duck.query</code>, and <code>chart.bar</code>. None of them is a building-specific node.</p>
-<p>The graph is the web editor itself. Drag to pan and scroll to zoom; the pane on the right shows the chart; double-click a node to show its table there, and hover a port to peek at the rows on its wire.</p>
+<p>The graph is the web editor itself. Drag to pan and scroll to zoom; the pane above the graph shows the chart; click a node to show its table there, and hover a port to peek at the rows on its wire.</p>
 <p class="dim">How the results got here: a test in <code>tests/flow/BimOpenFlow.TableWorkflows.Tests</code> evaluates every graph in <code>samples/buildings</code> with the same packs the host serves, checks the numbers, and writes <code>data/buildings.json</code> with each node's row count and its first rows, which are the rows a table here shows; another test fails when that file no longer matches.</p>
 <div id="buildings" class="buildings"></div>
 

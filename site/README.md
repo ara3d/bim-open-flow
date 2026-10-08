@@ -2,7 +2,7 @@
 
 The repository's GitHub Pages page, https://ara3d.github.io/bim-open-flow/.
 
-`index.html`, `notice.js`, `assets/`, and `data/` are committed. `app/` is built and git-ignored: `bimopenflow/web/packages/site-web` builds `app/site.js` and `app/site.css`, which mount the real web editor (`@bimopenflow/app`) into `#buildings` with one tab per graph. A visitor pans and zooms the canvas, double-clicks a node to show its table or chart, and hovers a port to peek at the rows on its wire.
+`index.html`, `notice.js`, `assets/`, and `data/` are committed. `app/` is built and git-ignored: `bimopenflow/web/packages/site-web` builds `app/site.js` and `app/site.css`, which mount the real web editor (`@bimopenflow/app`) into `#buildings` with one tab per graph. A visitor pans and zooms the canvas, clicks a node to show its table or chart, and hovers a port to peek at the rows on its wire.
 
 No host stands behind the page, and nothing evaluates in the browser. The editor talks to a static API (`site-web/src/staticApi.ts`), a fetch-shaped function that answers the editor's requests from two files:
 

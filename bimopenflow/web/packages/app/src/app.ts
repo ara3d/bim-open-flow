@@ -94,6 +94,10 @@ export interface AppOptions {
   panes?: readonly PaneRegistration[];
   /** The start page's flow templates; none when omitted. */
   templates?: readonly FlowTemplate[];
+  /** Selecting a single node shows it in the pane, as a double-click does.
+   *  For a page where nobody edits; off in the editor, where a click is the
+   *  start of a drag or a delete. */
+  clickShows?: boolean;
 }
 
 export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions = {}): App {
@@ -365,6 +369,13 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       chrome.setNodes(state.document.structure.nodes.map((n) => ({ id: n.id, title: nodeTitle(n.kind) })));
     applyShown(state, dataChanged);
     if (dataChanged || state.selection !== lastSelection) renderGraphViews(state);
+    // A page where nobody edits (the GitHub Pages site) shows the node a single
+    // click selects; the editor keeps that for a double-click so selecting to
+    // drag or delete never changes the pane.
+    if (options.clickShows && state.selection !== lastSelection) {
+      const selected = selectedNodeIds(state);
+      if (selected.length === 1) showNodeInPane(selected[0]!);
+    }
     lastSelection = state.selection;
     lastDoc = state.document;
     lastEval = state.evalState;

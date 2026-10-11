@@ -18,10 +18,11 @@ public static class FlowEvalTools
             .Tool(
                 "evaluate",
                 "Evaluates the current document (through the standing session) and returns a state "
-                + "summary per node: Ok, Unready, EffectPending, Unavailable, or Error.",
-                FlowToolArgs.Analysis().Build(),
+                + "summary per node: Ok, Unready, EffectPending, Unavailable, or Error, and the graph "
+                + "inputs with their defaults and the values used.",
+                FlowToolArgs.Analysis().GraphInputs("every reader is evaluated with them.").Build(),
                 (args, _) => ToolRunner.RunAsync(
-                    () => Evaluate(s, args.AnalysisId()),
+                    () => Evaluate(s, args.AnalysisId(), args.GraphInputs()),
                     ["getResult", "createRun"]))
             .Tool(
                 "getResult",
@@ -43,19 +44,24 @@ public static class FlowEvalTools
             .Tool(
                 "createRun",
                 "Freezes the current evaluation as an immutable run record (pinning model/file "
-                + "inputs by content hash) and archives it.",
-                FlowToolArgs.Analysis().Build(),
+                + "inputs by content hash, and each graph input with its value) and archives it.",
+                FlowToolArgs.Analysis().GraphInputs("the run is frozen over them.").Build(),
                 (args, _) => ToolRunner.RunAsync(
-                    () => CreateRun(s, args.AnalysisId()),
+                    () => CreateRun(s, args.AnalysisId(), args.GraphInputs()),
                     ["listRuns"]));
 
-    public static object Evaluate(FlowServices s, string id)
+    /// <summary>The snapshot to report: after storing the given graph-input values, if any.</summary>
+    private static EvalSnapshot Current(FlowServices s, string id, IReadOnlyDictionary<string, string>? graphInputs)
+        => graphInputs is { Count: > 0 } ? s.Sessions.SetGraphInputs(id, graphInputs) : s.Sessions.Snapshot(id);
+
+    public static object Evaluate(FlowServices s, string id, IReadOnlyDictionary<string, string>? graphInputs = null)
     {
         Require(s, id);
-        var snapshot = s.Sessions.Snapshot(id);
+        var snapshot = Current(s, id, graphInputs);
         return new
         {
             analysisId = id,
+            graphInputs = snapshot.ToGraphInputInfos().Select(ToInputView).ToList(),
             nodes = snapshot.Results.Values
                 .OrderBy(r => r.NodeId, StringComparer.Ordinal)
                 .Select(r => new
@@ -102,11 +108,14 @@ public static class FlowEvalTools
             .ToList();
     }
 
-    public static object CreateRun(FlowServices s, string id)
+    public static object ToInputView(BimOpenFlow.Contracts.GraphInputInfo i)
+        => new { name = i.Name, kind = i.Kind.ToString(), @default = i.Default, description = i.Description, value = i.Value };
+
+    public static object CreateRun(FlowServices s, string id, IReadOnlyDictionary<string, string>? graphInputs = null)
     {
         Require(s, id);
-        var snapshot = s.Sessions.Snapshot(id);
-        var inputs = RunInputs.Derive(snapshot.Document, s.Host.Registry, s.Host.Catalog);
+        var snapshot = Current(s, id, graphInputs);
+        var inputs = RunInputs.Derive(snapshot.ResolvedDocument(), s.Host.Registry, s.Host.Catalog);
         var record = RunRecorder.Freeze(snapshot, s.Host.Registry, inputs, EngineVersion, DateTimeOffset.UtcNow);
         return ToSummary(s.Host.Store.SaveRun(id, record), record);
     }

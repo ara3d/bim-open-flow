@@ -114,7 +114,7 @@ internal static class EvalEndpoints
         if (!store.Exists(id))
             return ApiResults.NotFound($"Analysis '{id}' not found");
         var snapshot = sessions.Run(id);
-        var inputs = RunInputs.Derive(snapshot.Document, registry, catalog);
+        var inputs = RunInputs.Derive(snapshot.ResolvedDocument(), registry, catalog);
         var record = RunRecorder.Freeze(snapshot, registry, inputs, EngineVersion, DateTimeOffset.UtcNow);
         try
         {

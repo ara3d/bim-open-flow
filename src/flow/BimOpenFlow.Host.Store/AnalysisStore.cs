@@ -16,6 +16,7 @@ public sealed class AnalysisStore
 {
     public const string CurrentFileName = "current" + GraphFormat.Extension;
     public const string NameFileName = "name.txt";
+    public const string GraphInputsFileName = "graph-inputs.json";
     public const string VersionsDirName = "versions";
     public const string RunsDirName = "runs";
     public const string TrashDirName = ".trash";
@@ -34,6 +35,9 @@ public sealed class AnalysisStore
     internal string CurrentPath(string id)
         => Path.Combine(AnalysisDir(id), CurrentFileName);
 
+    internal string GraphInputsPath(string id)
+        => Path.Combine(AnalysisDir(id), GraphInputsFileName);
+
     internal string VersionsDir(string id)
         => Path.Combine(AnalysisDir(id), VersionsDirName);
 
@@ -44,13 +48,18 @@ public sealed class AnalysisStore
         => File.Exists(CurrentPath(id));
 
     /// <summary>Identifies the current document's bytes on disk (length and last
-    /// write time) without reading them, so a cache can tell whether another
-    /// writer, in this process or not, replaced the document since it loaded it.
-    /// Null when the analysis does not exist.</summary>
+    /// write time), and those of its graph-input values file, without reading them,
+    /// so a cache can tell whether another writer, in this process or not, replaced
+    /// either since it loaded them. Null when the analysis does not exist.</summary>
     public StoreStamp? Stamp(string id)
     {
         var file = new FileInfo(CurrentPath(id));
-        return file.Exists ? new StoreStamp(file.Length, file.LastWriteTimeUtc.Ticks) : null;
+        if (!file.Exists)
+            return null;
+        var inputs = new FileInfo(GraphInputsPath(id));
+        return inputs.Exists
+            ? new StoreStamp(file.Length, file.LastWriteTimeUtc.Ticks, inputs.Length, inputs.LastWriteTimeUtc.Ticks)
+            : new StoreStamp(file.Length, file.LastWriteTimeUtc.Ticks);
     }
 
     public IReadOnlyList<AnalysisEntry> List()

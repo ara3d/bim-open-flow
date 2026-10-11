@@ -6,7 +6,7 @@ namespace BimOpenFlow.GraphText;
 
 /// <summary>Prints a graph document, and optionally its evaluation, as graph text: a
 /// <c>dfg</c> version line, a header comment with the analysis id and short graph hash, then
-/// one binding per node in evaluation order, each followed by its result as comments.
+/// the graph inputs line when the document declares any, then one binding per node in evaluation order, each followed by its result as comments.
 /// The grammar and the digests are described in docs/graph-text.md.</summary>
 public static class GraphText
 {
@@ -19,6 +19,8 @@ public static class GraphText
     {
         options ??= GraphTextOptions.Golden;
         var lines = new List<string> { $"dfg {GraphFormat.Version};", Header(doc, options) };
+        if (InputsText.Line(doc, snapshot) is { } inputs)
+            lines.Add(inputs);
         foreach (var node in Bindings.Order(doc))
         {
             lines.Add(Bindings.Line(doc, node, registry.Find(node.Kind, node.Version)?.Spec));

@@ -1,6 +1,7 @@
 using Ara3D.MCP;
 using Ara3D.NodeGraph;
 using BimOpenFlow.Host.Api;
+using BimOpenFlow.Host.Store;
 
 namespace BimOpenMcp.Flow;
 
@@ -20,7 +21,8 @@ public static class FlowDocumentTools
                 (_, _) => ToolRunner.RunAsync(() => ListAnalyses(s), ["getAnalysis", "evaluate"]))
             .Tool(
                 "getAnalysis",
-                "Returns one analysis document as canonical graph JSON, plus its hash.",
+                "Returns one analysis document as canonical graph JSON, plus its hash and its graph "
+                + "inputs (name, kind, default, description, and the current value).",
                 FlowToolArgs.Analysis().Build(),
                 (args, _) => ToolRunner.RunAsync(
                     () => GetAnalysis(s, args.AnalysisId()),
@@ -67,7 +69,14 @@ public static class FlowDocumentTools
     public static object GetAnalysis(FlowServices s, string id)
     {
         var doc = Load(s, id);
-        return new { id, graphHash = doc.ComputeGraphHash(), json = doc.ToCanonicalJson() };
+        return new
+        {
+            id,
+            graphHash = doc.ComputeGraphHash(),
+            json = doc.ToCanonicalJson(),
+            inputs = GraphInputValues.Describe(doc, GraphInputValues.Held(doc, s.Host.Store.LoadGraphInputs(id)))
+                .Select(FlowEvalTools.ToInputView).ToList(),
+        };
     }
 
     public static object SaveAnalysis(FlowServices s, string id, string json)

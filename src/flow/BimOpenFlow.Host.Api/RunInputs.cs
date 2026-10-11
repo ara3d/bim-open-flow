@@ -12,7 +12,8 @@ namespace BimOpenFlow.Host.Api;
 /// file directly. Unresolvable references are skipped (the run still freezes).
 /// A parameter that an edge feeds is bound: its stored string is ignored by the
 /// engine, so the document overload skips it and the snapshot overload pins the
-/// wired value instead.
+/// wired value instead. A parameter that refers to a graph input is read at its resolved value,
+/// so pass the snapshot's ResolvedDocument() to the document overload.
 /// </summary>
 public static class RunInputs
 {
@@ -57,7 +58,7 @@ public static class RunInputs
     public static IReadOnlyList<RunInput> Derive(EvalSnapshot snapshot, INodeRegistry registry,
         ModelCatalog catalog, IRelationResults? relations)
     {
-        var inputs = Derive(snapshot.Document, registry, catalog).ToList();
+        var inputs = Derive(snapshot.ResolvedDocument(), registry, catalog).ToList();
         foreach (var (nodeId, result) in snapshot.Results)
         {
             if (result.Status != NodeStatus.Ok)

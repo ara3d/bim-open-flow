@@ -64,11 +64,34 @@ public sealed class AnalysisSessions
         var entry = GetOrCreate(id);
         lock (entry.Lock)
         {
-            var snapshot = entry.Session.SetDocument(doc);
+            var snapshot = entry.Session.SetDocument(doc, HeldInputs(id, doc));
             entry.Stamp = _store.Stamp(id);
             return snapshot;
         }
     }
+
+    /// <summary>Merges these values into the analysis's stored graph-input values, evaluates the
+    /// document with them, and keeps them. A name the document does not declare or a value its kind
+    /// rejects throws InvalidGraphException, and neither the store nor the session changes.</summary>
+    public EvalSnapshot SetGraphInputs(string id, IReadOnlyDictionary<string, string> values)
+    {
+        var entry = GetOrCreate(id);
+        lock (entry.Lock)
+        {
+            Refresh(entry, id);
+            var merged = HeldInputs(id, entry.Session.Document)
+                .Concat(values)
+                .GroupBy(kv => kv.Key)
+                .ToDictionary(g => g.Key, g => g.Last().Value);
+            var snapshot = entry.Session.SetGraphInputs(merged);
+            _store.SaveGraphInputs(id, merged);
+            entry.Stamp = _store.Stamp(id);
+            return snapshot;
+        }
+    }
+
+    private IReadOnlyDictionary<string, string> HeldInputs(string id, GraphDocument doc)
+        => GraphInputValues.Held(doc, _store.LoadGraphInputs(id));
 
     /// <summary>Observes every completed evaluation pass for one analysis.</summary>
     public IDisposable Subscribe(string id, Action<EvalSnapshot> observer)
@@ -127,7 +150,8 @@ public sealed class AnalysisSessions
             throw new FileNotFoundException($"Analysis '{id}' not found");
         if (current is null || current == entry.Stamp)
             return;
-        entry.Session.SetDocument(_store.Load(id));
+        var doc = _store.Load(id);
+        entry.Session.SetDocument(doc, HeldInputs(id, doc));
         entry.Stamp = current;
     }
 

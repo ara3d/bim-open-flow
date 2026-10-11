@@ -57,13 +57,26 @@ public static class PublicBuildings
     public static string GraphFile(string id)
         => Path.Combine(GraphsDir, id + ".json");
 
+    /// <summary>The graph with the placeholder replaced by the data folder in every parameter value
+    /// and in every graph input's default (SampleSeeding.RewritePaths rewrites values only).</summary>
     public static GraphDocument Load(string id)
-        => SampleSeeding.RewritePaths(GraphDocumentIO.Load(GraphFile(id)), Placeholder, DataDir);
+    {
+        var doc = SampleSeeding.RewritePaths(GraphDocumentIO.Load(GraphFile(id)), Placeholder, DataDir);
+        var target = DataDir.Replace(Path.DirectorySeparatorChar, '/').TrimEnd('/');
+        return doc with
+        {
+            Inputs = doc.Inputs.Select(i => i with { Default = i.Default.Replace(Placeholder, target) }).ToList(),
+        };
+    }
 
-    public static FlowTestSession Evaluate(string id)
+    /// <summary>A database file of one of the sample buildings, by file name.</summary>
+    public static string DataFile(string fileName)
+        => Path.Combine(DataDir, fileName).Replace(Path.DirectorySeparatorChar, '/');
+
+    public static FlowTestSession Evaluate(string id, IReadOnlyDictionary<string, string>? graphInputs = null)
     {
         var session = TableReads.NewTableSession();
-        session.Evaluate(Load(id));
+        session.Session.SetDocument(Load(id), graphInputs ?? new Dictionary<string, string>());
         return session;
     }
 

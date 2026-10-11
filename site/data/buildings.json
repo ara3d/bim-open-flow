@@ -908,6 +908,14 @@
           }
         },
         "structure": {
+          "inputs": [
+            {
+              "default": "{PUBLIC}/schependomlaan.duckdb",
+              "description": "The building\u0027s BIM Open Schema DuckDB file; any public sample building works here.",
+              "kind": "FilePath",
+              "name": "model"
+            }
+          ],
           "edges": [
             {
               "from": "db.source",
@@ -992,7 +1000,7 @@
             "valueColumns": "Spaces"
           },
           "db": {
-            "path": "{PUBLIC}/schependomlaan.duckdb"
+            "path": "$model"
           },
           "entities": {
             "table": "EntityText"

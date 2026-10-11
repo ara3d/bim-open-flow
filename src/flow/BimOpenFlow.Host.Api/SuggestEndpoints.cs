@@ -85,7 +85,7 @@ public static class SuggestEndpoints
     private static SuggestionList TablesInFile(EvalSnapshot snapshot,
         string nodeId, string pathParam, FileTableProbe? fileTables)
     {
-        var path = snapshot.Document.Values.GetValueOrDefault(nodeId)?.GetValueOrDefault(pathParam) ?? "";
+        var path = snapshot.ResolvedDocument().Values.GetValueOrDefault(nodeId)?.GetValueOrDefault(pathParam) ?? "";
         var wired = snapshot.Document.Edges.FirstOrDefault(e => e.ToRef.NodeId == nodeId && e.ToRef.Port == pathParam);
         if (wired is not null)
         {

@@ -38,15 +38,20 @@ public static class FlowEditTools
                     ["evaluate"]))
             .Tool(
                 "setParam",
-                "Sets one node parameter (values travel as canonical invariant strings).",
+                "Sets one node parameter (values travel as canonical invariant strings). To change a graph "
+                + "input instead, omit nodeId and give its name with a dollar sign ('$model'): the value becomes "
+                + "the input's current value and every node that refers to it is evaluated again. The graph "
+                + "document and its hash do not change.",
                 FlowToolArgs.Analysis()
-                    .String("nodeId", "The node to change.", required: true)
-                    .String("name", "Parameter name from the node's spec.", required: true)
+                    .String("nodeId", "The node to change. Omit for a graph input.")
+                    .String("name", "Parameter name from the node's spec, or '$input' for a graph input.", required: true)
                     .String("value", "Parameter value as a string.", required: true)
                     .Build(),
                 (args, _) => ToolRunner.RunAsync(
-                    () => SetParam(s, args.AnalysisId(), args.GetRequiredString("nodeId"),
-                        args.GetRequiredString("name"), args.GetRequiredString("value")),
+                    () => string.IsNullOrEmpty(args.GetString("nodeId"))
+                        ? SetGraphInput(s, args.AnalysisId(), args.GetRequiredString("name"), args.GetRequiredString("value"))
+                        : SetParam(s, args.AnalysisId(), args.GetRequiredString("nodeId"),
+                            args.GetRequiredString("name"), args.GetRequiredString("value")),
                     ["evaluate"]))
             .Tool(
                 "removeNode",
@@ -66,7 +71,9 @@ public static class FlowEditTools
                     .String("edits",
                         "A JSON array, as a string, of edit objects applied in order. Each has 'op': "
                         + "addNode {nodeId, kind, version?}, setParam {nodeId, name, value}, connect {from, to} "
-                        + "(ports as 'nodeId.port'; a bindable parameter takes an edge on its own name), or removeNode {nodeId}. Example: "
+                        + "(ports as 'nodeId.port'; a bindable parameter takes an edge on its own name), removeNode {nodeId}, "
+                        + "declareInput {name, kind (FilePath, Text, Number, Integer or Boolean), value (the default), description?} "
+                        + "or removeInput {name}. A parameter value '$name' refers to a declared graph input. Example: "
                         + "[{\"op\":\"addNode\",\"nodeId\":\"database\",\"kind\":\"duck.source\"},"
                         + "{\"op\":\"setParam\",\"nodeId\":\"database\",\"name\":\"path\",\"value\":\"C:/data/model.duckdb\"},"
                         + "{\"op\":\"addNode\",\"nodeId\":\"doors\",\"kind\":\"duck.query\"},"
@@ -79,7 +86,7 @@ public static class FlowEditTools
                     ["evaluate"]));
 
     public sealed record GraphEdit(string Op, string? NodeId = null, string? Kind = null, int? Version = null,
-        string? Name = null, string? Value = null, string? From = null, string? To = null);
+        string? Name = null, string? Value = null, string? From = null, string? To = null, string? Description = null);
 
     public static object EditGraph(FlowServices s, string id, string editsJson)
     {
@@ -130,7 +137,12 @@ public static class FlowEditTools
             "setParam" => doc.SetParam(Require(edit.NodeId, "nodeId"), Require(edit.Name, "name"), edit.Value ?? ""),
             "connect" => doc.Connect(Require(edit.From, "from"), Require(edit.To, "to")),
             "removeNode" => doc.RemoveNode(Require(edit.NodeId, "nodeId")),
-            _ => throw new ArgumentException($"Unknown op '{edit.Op}'; expected addNode, setParam, connect, or removeNode"),
+            "declareInput" => doc.SetInput(new GraphInput(Require(edit.Name, "name"),
+                Enum.Parse<Ara3D.DataFlowEngine.Abstractions.ParamKind>(Require(edit.Kind, "kind")),
+                edit.Value ?? "", edit.Description ?? "")),
+            "removeInput" => doc.RemoveInput(Require(edit.Name, "name")),
+            _ => throw new ArgumentException(
+                $"Unknown op '{edit.Op}'; expected addNode, setParam, connect, removeNode, declareInput, or removeInput"),
         };
 
     private static IReadOnlyList<GraphEdit> ParseEdits(JsonNode? edits)
@@ -142,7 +154,7 @@ public static class FlowEditTools
             .Select(o => new GraphEdit(
                 o["op"]?.GetValue<string>() ?? throw new ArgumentException("An edit is missing 'op'"),
                 Text(o, "nodeId"), Text(o, "kind"), o["version"]?.GetValue<int>(),
-                Text(o, "name"), Text(o, "value"), Text(o, "from"), Text(o, "to")))
+                Text(o, "name"), Text(o, "value"), Text(o, "from"), Text(o, "to"), Text(o, "description")))
             .ToList();
     }
 
@@ -197,6 +209,7 @@ public static class FlowEditTools
         {
             "connect" => $"{e.From} -> {e.To}",
             "setParam" => $"{e.NodeId}.{e.Name}",
+            "declareInput" or "removeInput" => e.Name ?? "",
             _ => e.NodeId ?? "",
         };
 
@@ -208,6 +221,26 @@ public static class FlowEditTools
 
     public static object SetParam(FlowServices s, string id, string nodeId, string name, string value)
         => Edit(s, id, doc => doc.SetParam(nodeId, name, value));
+
+    /// <summary>Sets the current value of graph input <paramref name="name"/> (written '$model') and
+    /// evaluates again. The document is untouched; the value is kept beside it in the store.</summary>
+    public static object SetGraphInput(FlowServices s, string id, string name, string value)
+    {
+        if (!name.StartsWith(GraphInputs.Sigil))
+            throw new ArgumentException(
+                $"Give 'nodeId' to set a node parameter, or write the graph input as '${name}' to set it");
+        if (!s.Host.Store.Exists(id))
+            throw new FileNotFoundException($"Analysis '{id}' not found");
+        var input = name[1..];
+        var snapshot = s.Sessions.SetGraphInputs(id, new Dictionary<string, string> { [input] = value });
+        return new
+        {
+            id,
+            graphInput = input,
+            value = snapshot.GraphInputs![input],
+            graphHash = snapshot.Document.ComputeGraphHash(),
+        };
+    }
 
     public static object RemoveNode(FlowServices s, string id, string nodeId)
         => Edit(s, id, doc => doc.RemoveNode(nodeId));

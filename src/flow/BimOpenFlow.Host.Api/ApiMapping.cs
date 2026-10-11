@@ -41,7 +41,12 @@ public static class ApiMapping
             .OrderBy(r => r.NodeId, StringComparer.Ordinal)
             .Select(ToNodeState)
             .ToList(),
-            snapshot.Document.ComputeGraphHash());
+            snapshot.Document.ComputeGraphHash(),
+            snapshot.Document.Inputs.Count == 0 ? null : snapshot.ToGraphInputInfos());
+
+    /// <summary>Each declared graph input with its default and the value this evaluation used.</summary>
+    public static IReadOnlyList<GraphInputInfo> ToGraphInputInfos(this EvalSnapshot snapshot)
+        => GraphInputValues.Describe(snapshot.Document, snapshot.GraphInputs ?? new Dictionary<string, string>());
 
     public static NodeState ToNodeState(this NodeResult result)
         => new(result.NodeId, result.Status.ByName<NodeStatus>(), result.Error, result.Warnings);

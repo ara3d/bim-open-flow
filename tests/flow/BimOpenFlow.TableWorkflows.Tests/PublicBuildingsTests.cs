@@ -1,8 +1,11 @@
 using Ara3D.DataFlowEngine;
+using Ara3D.DataFlowEngine.Runs;
 using Ara3D.DataFlowEngine.TestKit;
 using Ara3D.DataTable;
 using Ara3D.NodeGraph;
 using BimOpenFlow.Host;
+using BimOpenFlow.Host.Api;
+using BimOpenFlow.Host.Catalog;
 using BimOpenFlow.Host.Store;
 
 namespace BimOpenFlow.TableWorkflows.Tests;
@@ -80,6 +83,69 @@ public sealed class PublicBuildingsTests
             ("02 tweede verdieping", 20L),
             ("03 derde verdieping", 19L),
         }));
+    }
+
+    private static IReadOnlyDictionary<string, string> Model(string fileName)
+        => new Dictionary<string, string> { ["model"] = PublicBuildings.DataFile(fileName) };
+
+    /// <summary>The graph declares a model input held by its duck.source: the default is
+    /// Schependomlaan, and one value swaps in another building, whose own numbers come out.</summary>
+    [Test]
+    public void SpacesPerStorey_ModelInput_SwapsTheBuilding()
+    {
+        var doc = PublicBuildings.Load("schependomlaan-spaces-per-storey");
+        Assert.That(doc.Inputs.Select(i => (i.Name, i.Kind)), Is.EqualTo(new[] { ("model", Ara3D.DataFlowEngine.Abstractions.ParamKind.FilePath) }));
+        Assert.That(doc.Values["db"]["path"], Is.EqualTo("$model"));
+
+        var own = PublicBuildings.Evaluate("schependomlaan-spaces-per-storey");
+        Assert.That(own.Snapshot.GraphInputs!["model"], Is.EqualTo(PublicBuildings.DataFile("schependomlaan.duckdb")));
+        Assert.That(Total(own.Table("chart"), "Spaces"), Is.EqualTo(100));
+
+        var other = PublicBuildings.Evaluate("schependomlaan-spaces-per-storey", Model("digitalhub-arc.duckdb"));
+        Assert.That(Lookup(other.Table("chart"), "StoreyName", "Spaces"), Is.EqualTo(new[]
+        {
+            ("B01_OKRD", 12L),
+            ("E00_OKRD", 26L),
+            ("E01_OKRD", 26L),
+        }));
+    }
+
+    /// <summary>Changing the input in a standing session re-evaluates every reader, and the
+    /// run record from the second building names the input and its path.</summary>
+    [Test]
+    public void SpacesPerStorey_ModelInput_IsPinnedInTheRunRecord()
+    {
+        var session = PublicBuildings.Evaluate("schependomlaan-spaces-per-storey");
+        var first = Freeze(session);
+
+        session.Session.SetGraphInputs(Model("digitalhub-arc.duckdb"));
+        Assert.That(Total(session.Table("chart"), "Spaces"), Is.EqualTo(64));
+        var second = Freeze(session);
+
+        var path = PublicBuildings.DataFile("digitalhub-arc.duckdb");
+        Assert.Multiple(() =>
+        {
+            Assert.That(second.GraphInputs, Is.EqualTo(new Dictionary<string, string> { ["model"] = path }));
+            Assert.That(second.ToCanonicalJson(), Does.Contain("\"graphInputs\"").And.Contain("digitalhub-arc.duckdb"));
+            Assert.That(second.GraphHash, Is.EqualTo(first.GraphHash), "the same graph, run on another building");
+            Assert.That(second.NodeOutputs["chart.table"], Is.Not.EqualTo(first.NodeOutputs["chart.table"]));
+            var pinned = second.Inputs.Single(i => i.Node == "db" && i.Param == "path");
+            Assert.That(pinned.Source, Is.EqualTo(path));
+            Assert.That(pinned.ContentHash, Is.EqualTo(ModelCatalog.HashFile(path)));
+        });
+    }
+
+    [Test]
+    public void SpacesPerStorey_ModelInput_RejectsAnUndeclaredName()
+        => Assert.That(() => PublicBuildings.Evaluate("schependomlaan-spaces-per-storey",
+                new Dictionary<string, string> { ["building"] = "x" }),
+            Throws.TypeOf<InvalidGraphException>().With.Message.Contains("'building'"));
+
+    private static RunRecord Freeze(FlowTestSession session)
+    {
+        var catalog = new ModelCatalog(Path.Combine(Path.GetTempPath(), "bof-no-models"), Path.Combine(Path.GetTempPath(), "bof-no-cache"));
+        var inputs = RunInputs.Derive(session.Snapshot.ResolvedDocument(), session.Registry, catalog);
+        return RunRecorder.Freeze(session.Snapshot, session.Registry, inputs, "test", DateTimeOffset.UtcNow);
     }
 
     [Test]

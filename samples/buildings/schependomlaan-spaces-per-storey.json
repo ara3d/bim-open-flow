@@ -11,6 +11,9 @@
     "storeys": { "x": 360, "y": 300 }
   },
   "structure": {
+    "inputs": [
+      { "default": "{PUBLIC}/schependomlaan.duckdb", "description": "The building's BIM Open Schema DuckDB file; any public sample building works here.", "kind": "FilePath", "name": "model" }
+    ],
     "edges": [
       { "from": "db.source", "to": "entities.path" },
       { "from": "db.source", "to": "storeys.path" },
@@ -34,7 +37,7 @@
   },
   "values": {
     "chart": { "labelColumn": "StoreyName", "title": "Spaces per storey", "valueColumns": "Spaces" },
-    "db": { "path": "{PUBLIC}/schependomlaan.duckdb" },
+    "db": { "path": "$model" },
     "entities": { "table": "EntityText" },
     "perStorey": { "aggregates": "count(EntityIndex) as Spaces", "groupBy": "StoreyName" },
     "placed": { "aKey": "EntityIndex", "mode": "inner" },

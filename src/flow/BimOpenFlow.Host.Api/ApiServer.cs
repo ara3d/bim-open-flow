@@ -37,6 +37,7 @@ public static class ApiServer
         // knows how to execute relations (RelationHostResults); the text endpoint uses it to
         // print a relation's row count and rows instead of its plan alone.
         app.MapEvalEndpoints(catalog, store, registry, sessions, relations, relations as BimOpenFlow.GraphText.IRelationReader);
+        app.MapGraphInputEndpoints(store, sessions);
         app.MapSuggestEndpoints(store, registry, sessions, fileTables, relations, catalog.Files);
         app.MapFileEndpoints(catalog.Files);
         app.MapSessionEndpoints(editor);

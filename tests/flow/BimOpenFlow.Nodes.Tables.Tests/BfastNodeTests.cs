@@ -1,4 +1,6 @@
-﻿namespace BimOpenFlow.Nodes.Tables.Tests;
+﻿using Ara3D.DataFlowEngine.Abstractions;
+
+namespace BimOpenFlow.Nodes.Tables.Tests;
 
 /// <summary>bfast.read and bfast.buffer against a file written by the SDK writer into a
 /// temp folder: the buffer directory, typed reads with widening, and the two errors.</summary>
@@ -19,6 +21,11 @@ public sealed class BfastNodeTests
     [OneTimeTearDown]
     public void DeleteFile()
         => Directory.Delete(_dir, recursive: true);
+
+    [Test]
+    public void PathParameters_AcceptAWiredTextValue()
+        => Assert.That(new[] { new BfastReadNode().Spec, new BfastBufferNode().Spec }
+            .Select(spec => spec.Params.Single(p => p.Name == "path").Bindable), Has.All.EqualTo(PortType.Text));
 
     [Test]
     public void Read_ListsBuffersInFileOrder()

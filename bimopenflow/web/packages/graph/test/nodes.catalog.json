@@ -20,7 +20,8 @@
           "suggest": {
             "kind": "FilesUnderRoots",
             "source": ".bfast"
-          }
+          },
+          "bindable": "Text"
         },
         {
           "name": "name",
@@ -63,7 +64,8 @@
           "suggest": {
             "kind": "FilesUnderRoots",
             "source": ".bfast"
-          }
+          },
+          "bindable": "Text"
         }
       ],
       "description": "Lists the buffers in a BFAST file: name, byteLength, index (0-based file order). BFAST records no element types; bfast.buffer reads one buffer under a type you name."
@@ -818,7 +820,8 @@
         {
           "name": "path",
           "kind": "Text",
-          "default": ""
+          "default": "",
+          "bindable": "Text"
         }
       ],
       "description": "A CSV file, named by its registered source folder and relative path. Nothing is read until a node is inspected."

@@ -21,7 +21,7 @@ public sealed class BfastBufferNode : IFlowNode
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("path", ParamKind.FilePath, Suggest: SuggestSource.FilesWith(".bfast")),
+            new ParamSpec("path", ParamKind.FilePath, Bindable: PortType.Text, Suggest: SuggestSource.FilesWith(".bfast")),
             new ParamSpec("name", ParamKind.Text),
             new ParamSpec("type", ParamKind.Enum, "float32", BfastOps.ElementTypes),
         ],

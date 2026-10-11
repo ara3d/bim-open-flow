@@ -6,7 +6,7 @@ public sealed class RelCsvNode(RelationRuntime runtime) : IFlowNode
     public const string Kind = "rel.csv";
     public NodeSpec Spec { get; } = new(Kind, 1, NodeCapability.Pure,
         Inputs: [], Outputs: [new PortSpec("relation", PortType.Relation)],
-        Params: [new ParamSpec("source", ParamKind.Text), new ParamSpec("path", ParamKind.Text)],
+        Params: [new ParamSpec("source", ParamKind.Text), new ParamSpec("path", ParamKind.Text, Bindable: PortType.Text)],
         "A CSV file, named by its registered source folder and relative path. Nothing is read until a node is inspected.");
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)

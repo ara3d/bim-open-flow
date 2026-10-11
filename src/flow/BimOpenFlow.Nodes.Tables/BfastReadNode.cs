@@ -17,7 +17,7 @@ public sealed class BfastReadNode : IFlowNode
         Kind, 1, NodeCapability.Pure,
         Inputs: [],
         Outputs: [new PortSpec("buffers", PortType.Table)],
-        Params: [new ParamSpec("path", ParamKind.FilePath, Suggest: SuggestSource.FilesWith(".bfast"))],
+        Params: [new ParamSpec("path", ParamKind.FilePath, Bindable: PortType.Text, Suggest: SuggestSource.FilesWith(".bfast"))],
         "Lists the buffers in a BFAST file: name, byteLength, index (0-based file order). "
         + "BFAST records no element types; bfast.buffer reads one buffer under a type you name.");
 

@@ -13,7 +13,7 @@ public static class PlanText
             ReadTable r => $"(table {Q(r.Source)} {Q(r.Table)})",
             InlineTable t => $"(inline {Q(t.Name)} {Q(t.TableHash)})",
             RawSql r => $"(sql {Q(r.Sql)}{List(r.Inputs.Select(Render))})",
-            Select s => $"(select {s.Input.Render()}{List(s.Columns.Select(Q))})",
+            Select s => $"(select {s.Input.Render()}{List(s.Columns.Select(Term))})",
             Rename r => $"(rename {r.Input.Render()}{List(r.Renamings.Select(x => $"{Q(x.From)}>{Q(x.To)}"))})",
             Cast c => $"(cast {c.Input.Render()} {Q(c.Column)} {c.Type})",
             Derive d => $"(derive {d.Input.Render()} {Q(d.Name)} {Q(d.Expression.Render())})",
@@ -26,6 +26,9 @@ public static class PlanText
             Aggregate a => $"(aggregate {a.Input.Render()}{List(a.GroupBy.Select(Q))}{List(a.Aggregates.Select(Agg))})",
             _ => throw new ArgumentException($"Unknown plan node {plan.GetType().Name}", nameof(plan)),
         };
+
+    private static string Term(Projection p)
+        => p.Alias is null ? Q(p.Column) : $"{Q(p.Column)}>{Q(p.Alias)}";
 
     private static string Agg(Aggregation a)
         => $"{a.Function}({(a.Column is null ? "*" : Q(a.Column))})>{Q(a.Name)}";

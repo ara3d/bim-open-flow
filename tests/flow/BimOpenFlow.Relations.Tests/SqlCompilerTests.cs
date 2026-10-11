@@ -38,6 +38,7 @@ public class SqlCompilerTests
     }
 
     [Test] public void Select() => Assert.That(Last(Walls.Select("height", "id")), Is.EqualTo("SELECT \"height\", \"id\" FROM n1"));
+    [Test] public void SelectAlias() => Assert.That(Last(Walls.Select("height AS h", "id")), Is.EqualTo("SELECT \"height\" AS \"h\", \"id\" FROM n1"));
     [Test] public void Rename() => Assert.That(Last(Walls.Rename("height", "h")), Is.EqualTo("SELECT \"id\", \"height\" AS \"h\", \"level_id\" FROM n1"));
     [Test] public void Cast() => Assert.That(Last(Walls.Cast("id", ColumnType.Text)), Is.EqualTo("SELECT CAST(\"id\" AS VARCHAR) AS \"id\", \"height\", \"level_id\" FROM n1"));
     [Test] public void Derive() => Assert.That(Last(Walls.Derive("tall", "[height] > 3")), Is.EqualTo("SELECT *, (\"height\" > 3) AS \"tall\" FROM n1"));

@@ -17,7 +17,7 @@ public abstract class UnaryRelationNode(RelationRuntime runtime, string kind, IR
 }
 
 public sealed class RelSelectNode(RelationRuntime runtime) : UnaryRelationNode(runtime, Kind,
-    [Columns("columns")], "Keeps only the comma-separated columns, in that order.")
+    [Columns("columns")], "Keeps only the comma-separated columns, in that order; 'column as Alias' renames one.")
 {
     public const string Kind = "rel.select";
     protected override Plan Apply(Plan input, ParamValues parameters)

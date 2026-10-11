@@ -22,6 +22,9 @@ public class SchemaInferenceTests
     [Test] public void UnknownSource() => Assert.That(Infer(Plans.Csv("files", "nope.csv")), Is.EqualTo("Unknown source 'files/nope.csv'."));
     [Test] public void SelectReordersAndKeepsSpelling() => Assert.That(Infer(WallsPlan.Select("HEIGHT", "id")), Is.EqualTo("height:Number?, id:Integer"));
     [Test] public void SelectUnknown() => Assert.That(Infer(WallsPlan.Select("width")), Is.EqualTo("No column named 'width'."));
+    [Test] public void SelectAliasRenamesAndKeepsType() => Assert.That(Infer(WallsPlan.Select("HEIGHT as Height_m", "id")), Is.EqualTo("Height_m:Number?, id:Integer"));
+    [Test] public void SelectAliasUnknownColumn() => Assert.That(Infer(WallsPlan.Select("width as w")), Is.EqualTo("No column named 'width'."));
+    [Test] public void SelectDuplicateOutputName() => Assert.That(Infer(WallsPlan.Select("height as name", "name")), Is.EqualTo("Select produces duplicate column 'name'."));
     [Test] public void Rename() => Assert.That(Infer(WallsPlan.Rename("name", "label").Select("label")), Is.EqualTo("label:Text?"));
     [Test] public void RenameClash() => Assert.That(Infer(WallsPlan.Rename("name", "id")), Is.EqualTo("Rename produces duplicate column 'id'."));
     [Test] public void Cast() => Assert.That(Infer(WallsPlan.Cast("id", ColumnType.Text).Select("id")), Is.EqualTo("id:Text"));

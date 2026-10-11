@@ -256,6 +256,21 @@ public sealed class TableCombinatorTests
     }
 
     [Test]
+    public void Project_AliasRenamesAndKeepsValues()
+    {
+        var result = new TableProjectNode().EvalTable(
+            [TablesTestHelpers.Customers()], ("columns", "Name as Customer, CustomerId"));
+        Assert.That(result.ColumnNames(), Is.EqualTo(new[] { "Customer", "CustomerId" }));
+        Assert.That(result.Cell("Customer", 1), Is.EqualTo("Bob"));
+    }
+
+    [Test]
+    public void Project_DuplicateOutputName_IsAnErrorNamingIt()
+        => Assert.That(() => new TableProjectNode().EvalTable(
+                [TablesTestHelpers.Customers()], ("columns", "CustomerId as Name, Name")),
+            Throws.ArgumentException.With.Message.Contains("'Name'"));
+
+    [Test]
     public void Project_UnknownColumn_WarnsAndKeepsTheRest()
     {
         var ctx = new FakeEvalContext();

@@ -28,7 +28,7 @@ public static class SqlCompiler
             ReadTable r => $"SELECT * FROM {new SourceUse(r.Source, SourceKind.Table, r.Table).Ident}",
             InlineTable t => $"SELECT * FROM {new InlineUse(t.Name, t.TableHash).Ident}",
             RawSql r => RawSqlBody(r, inputs),
-            Select s => $"SELECT {Columns(s.Columns)} FROM {inputs[0]}",
+            Select s => $"SELECT {Terms(s.Columns)} FROM {inputs[0]}",
             Rename r => $"SELECT {RenameList(r, Schema(r.Input, schemas))} FROM {inputs[0]}",
             Cast c => $"SELECT {CastList(c, Schema(c.Input, schemas))} FROM {inputs[0]}",
             Derive d => $"SELECT *, {d.Expression.ToSql()} AS {d.Name.Ident()} FROM {inputs[0]}",
@@ -45,8 +45,8 @@ public static class SqlCompiler
     private static Schema Schema(Plan plan, SchemaCache schemas)
         => schemas.Infer(plan).Require();
 
-    private static string Columns(IEnumerable<string> names)
-        => string.Join(", ", names.Select(Ident));
+    private static string Terms(IEnumerable<Projection> terms)
+        => string.Join(", ", terms.Select(t => t.Alias is null ? Ident(t.Column) : $"{Ident(t.Column)} AS {Ident(t.Alias)}"));
 
     private static string Ident(string name)
         => name.Ident();

@@ -60,6 +60,21 @@ public sealed class RelationNodeTests
             Throws.ArgumentException.With.Message.EqualTo("rel.select: No column named 'width'."));
 
     [Test]
+    public void SelectAcceptsAliases()
+    {
+        var selected = Rel(new RelSelectNode(_runtime), [Walls()], ("columns", "name as Label, id"));
+        Assert.That(_runtime.Schema((Plan)selected.Payload!).ToString(), Is.EqualTo("Label:Text?, id:Integer?"));
+        var table = new RelMaterializeNode(_runtime).EvalTable([selected]);
+        Assert.That(table.ColumnNames(), Is.EqualTo(new[] { "Label", "id" }));
+        Assert.That(table.ColumnCells("Label"), Is.EqualTo(new object?[] { "A", "B", "C", "D" }));
+    }
+
+    [Test]
+    public void SelectDuplicateOutputNameIsANodeError()
+        => Assert.That(() => Rel(new RelSelectNode(_runtime), [Walls()], ("columns", "id as name, name")),
+            Throws.ArgumentException.With.Message.EqualTo("rel.select: Select produces duplicate column 'name'."));
+
+    [Test]
     public void FilterMustBeBoolean()
         => Assert.That(() => Rel(new RelFilterNode(_runtime), [Walls()], ("expr", "[height] + 1")),
             Throws.ArgumentException.With.Message.Contains("must be Boolean"));

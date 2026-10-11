@@ -39,7 +39,16 @@ public static class SchemaInference
     }
 
     private static SchemaResult InferSelect(Select s, Schema input)
-        => RequireAll(input, s.Columns) ?? SchemaResult.Of(new Schema(s.Columns.Select(c => input.Find(c)!.Value).ToList()));
+    {
+        if (RequireAll(input, s.Columns.Select(c => c.Column)) is { } missing) return missing;
+        var columns = s.Columns.Select(c => Aliased(input.Find(c.Column)!.Value, c.Alias)).ToList();
+        return Projection.FirstDuplicate(columns.Select(c => c.Name)) is { } clash
+            ? SchemaResult.Fail($"Select produces duplicate column '{clash}'.")
+            : SchemaResult.Of(new Schema(columns));
+    }
+
+    private static Column Aliased(Column column, string? alias)
+        => alias is null ? column : column with { Name = alias };
 
     private static SchemaResult InferRename(Rename r, Schema input)
     {

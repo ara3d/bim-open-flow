@@ -17,9 +17,9 @@ public abstract class UnaryPlan(Plan input) : Plan
     public override IReadOnlyList<Plan> Inputs => [input];
 }
 
-public sealed class Select(Plan input, IReadOnlyList<string> columns) : UnaryPlan(input)
+public sealed class Select(Plan input, IReadOnlyList<Projection> columns) : UnaryPlan(input)
 {
-    public IReadOnlyList<string> Columns => columns;
+    public IReadOnlyList<Projection> Columns => columns;
 }
 
 public sealed class Rename(Plan input, IReadOnlyList<Renaming> renamings) : UnaryPlan(input)

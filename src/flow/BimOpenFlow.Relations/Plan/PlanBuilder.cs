@@ -12,7 +12,7 @@ public static class Plans
     public static RawSql Sql(string sql, params Plan[] inputs) => new(sql, inputs);
     public static Union Union(params Plan[] inputs) => new(inputs);
 
-    public static Select Select(this Plan input, params string[] columns) => new(input, columns);
+    public static Select Select(this Plan input, params string[] terms) => new(input, Projection.ParseAll(terms));
     public static Rename Rename(this Plan input, params Renaming[] renamings) => new(input, renamings);
     public static Rename Rename(this Plan input, string from, string to) => new(input, [new(from, to)]);
     public static Cast Cast(this Plan input, string column, ColumnType type) => new(input, column, type);

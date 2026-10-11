@@ -204,7 +204,7 @@ const GraphNodePart = part<NodeProps, NodeCardColors>("bof-node", {
     }
     return {
       fill: t.mix(t.surface, t.surfaceHi, 0.4 * channels.hover + 0.6 * channels.drag),
-      edge: t.mix(t.muted, t.accent, (channels.sel || 0) + 0.5 * channels.hover),
+      edge: t.mix(t.muted, t.accent, Math.min(1, (channels.sel || 0) + 0.5 * channels.hover + (props.lit ? 1 : 0))),
       text: t.mix(t.text, t.textBright, 0.4 + 0.6 * channels.hover),
       dim: t.textDim,
       socket: t.accent,

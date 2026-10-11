@@ -108,7 +108,9 @@ describe("the sources rail", () => {
 describe("the rail toggle", () => {
   const menu = (view: SourceView) => {
     const calls: SourceView[] = [];
-    const items = (id: string) => sourceMenuItems({ view: () => view, setView: (v) => calls.push(v), isSource: (n) => n === "db" }, id);
+    const items = (id: string) => sourceMenuItems({
+      view: () => view, setView: (v) => calls.push(v), isSource: (n) => n === "db", chipAt: () => null, unlink: () => {},
+    }, id, 0, 0).filter((i) => !i.label.includes("chips"));
     return { calls, items };
   };
 

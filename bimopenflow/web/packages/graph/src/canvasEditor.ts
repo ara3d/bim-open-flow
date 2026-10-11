@@ -17,6 +17,8 @@ import { buildCanvasModel, NOTE_KIND, type CanvasModel, type NodeBounds } from "
 import { animateSelection } from "./selectionBorder.js";
 import { installNodeContextMenu } from "./nodeContextMenu.js";
 import { sourceMenuItems } from "./sourceMenu.js";
+import { chipAt } from "./chipGeometry.js";
+import { installChipHover } from "./chipHover.js";
 import { DEFAULT_SOURCE_VIEW, isSourceDescriptor, type SourceView } from "./sources.js";
 import { installCanvasFocus } from "./canvasFocus.js";
 import { createPeekWiring, type PeekWiring } from "./peekWiring.js";
@@ -147,8 +149,9 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
   });
   let wiring: PeekWiring | null = null; // created once the runtime exists
   let sourceView: SourceView = DEFAULT_SOURCE_VIEW;
+  let litSource: string | null = null; // the source whose chip the pointer rests on
   const model = (): CanvasModel =>
-    buildCanvasModel(store.getState(), getCatalog(), getPreview(), wiring?.view(), { sources: sourceView });
+    buildCanvasModel(store.getState(), getCatalog(), getPreview(), wiring?.view(), { sources: sourceView, lit: litSource });
   // The runtime's rest detector can doze off mid entrance-animation right
   // after a doc swap (boot, flow open), freezing the canvas on ghost-faint
   // nodes until the next interaction. `ambient` holds the loop awake briefly
@@ -200,17 +203,33 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
   // A viewer has no delete and no palette: the context menu is not installed at all.
   const disposeContextMenu = readOnly ? () => {} : installNodeContextMenu(canvas, {
     hitNode: (x, y) => nodeAtWorld(canvasToWorld(x, y)),
-    items: (nodeId) => sourceMenuItems({
+    items: (nodeId, x, y) => sourceMenuItems({
       view: () => sourceView,
       setView: setSourceView,
+      chipAt: (wx, wy) => chipAt(runtime.doc, wx, wy),
+      unlink: (hit) => {
+        const edge = store.getState().document.structure.edges.find((e) => e.to === `${hit.nodeId}.${hit.param}`);
+        if (edge) store.dispatch({ type: "disconnect", from: edge.from, to: edge.to });
+      },
       isSource: (id) => isSourceDescriptor(getCatalog().get(store.getState().document.structure.nodes.find((n) => n.id === id)?.kind ?? "")),
-    }, nodeId),
+    }, nodeId, canvasToWorld(x, y).x, canvasToWorld(x, y).y),
     onDelete(nodeId) {
       try { store.dispatch({ type: "removeNode", id: nodeId }); }
       catch (error) { onError(error instanceof Error ? error.message : String(error)); }
     },
     onEmptyCanvas: (clientX, clientY, canvasX, canvasY) =>
       surfaces.onEmptyCanvas?.({ x: clientX, y: clientY }, canvasToWorld(canvasX, canvasY)),
+  });
+
+  const disposeChipHover = installChipHover(canvas, {
+    sourceAt(x, y) {
+      const world = canvasToWorld(x, y);
+      return chipAt(runtime.doc, world.x, world.y)?.sourceId ?? null;
+    },
+    onHover(sourceId) {
+      litSource = sourceId;
+      sync();
+    },
   });
 
   // Double-click shows a node in the pane without selecting it (TKT-81).
@@ -286,6 +305,7 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
       unsubscribe();
       wiring?.dispose();
       disposeContextMenu();
+      disposeChipHover();
       disposeFocus();
       canvas.removeEventListener("dblclick", onDoubleClick);
       pruneInstance(instance, new Set());

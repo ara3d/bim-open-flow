@@ -235,6 +235,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     onShowNode: (nodeId) => showNodeInPane(nodeId),
     readPort: boundCtx.requestTable, // TKT-11: peek cards and row counts
     suggestions: boundCtx.requestSuggestions,
+    files: { browse: (dir, ext) => api.browseFolder(dir, ext), stat: (path) => api.statPath(path) },
     surfaces: {
       onEmptyCanvas: (client, world) => palette.open(client, world),
       onWireDropped: (from, world, client) => {

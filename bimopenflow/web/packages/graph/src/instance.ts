@@ -12,6 +12,7 @@ import type { SuggestionList } from "@bimopenflow/contracts";
 import type { CanvasIntent } from "./canvasIntents.js";
 import type { IslandEntry } from "./canvasControls.js";
 import { ColumnSelects } from "./columnSelect.js";
+import { FilePathControls, type FileProvider } from "./filePathControl.js";
 import type { LongValueEditor } from "./longValueEditor.js";
 
 /** Live values for a suggest-annotated parameter (the host's suggestions endpoint). */
@@ -42,6 +43,8 @@ export interface CanvasInstance {
   readonly noteEditors: Map<string, LongValueEditor>;
   readonly noteEditorThemeV: Map<string, number>;
   readonly columnSelects: ColumnSelects;
+  /** One path box with browse button and not-found badge per FilePath row that suggests files. */
+  readonly filePaths: FilePathControls;
   suggestionProvider: SuggestionProvider | null;
 }
 
@@ -51,6 +54,8 @@ export interface CanvasInstanceOptions {
   /** Default true. */
   readonly hint?: boolean;
   readonly suggestionProvider?: SuggestionProvider | null;
+  /** The host's file endpoints; without them the path box has no browse button and no not-found badge. */
+  readonly fileProvider?: FileProvider | null;
 }
 
 export function createCanvasInstance(options: CanvasInstanceOptions): CanvasInstance {
@@ -72,6 +77,13 @@ export function createCanvasInstance(options: CanvasInstanceOptions): CanvasInst
       (nodeId, name, value) => instance.dispatch({ kind: "setParam", nodeId, name, value }),
       { readOnly: options.readOnly ?? false, document: options.document },
     ),
+    filePaths: new FilePathControls(
+      (nodeId, param) => instance.suggestionProvider
+        ? instance.suggestionProvider(nodeId, param)
+        : Promise.reject(new Error("No suggestion provider")),
+      (nodeId, name, value) => instance.dispatch({ kind: "setParam", nodeId, name, value }),
+      { readOnly: options.readOnly ?? false, document: options.document, files: () => options.fileProvider ?? null },
+    ),
     suggestionProvider: options.suggestionProvider ?? null,
   };
   return instance;
@@ -86,6 +98,7 @@ export function pruneInstance(
   liveNoteIds: ReadonlySet<string> = new Set(),
 ): void {
   instance.columnSelects.prune(liveKeys);
+  instance.filePaths.prune(liveKeys);
   for (const key of instance.openDropdowns) if (!liveKeys.has(key)) instance.openDropdowns.delete(key);
   for (const [key, entry] of instance.islands) {
     if (!liveKeys.has(key)) {

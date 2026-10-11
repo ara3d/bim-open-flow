@@ -39,7 +39,7 @@ export const LONG_TEXT_SLOT_H = 22 + LONG_TEXT_LINES * LONG_TEXT_LINE_H + 8;
 
 /** The control a parameter row shows. TKT-23 adds members (swatch, typed slider, column picker). */
 export type SlotControl =
-  | "toggle" | "dropdown" | "number" | "slider" | "range" | "columnSelect" | "field" | "longText";
+  | "toggle" | "dropdown" | "number" | "slider" | "range" | "columnSelect" | "field" | "longText" | "filePath";
 
 /** Default control per kind. The Record forces a row for every ParamKind. */
 export const KIND_CONTROL = {
@@ -63,6 +63,7 @@ export const CONTROL_HEIGHT: Readonly<Record<SlotControl, number>> = {
   number: COMPACT_SLOT_H,
   columnSelect: COMPACT_SLOT_H,
   field: FIELD_SLOT_H,
+  filePath: FIELD_SLOT_H,
   longText: LONG_TEXT_SLOT_H,
   slider: WIDGET_SLOT_H,
   range: WIDGET_SLOT_H,
@@ -71,14 +72,16 @@ export const CONTROL_HEIGHT: Readonly<Record<SlotControl, number>> = {
 /** Plain Text longer than this, or with a line break, gets the long-text row. */
 export const LONG_TEXT_CHARS = 60;
 
-/** Descriptor control first (DESCRIPTOR_CONTROL), then the long-Text rule
- *  (Text, no suggest, no control), then KIND_CONTROL. Unknown kind -> "field". */
+/** Descriptor control first (DESCRIPTOR_CONTROL), then the file picker (a FilePath that
+ *  suggests files under the model roots), then the long-Text rule (Text, no suggest, no
+ *  control), then KIND_CONTROL. Unknown kind -> "field". */
 export function slotControl(
   param: Pick<CanvasParam, "kind" | "value" | "control" | "suggest">,
 ): SlotControl {
   if (param.control?.kind && param.control.kind in DESCRIPTOR_CONTROL) {
     return DESCRIPTOR_CONTROL[param.control.kind as keyof typeof DESCRIPTOR_CONTROL];
   }
+  if (param.kind === "FilePath" && param.suggest?.kind === "FilesUnderRoots") return "filePath";
   if (
     param.kind === "Text" &&
     !param.suggest &&
@@ -157,6 +160,7 @@ export function slotWidth(param: CanvasParam, m: Measure): number {
     case "columnSelect":
       return text(param.name);
     case "field":
+    case "filePath":
       return Math.max(text(label), text(fieldText(param), SLOT_VALUE_SIZE) + FIELD_INPUT_PAD);
     case "longText":
       return Math.max(text(label), text(param.value.replace(/\s+/g, " ").trim(), SLOT_VALUE_SIZE) + LONG_PREVIEW_PAD);

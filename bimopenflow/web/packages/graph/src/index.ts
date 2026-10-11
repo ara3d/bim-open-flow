@@ -6,6 +6,7 @@ export { createGraphEditor } from "./canvasEditor.js";
 export type { CanvasEditorSurfaces, FitOptions, GraphEditor, GraphEditorOptions, Point } from "./canvasEditor.js";
 export { createCanvasInstance, pruneInstance } from "./instance.js";
 export type { CanvasInstance, SuggestionProvider } from "./instance.js";
+export type { FileProvider } from "./filePathControl.js";
 export { anchorId, canConnect, MUTATING_INTENTS, parseAnchorId } from "./canvasIntents.js";
 export type { AnchorDir, AnchorRef, CanvasHooks, CanvasIntent } from "./canvasIntents.js";
 export {

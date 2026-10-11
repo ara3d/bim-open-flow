@@ -7,6 +7,7 @@
 import type { Element } from "gratify";
 import { slotControl, type SlotContext, type SlotControl } from "./canvasSlots.js";
 import { longTextSlot } from "./canvasLongSlot.js";
+import { filePathSlot } from "./filePathSlot.js";
 import { pruneInstance, type CanvasInstance } from "./instance.js";
 import { rangeSlot, sliderSlot } from "./graphWidgets.js";
 import {
@@ -33,6 +34,7 @@ export const SLOT_FACTORIES: Readonly<Record<SlotControl, SlotFactory>> = {
   columnSelect: columnSlot,
   field: fieldSlot,
   longText: longTextSlot,
+  filePath: filePathSlot,
   slider: sliderFactory,
   range: rangeFactory,
 };

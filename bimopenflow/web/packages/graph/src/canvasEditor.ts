@@ -12,6 +12,7 @@ import { makeCanvasUpdate, type AnchorRef, type CanvasIntent } from "./canvasInt
 import { canvasView } from "./canvasParts.js";
 import { createCanvasInstance, pruneInstance, type SuggestionProvider } from "./instance.js";
 import { islandKey } from "./slotShared.js";
+import type { FileProvider } from "./filePathControl.js";
 import { buildCanvasModel, NOTE_KIND, type CanvasModel, type NodeBounds } from "./viewModel.js";
 import { animateSelection } from "./selectionBorder.js";
 import { installNodeContextMenu } from "./nodeContextMenu.js";
@@ -53,6 +54,8 @@ export interface GraphEditorOptions {
   readonly readPort?: ReadPort;
   /** Live values for suggest-annotated parameters. */
   readonly suggestions?: SuggestionProvider;
+  /** The host's file endpoints, for the FilePath control's browse button and not-found badge. */
+  readonly files?: FileProvider;
   /** Gestures the canvas hands to the host's chrome; see CanvasEditorSurfaces. */
   readonly surfaces?: CanvasEditorSurfaces;
 }
@@ -135,6 +138,7 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
     readOnly,
     hint: options.hint,
     suggestionProvider: options.suggestions ?? null,
+    fileProvider: options.files ?? null,
   });
   let wiring: PeekWiring | null = null; // created once the runtime exists
   const model = (): CanvasModel =>
@@ -254,7 +258,7 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
       sync();
     },
     bounds: () => contentBounds(model().nodes),
-    refreshSuggestions: () => instance.columnSelects.refresh(),
+    refreshSuggestions: () => { instance.columnSelects.refresh(); instance.filePaths.refresh(); },
     // Live swap: gratify retargets its tokens and cross-fades; the sync wakes
     // the runtime's frame loop so the fade actually runs. Pan/zoom untouched.
     setTheme: (theme) => {

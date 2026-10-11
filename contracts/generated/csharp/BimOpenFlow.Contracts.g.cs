@@ -31,6 +31,7 @@ public enum PortType
     Text,
     Table,
     Relation,
+    Database,
     Any,
 }
 

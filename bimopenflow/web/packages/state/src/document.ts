@@ -3,6 +3,8 @@
 // The client round-trips the JSON it received and applies edits structurally;
 // full canonical byte-identity (hashing) lives server-side.
 
+import type { ParamKind } from "@bimopenflow/contracts";
+
 export interface GraphNode {
   readonly id: string;
   readonly kind: string;
@@ -21,9 +23,21 @@ export interface NodeLayout {
   readonly h?: number;
 }
 
+/** A graph input (TKT-204): a named value the graph's parameters refer to as
+ *  `$name`. The document holds the declaration and the default; the chosen
+ *  value lives beside the document, in the host. */
+export interface GraphInputDecl {
+  readonly name: string;
+  readonly kind: ParamKind;
+  readonly default: string;
+  readonly description?: string;
+}
+
 export interface GraphStructure {
   readonly nodes: readonly GraphNode[];
   readonly edges: readonly GraphEdge[];
+  /** Absent when the graph declares none. */
+  readonly inputs?: readonly GraphInputDecl[];
 }
 
 export interface GraphDocument {
@@ -92,6 +106,17 @@ function readValues(v: unknown): Record<string, Record<string, string>> {
   return result;
 }
 
+function readInput(v: unknown): GraphInputDecl {
+  if (!isObject(v) || typeof v.name !== "string" || typeof v.kind !== "string" || typeof v.default !== "string")
+    fail("Each input must be {name, kind, default}");
+  return {
+    name: v.name,
+    kind: v.kind as ParamKind,
+    default: v.default,
+    ...(typeof v.description === "string" && v.description !== "" ? { description: v.description } : {}),
+  };
+}
+
 function readLayout(v: unknown): Record<string, NodeLayout> {
   if (!isObject(v)) fail("'layout' must be an object");
   const result: Record<string, NodeLayout> = {};
@@ -124,6 +149,7 @@ export function parseDocument(json: string): GraphDocument {
     structure: {
       nodes: structure.nodes.map(readNode),
       edges: structure.edges.map(readEdge),
+      ...(Array.isArray(structure.inputs) && structure.inputs.length > 0 ? { inputs: structure.inputs.map(readInput) } : {}),
     },
     values: readValues(root.values),
     layout: root.layout === undefined ? {} : readLayout(root.layout),
@@ -146,11 +172,13 @@ function sortKeysDeep(v: unknown): unknown {
  * writer is NOT guaranteed for all doubles — the server re-canonicalizes.
  */
 export function serializeDocument(doc: GraphDocument): string {
+  const inputs = doc.structure.inputs ?? [];
   const plain: Record<string, unknown> = {
     formatVersion: doc.formatVersion,
     structure: {
       nodes: [...doc.structure.nodes].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)),
       edges: [...doc.structure.edges].sort((a, b) => (a.to < b.to ? -1 : a.to > b.to ? 1 : 0)),
+      ...(inputs.length > 0 ? { inputs: [...inputs].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)) } : {}),
     },
     values: doc.values,
   };

@@ -1,4 +1,4 @@
-import type { NodeState } from "@bimopenflow/contracts";
+import type { GraphInputInfo, NodeState } from "@bimopenflow/contracts";
 import type { Action } from "./actions.js";
 import {
   emptyDocument,
@@ -6,6 +6,7 @@ import {
   parsePortRef,
   serializeDocument,
   type GraphDocument,
+  type GraphInputDecl,
   type NodeLayout,
 } from "./document.js";
 
@@ -13,6 +14,8 @@ export interface State {
   readonly document: GraphDocument;
   readonly selection: readonly string[];
   readonly evalState: Readonly<Record<string, NodeState>>;
+  /** The graph inputs as the host last reported them, with their current values. */
+  readonly graphInputs: readonly GraphInputInfo[];
   readonly dirty: boolean;
   /** Undo history: serialized document snapshots, oldest first. */
   readonly undoStack: readonly string[];
@@ -23,6 +26,7 @@ export const initialState: State = {
   document: emptyDocument,
   selection: [],
   evalState: {},
+  graphInputs: [],
   dirty: false,
   undoStack: [],
   redoStack: [],
@@ -64,6 +68,7 @@ function removeNode(doc: GraphDocument, id: string): GraphDocument {
   return {
     ...doc,
     structure: {
+      ...doc.structure,
       nodes: doc.structure.nodes.filter((n) => n.id !== id),
       edges: doc.structure.edges.filter(
         (e) => parsePortRef(e.from).nodeId !== id && parsePortRef(e.to).nodeId !== id),
@@ -110,6 +115,30 @@ function setLayout(doc: GraphDocument, nodeId: string, layout: NodeLayout): Grap
   return { ...doc, layout: { ...doc.layout, [nodeId]: { ...doc.layout[nodeId], ...layout } } };
 }
 
+/** The graph-input name a parameter value refers to (`$name`, the whole value), or null. */
+export function referencedInput(value: string): string | null {
+  return /^\$[A-Za-z][A-Za-z0-9]*$/.test(value) ? value.slice(1) : null;
+}
+
+function declareInput(doc: GraphDocument, input: GraphInputDecl): GraphDocument {
+  if (!/^[A-Za-z][A-Za-z0-9]*$/.test(input.name))
+    throw new Error(`Invalid input name '${input.name}': a letter, then letters and digits`);
+  const others = (doc.structure.inputs ?? []).filter((i) => i.name !== input.name);
+  const inputs = [...others, input].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  return { ...doc, structure: { ...doc.structure, inputs } };
+}
+
+function removeInput(doc: GraphDocument, name: string): GraphDocument {
+  const inputs = doc.structure.inputs ?? [];
+  if (!inputs.some((i) => i.name === name)) throw new Error(`No graph input '${name}'`);
+  for (const [nodeId, params] of Object.entries(doc.values))
+    for (const [param, value] of Object.entries(params))
+      if (referencedInput(value) === name) throw new Error(`Input '${name}' is still used by ${nodeId}.${param}`);
+  const { inputs: _gone, ...rest } = doc.structure;
+  const remaining = inputs.filter((i) => i.name !== name);
+  return { ...doc, structure: remaining.length > 0 ? { ...rest, inputs: remaining } : rest };
+}
+
 export function reduce(state: State, action: Action): State {
   switch (action.type) {
     case "addNode":
@@ -124,6 +153,10 @@ export function reduce(state: State, action: Action): State {
       return edited(state, setParam(state.document, action.nodeId, action.name, action.value));
     case "setLayout":
       return edited(state, setLayout(state.document, action.nodeId, action.layout));
+    case "declareInput":
+      return edited(state, declareInput(state.document, action.input));
+    case "removeInput":
+      return edited(state, removeInput(state.document, action.name));
     case "select":
       return { ...state, selection: [...action.ids] };
     case "clearSelection":
@@ -155,6 +188,7 @@ export function reduce(state: State, action: Action): State {
           ...state.evalState,
           ...Object.fromEntries(action.update.nodes.map((n) => [n.nodeId, n])),
         },
+        ...(action.update.graphInputs ? { graphInputs: action.update.graphInputs } : {}),
       };
     case "setDocument":
       return {

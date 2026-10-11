@@ -1,5 +1,5 @@
 import type { EvalUpdate } from "@bimopenflow/contracts";
-import type { NodeLayout } from "./document.js";
+import type { GraphInputDecl, NodeLayout } from "./document.js";
 
 export type Action =
   | { type: "addNode"; id: string; kind: string; version: number }
@@ -8,6 +8,10 @@ export type Action =
   | { type: "disconnect"; from: string; to: string }
   | { type: "setParam"; nodeId: string; name: string; value: string }
   | { type: "setLayout"; nodeId: string; layout: NodeLayout }
+  /** Declares a graph input (TKT-204), replacing any of the same name. */
+  | { type: "declareInput"; input: GraphInputDecl }
+  /** Removes a declared input; throws while a parameter still refers to it. */
+  | { type: "removeInput"; name: string }
   | { type: "select"; ids: readonly string[] }
   | { type: "clearSelection" }
   | { type: "undo" }

@@ -7,13 +7,14 @@ export {
 export type {
   GraphDocument,
   GraphEdge,
+  GraphInputDecl,
   GraphNode,
   GraphStructure,
   NodeLayout,
   PortRef,
 } from "./document.js";
 export type { Action } from "./actions.js";
-export { initialState, reduce } from "./reducer.js";
+export { initialState, reduce, referencedInput } from "./reducer.js";
 export type { State } from "./reducer.js";
 export { createStore } from "./store.js";
 export type { Store } from "./store.js";

@@ -7,6 +7,7 @@ using BimOpenFlow.Nodes.Relations;
 using BimOpenFlow.Nodes.Spatial;
 using BimOpenFlow.Nodes.TableOps;
 using BimOpenFlow.Nodes.Tables;
+using BimOpenFlow.Nodes.Value;
 using BimOpenFlow.Nodes.Viz;
 
 namespace BimOpenFlow.NodeDocs;
@@ -47,6 +48,9 @@ public static class NodeDocsProgram
             "GIS-style predicates and measures (intersects, within, nearest, contains, footprints, polygons) over "
             + "point, box, and WKT polygon columns; every join emits a pairs table. BIM-free and DuckDB-free.",
             SpatialNodes.All),
+        new("Value — `BimOpenFlow.Nodes.Value`",
+            "Constant text, number, integer, boolean, and file-path nodes: a value set once and shared through the parameter sockets of other nodes.",
+            ValueNodes.All),
         new("Relations — `BimOpenFlow.Nodes.Relations`",
             "The rel.* pack: wires carry a logical plan plus its schema instead of rows. A chain compiles to one "
             + "SQL statement and runs only when inspected or materialized. Sources are named through the host's "

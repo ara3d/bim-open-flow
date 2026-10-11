@@ -3370,6 +3370,115 @@
       "description": "Applies trim/upper/lower/normalizeSpace to \u0027columns\u0027 (empty = every text column) in place."
     },
     {
+      "kind": "value.boolean",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "value",
+          "type": "Boolean",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "value",
+          "kind": "Boolean",
+          "default": "false"
+        }
+      ],
+      "description": "Holds one true or false for a value that several nodes share through their parameter sockets. Wire its output into a bindable parameter, or edit the flag here once."
+    },
+    {
+      "kind": "value.integer",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "value",
+          "type": "Integer",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "value",
+          "kind": "Integer",
+          "default": "0"
+        }
+      ],
+      "description": "Holds one Integer for a value that several nodes share through their parameter sockets. Wire its output into a bindable parameter, or edit the integer here once."
+    },
+    {
+      "kind": "value.number",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "value",
+          "type": "Number",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "value",
+          "kind": "Number",
+          "default": "0"
+        }
+      ],
+      "description": "Holds one Number for a value that several nodes share through their parameter sockets. Wire its output into a bindable parameter, or edit the number here once."
+    },
+    {
+      "kind": "value.path",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "path",
+          "type": "Text",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "path",
+          "kind": "FilePath",
+          "default": "",
+          "suggest": {
+            "kind": "FilesUnderRoots",
+            "source": ""
+          }
+        }
+      ],
+      "description": "Holds one file path for a value that several nodes share through their parameter sockets, such as a model file read by many nodes. Pick the file once and wire the output into each bindable path parameter."
+    },
+    {
+      "kind": "value.text",
+      "version": 1,
+      "capability": "Pure",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "value",
+          "type": "Text",
+          "optional": false
+        }
+      ],
+      "params": [
+        {
+          "name": "value",
+          "kind": "Text",
+          "default": ""
+        }
+      ],
+      "description": "Holds one Text value for a value that several nodes share through their parameter sockets. Wire its output into a bindable parameter, or edit the text here once."
+    },
+    {
       "kind": "view.colormap",
       "version": 1,
       "capability": "Pure",

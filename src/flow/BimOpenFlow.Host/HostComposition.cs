@@ -10,6 +10,7 @@ using BimOpenFlow.Nodes.Relations;
 using BimOpenFlow.Nodes.Spatial;
 using BimOpenFlow.Nodes.TableOps;
 using BimOpenFlow.Nodes.Tables;
+using BimOpenFlow.Nodes.Value;
 using BimOpenFlow.Nodes.Viz;
 using BimOpenFlow.Relations.DuckDb;
 
@@ -26,11 +27,11 @@ public sealed record HostApp(HostConfig Config, HostServices Services, WebApplic
 public static class HostComposition
 {
     /// <summary>The "tables" profile registry: the DuckDB, Tables, TableOps, Cleaning,
-    /// Dates, Viz, and Spatial packs, the table writers from the Effects pack, plus the
+    /// Dates, Viz, Spatial, and Value packs, the table writers from the Effects pack, plus the
     /// rel.* pack. Nothing here references BIM Open Schema.</summary>
     public static NodeRegistry TablePacks(RelationRuntime? relations = null)
         => NodeRegistry.Combine(DuckDbNodes.All, TableNodes.All,
-            TableOpsNodes.All, CleaningNodes.All, DatesNodes.All, VizNodes.All, SpatialNodes.All,
+            TableOpsNodes.All, CleaningNodes.All, DatesNodes.All, VizNodes.All, SpatialNodes.All, ValueNodes.All,
             EffectNodes.TableSinks, RelationNodes.All(relations ?? NoSources()));
 
     /// <summary>The generic "tables" profile: the table packs, seeded with samples/analyses and

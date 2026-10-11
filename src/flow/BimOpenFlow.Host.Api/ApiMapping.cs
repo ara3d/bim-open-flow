@@ -5,6 +5,7 @@ using Ara3D.DataTable;
 using Ara3D.NodeGraph;
 using BimOpenFlow.Contracts;
 using BimOpenFlow.Host.Catalog;
+using ColumnType = BimOpenFlow.Contracts.ColumnType;
 using ModelKind = BimOpenFlow.Contracts.ModelKind;
 using NodeCapability = BimOpenFlow.Contracts.NodeCapability;
 using NodeStatus = BimOpenFlow.Contracts.NodeStatus;
@@ -63,7 +64,20 @@ public static class ApiMapping
             spec.Inputs.Select(ToDescriptor).ToList(),
             spec.Outputs.Select(ToDescriptor).ToList(),
             spec.Params.Select(ToDescriptor).ToList(),
-            spec.Description);
+            spec.Description,
+            spec.Schemas.Count == 0 ? null : spec.Schemas.Select(ToDescriptor).ToList());
+
+    public static OutputSchema ToDescriptor(this SchemaSpec schema)
+        => schema switch
+        {
+            StaticSchemaSpec s => new(s.Output, SchemaMode.Static, s.Schema.Columns.Select(c => c.ToDescriptor(s.Kinds)).ToList()),
+            InferredSchemaSpec => new(schema.Output, SchemaMode.Inferred, null),
+            _ => new(schema.Output, SchemaMode.Dynamic, null),
+        };
+
+    public static SchemaColumn ToDescriptor(this Column column, IReadOnlyDictionary<string, string>? kinds)
+        => new(column.Name, column.Type.ByName<ColumnType>(), column.Nullable,
+            kinds is not null && kinds.TryGetValue(column.Name, out var kind) ? kind : null);
 
     public static PortDescriptor ToDescriptor(this PortSpec port)
         => new(port.Name, port.Type.ByName<PortType>(), port.Optional);

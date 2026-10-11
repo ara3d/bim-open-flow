@@ -5,7 +5,7 @@ namespace BimOpenFlow.Relations.DuckDb;
 /// <summary>Source schemas from DuckDB itself: a CSV header sniff, information_schema
 /// for a table, and DESCRIBE over empty typed views for raw SQL. Every call opens and
 /// closes its own session, which costs milliseconds; SchemaCache absorbs repeats.</summary>
-public sealed class DuckDbCatalog(IConnectionRegistry registry) : ICatalog
+public sealed class DuckDbCatalog(IConnectionRegistry registry) : ISchemaCatalog
 {
     public SchemaResult CsvSchema(string source, string path)
         => Describe([new SourceUse(source, SourceKind.Csv, path)],

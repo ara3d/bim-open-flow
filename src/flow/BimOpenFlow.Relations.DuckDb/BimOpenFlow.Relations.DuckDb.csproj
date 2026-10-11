@@ -12,4 +12,8 @@
     <ProjectReference Include="..\BimOpenFlow.Relations\BimOpenFlow.Relations.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Using Include="Ara3D.DataFlowEngine.Abstractions" />
+  </ItemGroup>
+
 </Project>

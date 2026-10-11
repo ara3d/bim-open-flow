@@ -22,7 +22,7 @@ public static class DuckDbExecutor
     }
 
     /// <summary>Compile, run, and check the rows against the inferred schema in one call.</summary>
-    public static IDataTable Execute(this Plan plan, ICatalog catalog, IConnectionRegistry registry,
+    public static IDataTable Execute(this Plan plan, ISchemaCatalog catalog, IConnectionRegistry registry,
         long? limit = null, long offset = 0, IInlineTables? inlines = null)
     {
         var schemas = new SchemaCache(catalog);

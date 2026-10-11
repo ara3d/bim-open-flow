@@ -10,13 +10,13 @@ namespace BimOpenFlow.Nodes.Relations;
 public sealed class RelationRuntime
 {
     public IConnectionRegistry Registry { get; }
-    public ICatalog Catalog { get; }
+    public ISchemaCatalog Catalog { get; }
     private readonly SchemaCache _schemas;
     private readonly ResultCache _results;
     private readonly InlineTableStore _inlines;
     private readonly object _gate = new();
 
-    public RelationRuntime(IConnectionRegistry registry, ICatalog? catalog = null, int resultCapacity = 64, int inlineCapacity = 16)
+    public RelationRuntime(IConnectionRegistry registry, ISchemaCatalog? catalog = null, int resultCapacity = 64, int inlineCapacity = 16)
     {
         Registry = registry;
         Catalog = catalog ?? new DuckDbCatalog(registry);

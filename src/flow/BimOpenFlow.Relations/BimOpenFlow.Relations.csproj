@@ -11,4 +11,9 @@
     <ProjectReference Include="$(DepsRoot)ara3d-dataflow\src\Ara3D.DataFlowEngine.Expressions\Ara3D.DataFlowEngine.Expressions.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Using Include="Ara3D.DataFlowEngine.Abstractions" />
+    <Using Include="Ara3D.DataFlowEngine.Abstractions.ISchemaCatalog" Alias="ICatalog" />
+  </ItemGroup>
+
 </Project>

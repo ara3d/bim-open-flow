@@ -10,7 +10,7 @@ public class InlineTableTests
 
     static InlineTable Inline(string name = "t", string hash = HashA) => new(name, hash, Rows);
 
-    static readonly ICatalog Catalog = new StaticCatalog(new Dictionary<string, Schema>
+    static readonly ISchemaCatalog Catalog = new StaticCatalog(new Dictionary<string, Schema>
     {
         [StaticCatalog.Key("files", "walls.csv")] = new([new("id", ColumnType.Integer), new("height", ColumnType.Number)]),
     });

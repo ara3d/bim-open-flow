@@ -10,6 +10,7 @@ import { canvasThemes, currentCanvasTheme } from "./canvasTheme.js";
 import { styleIsland } from "./slotShared.js";
 import { attachSuggestions } from "./suggestInput.js";
 import { themeVersion } from "gratify";
+import type { SourceMatch } from "./sources.js";
 
 /** The host calls the control needs; the app binds them to the api client. */
 export interface FileProvider {
@@ -22,6 +23,10 @@ export interface FilePathOptions {
   readonly document?: Document;
   /** Null when the host offers no file endpoints (a static site): no browse button, no existence badge. */
   readonly files?: () => FileProvider | null;
+  /** The source that already holds `value` for this row, if any (TKT-138): the row offers "use <source>". */
+  readonly match?: (node: string, param: string, value: string) => SourceMatch | null;
+  /** The user accepted the offer: link the row to `source`. The stored string stays. */
+  readonly use?: (node: string, param: string, source: SourceMatch) => void;
 }
 
 /** The folder a browse starts in: the file's own folder when the path sits under a model root, else the roots list. */
@@ -48,6 +53,7 @@ interface Entry {
   input: HTMLInputElement;
   badge: HTMLSpanElement;
   button: HTMLButtonElement;
+  useButton: HTMLButtonElement;
   value: string;
   ext: string;
   status: PathStatus | null;
@@ -56,6 +62,8 @@ interface Entry {
   closeBrowser: () => void;
   detach: () => void;
   render(): void;
+  /** Shows or hides "use <source>" for the text now in the box. */
+  renderMatch(): void;
   refresh(): Promise<void>;
 }
 
@@ -64,6 +72,8 @@ export class FilePathControls {
   private readonly readOnly: boolean;
   private readonly doc: Document;
   private readonly files: () => FileProvider | null;
+  private readonly match: NonNullable<FilePathOptions["match"]>;
+  private readonly use: NonNullable<FilePathOptions["use"]>;
 
   constructor(
     private fetchSuggestions: (node: string, param: string) => Promise<SuggestionList>,
@@ -73,6 +83,8 @@ export class FilePathControls {
     this.readOnly = options.readOnly ?? false;
     this.doc = options.document ?? document;
     this.files = options.files ?? (() => null);
+    this.match = options.match ?? (() => null);
+    this.use = options.use ?? (() => {});
   }
 
   /** The row's element, created on first use and updated to `value` on later calls. */
@@ -90,6 +102,7 @@ export class FilePathControls {
       entry.render();
       void entry.refresh();
     }
+    entry.renderMatch();
     if (entry.themeV !== themeVersion) {
       entry.themeV = themeVersion;
       styleIsland(entry.input, canvasThemes[currentCanvasTheme()].palette);
@@ -140,11 +153,17 @@ export class FilePathControls {
       "font:inherit;cursor:pointer;padding:0";
     button.disabled = this.readOnly;
     button.hidden = this.files() === null;
-    el.append(input, badge, button);
+    const useButton = doc.createElement("button");
+    useButton.type = "button";
+    useButton.hidden = true;
+    useButton.style.cssText = "flex-shrink:0;max-width:40%;height:100%;border:1px solid #aaa;border-radius:5px;" +
+      "font:inherit;cursor:pointer;padding:0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
+    useButton.disabled = this.readOnly;
+    el.append(input, badge, button, useButton);
 
     const entry: Entry = {
-      el, input, badge, button, value, ext, status: null, themeV: -1, ticket: 0,
-      closeBrowser: () => {}, detach: () => {}, render: () => {}, refresh: async () => {},
+      el, input, badge, button, useButton, value, ext, status: null, themeV: -1, ticket: 0,
+      closeBrowser: () => {}, detach: () => {}, render: () => {}, renderMatch: () => {}, refresh: async () => {},
     };
     entry.render = () => {
       const editing = doc.activeElement === input;
@@ -155,7 +174,18 @@ export class FilePathControls {
       badge.title = missing ? `File not found: ${entry.value}` : "";
       input.style.borderColor = missing ? WARN : "";
       button.hidden = this.files() === null;
+      entry.renderMatch();
     };
+    let offered: SourceMatch | null = null;
+    entry.renderMatch = () => {
+      offered = this.readOnly ? null : this.match(node, param, doc.activeElement === input ? input.value : entry.value);
+      useButton.hidden = offered === null;
+      useButton.textContent = offered ? `use ${offered.id}` : "";
+      useButton.title = offered ? `Link to ${offered.id}, which holds this path` : "";
+      useButton.setAttribute("aria-label", `${node} ${param} use source`);
+    };
+    useButton.addEventListener("click", () => { if (offered) this.use(node, param, offered); });
+    input.addEventListener("input", () => entry.renderMatch());
     entry.refresh = async () => {
       const ticket = ++entry.ticket;
       const files = this.files();

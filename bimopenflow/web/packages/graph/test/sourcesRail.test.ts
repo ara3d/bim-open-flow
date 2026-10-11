@@ -109,7 +109,7 @@ describe("the rail toggle", () => {
   const menu = (view: SourceView) => {
     const calls: SourceView[] = [];
     const items = (id: string) => sourceMenuItems({
-      view: () => view, setView: (v) => calls.push(v), isSource: (n) => n === "db", chipAt: () => null, unlink: () => {},
+      view: () => view, setView: (v) => calls.push(v), isSource: (n) => n === "db", chipAt: () => null, rowAt: () => null, promote: () => {}, unlink: () => {},
     }, id, 0, 0).filter((i) => !i.label.includes("chips"));
     return { calls, items };
   };

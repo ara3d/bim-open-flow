@@ -16,10 +16,8 @@ import type { FileProvider } from "./filePathControl.js";
 import { buildCanvasModel, NOTE_KIND, type CanvasModel, type NodeBounds } from "./viewModel.js";
 import { animateSelection } from "./selectionBorder.js";
 import { installNodeContextMenu } from "./nodeContextMenu.js";
-import { sourceMenuItems } from "./sourceMenu.js";
-import { chipAt } from "./chipGeometry.js";
-import { installChipHover } from "./chipHover.js";
-import { DEFAULT_SOURCE_VIEW, isSourceDescriptor, type SourceView } from "./sources.js";
+import { installSourceGestures } from "./sourceGestures.js";
+import { DEFAULT_SOURCE_VIEW, findSourceByPath, type SourceView } from "./sources.js";
 import { installCanvasFocus } from "./canvasFocus.js";
 import { createPeekWiring, type PeekWiring } from "./peekWiring.js";
 import { NO_PORT_RESULTS, type PortResultsView, type ReadPort } from "./portResults.js";
@@ -200,36 +198,35 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
     [...runtime.doc.nodes].reverse().find((n) =>
       p.x >= n.x && p.x <= n.x + n.w && p.y >= n.y && p.y <= n.y + n.h)?.id ?? null;
 
+  instance.sourceMatcher = (nodeId, param, value) => {
+    const { document: graph } = store.getState();
+    const kind = graph.structure.nodes.find((n) => n.id === nodeId)?.kind ?? "";
+    const type = getCatalog().get(kind)?.params.find((p) => p.name === param)?.bindable;
+    return type ? findSourceByPath(graph, getCatalog(), value, type) : null;
+  };
+  const sourceGestures = installSourceGestures(canvas, {
+    store, getCatalog, onError, readOnly,
+    getDoc: () => runtime.doc,
+    canvasToWorld,
+    clientToWorld: (x, y) => clientToWorld(x, y),
+    getView: () => sourceView,
+    setView: setSourceView,
+    onLit(sourceId) {
+      litSource = sourceId;
+      sync();
+    },
+  });
+
   // A viewer has no delete and no palette: the context menu is not installed at all.
   const disposeContextMenu = readOnly ? () => {} : installNodeContextMenu(canvas, {
     hitNode: (x, y) => nodeAtWorld(canvasToWorld(x, y)),
-    items: (nodeId, x, y) => sourceMenuItems({
-      view: () => sourceView,
-      setView: setSourceView,
-      chipAt: (wx, wy) => chipAt(runtime.doc, wx, wy),
-      unlink: (hit) => {
-        const edge = store.getState().document.structure.edges.find((e) => e.to === `${hit.nodeId}.${hit.param}`);
-        if (edge) store.dispatch({ type: "disconnect", from: edge.from, to: edge.to });
-      },
-      isSource: (id) => isSourceDescriptor(getCatalog().get(store.getState().document.structure.nodes.find((n) => n.id === id)?.kind ?? "")),
-    }, nodeId, canvasToWorld(x, y).x, canvasToWorld(x, y).y),
+    items: (nodeId, x, y, clientX, clientY) => sourceGestures.menuItems(nodeId, x, y, clientX, clientY),
     onDelete(nodeId) {
       try { store.dispatch({ type: "removeNode", id: nodeId }); }
       catch (error) { onError(error instanceof Error ? error.message : String(error)); }
     },
     onEmptyCanvas: (clientX, clientY, canvasX, canvasY) =>
       surfaces.onEmptyCanvas?.({ x: clientX, y: clientY }, canvasToWorld(canvasX, canvasY)),
-  });
-
-  const disposeChipHover = installChipHover(canvas, {
-    sourceAt(x, y) {
-      const world = canvasToWorld(x, y);
-      return chipAt(runtime.doc, world.x, world.y)?.sourceId ?? null;
-    },
-    onHover(sourceId) {
-      litSource = sourceId;
-      sync();
-    },
   });
 
   // Double-click shows a node in the pane without selecting it (TKT-81).
@@ -305,7 +302,7 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
       unsubscribe();
       wiring?.dispose();
       disposeContextMenu();
-      disposeChipHover();
+      sourceGestures.dispose();
       disposeFocus();
       canvas.removeEventListener("dblclick", onDoubleClick);
       pruneInstance(instance, new Set());

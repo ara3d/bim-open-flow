@@ -132,7 +132,7 @@ describe("the chip toggle", () => {
     const unlinked: unknown[] = [];
     const result = sourceMenuItems({
       view: () => ({ rail: true, chips }), setView: (v) => views.push(v), isSource: () => false,
-      chipAt: () => (onChip ? { nodeId: "q1", param: "path", sourceId: "db" } : null), unlink: (h) => unlinked.push(h),
+      rowAt: () => null, promote: () => {}, chipAt: () => (onChip ? { nodeId: "q1", param: "path", sourceId: "db" } : null), unlink: (h) => unlinked.push(h),
     }, "q1", 0, 0);
     return { result, views, unlinked };
   };

@@ -13,6 +13,8 @@ import type { CanvasIntent } from "./canvasIntents.js";
 import type { IslandEntry } from "./canvasControls.js";
 import { ColumnSelects } from "./columnSelect.js";
 import { FilePathControls, type FileProvider } from "./filePathControl.js";
+import { anchorId } from "./canvasIntents.js";
+import type { SourceMatch } from "./sources.js";
 import type { LongValueEditor } from "./longValueEditor.js";
 
 /** Live values for a suggest-annotated parameter (the host's suggestions endpoint). */
@@ -46,6 +48,8 @@ export interface CanvasInstance {
   /** One path box with browse button and not-found badge per FilePath row that suggests files. */
   readonly filePaths: FilePathControls;
   suggestionProvider: SuggestionProvider | null;
+  /** The source already holding a row's path, for the path box's "use <source>" offer (TKT-138). */
+  sourceMatcher: (nodeId: string, param: string, value: string) => SourceMatch | null;
 }
 
 export interface CanvasInstanceOptions {
@@ -82,9 +86,18 @@ export function createCanvasInstance(options: CanvasInstanceOptions): CanvasInst
         ? instance.suggestionProvider(nodeId, param)
         : Promise.reject(new Error("No suggestion provider")),
       (nodeId, name, value) => instance.dispatch({ kind: "setParam", nodeId, name, value }),
-      { readOnly: options.readOnly ?? false, document: options.document, files: () => options.fileProvider ?? null },
+      {
+        readOnly: options.readOnly ?? false, document: options.document, files: () => options.fileProvider ?? null,
+        match: (nodeId, param, value) => instance.sourceMatcher(nodeId, param, value),
+        use: (nodeId, param, source) => instance.dispatch({
+          kind: "connect",
+          a: anchorId("out", source.id, source.endpoint.slice(source.id.length + 1)),
+          b: anchorId("in", nodeId, param),
+        }),
+      },
     ),
     suggestionProvider: options.suggestionProvider ?? null,
+    sourceMatcher: () => null,
   };
   return instance;
 }

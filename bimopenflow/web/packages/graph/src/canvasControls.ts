@@ -34,7 +34,7 @@ import {
 } from "./canvasSlots.js";
 import { canvasThemes, currentCanvasTheme } from "./canvasTheme.js";
 import type { CanvasIntent } from "./canvasIntents.js";
-import { islandKey, styleIsland } from "./slotShared.js";
+import { islandKey, styleInputChip, styleIsland } from "./slotShared.js";
 import type { CanvasInstance } from "./instance.js";
 import {
   fileName,
@@ -265,6 +265,8 @@ interface IslandSlotProps {
   control?: ControlDescriptor;
   /** A comma-separated Text parameter (ParamDescriptor.list). */
   list?: boolean;
+  /** The value is `$name` of a graph input (TKT-204): a chip-styled box titled with the input's value. */
+  inputRef?: CanvasParam["inputRef"];
   instance: CanvasInstance;
   states?: Record<string, boolean>;
 }
@@ -306,7 +308,7 @@ function islandFor(props: IslandSlotProps): IslandEntry {
   const { instance } = props;
   const { islands } = instance;
   const key = islandKey(props.nodeId, props.name);
-  const descriptor = JSON.stringify([props.paramKind, props.control, props.suggest, props.list]);
+  const descriptor = JSON.stringify([props.paramKind, props.control, props.suggest, props.list, props.inputRef !== undefined]);
   let entry = islands.get(key);
   // Node IDs can be reused in another flow, and the catalog can gain controls
   // after refresh. Old DOM listeners must not retain the previous units/type.
@@ -384,7 +386,9 @@ function islandFor(props: IslandSlotProps): IslandEntry {
   if (entry.themeV !== themeVersion) {
     entry.themeV = themeVersion;
     styleIsland(entry.el, canvasThemes[currentCanvasTheme()].palette);
+    if (props.inputRef) styleInputChip(entry.el, canvasThemes[currentCanvasTheme()].palette);
   }
+  if (props.inputRef) entry.el.title = `Graph input ${props.inputRef.name}: ${props.inputRef.value}`;
   return entry;
 }
 
@@ -447,6 +451,12 @@ export function numberSlot(ctx: SlotContext, key?: string): Element {
 /** Caption + full-width island input (text, FilePath, DateTime, ModelRef, color). */
 export function fieldSlot(ctx: SlotContext, key?: string): Element {
   const { nodeId, param, w } = ctx;
+  // A graph-input reference is plain text whatever the parameter's kind: "$n" is not an Integer.
+  if (param.inputRef)
+    return IslandSlot(key ?? param.name, {
+      nodeId, name: param.name, paramKind: "Text", value: param.value, w, layout: "field", instance: ctx.instance,
+      inputRef: param.inputRef,
+    });
   return IslandSlot(key ?? param.name, {
     nodeId, name: param.name, paramKind: param.kind, value: param.value, w, layout: "field", instance: ctx.instance,
     ...(param.suggest ? { suggest: param.suggest } : {}),

@@ -34,6 +34,10 @@ export interface CanvasParam {
   /** Set while the wire comes from a source node and the canvas draws chips:
    *  the row shows the source's name as a chip (TKT-138). */
   readonly chip?: SourceChip;
+  /** Set while the stored value is `$name` of a declared graph input (TKT-204):
+   *  the row is a chip-styled text box showing the reference, titled with the
+   *  input's current value; typing a literal in its place inlines that one parameter. */
+  readonly inputRef?: { readonly name: string; readonly value: string };
 }
 
 /** Single compact row: label left, control right. */
@@ -90,9 +94,10 @@ export const LONG_TEXT_CHARS = 60;
  *  suggests files under the model roots), then the long-Text rule (Text, no suggest, no
  *  control), then KIND_CONTROL. Unknown kind -> "field". */
 export function slotControl(
-  param: Pick<CanvasParam, "kind" | "value" | "control" | "suggest" | "wired">,
+  param: Pick<CanvasParam, "kind" | "value" | "control" | "suggest" | "wired" | "inputRef">,
 ): SlotControl {
   if (param.wired !== undefined) return "wired";
+  if (param.inputRef) return "field";
   if (param.control?.kind && param.control.kind in DESCRIPTOR_CONTROL) {
     return DESCRIPTOR_CONTROL[param.control.kind as keyof typeof DESCRIPTOR_CONTROL];
   }
@@ -109,7 +114,7 @@ export function slotControl(
 
 /** Replaces slotHeight(kind). */
 export function slotHeight(
-  param: Pick<CanvasParam, "kind" | "value" | "control" | "suggest" | "wired">,
+  param: Pick<CanvasParam, "kind" | "value" | "control" | "suggest" | "wired" | "inputRef">,
 ): number {
   return CONTROL_HEIGHT[slotControl(param)];
 }
@@ -153,7 +158,8 @@ export function rangeBounds(value: unknown): [number, number] {
 
 /** The text a field row's native input shows for `param`, which the row
  *  should be wide enough to hold. */
-function fieldText(param: Pick<CanvasParam, "kind" | "value" | "control">): string {
+function fieldText(param: Pick<CanvasParam, "kind" | "value" | "control" | "inputRef">): string {
+  if (param.inputRef) return param.value;
   if (param.control?.kind === "color") return "";
   return param.kind === "FilePath" ? fileName(param.value) : param.value;
 }

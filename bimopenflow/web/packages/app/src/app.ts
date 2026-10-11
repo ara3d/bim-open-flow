@@ -225,6 +225,18 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     },
   });
   setNodeStyle(loadNodeStyleChoice());
+  /** A graph input's value edited on its card (TKT-204): the host keeps it and re-evaluates;
+   *  the answer lists every input, which the store takes as the host's current values. */
+  const setGraphInput = async (name: string, value: string): Promise<void> => {
+    const id = currentId;
+    if (!id) return fail("Open a flow first");
+    try {
+      const graphInputs = await api.putGraphInput(id, name, value);
+      if (id === currentId) dispatch({ type: "applyServerState", update: { analysisId: id, nodes: [], graphInputs } });
+    } catch (error) {
+      fail(error instanceof Error ? error.message : String(error));
+    }
+  };
   const canvasEditor = createGraphEditor(chrome.canvas, {
     store,
     catalog: () => catalog,
@@ -236,6 +248,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     readPort: boundCtx.requestTable, // TKT-11: peek cards and row counts
     suggestions: boundCtx.requestSuggestions,
     files: { browse: (dir, ext) => api.browseFolder(dir, ext), stat: (path) => api.statPath(path) },
+    onSetInput: (name, value) => void setGraphInput(name, value),
     surfaces: {
       onEmptyCanvas: (client, world) => palette.open(client, world),
       onWireDropped: (from, world, client) => {

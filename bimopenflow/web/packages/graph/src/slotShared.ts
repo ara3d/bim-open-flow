@@ -32,3 +32,14 @@ export function styleIsland(el: HTMLInputElement | HTMLTextAreaElement, palette:
   el.onfocus = () => (el.style.borderColor = css(palette.accent));
   el.onblur = () => (el.style.borderColor = css(palette.muted));
 }
+
+/** The look of a box holding a graph-input reference (TKT-204), over styleIsland's:
+ *  the accent colour and a round outline, like the chip of a parameter fed by a source. */
+export function styleInputChip(el: HTMLInputElement, palette: Omit<Tokens, "mix">): void {
+  const s = el.style;
+  s.borderRadius = "10px";
+  s.borderColor = css(palette.accent);
+  s.color = css(palette.accent);
+  el.onfocus = () => (el.style.borderColor = css(palette.text));
+  el.onblur = () => (el.style.borderColor = css(palette.accent));
+}

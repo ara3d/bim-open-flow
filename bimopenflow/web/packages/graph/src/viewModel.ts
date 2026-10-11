@@ -2,12 +2,13 @@
 // canvas draws. Gratify-free so it is testable headless.
 
 import type { NodeDescriptor, NodeStatus, PortType } from "@bimopenflow/contracts";
-import type { State } from "@bimopenflow/state";
+import type { NodeLayout, State } from "@bimopenflow/state";
 import { inlineParams, type CanvasParam } from "./canvasSlots.js";
 import { nodeSize, NOTE_KIND, type Size } from "./nodeSize.js";
 import { upstreamIds } from "./graphPreview";
 import { wiredPreviews } from "./wiredParams.js";
 import { nodeBadge, type NodeBadge } from "./nodeBadge.js";
+import { inputCardId, INPUT_KIND, inputParam, markInputRefs, type InputMark } from "./graphInputs.js";
 import { NO_SOURCE_VIEW, sourceChips, sourceNodeIds, sourceUsers, type SourceView } from "./sources.js";
 import { NO_PORT_RESULTS, type PortPeekView, type PortResultsView, type WireRows } from "./portResults.js";
 
@@ -43,6 +44,9 @@ export interface CanvasNode {
   readonly noteText?: string;
   /** Drawn in the sources rail (TKT-138): x and y are the rail's, not the saved layout's. */
   readonly inRail?: boolean;
+  /** Set on the card of a graph input (TKT-204), which is not a node of the document:
+   *  its one parameter is the input's current value, and editing it goes to the host. */
+  readonly input?: InputMark;
   /** The hovered chip's source, or a node that uses it: drawn highlighted. */
   readonly lit?: boolean;
 }
@@ -171,6 +175,16 @@ function railPositions(rail: readonly Size[], others: readonly NodeBounds[]): { 
   });
 }
 
+/** A node of the document or a graph input, before it is placed. */
+interface Card {
+  readonly desc: NodeDescriptor | undefined;
+  readonly content: Pick<CanvasNode, "id" | "kind" | "inputs" | "outputs" | "params" | "noteText">;
+  readonly layout: NodeLayout | undefined;
+  readonly size: Size;
+  readonly inRail: boolean;
+  readonly input?: InputMark;
+}
+
 /** Builds the drawable model; catalog gaps degrade to portless nodes. A node
  *  with no saved position goes to the first free spot (freePosition) among
  *  the nodes before it, at its real size, in document order. With
@@ -190,14 +204,21 @@ export function buildCanvasModel(
   const sources = sourceNodeIds(state.document, catalog);
   const chips = view.chips ? sourceChips(state.document, catalog, sources) : new Map();
   const lit = options.lit ? new Set([options.lit, ...sourceUsers(state.document, options.lit)]) : new Set<string>();
-  const cards = state.document.structure.nodes.map((n) => {
+  const cards: Card[] = state.document.structure.nodes.map((n) => {
     const desc = catalog.get(n.kind);
     const content = cardContent(n.id, n.kind, desc, state.document.values[n.id] ?? {}, wiredPreviews(state.document, catalog, n.id, desc));
     const nodeChips = chips.get(n.id);
-    const params = nodeChips ? content.params.map((p) => nodeChips[p.name] ? { ...p, chip: nodeChips[p.name] } : p) : content.params;
+    const chipped = nodeChips ? content.params.map((p) => nodeChips[p.name] ? { ...p, chip: nodeChips[p.name] } : p) : content.params;
+    const params = markInputRefs(state, chipped);
     const layout = state.document.layout[n.id];
-    return { desc, content: { ...content, params }, layout, size: nodeSize(content, layout ?? {}), inRail: view.rail && sources.has(n.id) };
+    const marked = { ...content, params };
+    return { desc, content: marked, layout, size: nodeSize(marked, layout ?? {}), inRail: view.rail && sources.has(n.id) };
   });
+  const inputCards = (state.document.structure.inputs ?? []).map((decl): Card => {
+    const content = { id: inputCardId(decl.name), kind: INPUT_KIND, inputs: [], outputs: [], params: [inputParam(state, catalog, decl)] };
+    return { desc: undefined, content, layout: undefined, size: nodeSize(content), inRail: true, input: { name: decl.name, kind: decl.kind } };
+  });
+  cards.unshift(...inputCards);
   const flowing = cards.filter((c) => !c.inRail);
   const placed: NodeBounds[] = flowing.flatMap((c) => (c.layout ? [{ x: c.layout.x, y: c.layout.y, ...c.size }] : []));
   const spots = new Map<string, { x: number; y: number }>();
@@ -208,7 +229,7 @@ export function buildCanvasModel(
   }
   const rail = cards.filter((c) => c.inRail);
   railPositions(rail.map((c) => c.size), placed).forEach((pos, i) => spots.set(rail[i]!.content.id, pos));
-  const nodes = cards.map(({ desc, content, size, inRail }): CanvasNode => {
+  const nodes = cards.map(({ desc, content, size, inRail, input }): CanvasNode => {
     const pos = spots.get(content.id)!;
     const common = {
       x: pos.x, y: pos.y, ...size, ...content,
@@ -216,6 +237,7 @@ export function buildCanvasModel(
       ...(inRail ? { inRail } : {}), ...(lit.has(content.id) ? { lit: true } : {}),
     };
     if (content.kind === NOTE_KIND) return common;
+    if (input) return { ...common, input, description: "Graph input", selected: false, contributing: false };
     return {
       ...common,
       status: state.evalState[content.id]?.status,

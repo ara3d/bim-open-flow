@@ -16,6 +16,7 @@ import type { FileProvider } from "./filePathControl.js";
 import { buildCanvasModel, NOTE_KIND, type CanvasModel, type NodeBounds } from "./viewModel.js";
 import { animateSelection } from "./selectionBorder.js";
 import { installNodeContextMenu } from "./nodeContextMenu.js";
+import { inputSuggest } from "./graphInputs.js";
 import { installSourceGestures } from "./sourceGestures.js";
 import { DEFAULT_SOURCE_VIEW, findSourceByPath, type SourceView } from "./sources.js";
 import { installCanvasFocus } from "./canvasFocus.js";
@@ -60,6 +61,9 @@ export interface GraphEditorOptions {
   readonly files?: FileProvider;
   /** Gestures the canvas hands to the host's chrome; see CanvasEditorSurfaces. */
   readonly surfaces?: CanvasEditorSurfaces;
+  /** A graph input's value was edited on its card in the sources rail (TKT-204). The host
+   *  stores it and re-evaluates; without it the card's box edits nothing. */
+  readonly onSetInput?: (name: string, value: string) => void;
 }
 
 export interface FitOptions {
@@ -142,9 +146,16 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
     document: canvas.ownerDocument,
     readOnly,
     hint: options.hint,
-    suggestionProvider: options.suggestions ?? null,
+    suggestionProvider: options.suggestions ? (nodeId, param) => suggestionsFor(nodeId, param) : null,
     fileProvider: options.files ?? null,
   });
+  /** Suggestions for a row; a graph input's card asks for those of a parameter that uses it. */
+  const suggestionsFor = (nodeId: string, param: string) => {
+    const mark = runtime.doc.nodes.find((n) => n.id === nodeId)?.input;
+    if (!mark) return options.suggestions!(nodeId, param);
+    const use = inputSuggest(store.getState(), getCatalog(), mark.name);
+    return use ? options.suggestions!(use.nodeId, use.param) : Promise.reject(new Error("No suggestions for this input"));
+  };
   let wiring: PeekWiring | null = null; // created once the runtime exists
   let sourceView: SourceView = DEFAULT_SOURCE_VIEW;
   let litSource: string | null = null; // the source whose chip the pointer rests on
@@ -165,6 +176,7 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
     init: model(),
     update: makeCanvasUpdate(store, onError, getPreview, {
       onWireDropped: (from, x, y) => surfaces.onWireDropped?.(from, { x, y }, toClient({ x, y })),
+      ...(options.onSetInput ? { onSetInput: options.onSetInput } : {}),
     }, readOnly),
     view: (doc) => canvasView(doc, instance),
     ambient: (_doc, time) => {
@@ -222,6 +234,7 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
     hitNode: (x, y) => nodeAtWorld(canvasToWorld(x, y)),
     items: (nodeId, x, y, clientX, clientY) => sourceGestures.menuItems(nodeId, x, y, clientX, clientY),
     onDelete(nodeId) {
+      if (runtime.doc.nodes.some((n) => n.id === nodeId && n.input)) return; // a graph input is not a node
       try { store.dispatch({ type: "removeNode", id: nodeId }); }
       catch (error) { onError(error instanceof Error ? error.message : String(error)); }
     },

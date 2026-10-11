@@ -76,6 +76,9 @@ export type CanvasIntent =
 export interface CanvasHooks {
   /** A wire dropped on empty canvas; `from` is the parsed source anchor. */
   onWireDropped?(from: AnchorRef, x: number, y: number): void;
+  /** The value of a graph input's card was edited (TKT-204). The input's value
+   *  lives in the host, not the document, so the editor's host sends it there. */
+  onSetInput?(name: string, value: string): void;
 }
 
 /** Intents that change the document or open an editor on it; a read-only
@@ -185,7 +188,12 @@ export function makeCanvasUpdate(
         hooks.onWireDropped?.(parseAnchorId(intent.from), intent.x, intent.y);
         return doc;
 
-      case "setParam":
+      case "setParam": {
+        const input = doc.nodes.find((n) => n.id === intent.nodeId)?.input;
+        if (input) {
+          hooks.onSetInput?.(input.name, intent.value);
+          return doc;
+        }
         dispatch({ type: "select", ids: [previewAfterEdit(store.getState().document,intent.nodeId,getPreview())] });
         dispatch({
           type: "setParam",
@@ -194,9 +202,11 @@ export function makeCanvasUpdate(
           value: intent.value,
         });
         return doc;
+      }
 
       case "selectNode":
-        dispatch({ type: "select", ids: [intent.id] });
+        // A graph input's card is not a node of the document: nothing to select.
+        if (!doc.nodes.some((n) => n.id === intent.id && n.input)) dispatch({ type: "select", ids: [intent.id] });
         return doc;
 
       case "selectEdge":

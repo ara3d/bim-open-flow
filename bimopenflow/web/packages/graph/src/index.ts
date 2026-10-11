@@ -36,3 +36,5 @@ export { firstFree, freshNodeId } from "./ids.js";
 export { dropSourcePlan, dropSourceType, promotePlan, relinkActions, relinkTargets } from "./sourcePlans.js";
 export type { RelinkTarget, SourcePlan } from "./sourcePlans.js";
 export { findSourceByPath } from "./sources.js";
+export { INPUT_KIND, inputCardId, inputUses, inputValue } from "./graphInputs.js";
+export type { InputMark } from "./graphInputs.js";

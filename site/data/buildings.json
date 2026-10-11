@@ -2783,7 +2783,7 @@
         },
         "entities": {
           "status": "Ok",
-          "rowCount": 2972,
+          "rowCount": 3640,
           "columns": [
             {
               "name": "EntityIndex",
@@ -2812,7 +2812,7 @@
           ],
           "rows": [
             [
-              447,
+              448,
               367,
               "3LJODRGPbDdfXHXShFL9C7",
               "Oberfl\u00E4che:2437498",
@@ -2820,7 +2820,7 @@
               "Oberfl\u00E4che:2437498"
             ],
             [
-              450,
+              451,
               680,
               "3DCde23Rb8uBrhrJgjcLQr",
               "Treppenhaus West - EG",
@@ -2828,7 +2828,7 @@
               "Treppenhaus West - EG 1-19:2716571"
             ],
             [
-              451,
+              452,
               829,
               "3DCde23Rb8uBrhrJgjcLQo",
               "Schacht West 1",
@@ -2836,7 +2836,7 @@
               "Schacht West 1 301:2716572"
             ],
             [
-              452,
+              453,
               951,
               "3DCde23Rb8uBrhrJgjcLQm",
               "Schacht West 2",
@@ -2844,7 +2844,7 @@
               "Schacht West 2 302:2716574"
             ],
             [
-              453,
+              454,
               1068,
               "3DCde23Rb8uBrhrJgjcLQn",
               "Fluchtflur West",
@@ -2852,7 +2852,7 @@
               "Fluchtflur West 1-20:2716575"
             ],
             [
-              455,
+              456,
               1297,
               "3DCde23Rb8uBrhrJgjcLQE",
               "Treppenhaus Ost - EG",
@@ -2860,7 +2860,7 @@
               "Treppenhaus Ost - EG 1-17:2716576"
             ],
             [
-              456,
+              457,
               1412,
               "3DCde23Rb8uBrhrJgjcLQF",
               "Schacht Ost 2",
@@ -2868,7 +2868,7 @@
               "Schacht Ost 2 402:2716577"
             ],
             [
-              457,
+              458,
               1531,
               "3DCde23Rb8uBrhrJgjcLQC",
               "Aufzug Ost",
@@ -2876,7 +2876,7 @@
               "Aufzug Ost 400:2716578"
             ],
             [
-              458,
+              459,
               1649,
               "3DCde23Rb8uBrhrJgjcLQD",
               "Schacht Ost 1",
@@ -2884,7 +2884,7 @@
               "Schacht Ost 1 401:2716579"
             ],
             [
-              459,
+              460,
               1766,
               "3DCde23Rb8uBrhrJgjcLQA",
               "Fluchtflur Ost",
@@ -2892,7 +2892,7 @@
               "Fluchtflur Ost 1-18:2716580"
             ],
             [
-              460,
+              461,
               1883,
               "3DCde23Rb8uBrhrJgjcLQB",
               "Gruppenb\u00FCro 1",
@@ -2900,7 +2900,7 @@
               "Gruppenb\u00FCro 1 1-4:2716581"
             ],
             [
-              461,
+              462,
               2000,
               "3DCde23Rb8uBrhrJgjcLQ8",
               "Gruppenb\u00FCro 2",
@@ -2908,7 +2908,7 @@
               "Gruppenb\u00FCro 2 1-5:2716582"
             ],
             [
-              462,
+              463,
               2117,
               "3DCde23Rb8uBrhrJgjcLQ9",
               "Gruppenb\u00FCro 3",
@@ -2916,7 +2916,7 @@
               "Gruppenb\u00FCro 3 1-6:2716583"
             ],
             [
-              463,
+              464,
               2234,
               "3DCde23Rb8uBrhrJgjcLQ6",
               "Open Workspace EG",
@@ -2924,7 +2924,7 @@
               "Open Workspace EG 1-7:2716584"
             ],
             [
-              464,
+              465,
               2351,
               "3DCde23Rb8uBrhrJgjcLQ7",
               "Gruppenb\u00FCro 4",
@@ -2932,7 +2932,7 @@
               "Gruppenb\u00FCro 4 1-8:2716585"
             ],
             [
-              465,
+              466,
               2468,
               "3DCde23Rb8uBrhrJgjcLQ4",
               "Gruppenb\u00FCro 6",
@@ -2940,7 +2940,7 @@
               "Gruppenb\u00FCro 6 1-10:2716586"
             ],
             [
-              466,
+              467,
               2585,
               "3DCde23Rb8uBrhrJgjcLQ5",
               "Gruppenb\u00FCro 5",
@@ -2948,7 +2948,7 @@
               "Gruppenb\u00FCro 5 1-9:2716587"
             ],
             [
-              467,
+              468,
               2705,
               "3DCde23Rb8uBrhrJgjcLQ2",
               "VR/AR LAB",
@@ -2956,7 +2956,7 @@
               "VR/AR LAB 1-11:2716588"
             ],
             [
-              468,
+              469,
               2822,
               "3DCde23Rb8uBrhrJgjcLQ3",
               "Veranstaltungsraum",
@@ -2964,7 +2964,7 @@
               "Veranstaltungsraum 1-12:2716589"
             ],
             [
-              469,
+              470,
               2940,
               "3DCde23Rb8uBrhrJgjcLQ0",
               "Cafeteria",
@@ -3004,7 +3004,7 @@
           ],
           "rows": [
             [
-              450,
+              451,
               680,
               "3DCde23Rb8uBrhrJgjcLQr",
               "Treppenhaus West - EG",
@@ -3012,7 +3012,7 @@
               "Treppenhaus West - EG 1-19:2716571"
             ],
             [
-              451,
+              452,
               829,
               "3DCde23Rb8uBrhrJgjcLQo",
               "Schacht West 1",
@@ -3020,7 +3020,7 @@
               "Schacht West 1 301:2716572"
             ],
             [
-              452,
+              453,
               951,
               "3DCde23Rb8uBrhrJgjcLQm",
               "Schacht West 2",
@@ -3028,7 +3028,7 @@
               "Schacht West 2 302:2716574"
             ],
             [
-              453,
+              454,
               1068,
               "3DCde23Rb8uBrhrJgjcLQn",
               "Fluchtflur West",
@@ -3036,7 +3036,7 @@
               "Fluchtflur West 1-20:2716575"
             ],
             [
-              455,
+              456,
               1297,
               "3DCde23Rb8uBrhrJgjcLQE",
               "Treppenhaus Ost - EG",
@@ -3044,7 +3044,7 @@
               "Treppenhaus Ost - EG 1-17:2716576"
             ],
             [
-              456,
+              457,
               1412,
               "3DCde23Rb8uBrhrJgjcLQF",
               "Schacht Ost 2",
@@ -3052,7 +3052,7 @@
               "Schacht Ost 2 402:2716577"
             ],
             [
-              457,
+              458,
               1531,
               "3DCde23Rb8uBrhrJgjcLQC",
               "Aufzug Ost",
@@ -3060,7 +3060,7 @@
               "Aufzug Ost 400:2716578"
             ],
             [
-              458,
+              459,
               1649,
               "3DCde23Rb8uBrhrJgjcLQD",
               "Schacht Ost 1",
@@ -3068,7 +3068,7 @@
               "Schacht Ost 1 401:2716579"
             ],
             [
-              459,
+              460,
               1766,
               "3DCde23Rb8uBrhrJgjcLQA",
               "Fluchtflur Ost",
@@ -3076,7 +3076,7 @@
               "Fluchtflur Ost 1-18:2716580"
             ],
             [
-              460,
+              461,
               1883,
               "3DCde23Rb8uBrhrJgjcLQB",
               "Gruppenb\u00FCro 1",
@@ -3084,7 +3084,7 @@
               "Gruppenb\u00FCro 1 1-4:2716581"
             ],
             [
-              461,
+              462,
               2000,
               "3DCde23Rb8uBrhrJgjcLQ8",
               "Gruppenb\u00FCro 2",
@@ -3092,7 +3092,7 @@
               "Gruppenb\u00FCro 2 1-5:2716582"
             ],
             [
-              462,
+              463,
               2117,
               "3DCde23Rb8uBrhrJgjcLQ9",
               "Gruppenb\u00FCro 3",
@@ -3100,7 +3100,7 @@
               "Gruppenb\u00FCro 3 1-6:2716583"
             ],
             [
-              463,
+              464,
               2234,
               "3DCde23Rb8uBrhrJgjcLQ6",
               "Open Workspace EG",
@@ -3108,7 +3108,7 @@
               "Open Workspace EG 1-7:2716584"
             ],
             [
-              464,
+              465,
               2351,
               "3DCde23Rb8uBrhrJgjcLQ7",
               "Gruppenb\u00FCro 4",
@@ -3116,7 +3116,7 @@
               "Gruppenb\u00FCro 4 1-8:2716585"
             ],
             [
-              465,
+              466,
               2468,
               "3DCde23Rb8uBrhrJgjcLQ4",
               "Gruppenb\u00FCro 6",
@@ -3124,7 +3124,7 @@
               "Gruppenb\u00FCro 6 1-10:2716586"
             ],
             [
-              466,
+              467,
               2585,
               "3DCde23Rb8uBrhrJgjcLQ5",
               "Gruppenb\u00FCro 5",
@@ -3132,7 +3132,7 @@
               "Gruppenb\u00FCro 5 1-9:2716587"
             ],
             [
-              467,
+              468,
               2705,
               "3DCde23Rb8uBrhrJgjcLQ2",
               "VR/AR LAB",
@@ -3140,7 +3140,7 @@
               "VR/AR LAB 1-11:2716588"
             ],
             [
-              468,
+              469,
               2822,
               "3DCde23Rb8uBrhrJgjcLQ3",
               "Veranstaltungsraum",
@@ -3148,7 +3148,7 @@
               "Veranstaltungsraum 1-12:2716589"
             ],
             [
-              469,
+              470,
               2940,
               "3DCde23Rb8uBrhrJgjcLQ0",
               "Cafeteria",
@@ -3156,7 +3156,7 @@
               "Cafeteria 1-2:2716590"
             ],
             [
-              470,
+              471,
               3059,
               "3DCde23Rb8uBrhrJgjcLQ1",
               "K\u00FCche",
@@ -3250,222 +3250,222 @@
           ],
           "rows": [
             [
-              450,
+              451,
               680,
               "3DCde23Rb8uBrhrJgjcLQr",
               "Treppenhaus West - EG",
               "IFCSPACE",
               "Treppenhaus West - EG 1-19:2716571",
-              441,
-              "E00_OKRD",
-              1
-            ],
-            [
-              451,
-              829,
-              "3DCde23Rb8uBrhrJgjcLQo",
-              "Schacht West 1",
-              "IFCSPACE",
-              "Schacht West 1 301:2716572",
-              441,
+              442,
               "E00_OKRD",
               1
             ],
             [
               452,
-              951,
-              "3DCde23Rb8uBrhrJgjcLQm",
-              "Schacht West 2",
+              829,
+              "3DCde23Rb8uBrhrJgjcLQo",
+              "Schacht West 1",
               "IFCSPACE",
-              "Schacht West 2 302:2716574",
-              441,
+              "Schacht West 1 301:2716572",
+              442,
               "E00_OKRD",
               1
             ],
             [
               453,
+              951,
+              "3DCde23Rb8uBrhrJgjcLQm",
+              "Schacht West 2",
+              "IFCSPACE",
+              "Schacht West 2 302:2716574",
+              442,
+              "E00_OKRD",
+              1
+            ],
+            [
+              454,
               1068,
               "3DCde23Rb8uBrhrJgjcLQn",
               "Fluchtflur West",
               "IFCSPACE",
               "Fluchtflur West 1-20:2716575",
-              441,
-              "E00_OKRD",
-              1
-            ],
-            [
-              455,
-              1297,
-              "3DCde23Rb8uBrhrJgjcLQE",
-              "Treppenhaus Ost - EG",
-              "IFCSPACE",
-              "Treppenhaus Ost - EG 1-17:2716576",
-              441,
+              442,
               "E00_OKRD",
               1
             ],
             [
               456,
-              1412,
-              "3DCde23Rb8uBrhrJgjcLQF",
-              "Schacht Ost 2",
+              1297,
+              "3DCde23Rb8uBrhrJgjcLQE",
+              "Treppenhaus Ost - EG",
               "IFCSPACE",
-              "Schacht Ost 2 402:2716577",
-              441,
+              "Treppenhaus Ost - EG 1-17:2716576",
+              442,
               "E00_OKRD",
               1
             ],
             [
               457,
-              1531,
-              "3DCde23Rb8uBrhrJgjcLQC",
-              "Aufzug Ost",
+              1412,
+              "3DCde23Rb8uBrhrJgjcLQF",
+              "Schacht Ost 2",
               "IFCSPACE",
-              "Aufzug Ost 400:2716578",
-              441,
+              "Schacht Ost 2 402:2716577",
+              442,
               "E00_OKRD",
               1
             ],
             [
               458,
-              1649,
-              "3DCde23Rb8uBrhrJgjcLQD",
-              "Schacht Ost 1",
+              1531,
+              "3DCde23Rb8uBrhrJgjcLQC",
+              "Aufzug Ost",
               "IFCSPACE",
-              "Schacht Ost 1 401:2716579",
-              441,
+              "Aufzug Ost 400:2716578",
+              442,
               "E00_OKRD",
               1
             ],
             [
               459,
-              1766,
-              "3DCde23Rb8uBrhrJgjcLQA",
-              "Fluchtflur Ost",
+              1649,
+              "3DCde23Rb8uBrhrJgjcLQD",
+              "Schacht Ost 1",
               "IFCSPACE",
-              "Fluchtflur Ost 1-18:2716580",
-              441,
+              "Schacht Ost 1 401:2716579",
+              442,
               "E00_OKRD",
               1
             ],
             [
               460,
-              1883,
-              "3DCde23Rb8uBrhrJgjcLQB",
-              "Gruppenb\u00FCro 1",
+              1766,
+              "3DCde23Rb8uBrhrJgjcLQA",
+              "Fluchtflur Ost",
               "IFCSPACE",
-              "Gruppenb\u00FCro 1 1-4:2716581",
-              441,
+              "Fluchtflur Ost 1-18:2716580",
+              442,
               "E00_OKRD",
               1
             ],
             [
               461,
-              2000,
-              "3DCde23Rb8uBrhrJgjcLQ8",
-              "Gruppenb\u00FCro 2",
+              1883,
+              "3DCde23Rb8uBrhrJgjcLQB",
+              "Gruppenb\u00FCro 1",
               "IFCSPACE",
-              "Gruppenb\u00FCro 2 1-5:2716582",
-              441,
+              "Gruppenb\u00FCro 1 1-4:2716581",
+              442,
               "E00_OKRD",
               1
             ],
             [
               462,
-              2117,
-              "3DCde23Rb8uBrhrJgjcLQ9",
-              "Gruppenb\u00FCro 3",
+              2000,
+              "3DCde23Rb8uBrhrJgjcLQ8",
+              "Gruppenb\u00FCro 2",
               "IFCSPACE",
-              "Gruppenb\u00FCro 3 1-6:2716583",
-              441,
+              "Gruppenb\u00FCro 2 1-5:2716582",
+              442,
               "E00_OKRD",
               1
             ],
             [
               463,
-              2234,
-              "3DCde23Rb8uBrhrJgjcLQ6",
-              "Open Workspace EG",
+              2117,
+              "3DCde23Rb8uBrhrJgjcLQ9",
+              "Gruppenb\u00FCro 3",
               "IFCSPACE",
-              "Open Workspace EG 1-7:2716584",
-              441,
+              "Gruppenb\u00FCro 3 1-6:2716583",
+              442,
               "E00_OKRD",
               1
             ],
             [
               464,
-              2351,
-              "3DCde23Rb8uBrhrJgjcLQ7",
-              "Gruppenb\u00FCro 4",
+              2234,
+              "3DCde23Rb8uBrhrJgjcLQ6",
+              "Open Workspace EG",
               "IFCSPACE",
-              "Gruppenb\u00FCro 4 1-8:2716585",
-              441,
+              "Open Workspace EG 1-7:2716584",
+              442,
               "E00_OKRD",
               1
             ],
             [
               465,
-              2468,
-              "3DCde23Rb8uBrhrJgjcLQ4",
-              "Gruppenb\u00FCro 6",
+              2351,
+              "3DCde23Rb8uBrhrJgjcLQ7",
+              "Gruppenb\u00FCro 4",
               "IFCSPACE",
-              "Gruppenb\u00FCro 6 1-10:2716586",
-              441,
+              "Gruppenb\u00FCro 4 1-8:2716585",
+              442,
               "E00_OKRD",
               1
             ],
             [
               466,
-              2585,
-              "3DCde23Rb8uBrhrJgjcLQ5",
-              "Gruppenb\u00FCro 5",
+              2468,
+              "3DCde23Rb8uBrhrJgjcLQ4",
+              "Gruppenb\u00FCro 6",
               "IFCSPACE",
-              "Gruppenb\u00FCro 5 1-9:2716587",
-              441,
+              "Gruppenb\u00FCro 6 1-10:2716586",
+              442,
               "E00_OKRD",
               1
             ],
             [
               467,
-              2705,
-              "3DCde23Rb8uBrhrJgjcLQ2",
-              "VR/AR LAB",
+              2585,
+              "3DCde23Rb8uBrhrJgjcLQ5",
+              "Gruppenb\u00FCro 5",
               "IFCSPACE",
-              "VR/AR LAB 1-11:2716588",
-              441,
+              "Gruppenb\u00FCro 5 1-9:2716587",
+              442,
               "E00_OKRD",
               1
             ],
             [
               468,
-              2822,
-              "3DCde23Rb8uBrhrJgjcLQ3",
-              "Veranstaltungsraum",
+              2705,
+              "3DCde23Rb8uBrhrJgjcLQ2",
+              "VR/AR LAB",
               "IFCSPACE",
-              "Veranstaltungsraum 1-12:2716589",
-              441,
+              "VR/AR LAB 1-11:2716588",
+              442,
               "E00_OKRD",
               1
             ],
             [
               469,
-              2940,
-              "3DCde23Rb8uBrhrJgjcLQ0",
-              "Cafeteria",
+              2822,
+              "3DCde23Rb8uBrhrJgjcLQ3",
+              "Veranstaltungsraum",
               "IFCSPACE",
-              "Cafeteria 1-2:2716590",
-              441,
+              "Veranstaltungsraum 1-12:2716589",
+              442,
               "E00_OKRD",
               1
             ],
             [
               470,
+              2940,
+              "3DCde23Rb8uBrhrJgjcLQ0",
+              "Cafeteria",
+              "IFCSPACE",
+              "Cafeteria 1-2:2716590",
+              442,
+              "E00_OKRD",
+              1
+            ],
+            [
+              471,
               3059,
               "3DCde23Rb8uBrhrJgjcLQ1",
               "K\u00FCche",
               "IFCSPACE",
               "K\u00FCche 1-3:2716591",
-              441,
+              442,
               "E00_OKRD",
               1
             ]
@@ -3536,122 +3536,122 @@
           ],
           "rows": [
             [
-              849,
-              440,
+              892,
+              441,
               "B01_OKRD",
               2
             ],
             [
-              1813,
-              441,
+              2137,
+              442,
               "E00_OKRD",
               2
             ],
             [
-              1004,
-              442,
+              1107,
+              443,
               "E01_OKRD",
               2
             ],
             [
-              694,
-              440,
+              695,
+              441,
               "B01_OKRD",
               2
             ],
             [
-              1820,
-              441,
+              2146,
+              442,
               "E00_OKRD",
               2
             ],
             [
-              941,
-              442,
+              1026,
+              443,
               "E01_OKRD",
               2
             ],
             [
-              853,
-              440,
+              898,
+              441,
               "B01_OKRD",
               2
             ],
             [
-              1828,
-              441,
+              2158,
+              442,
               "E00_OKRD",
               2
             ],
             [
-              1005,
-              442,
+              1108,
+              443,
               "E01_OKRD",
               2
             ],
             [
-              699,
-              440,
+              702,
+              441,
               "B01_OKRD",
               2
             ],
             [
-              1830,
-              441,
+              2162,
+              442,
               "E00_OKRD",
               2
             ],
             [
-              942,
-              442,
+              1027,
+              443,
               "E01_OKRD",
               2
             ],
             [
-              857,
-              440,
+              904,
+              441,
               "B01_OKRD",
               2
             ],
             [
-              1833,
-              441,
+              2165,
+              442,
               "E00_OKRD",
               2
             ],
             [
-              1006,
-              442,
+              1109,
+              443,
               "E01_OKRD",
               2
             ],
             [
-              703,
-              440,
+              708,
+              441,
               "B01_OKRD",
               2
             ],
             [
-              1836,
-              441,
+              2168,
+              442,
               "E00_OKRD",
               2
             ],
             [
-              943,
-              442,
+              1028,
+              443,
               "E01_OKRD",
               2
             ],
             [
-              2797,
-              440,
+              3465,
+              441,
               "B01_OKRD",
               2
             ],
             [
-              1837,
-              441,
+              2169,
+              442,
               "E00_OKRD",
               2
             ]

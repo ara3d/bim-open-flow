@@ -1,3 +1,4 @@
+using Ara3D.BimOpenSchema;
 using Ara3D.DataFlowEngine.Abstractions;
 using Ara3D.DataTable;
 
@@ -15,7 +16,7 @@ public sealed class CheckRollupNode : IFlowNode
         new[] { new PortSpec("in", PortType.Table) },
         new[] { new PortSpec("out", PortType.Table) },
         Array.Empty<ParamSpec>(),
-        "Groups a verdict table by checkId into counts and the worst verdict per check.");
+        "Groups a verdict table by CheckId into counts and the worst verdict per check.");
 
     private sealed class Group
     {
@@ -29,10 +30,10 @@ public sealed class CheckRollupNode : IFlowNode
     {
         var table = inputs.TableAt(0);
         table.RequireVerdictTable();
-        var verdictColumn = table.RequireColumn(VerdictSchema.VerdictColumn);
-        var idColumn = table.RequireColumn(VerdictSchema.CheckIdColumn);
-        var titleColumn = table.RequireColumn(VerdictSchema.CheckTitleColumn);
-        var citationColumn = table.RequireColumn(VerdictSchema.CitationColumn);
+        var verdictColumn = table.RequireColumn(IssueColumns.Verdict);
+        var idColumn = table.RequireColumn(IssueColumns.CheckId);
+        var titleColumn = table.RequireColumn(IssueColumns.CheckTitle);
+        var citationColumn = table.RequireColumn(IssueColumns.Citation);
 
         var order = new List<string>();
         var groups = new Dictionary<string, Group>();
@@ -71,9 +72,9 @@ public sealed class CheckRollupNode : IFlowNode
         }
         return new MemoryTable("rollup", new[]
         {
-            Text(VerdictSchema.CheckIdColumn, 0, (id, _) => id),
-            Text(VerdictSchema.CheckTitleColumn, 1, (_, g) => g.Title),
-            Text(VerdictSchema.CitationColumn, 2, (_, g) => g.Citation),
+            Text(IssueColumns.CheckId, 0, (id, _) => id),
+            Text(IssueColumns.CheckTitle, 1, (_, g) => g.Title),
+            Text(IssueColumns.Citation, 2, (_, g) => g.Citation),
             Count("passCount", 3, Verdict.Pass),
             Count("failCount", 4, Verdict.Fail),
             Count("needsReviewCount", 5, Verdict.NeedsReview),

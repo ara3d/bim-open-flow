@@ -1,27 +1,24 @@
+using Ara3D.BimOpenSchema;
 using Ara3D.DataTable;
 
 namespace BimOpenFlow.Nodes.Compliance;
 
 /// <summary>
 /// The verdict-table column convention. A verdict table is any IDataTable
-/// containing at least these four Text columns, matched by exact name.
+/// containing at least the four Text columns in <see cref="Columns"/>, matched by
+/// name ignoring case (older recorded tables use camelCase).
 /// See README.md for the full contract.
 /// </summary>
 public static class VerdictSchema
 {
-    public const string VerdictColumn = "verdict";
-    public const string CheckIdColumn = "checkId";
-    public const string CheckTitleColumn = "checkTitle";
-    public const string CitationColumn = "citation";
-
     public static readonly IReadOnlyList<string> Columns =
-        new[] { VerdictColumn, CheckIdColumn, CheckTitleColumn, CitationColumn };
+        new[] { IssueColumns.Verdict, IssueColumns.CheckId, IssueColumns.CheckTitle, IssueColumns.Citation };
 
-    /// <summary>Index of the first column with this exact name, or null.</summary>
+    /// <summary>Index of the first column with this name, ignoring case, or null.</summary>
     public static int? FindColumn(this IDataTable table, string name)
     {
         for (var i = 0; i < table.Columns.Count; i++)
-            if (table.Columns[i].Descriptor.Name == name)
+            if (string.Equals(table.Columns[i].Descriptor.Name, name, StringComparison.OrdinalIgnoreCase))
                 return i;
         return null;
     }

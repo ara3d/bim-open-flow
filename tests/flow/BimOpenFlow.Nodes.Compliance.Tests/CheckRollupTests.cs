@@ -21,17 +21,17 @@ public sealed class CheckRollupTests
         Assert.That(output.Rows.Count, Is.EqualTo(2));
         Assert.That(output.ColumnNames(), Is.EqualTo(new[]
         {
-            "checkId", "checkTitle", "citation",
+            "CheckId", "CheckTitle", "Citation",
             "passCount", "failCount", "needsReviewCount", "infoNotAvailableCount", "worst",
         }));
-        Assert.That(output.Cell("checkId", 0), Is.EqualTo("C1"));
-        Assert.That(output.Cell("checkTitle", 0), Is.EqualTo("First"));
-        Assert.That(output.Cell("citation", 0), Is.EqualTo("Cite 1"));
+        Assert.That(output.Cell("CheckId", 0), Is.EqualTo("C1"));
+        Assert.That(output.Cell("CheckTitle", 0), Is.EqualTo("First"));
+        Assert.That(output.Cell("Citation", 0), Is.EqualTo("Cite 1"));
         Assert.That(output.Cell("passCount", 0), Is.EqualTo(2L));
         Assert.That(output.Cell("failCount", 0), Is.EqualTo(1L));
         Assert.That(output.Cell("needsReviewCount", 0), Is.EqualTo(0L));
         Assert.That(output.Cell("infoNotAvailableCount", 0), Is.EqualTo(1L));
-        Assert.That(output.Cell("checkId", 1), Is.EqualTo("C2"));
+        Assert.That(output.Cell("CheckId", 1), Is.EqualTo("C2"));
         Assert.That(output.Cell("passCount", 1), Is.EqualTo(1L));
         Assert.That(output.Cell("needsReviewCount", 1), Is.EqualTo(1L));
     }
@@ -63,10 +63,10 @@ public sealed class CheckRollupTests
     public void UnknownVerdictTextThrows()
     {
         var table = Table("bad",
-            ("verdict", typeof(string), new object?[] { "Maybe" }),
-            ("checkId", typeof(string), new object?[] { "C1" }),
-            ("checkTitle", typeof(string), new object?[] { "T" }),
-            ("citation", typeof(string), new object?[] { "C" }));
+            ("Verdict", typeof(string), new object?[] { "Maybe" }),
+            ("CheckId", typeof(string), new object?[] { "C1" }),
+            ("CheckTitle", typeof(string), new object?[] { "T" }),
+            ("Citation", typeof(string), new object?[] { "C" }));
         Assert.Throws<ArgumentException>(() => Node.EvalTable(ParamValues.Empty, table));
     }
 }

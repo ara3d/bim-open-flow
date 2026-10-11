@@ -42,12 +42,12 @@ public sealed class CheckRuleTests
     {
         var output = Node.EvalTable(RuleParams("height >= 2.0"), Table("doors", Heights));
         Assert.That(output.ColumnNames(),
-            Is.EqualTo(new[] { "height", "verdict", "checkId", "checkTitle", "citation" }));
+            Is.EqualTo(new[] { "height", "Verdict", "CheckId", "CheckTitle", "Citation" }));
         Assert.That(output.Cell("height", 0), Is.EqualTo(2.5));
         Assert.That(output.Cell("height", 2), Is.Null);
-        Assert.That(output.Cell("checkId", 1), Is.EqualTo("NBC-9.5.3.1"));
-        Assert.That(output.Cell("checkTitle", 1), Is.EqualTo("Door clear width"));
-        Assert.That(output.Cell("citation", 1), Is.EqualTo("NBC 2020 9.5.3.1.(1)"));
+        Assert.That(output.Cell("CheckId", 1), Is.EqualTo("NBC-9.5.3.1"));
+        Assert.That(output.Cell("CheckTitle", 1), Is.EqualTo("Door clear width"));
+        Assert.That(output.Cell("Citation", 1), Is.EqualTo("NBC 2020 9.5.3.1.(1)"));
         Assert.That(output.Name, Is.EqualTo("NBC-9.5.3.1"));
     }
 
@@ -76,7 +76,7 @@ public sealed class CheckRuleTests
     {
         var table = Table("doors",
             ("height", typeof(double), new object?[] { 2.5 }),
-            ("verdict", typeof(string), new object?[] { "Pass" }));
+            ("Verdict", typeof(string), new object?[] { "Pass" }));
         Assert.Throws<ArgumentException>(() => Node.EvalTable(RuleParams("height >= 2.0"), table));
     }
 }

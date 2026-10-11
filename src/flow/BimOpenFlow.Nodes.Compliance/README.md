@@ -26,20 +26,20 @@ Rollup severity order: `Fail` > `NeedsReview` > `InfoNotAvailable` > `Pass`.
 ## The verdict-table convention (the contract)
 
 A **verdict table** is an `Ara3D.DataTable.IDataTable` that contains at least
-these four columns, matched by exact case-sensitive name (`VerdictSchema` holds
-the constants):
+these four columns, matched by name ignoring case (`VerdictSchema` holds the names,
+which come from `IssueColumns` in bim-open-data; recorded tables use camelCase):
 
 | Column | Type | Content |
 |---|---|---|
-| `verdict` | Text | Exactly one of `"Pass"`, `"Fail"`, `"NeedsReview"`, `"InfoNotAvailable"` |
-| `checkId` | Text | Stable identifier of the check (e.g. `NBC-9.5.3.1`) |
-| `checkTitle` | Text | Human-readable check title |
-| `citation` | Text | The code/spec provision the check enforces |
+| `Verdict` | Text | Exactly one of `"Pass"`, `"Fail"`, `"NeedsReview"`, `"InfoNotAvailable"` |
+| `CheckId` | Text | Stable identifier of the check (e.g. `NBC-9.5.3.1`) |
+| `CheckTitle` | Text | Human-readable check title |
+| `Citation` | Text | The code/spec provision the check enforces |
 
 Additional columns are allowed and expected: `check.rule` and `check.required`
 emit the input table's columns (order preserved) followed by the four
-convention columns, appended in exactly the order `verdict`, `checkId`,
-`checkTitle`, `citation`. Their output table's name is the `checkId`. All four
+convention columns, appended in exactly the order `Verdict`, `CheckId`,
+`CheckTitle`, `Citation`. Their output table's name is the check id. All four
 metadata cells are non-null on every row.
 
 The check nodes take **raw rows**, not verdict tables: if the input already
@@ -88,10 +88,10 @@ get `Pass`.
 
 ### `check.rollup` — in: verdict Table → out: summary Table
 
-No params. Groups by `checkId` (rows in first-appearance order; `checkTitle`
-and `citation` taken from the group's first row). Output columns, in order:
+No params. Groups by `CheckId` (rows in first-appearance order; `CheckTitle`
+and `Citation` taken from the group's first row). Output columns, in order:
 
-`checkId`, `checkTitle`, `citation` (Text), `passCount`, `failCount`,
+`CheckId`, `CheckTitle`, `Citation` (Text), `passCount`, `failCount`,
 `needsReviewCount`, `infoNotAvailableCount` (Integer), `worst` (Text) — the
 most severe verdict present, by the severity order above.
 

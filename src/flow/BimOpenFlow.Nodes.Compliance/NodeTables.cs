@@ -1,3 +1,4 @@
+using Ara3D.BimOpenSchema;
 using Ara3D.DataFlowEngine.Abstractions;
 using Ara3D.DataFlowEngine.Expressions;
 using Ara3D.DataTable;
@@ -73,10 +74,10 @@ internal static class NodeTables
         var columns = new List<MemoryColumn>(table.Columns.Count + 4);
         for (var i = 0; i < table.Columns.Count; i++)
             columns.Add(CopyColumn(table, i, columns.Count, count));
-        columns.Add(TextColumn(VerdictSchema.VerdictColumn, columns.Count, count, r => verdicts[r].ToText()));
-        columns.Add(TextColumn(VerdictSchema.CheckIdColumn, columns.Count, count, _ => checkId));
-        columns.Add(TextColumn(VerdictSchema.CheckTitleColumn, columns.Count, count, _ => title));
-        columns.Add(TextColumn(VerdictSchema.CitationColumn, columns.Count, count, _ => citation));
+        columns.Add(TextColumn(IssueColumns.Verdict, columns.Count, count, r => verdicts[r].ToText()));
+        columns.Add(TextColumn(IssueColumns.CheckId, columns.Count, count, _ => checkId));
+        columns.Add(TextColumn(IssueColumns.CheckTitle, columns.Count, count, _ => title));
+        columns.Add(TextColumn(IssueColumns.Citation, columns.Count, count, _ => citation));
         return new MemoryTable(checkId, columns);
     }
 

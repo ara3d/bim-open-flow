@@ -1,4 +1,5 @@
 using Ara3D.DataFlowEngine.Abstractions;
+using Ara3D.DataTable;
 using BimOpenFlow.Contracts;
 
 namespace BimOpenFlow.Reports.Tests;
@@ -99,5 +100,11 @@ public class ReportGeneratorTests
         var table = ((TableValue)TestRuns.WithoutVerdicts().RecordedOutputs["data.out"]).Table;
         Assert.That(VerdictTables.IsVerdictTable(table), Is.False);
         Assert.Throws<ArgumentException>(() => VerdictTables.Count(table));
+    }
+    [Test]
+    public void VerdictTables_CountsRecordedCamelCaseTable()
+    {
+        var table = ((TableValue)TestRuns.WithCamelCaseVerdicts().RecordedOutputs["checks.out"]).Table;
+        Assert.That(VerdictTables.Count(table).Fail, Is.EqualTo(1));
     }
 }

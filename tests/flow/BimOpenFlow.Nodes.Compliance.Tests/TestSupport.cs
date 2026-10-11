@@ -22,10 +22,10 @@ internal static class TestSupport
     /// <summary>A minimal verdict table: one metadata triple, one verdict text per row.</summary>
     public static IDataTable VerdictTable(string checkId, string title, string citation, params Verdict[] verdicts)
         => Table(checkId,
-            ("verdict", typeof(string), verdicts.Select(v => (object?)v.ToText()).ToArray()),
-            ("checkId", typeof(string), Repeat(checkId, verdicts.Length)),
-            ("checkTitle", typeof(string), Repeat(title, verdicts.Length)),
-            ("citation", typeof(string), Repeat(citation, verdicts.Length)));
+            ("Verdict", typeof(string), verdicts.Select(v => (object?)v.ToText()).ToArray()),
+            ("CheckId", typeof(string), Repeat(checkId, verdicts.Length)),
+            ("CheckTitle", typeof(string), Repeat(title, verdicts.Length)),
+            ("Citation", typeof(string), Repeat(citation, verdicts.Length)));
 
     public static object?[] Repeat(string value, int count)
         => Enumerable.Repeat((object?)value, count).ToArray();
@@ -42,7 +42,7 @@ internal static class TestSupport
 
     public static string[] VerdictTexts(this IDataTable table)
     {
-        var column = table.RequireColumn("verdict");
+        var column = table.RequireColumn("Verdict");
         return Enumerable.Range(0, table.Rows.Count).Select(r => (string)table[column, r]).ToArray();
     }
 

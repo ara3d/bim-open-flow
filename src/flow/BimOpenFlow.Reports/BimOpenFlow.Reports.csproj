@@ -8,6 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="..\BimOpenFlow.Publishing\BimOpenFlow.Publishing.csproj" />
     <ProjectReference Include="$(DepsRoot)ara3d-dataflow\src\Ara3D.DataFlowEngine.Runs\Ara3D.DataFlowEngine.Runs.csproj" />
+    <ProjectReference Include="$(DepsRoot)bim-open-data\src\data\Ara3D.BimOpenSchema.ObjectModel\Ara3D.BimOpenSchema.ObjectModel.csproj" />
   </ItemGroup>
 
 </Project>

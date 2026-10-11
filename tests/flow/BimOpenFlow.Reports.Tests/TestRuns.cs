@@ -26,10 +26,10 @@ public static class TestRuns
                   "kind": "Table",
                   "columns": [
                     { "name": "wall", "kind": "Text", "cells": ["w1", "w2", "w3", "w4"] },
-                    { "name": "verdict", "kind": "Text", "cells": ["Pass", "Fail", "NeedsReview", "Pass"] },
-                    { "name": "checkId", "kind": "Text", "cells": ["C-1", "C-1", "C-1", "C-1"] },
-                    { "name": "checkTitle", "kind": "Text", "cells": ["Width", "Width", "Width", "Width"] },
-                    { "name": "citation", "kind": "Text", "cells": ["NBC 9.5", "NBC 9.5", "NBC 9.5", "NBC 9.5"] }
+                    { "name": "Verdict", "kind": "Text", "cells": ["Pass", "Fail", "NeedsReview", "Pass"] },
+                    { "name": "CheckId", "kind": "Text", "cells": ["C-1", "C-1", "C-1", "C-1"] },
+                    { "name": "CheckTitle", "kind": "Text", "cells": ["Width", "Width", "Width", "Width"] },
+                    { "name": "Citation", "kind": "Text", "cells": ["NBC 9.5", "NBC 9.5", "NBC 9.5", "NBC 9.5"] }
                   ]
                 },
                 "data.out": {
@@ -99,7 +99,32 @@ public static class TestRuns
                 "checks.out": {
                   "kind": "Table",
                   "columns": [
-                    { "name": "verdict", "kind": "Text", "cells": ["Maybe"] },
+                    { "name": "Verdict", "kind": "Text", "cells": ["Maybe"] },
+                    { "name": "CheckId", "kind": "Text", "cells": ["C-1"] },
+                    { "name": "CheckTitle", "kind": "Text", "cells": ["Width"] },
+                    { "name": "Citation", "kind": "Text", "cells": ["NBC 9.5"] }
+                  ]
+                }
+              },
+              "effects": []
+            }
+            """);
+
+    /// <summary>A run recorded before the PascalCase convention: camelCase verdict columns.</summary>
+    public static RunRecord WithCamelCaseVerdicts()
+        => RunRecordJson.Parse($$"""
+            {
+              "runVersion": "0.1.0",
+              "graphHash": "{{GraphHash}}",
+              "engineVersion": "1.0.0",
+              "timestampUtc": "2026-08-31T00:00:00.000Z",
+              "inputs": [],
+              "nodeOutputs": { "checks.out": "{{OutputHash}}" },
+              "recordedOutputs": {
+                "checks.out": {
+                  "kind": "Table",
+                  "columns": [
+                    { "name": "verdict", "kind": "Text", "cells": ["Fail"] },
                     { "name": "checkId", "kind": "Text", "cells": ["C-1"] },
                     { "name": "checkTitle", "kind": "Text", "cells": ["Width"] },
                     { "name": "citation", "kind": "Text", "cells": ["NBC 9.5"] }

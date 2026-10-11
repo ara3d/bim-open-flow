@@ -19,8 +19,8 @@ public sealed class CheckUnionTests
         Assert.That(output.Rows.Count, Is.EqualTo(3));
         Assert.That(output.ColumnNames(), Is.EqualTo(a.ColumnNames()));
         Assert.That(output.VerdictTexts(), Is.EqualTo(new[] { "Pass", "Fail", "NeedsReview" }));
-        Assert.That(output.Cell("checkId", 0), Is.EqualTo("C1"));
-        Assert.That(output.Cell("checkId", 2), Is.EqualTo("C2"));
+        Assert.That(output.Cell("CheckId", 0), Is.EqualTo("C1"));
+        Assert.That(output.Cell("CheckId", 2), Is.EqualTo("C2"));
     }
 
     [Test]
@@ -39,10 +39,10 @@ public sealed class CheckUnionTests
         var a = VerdictTable("C1", "T1", "X", Verdict.Pass);
         var b = Table("other",
             ("height", typeof(double), new object?[] { 1.0 }),
-            ("verdict", typeof(string), new object?[] { "Pass" }),
-            ("checkId", typeof(string), new object?[] { "C2" }),
-            ("checkTitle", typeof(string), new object?[] { "T2" }),
-            ("citation", typeof(string), new object?[] { "X" }));
+            ("Verdict", typeof(string), new object?[] { "Pass" }),
+            ("CheckId", typeof(string), new object?[] { "C2" }),
+            ("CheckTitle", typeof(string), new object?[] { "T2" }),
+            ("Citation", typeof(string), new object?[] { "X" }));
         Assert.Throws<ArgumentException>(() => Node.EvalTable(ParamValues.Empty, a, b));
     }
 

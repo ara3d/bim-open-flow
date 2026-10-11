@@ -1,21 +1,22 @@
+using Ara3D.BimOpenSchema;
 using Ara3D.DataTable;
 using BimOpenFlow.Nodes.Support;
 
 namespace BimOpenFlow.GraphText;
 
-/// <summary>The verdict digest of a table with `checkId` and `verdict` columns (check.rule,
+/// <summary>The verdict digest of a table with `CheckId` and `Verdict` columns (check.rule,
 /// check.required, check.union): one line per check with its count per verdict.</summary>
 public static class VerdictText
 {
     public static bool IsVerdictTable(IDataTable table)
-        => TableText.HasColumns(table, "checkId", "verdict");
+        => TableText.HasColumns(table, IssueColumns.CheckId, IssueColumns.Verdict);
 
     public static IReadOnlyList<string> Lines(IDataTable table, DigestContext context)
     {
         if (!IsVerdictTable(table))
             return [];
-        var check = table.ColumnIndex("checkId");
-        var verdict = table.ColumnIndex("verdict");
+        var check = table.ColumnIndex(IssueColumns.CheckId);
+        var verdict = table.ColumnIndex(IssueColumns.Verdict);
         return Enumerable.Range(0, table.RowCount())
             .Select(row => (Check: TableColumns.CellText(table[check, row]) ?? "null", Verdict: TableColumns.CellText(table[verdict, row]) ?? "null"))
             .GroupBy(v => v.Check)

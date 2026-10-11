@@ -58,10 +58,10 @@ public sealed class CheckRequiredTests
     {
         var output = Node.EvalTable(RequiredParams("width"), Doors());
         Assert.That(output.ColumnNames(),
-            Is.EqualTo(new[] { "width", "storey", "verdict", "checkId", "checkTitle", "citation" }));
-        Assert.That(output.Cell("checkId", 0), Is.EqualTo("REQ-1"));
-        Assert.That(output.Cell("checkTitle", 0), Is.EqualTo("Required data"));
-        Assert.That(output.Cell("citation", 0), Is.EqualTo("Spec 1.2"));
+            Is.EqualTo(new[] { "width", "storey", "Verdict", "CheckId", "CheckTitle", "Citation" }));
+        Assert.That(output.Cell("CheckId", 0), Is.EqualTo("REQ-1"));
+        Assert.That(output.Cell("CheckTitle", 0), Is.EqualTo("Required data"));
+        Assert.That(output.Cell("Citation", 0), Is.EqualTo("Spec 1.2"));
     }
 
     [Test]

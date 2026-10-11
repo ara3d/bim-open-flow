@@ -56,8 +56,8 @@ public static class NodeNotes
             "Per row: `expr` true is Pass; false is Fail, unless `reviewExpr` is also true, "
             + "which makes it NeedsReview; a null result (missing data) is InfoNotAvailable. "
             + "An empty `reviewExpr` means false never escalates to NeedsReview. The output is "
-            + "the input columns plus the verdict columns (`verdict`, `checkId`, `checkTitle`, "
-            + "`citation`).",
+            + "the input columns plus the verdict columns (`Verdict`, `CheckId`, `CheckTitle`, "
+            + "`Citation`).",
 
         ["check.required"] =
             "If any listed column is missing from the table, the node warns and every row is "
@@ -65,7 +65,7 @@ public static class NodeNotes
             + "else Pass. Data absence is reported, never skipped.",
 
         ["check.rollup"] =
-            "Input must be a verdict table. Output has one row per checkId in first-appearance "
+            "Input must be a verdict table. Output has one row per CheckId in first-appearance "
             + "order, with per-verdict counts (`passCount`, `failCount`, `needsReviewCount`, "
             + "`infoNotAvailableCount`) and `worst`, the worst verdict present by severity "
             + "Fail > NeedsReview > InfoNotAvailable > Pass.",

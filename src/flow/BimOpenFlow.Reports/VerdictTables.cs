@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Ara3D.BimOpenSchema;
 using Ara3D.DataTable;
 using BimOpenFlow.Contracts;
 using BimOpenFlow.Publishing;
@@ -20,16 +21,12 @@ public sealed record VerdictCounts(int Pass, int Fail, int NeedsReview, int Info
 
 /// <summary>
 /// Detects tables following the Nodes.Compliance verdict-table convention:
-/// Text columns named exactly verdict, checkId, checkTitle, citation, with
+/// Text columns named Verdict, CheckId, CheckTitle, Citation (ignoring case, so recorded camelCase
+/// tables still count), with
 /// every verdict cell one of the four Verdict member names.
 /// </summary>
 public static class VerdictTables
 {
-    public const string VerdictColumn = "verdict";
-    public const string CheckIdColumn = "checkId";
-    public const string CheckTitleColumn = "checkTitle";
-    public const string CitationColumn = "citation";
-
     public static bool IsVerdictTable(IDataTable table)
         => TryCount(table, out _);
 
@@ -41,11 +38,11 @@ public static class VerdictTables
     public static bool TryCount(IDataTable table, out VerdictCounts? counts)
     {
         counts = null;
-        var verdicts = FindTextColumn(table, VerdictColumn);
+        var verdicts = FindTextColumn(table, IssueColumns.Verdict);
         if (verdicts is null
-            || FindTextColumn(table, CheckIdColumn) is null
-            || FindTextColumn(table, CheckTitleColumn) is null
-            || FindTextColumn(table, CitationColumn) is null)
+            || FindTextColumn(table, IssueColumns.CheckId) is null
+            || FindTextColumn(table, IssueColumns.CheckTitle) is null
+            || FindTextColumn(table, IssueColumns.Citation) is null)
             return false;
 
         int pass = 0, fail = 0, review = 0, info = 0;
@@ -65,7 +62,7 @@ public static class VerdictTables
     private static IDataColumn? FindTextColumn(IDataTable table, string name)
     {
         foreach (var c in table.Columns)
-            if (c.Descriptor.Name == name)
+            if (string.Equals(c.Descriptor.Name, name, System.StringComparison.OrdinalIgnoreCase))
                 return TableJson.TryToColumnType(c.Descriptor.Type, out var t) && t == ColumnType.Text
                     ? c
                     : null;

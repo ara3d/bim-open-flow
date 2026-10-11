@@ -139,6 +139,44 @@ public sealed class RunInputsTests
         }
     }
 
+    [Test]
+    public void WiredFilePath_IsPinnedByTheWiredValueNotTheStoredString()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "bof-runinputs-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var file = Path.Combine(root, "source.duckdb");
+            var stale = Path.Combine(root, "stale.duckdb");
+            File.WriteAllText(file, "content");
+            File.WriteAllText(stale, "old content");
+            var hash = ModelCatalog.HashFile(file);
+            var source = new DelegateNode(
+                new("test.dbSource", 1, Ara3D.DataFlowEngine.Abstractions.NodeCapability.Pure, [],
+                    [new("source", Ara3D.DataFlowEngine.Abstractions.PortType.Database)], [], "A database source."),
+                (_, _, _) => []);
+            var reader = new DelegateNode(
+                new("test.dbReader", 1, Ara3D.DataFlowEngine.Abstractions.NodeCapability.Pure, [], [],
+                    [new("path", Ara3D.DataFlowEngine.Abstractions.ParamKind.FilePath)], "A database reader."),
+                (_, _, _) => []);
+            var doc = new GraphDocument(
+                [new GraphNode("src", "test.dbSource", 1), new GraphNode("q", "test.dbReader", 1)],
+                [new GraphEdge("src.source", "q.path")],
+                new Dictionary<string, IReadOnlyDictionary<string, string>> { ["q"] = new Dictionary<string, string> { ["path"] = stale } },
+                new Dictionary<string, NodeLayout>());
+            var snapshot = SnapshotWithOutput(doc, new DatabaseValue(file, hash));
+
+            var inputs = RunInputs.Derive(snapshot, new NodeRegistry([source, reader]), Catalog(root), relations: null);
+
+            Assert.That(inputs, Is.EquivalentTo(new[] { new RunInput("src", "source", hash, file), new RunInput("q", "path", hash, file) }));
+            Assert.That(RunInputs.Derive(doc, new NodeRegistry([source, reader]), Catalog(root)), Is.Empty);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static EvalSnapshot SnapshotWithOutput(GraphDocument doc, FlowValue value)
         => new(doc,
             new Dictionary<string, NodeResult>

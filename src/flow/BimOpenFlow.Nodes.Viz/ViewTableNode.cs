@@ -18,7 +18,7 @@ public sealed class ViewTableNode : IFlowNode
         Params:
         [
             new ParamSpec("title", ParamKind.Text),
-            new ParamSpec("columns", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
+            new ParamSpec("columns", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table"), List: true),
         ],
         "Titles a table view; comma-separated 'columns' optionally projects "
         + "(default all, kept in the named order; unknown names warn).");

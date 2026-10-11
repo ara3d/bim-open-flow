@@ -19,7 +19,7 @@ public sealed class CheckRequiredNode : IFlowNode
             new ParamSpec("checkId", ParamKind.Text),
             new ParamSpec("title", ParamKind.Text),
             new ParamSpec("citation", ParamKind.Text),
-            new ParamSpec("columns", ParamKind.Text),
+            new ParamSpec("columns", ParamKind.Text, List: true),
         },
         "Required data check: missing column = InfoNotAvailable everywhere; null cell = Fail; else Pass.");
 

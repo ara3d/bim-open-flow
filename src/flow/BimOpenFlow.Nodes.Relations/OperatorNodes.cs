@@ -13,7 +13,7 @@ public abstract class UnaryRelationNode(RelationRuntime runtime, string kind, IR
         => [runtime.Relation(Apply(inputs.PlanInput(0, Spec.Kind), parameters), Spec.Kind)];
 
     protected static ParamSpec Columns(string name)
-        => new(name, ParamKind.Text, Suggest: SuggestSource.ColumnsOf("input"));
+        => new(name, ParamKind.Text, Suggest: SuggestSource.ColumnsOf("input"), List: true);
 }
 
 public sealed class RelSelectNode(RelationRuntime runtime) : UnaryRelationNode(runtime, Kind,
@@ -59,7 +59,7 @@ public sealed class RelLimitNode(RelationRuntime runtime) : UnaryRelationNode(ru
 }
 
 public sealed class RelAggregateNode(RelationRuntime runtime) : UnaryRelationNode(runtime, Kind,
-    [Columns("groupBy"), new ParamSpec("aggregates", ParamKind.Text)],
+    [Columns("groupBy"), new ParamSpec("aggregates", ParamKind.Text, List: true)],
     "Groups by the comma-separated columns (may be empty) and computes 'func(column) as name' aggregates (count/sum/min/max/avg).")
 {
     public const string Kind = "rel.aggregate";

@@ -113,7 +113,8 @@
           "suggest": {
             "kind": "ColumnsOfInput",
             "source": "table"
-          }
+          },
+          "list": true
         },
         {
           "name": "title",
@@ -168,7 +169,8 @@
           "suggest": {
             "kind": "ColumnsOfInput",
             "source": "table"
-          }
+          },
+          "list": true
         },
         {
           "name": "title",
@@ -783,12 +785,14 @@
           "suggest": {
             "kind": "ColumnsOfInput",
             "source": "input"
-          }
+          },
+          "list": true
         },
         {
           "name": "aggregates",
           "kind": "Text",
-          "default": ""
+          "default": "",
+          "list": true
         }
       ],
       "description": "Groups by the comma-separated columns (may be empty) and computes \u0027func(column) as name\u0027 aggregates (count/sum/min/max/avg)."
@@ -1048,7 +1052,8 @@
           "suggest": {
             "kind": "ColumnsOfInput",
             "source": "input"
-          }
+          },
+          "list": true
         }
       ],
       "description": "Keeps only the comma-separated columns, in that order."
@@ -1079,7 +1084,8 @@
           "suggest": {
             "kind": "ColumnsOfInput",
             "source": "input"
-          }
+          },
+          "list": true
         }
       ],
       "description": "Sorts by comma-separated terms such as \u0027height desc, name\u0027."
@@ -2279,7 +2285,8 @@
           "suggest": {
             "kind": "ColumnsOfInput",
             "source": "table"
-          }
+          },
+          "list": true
         },
         {
           "name": "keep",
@@ -2297,7 +2304,8 @@
           "suggest": {
             "kind": "ColumnsOfInput",
             "source": "table"
-          }
+          },
+          "list": true
         }
       ],
       "description": "Keeps the first/last row per \u0027keys\u0027 by \u0027orderBy\u0027 (empty = input row order); warns with the duplicate count."
@@ -2424,7 +2432,8 @@
           "suggest": {
             "kind": "ColumnsOfInput",
             "source": "table"
-          }
+          },
+          "list": true
         },
         {
           "name": "mode",
@@ -2464,7 +2473,8 @@
           "suggest": {
             "kind": "ColumnsOfInput",
             "source": "table"
-          }
+          },
+          "list": true
         },
         {
           "name": "strategy",
@@ -2488,7 +2498,8 @@
           "suggest": {
             "kind": "ColumnsOfInput",
             "source": "table"
-          }
+          },
+          "list": true
         }
       ],
       "description": "Fills nulls in \u0027columns\u0027 with a constant, or the nearest earlier/later non-null value in row order."
@@ -3353,7 +3364,8 @@
           "suggest": {
             "kind": "ColumnsOfInput",
             "source": "table"
-          }
+          },
+          "list": true
         },
         {
           "name": "op",
@@ -3580,7 +3592,8 @@
           "suggest": {
             "kind": "ColumnsOfInput",
             "source": "table"
-          }
+          },
+          "list": true
         }
       ],
       "description": "Titles a table view; comma-separated \u0027columns\u0027 optionally projects (default all, kept in the named order; unknown names warn)."

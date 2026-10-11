@@ -18,10 +18,10 @@ public sealed class TableFillNullsNode : IFlowNode
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("columns", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
+            new ParamSpec("columns", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table"), List: true),
             new ParamSpec("strategy", ParamKind.Enum, "constant", ["constant", "forward", "backward"]),
             new ParamSpec("value", ParamKind.Text),
-            new ParamSpec("partitionBy", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
+            new ParamSpec("partitionBy", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table"), List: true),
         ],
         "Fills nulls in 'columns' with a constant, or the nearest earlier/later non-null value in row order.");
 

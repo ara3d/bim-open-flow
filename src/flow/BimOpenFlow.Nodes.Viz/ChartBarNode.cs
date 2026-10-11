@@ -30,7 +30,7 @@ public sealed class ChartBarNode : IFlowNode
         Params:
         [
             new ParamSpec("labelColumn", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
-            new ParamSpec("valueColumns", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
+            new ParamSpec("valueColumns", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table"), List: true),
             new ParamSpec("title", ParamKind.Text),
             new ParamSpec("sort", ParamKind.Enum, "none", Sorts),
         ],

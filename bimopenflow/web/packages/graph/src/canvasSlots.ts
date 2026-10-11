@@ -8,7 +8,7 @@
 // kinds (INLINE set, slotHeight switch, placeSlots ternary, canvasControls
 // if/switch chain).
 
-import type { ControlDescriptor, ParamDescriptor, ParamKind, SuggestDescriptor } from "@bimopenflow/contracts";
+import type { ControlDescriptor, ParamDescriptor, ParamKind, PortType, SuggestDescriptor } from "@bimopenflow/contracts";
 import type { Measure } from "gratify";
 import type { CanvasInstance } from "./instance.js";
 import { displayScale, paramLabel } from "./numericParam.js";
@@ -22,6 +22,14 @@ export interface CanvasParam {
   readonly enumValues?: readonly string[];
   readonly suggest?: SuggestDescriptor;
   readonly control?: ControlDescriptor;
+  /** The socket type of a bindable parameter (ParamDescriptor.bindable): the
+   *  row draws an input socket on the card's left edge. */
+  readonly bindable?: PortType;
+  /** A comma-separated Text parameter (ParamDescriptor.list). */
+  readonly list?: boolean;
+  /** Set while an edge feeds the parameter: the read-only preview of the
+   *  wired value (wiredPreview), shown in place of the inline control. */
+  readonly wired?: string;
 }
 
 /** Single compact row: label left, control right. */
@@ -39,7 +47,7 @@ export const LONG_TEXT_SLOT_H = 22 + LONG_TEXT_LINES * LONG_TEXT_LINE_H + 8;
 
 /** The control a parameter row shows. TKT-23 adds members (swatch, typed slider, column picker). */
 export type SlotControl =
-  | "toggle" | "dropdown" | "number" | "slider" | "range" | "columnSelect" | "field" | "longText" | "filePath";
+  | "toggle" | "dropdown" | "number" | "slider" | "range" | "columnSelect" | "field" | "longText" | "filePath" | "wired";
 
 /** Default control per kind. The Record forces a row for every ParamKind. */
 export const KIND_CONTROL = {
@@ -64,6 +72,7 @@ export const CONTROL_HEIGHT: Readonly<Record<SlotControl, number>> = {
   columnSelect: COMPACT_SLOT_H,
   field: FIELD_SLOT_H,
   filePath: FIELD_SLOT_H,
+  wired: COMPACT_SLOT_H,
   longText: LONG_TEXT_SLOT_H,
   slider: WIDGET_SLOT_H,
   range: WIDGET_SLOT_H,
@@ -72,12 +81,14 @@ export const CONTROL_HEIGHT: Readonly<Record<SlotControl, number>> = {
 /** Plain Text longer than this, or with a line break, gets the long-text row. */
 export const LONG_TEXT_CHARS = 60;
 
-/** Descriptor control first (DESCRIPTOR_CONTROL), then the file picker (a FilePath that
+/** A wired parameter first (its control collapses to a preview), then
+ *  descriptor control (DESCRIPTOR_CONTROL), then the file picker (a FilePath that
  *  suggests files under the model roots), then the long-Text rule (Text, no suggest, no
  *  control), then KIND_CONTROL. Unknown kind -> "field". */
 export function slotControl(
-  param: Pick<CanvasParam, "kind" | "value" | "control" | "suggest">,
+  param: Pick<CanvasParam, "kind" | "value" | "control" | "suggest" | "wired">,
 ): SlotControl {
+  if (param.wired !== undefined) return "wired";
   if (param.control?.kind && param.control.kind in DESCRIPTOR_CONTROL) {
     return DESCRIPTOR_CONTROL[param.control.kind as keyof typeof DESCRIPTOR_CONTROL];
   }
@@ -94,7 +105,7 @@ export function slotControl(
 
 /** Replaces slotHeight(kind). */
 export function slotHeight(
-  param: Pick<CanvasParam, "kind" | "value" | "control" | "suggest">,
+  param: Pick<CanvasParam, "kind" | "value" | "control" | "suggest" | "wired">,
 ): number {
   return CONTROL_HEIGHT[slotControl(param)];
 }
@@ -115,6 +126,10 @@ export const ENUM_VALUE_INSET = 7;
 export const ENUM_CHEVRON_ROOM = 22;
 /** Horizontal padding plus border of a native input (slotShared.styleIsland). */
 export const FIELD_INPUT_PAD = 16;
+/** Most width a wired row's preview asks of the card: a longer preview is
+ *  fitted with an ellipsis, so wiring a parameter never widens its card
+ *  (and never pushes it into its neighbour in a saved layout). */
+export const WIRED_PREVIEW_ROOM = 120;
 /** Padding inside a long-text preview box, both sides together. */
 export const LONG_PREVIEW_PAD = 14;
 
@@ -162,6 +177,8 @@ export function slotWidth(param: CanvasParam, m: Measure): number {
     case "field":
     case "filePath":
       return Math.max(text(label), text(fieldText(param), SLOT_VALUE_SIZE) + FIELD_INPUT_PAD);
+    case "wired":
+      return text(label) + SLOT_LABEL_GAP + Math.min(text(param.wired ?? "", SLOT_VALUE_SIZE), WIRED_PREVIEW_ROOM);
     case "longText":
       return Math.max(text(label), text(param.value.replace(/\s+/g, " ").trim(), SLOT_VALUE_SIZE) + LONG_PREVIEW_PAD);
   }
@@ -207,6 +224,7 @@ export interface SlotPlacement {
 export function inlineParams(
   params: readonly ParamDescriptor[],
   values: Readonly<Record<string, string>>,
+  wired: Readonly<Record<string, string>> = {},
 ): CanvasParam[] {
   return params
     .filter((p) => p.control?.kind !== "hidden")
@@ -218,8 +236,15 @@ export function inlineParams(
       ...(p.enumValues ? { enumValues: p.enumValues } : {}),
       ...(p.suggest ? { suggest: p.suggest } : {}),
       ...(p.control ? { control: p.control } : {}),
+      ...(p.bindable ? { bindable: p.bindable } : {}),
+      ...(p.list ? { list: true } : {}),
+      ...(p.bindable && wired[p.name] !== undefined ? { wired: wired[p.name] } : {}),
     }));
 }
+
+/** Offset of a bindable parameter's socket below its row's top: level with
+ *  the caption of a field row and the middle of a compact one. */
+export const PARAM_SOCKET_DY = 16;
 
 /** Stacks the slots below `topOffset` (the bottom of the port rows). */
 export function placeSlots(

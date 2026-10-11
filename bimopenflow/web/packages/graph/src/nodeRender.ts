@@ -25,10 +25,10 @@
 import { calpha, cmix, fitText, rect, v, type Color, type Measure, type Painter, type Rect } from "gratify";
 import { nodeTitle } from "./graphPreview";
 import { nodeStyleNames, type NodeStyleName } from "./nodeStyle.js";
-import { portY } from "./portGeometry.js";
+import { paramSockets, portY } from "./portGeometry.js";
 import {
   BOLD_WIDEN, CARD_GAP as GAP, CARD_PAD as PAD, ID_SIZE, NODE_HEADER, PORT_LABEL_INSET, PORT_LABEL_SIZE as PORT_SIZE,
-  PORT_SPACING, STATUS_DOT_ROOM, TITLE_SIZE,
+  portRowsBottom, STATUS_DOT_ROOM, TITLE_SIZE,
 } from "./nodeSize.js";
 import type { CanvasNode } from "./viewModel.js";
 
@@ -76,7 +76,7 @@ const BADGE_SHARE = 0.45;
 
 /** Bottom of the port rows, relative to the card top. */
 export const portsBottom = (p: { inputs: readonly unknown[]; outputs: readonly unknown[] }): number =>
-  NODE_HEADER + Math.max(p.inputs.length, p.outputs.length, 1) * PORT_SPACING;
+  portRowsBottom(p.inputs.length, p.outputs.length);
 
 type Title = NodeCardLayout["title"];
 type Subtitle = NonNullable<NodeCardLayout["subtitle"]>;
@@ -359,6 +359,8 @@ export function renderNodeCard(
     painter.dot(v(r.right, y), SOCKET_RADIUS, colors.socket);
     painter.label(labels.outputs[i]!, v(r.right - PORT_LABEL_INSET, y), colors.dim, { align: "right", size: PORT_SIZE });
   });
+  // A bindable parameter's socket, on the left edge beside its row.
+  for (const socket of paramSockets(p)) painter.dot(v(r.x, r.y + socket.dy), SOCKET_RADIUS, colors.socket);
   // A quiet separator between the port rows and the inline param slots.
   if (p.params.length > 0) {
     const y = r.y + portsBottom(p) + 3;

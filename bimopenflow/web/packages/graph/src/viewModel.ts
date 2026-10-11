@@ -6,6 +6,7 @@ import type { State } from "@bimopenflow/state";
 import { inlineParams, type CanvasParam } from "./canvasSlots.js";
 import { nodeSize, NOTE_KIND, type Size } from "./nodeSize.js";
 import { upstreamIds } from "./graphPreview";
+import { wiredPreviews } from "./wiredParams.js";
 import { nodeBadge, type NodeBadge } from "./nodeBadge.js";
 import { NO_PORT_RESULTS, type PortPeekView, type PortResultsView, type WireRows } from "./portResults.js";
 
@@ -113,13 +114,15 @@ export function edgeId(from: string, to: string): string {
 }
 
 /** The fields of node `id` of `kind` that its card shows and is sized from:
- *  ports and inline params from `desc` with `values` applied, or a note's
+ *  ports and inline params from `desc` with `values` applied (and the
+ *  previews in `wired` for the parameters an edge feeds), or a note's
  *  text. An unknown kind (no `desc`) gets a portless card. */
 export function cardContent(
   id: string,
   kind: string,
   desc: NodeDescriptor | undefined,
   values: Readonly<Record<string, string>>,
+  wired: Readonly<Record<string, string>> = {},
 ): Pick<CanvasNode, "id" | "kind" | "inputs" | "outputs" | "params" | "noteText"> {
   if (kind === NOTE_KIND) {
     const noteText = values["text"] ?? desc?.params.find((p) => p.name === "text")?.default ?? "";
@@ -130,7 +133,7 @@ export function cardContent(
     kind,
     inputs: (desc?.inputs ?? []).map((p) => ({ name: p.name, type: p.type })),
     outputs: (desc?.outputs ?? []).map((p) => ({ name: p.name, type: p.type })),
-    params: inlineParams(desc?.params ?? [], values),
+    params: inlineParams(desc?.params ?? [], values, wired),
   };
 }
 
@@ -151,7 +154,7 @@ export function buildCanvasModel(
   const contributing = upstreamIds(state.document,preview);
   const cards = state.document.structure.nodes.map((n) => {
     const desc = catalog.get(n.kind);
-    const content = cardContent(n.id, n.kind, desc, state.document.values[n.id] ?? {});
+    const content = cardContent(n.id, n.kind, desc, state.document.values[n.id] ?? {}, wiredPreviews(state.document, catalog, n.id, desc));
     const layout = state.document.layout[n.id];
     return { desc, content, layout, size: nodeSize(content, layout ?? {}) };
   });

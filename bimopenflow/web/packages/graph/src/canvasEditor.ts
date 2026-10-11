@@ -222,7 +222,7 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
       const next = model();
       pruneInstance(
         instance,
-        new Set(next.nodes.flatMap((n) => n.params.map((p) => islandKey(n.id, p.name)))),
+        new Set(next.nodes.flatMap((n) => n.params.filter((p) => p.wired === undefined).map((p) => islandKey(n.id, p.name)))),
         new Set(next.nodes.filter((n) => n.kind === NOTE_KIND).map((n) => n.id)),
       );
       holdRequested = true;

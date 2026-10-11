@@ -6,6 +6,9 @@
 import { wireDist } from "gratify";
 import type { CanvasModel, CanvasNode } from "./viewModel.js";
 import { NODE_HEADER, PORT_SPACING } from "./viewModel.js";
+import type { PortType } from "@bimopenflow/contracts";
+import { PARAM_SOCKET_DY, placeSlots } from "./canvasSlots.js";
+import { portRowsBottom } from "./nodeSize.js";
 
 /** Radius within which a pointer grabs a socket to drag a wire or peek it:
  *  world units at zoom 1 and above, screen pixels below (grabRadius). Moved
@@ -29,6 +32,25 @@ export function portY(top: number, index: number): number {
   return top + NODE_HEADER + (index + 0.5) * PORT_SPACING;
 }
 
+/** The input socket of a bindable parameter: its name (the edge targets
+ *  `node.<name>`), its type, and its y offset below the card's top. */
+export interface ParamSocket {
+  readonly name: string;
+  readonly type: PortType;
+  readonly dy: number;
+}
+
+/** The sockets of `node`'s bindable parameters, one per row, on the left
+ *  edge beside the row. Only a parameter that declares `bindable` has one,
+ *  so a wire is never offered to any other parameter. */
+export function paramSockets(
+  node: Pick<CanvasNode, "inputs" | "outputs" | "params">,
+): ParamSocket[] {
+  const { slots } = placeSlots(node.params, portRowsBottom(node.inputs.length, node.outputs.length));
+  return slots.flatMap(({ param, y }) =>
+    param.bindable ? [{ name: param.name, type: param.bindable, dy: y + PARAM_SOCKET_DY }] : []);
+}
+
 /** World position of `node`'s socket for `port`, or undefined if the node
  *  has no such port on that side. */
 function socketPos(
@@ -38,7 +60,10 @@ function socketPos(
 ): { x: number; y: number } | undefined {
   const ports = dir === "in" ? node.inputs : node.outputs;
   const index = ports.findIndex((p) => p.name === port);
-  if (index < 0) return undefined;
+  if (index < 0) {
+    const param = dir === "in" ? paramSockets(node).find((s) => s.name === port) : undefined;
+    return param ? { x: node.x, y: node.y + param.dy } : undefined;
+  }
   return { x: dir === "in" ? node.x : node.x + node.w, y: portY(node.y, index) };
 }
 

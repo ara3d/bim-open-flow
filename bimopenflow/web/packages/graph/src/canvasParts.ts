@@ -42,7 +42,7 @@ import { animateSelection, selectionBorder } from "./selectionBorder";
 import { upstreamEdges } from "./upstreamEdges.js";
 const selectedBorder = selectionBorder(() => canvasColors().wireSelected, animateSelection);
 import { anchorId, canConnect, parseAnchorId, type CanvasIntent } from "./canvasIntents.js";
-import { grabRadius, portY, SOCKET_GRAB_RADIUS, WIRE_HIT_DISTANCE } from "./portGeometry.js";
+import { grabRadius, paramSockets, portY, SOCKET_GRAB_RADIUS, WIRE_HIT_DISTANCE } from "./portGeometry.js";
 import { peekAdorn, rowCountText } from "./peekCard.js";
 import { wrapParagraphs } from "./canvasLongSlot.js";
 import { createLongValueEditor, type LongValueEditor } from "./longValueEditor.js";
@@ -160,6 +160,11 @@ const portAnchors = (node: GNode<NodeProps>): PortAnchor[] => {
       id: anchorId("in", p.id, port.name),
       pos: v(r.x, portY(r.y, i)),
       meta: { dir: "in" as const, nodeId: p.id, type: port.type },
+    })),
+    ...paramSockets(p).map((socket) => ({
+      id: anchorId("in", p.id, socket.name),
+      pos: v(r.x, r.y + socket.dy),
+      meta: { dir: "in" as const, nodeId: p.id, type: socket.type },
     })),
     ...p.outputs.map((port, i) => ({
       id: anchorId("out", p.id, port.name),

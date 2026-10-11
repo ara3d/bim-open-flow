@@ -263,6 +263,8 @@ interface IslandSlotProps {
   layout: "compact" | "field";
   suggest?: SuggestDescriptor;
   control?: ControlDescriptor;
+  /** A comma-separated Text parameter (ParamDescriptor.list). */
+  list?: boolean;
   instance: CanvasInstance;
   states?: Record<string, boolean>;
 }
@@ -304,7 +306,7 @@ function islandFor(props: IslandSlotProps): IslandEntry {
   const { instance } = props;
   const { islands } = instance;
   const key = islandKey(props.nodeId, props.name);
-  const descriptor = JSON.stringify([props.paramKind, props.control, props.suggest]);
+  const descriptor = JSON.stringify([props.paramKind, props.control, props.suggest, props.list]);
   let entry = islands.get(key);
   // Node IDs can be reused in another flow, and the catalog can gain controls
   // after refresh. Old DOM listeners must not retain the previous units/type.
@@ -362,7 +364,7 @@ function islandFor(props: IslandSlotProps): IslandEntry {
           ? instance.suggestionProvider(props.nodeId, props.name)
           : Promise.reject(new Error("No suggestion provider")),
         props.suggest.kind === "ColumnsOfInput"
-          ? { picker: { multi: isMultiColumn(props.name, props.value) } } : {});
+          ? { picker: { multi: isMultiColumn(props.name, props.value, props.list) } } : {});
     el.addEventListener("keydown", (e) => {
       if (e.key === "Enter") el.blur();
       if (e.key === "Escape") {
@@ -438,6 +440,7 @@ export function numberSlot(ctx: SlotContext, key?: string): Element {
     nodeId, name: param.name, paramKind: param.kind, value: param.value, w, layout: "compact", instance: ctx.instance,
     ...(param.suggest ? { suggest: param.suggest } : {}),
     ...(param.control ? { control: param.control } : {}),
+    ...(param.list ? { list: true } : {}),
   });
 }
 
@@ -448,6 +451,7 @@ export function fieldSlot(ctx: SlotContext, key?: string): Element {
     nodeId, name: param.name, paramKind: param.kind, value: param.value, w, layout: "field", instance: ctx.instance,
     ...(param.suggest ? { suggest: param.suggest } : {}),
     ...(param.control ? { control: param.control } : {}),
+    ...(param.list ? { list: true } : {}),
   });
 }
 

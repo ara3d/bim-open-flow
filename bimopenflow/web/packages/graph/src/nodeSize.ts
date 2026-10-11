@@ -110,6 +110,10 @@ export function contentWidth(node: SizedNode, m: Measure = SIZE_MEASURE): number
   return Math.ceil(Math.max(header, ...ports, ...slots));
 }
 
+/** Bottom of the port rows, relative to the card top. */
+export const portRowsBottom = (inputCount: number, outputCount: number): number =>
+  NODE_HEADER + Math.max(inputCount, outputCount, 1) * PORT_SPACING;
+
 /** Node height grows with its densest port side, then with its param slots —
  *  each slot contributes the height its control kind needs. */
 export function nodeHeight(
@@ -117,8 +121,7 @@ export function nodeHeight(
   outputCount: number,
   params: readonly CanvasParam[] = [],
 ): number {
-  const portsBottom = NODE_HEADER + Math.max(inputCount, outputCount, 1) * PORT_SPACING;
-  return placeSlots(params, portsBottom).bottom;
+  return placeSlots(params, portRowsBottom(inputCount, outputCount)).bottom;
 }
 
 /** Height of a note `w` wide: its text wrapped exactly as canvasParts paints

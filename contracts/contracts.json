@@ -32,7 +32,9 @@
       "default": "string",
       "enumValues": "string[]?",
       "suggest": "SuggestDescriptor?",
-      "control": "ControlDescriptor?"
+      "control": "ControlDescriptor?",
+      "bindable": "PortType?",
+      "list": "bool?"
     },
     "ControlDescriptor": {
       "kind": "string",

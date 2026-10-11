@@ -105,7 +105,9 @@ public sealed record ParamDescriptor(
     string Default,
     IReadOnlyList<string>? EnumValues,
     SuggestDescriptor? Suggest,
-    ControlDescriptor? Control);
+    ControlDescriptor? Control,
+    PortType? Bindable,
+    bool? List);
 
 public sealed record ControlDescriptor(
     string Kind,

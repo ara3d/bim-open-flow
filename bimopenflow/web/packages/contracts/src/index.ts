@@ -85,6 +85,8 @@ export interface ParamDescriptor {
   enumValues?: string[] | undefined;
   suggest?: SuggestDescriptor | undefined;
   control?: ControlDescriptor | undefined;
+  bindable?: PortType | undefined;
+  list?: boolean | undefined;
 }
 
 export interface ControlDescriptor {

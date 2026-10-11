@@ -2,6 +2,7 @@
   "formatVersion": "0.1.0",
   "layout": {
     "chart": { "x": 1640, "y": 40 },
+    "db": { "x": 40, "y": 300 },
     "entities": { "x": 40, "y": 40 },
     "perStorey": { "x": 1000, "y": 40 },
     "placed": { "x": 680, "y": 40 },
@@ -11,6 +12,8 @@
   },
   "structure": {
     "edges": [
+      { "from": "db.source", "to": "entities.source" },
+      { "from": "db.source", "to": "storeys.source" },
       { "from": "entities.table", "to": "spaces.table" },
       { "from": "spaces.table", "to": "placed.a" },
       { "from": "storeys.table", "to": "placed.b" },
@@ -20,6 +23,7 @@
     ],
     "nodes": [
       { "id": "chart", "kind": "chart.bar", "version": 1 },
+      { "id": "db", "kind": "duck.source", "version": 1 },
       { "id": "entities", "kind": "duck.table", "version": 1 },
       { "id": "perStorey", "kind": "table.aggregate", "version": 1 },
       { "id": "placed", "kind": "table.join", "version": 1 },
@@ -30,11 +34,12 @@
   },
   "values": {
     "chart": { "labelColumn": "StoreyName", "title": "Spaces per storey", "valueColumns": "Spaces" },
-    "entities": { "path": "{PUBLIC}/schependomlaan.duckdb", "table": "EntityText" },
+    "db": { "path": "{PUBLIC}/schependomlaan.duckdb" },
+    "entities": { "table": "EntityText" },
     "perStorey": { "aggregates": "count(EntityIndex) as Spaces", "groupBy": "StoreyName" },
     "placed": { "aKey": "EntityIndex", "mode": "inner" },
     "sorted": { "A": "StoreyName" },
     "spaces": { "expr": "Category == 'IFCSPACE'" },
-    "storeys": { "path": "{PUBLIC}/schependomlaan.duckdb", "table": "StoreyOfElement" }
+    "storeys": { "table": "StoreyOfElement" }
   }
 }

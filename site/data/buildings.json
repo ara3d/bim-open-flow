@@ -878,6 +878,10 @@
             "x": 1640,
             "y": 40
           },
+          "db": {
+            "x": 40,
+            "y": 300
+          },
           "entities": {
             "x": 40,
             "y": 40
@@ -905,6 +909,14 @@
         },
         "structure": {
           "edges": [
+            {
+              "from": "db.source",
+              "to": "entities.source"
+            },
+            {
+              "from": "db.source",
+              "to": "storeys.source"
+            },
             {
               "from": "entities.table",
               "to": "spaces.table"
@@ -934,6 +946,11 @@
             {
               "id": "chart",
               "kind": "chart.bar",
+              "version": 1
+            },
+            {
+              "id": "db",
+              "kind": "duck.source",
               "version": 1
             },
             {
@@ -974,8 +991,10 @@
             "title": "Spaces per storey",
             "valueColumns": "Spaces"
           },
+          "db": {
+            "path": "{PUBLIC}/schependomlaan.duckdb"
+          },
           "entities": {
-            "path": "{PUBLIC}/schependomlaan.duckdb",
             "table": "EntityText"
           },
           "perStorey": {
@@ -993,7 +1012,6 @@
             "expr": "Category == \u0027IFCSPACE\u0027"
           },
           "storeys": {
-            "path": "{PUBLIC}/schependomlaan.duckdb",
             "table": "StoreyOfElement"
           }
         }
@@ -1030,6 +1048,9 @@
               19
             ]
           ]
+        },
+        "db": {
+          "status": "Ok"
         },
         "entities": {
           "status": "Ok",

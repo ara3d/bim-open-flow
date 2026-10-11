@@ -63,6 +63,17 @@ public sealed class DocumentToolTests : FlowToolFixture
     }
 
     [Test]
+    public void GetNodeCatalog_ReportsTheSuggestionKindOfAFileReader()
+    {
+        var xlsx = Json(FlowDocumentTools.GetNodeCatalog(Services)).EnumerateArray()
+            .Single(n => n.GetProperty("kind").GetString() == "xlsx.read");
+        var path = xlsx.GetProperty("params").EnumerateArray()
+            .Single(p => p.GetProperty("name").GetString() == "path");
+        Assert.That(path.GetProperty("suggest").GetProperty("kind").GetString(), Is.EqualTo("FilesUnderRoots"));
+        Assert.That(path.GetProperty("suggest").GetProperty("source").GetString(), Is.EqualTo(".xlsx"));
+    }
+
+    [Test]
     public async Task ToolRunner_ShapesFailuresAsErrorEnvelopes()
     {
         var body = await ToolRunner.RunAsync(

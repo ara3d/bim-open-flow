@@ -85,6 +85,9 @@ export const MUTATING_INTENTS: ReadonlySet<CanvasIntent["kind"]> = new Set<Canva
   "move", "moveEnd", "resize", "resizeEnd", "connect", "setParam", "deleteSelected", "openEditor", "wireDropped",
 ]);
 
+/** Intents that place or size one card, by node `id`. */
+const PLACEMENT_INTENTS: ReadonlySet<CanvasIntent["kind"]> = new Set<CanvasIntent["kind"]>(["move", "moveEnd", "resize", "resizeEnd"]);
+
 /**
  * The gratify update function for the canvas, bound to the store. Store
  * dispatches are wrapped: the reducer throws on invalid edits, and a rejected
@@ -109,6 +112,8 @@ export function makeCanvasUpdate(
 
   return (doc, intent) => {
     if (readOnly && MUTATING_INTENTS.has(intent.kind)) return doc;
+    // A card in the sources rail has no position of its own to move or size (TKT-138).
+    if (PLACEMENT_INTENTS.has(intent.kind) && doc.nodes.some((n) => n.id === (intent as { id: string }).id && n.inRail)) return doc;
     switch (intent.kind) {
       case "sync": {
         // The selected wire is transient canvas state, so a rebuilt model

@@ -1,7 +1,15 @@
+/** One extra command in the node menu, below Delete. */
+export interface MenuItem {
+  readonly label: string;
+  run(): void;
+}
+
 export interface NodeContextMenuDependencies {
   /** Coordinates are CSS pixels relative to the canvas. */
   hitNode(x: number, y: number): string | null;
   onDelete(nodeId: string): void;
+  /** More commands for the node under the pointer, from its canvas position (TKT-138: source toggles, Share as source). */
+  items?(nodeId: string, canvasX: number, canvasY: number, clientX: number, clientY: number): readonly MenuItem[];
   /** A right-click that hit no node, in window (client) and canvas CSS pixels;
    *  the canvas palette (TKT-96) opens there. */
   onEmptyCanvas?(clientX: number, clientY: number, canvasX: number, canvasY: number): void;
@@ -38,16 +46,21 @@ export function installNodeContextMenu(canvas: HTMLCanvasElement, deps: NodeCont
     menu.setAttribute("role", "menu");
     menu.setAttribute("aria-label", "Node actions");
     menu.style.cssText = "position:fixed;z-index:10000;min-width:140px;max-width:calc(100vw - 16px);padding:5px;background:#fff;color:#182431;border:1px solid #c8d2dc;border-radius:8px;box-shadow:0 5px 20px #13253626;box-sizing:border-box;";
-    const button = document.createElement("button");
-    button.type = "button";
-    button.setAttribute("role", "menuitem");
-    button.textContent = "Delete node";
-    button.style.cssText = "display:block;width:100%;padding:8px 12px;border:0;border-radius:4px;background:#f4f6f8;color:#a52222;font:500 14px/1.4 system-ui,sans-serif;text-align:left;cursor:pointer;";
-    button.addEventListener("click", () => {
-      dismiss(true);
-      deps.onDelete(nodeId);
-    });
-    menu.append(button);
+    const addItem = (label: string, danger: boolean, run: () => void): HTMLButtonElement => {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.setAttribute("role", "menuitem");
+      item.textContent = label;
+      item.style.cssText = `display:block;width:100%;padding:8px 12px;border:0;border-radius:4px;background:#f4f6f8;color:${danger ? "#a52222" : "#182431"};font:500 14px/1.4 system-ui,sans-serif;text-align:left;cursor:pointer;`;
+      item.addEventListener("click", () => {
+        dismiss(true);
+        run();
+      });
+      menu!.append(item);
+      return item;
+    };
+    const button = addItem("Delete node", true, () => deps.onDelete(nodeId));
+    for (const item of deps.items?.(nodeId, canvasX, canvasY, event.clientX, event.clientY) ?? []) addItem(item.label, false, () => item.run());
     document.body.append(menu);
     const bounds = menu.getBoundingClientRect();
     menu.style.left = `${Math.max(8, Math.min(event.clientX, window.innerWidth - bounds.width - 8))}px`;

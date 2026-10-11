@@ -16,6 +16,8 @@ import type { FileProvider } from "./filePathControl.js";
 import { buildCanvasModel, NOTE_KIND, type CanvasModel, type NodeBounds } from "./viewModel.js";
 import { animateSelection } from "./selectionBorder.js";
 import { installNodeContextMenu } from "./nodeContextMenu.js";
+import { sourceMenuItems } from "./sourceMenu.js";
+import { DEFAULT_SOURCE_VIEW, isSourceDescriptor, type SourceView } from "./sources.js";
 import { installCanvasFocus } from "./canvasFocus.js";
 import { createPeekWiring, type PeekWiring } from "./peekWiring.js";
 import { NO_PORT_RESULTS, type PortResultsView, type ReadPort } from "./portResults.js";
@@ -120,6 +122,9 @@ export interface GraphEditor {
   focus(nodeId?: string): void;
   /** Re-reads the column options of every column selector (after an evaluation update). */
   refreshSuggestions(): void;
+  /** How source nodes are drawn: in a rail, wires as chips (TKT-138). Both on by default. */
+  sourceView(): SourceView;
+  setSourceView(view: SourceView): void;
   /** Switches the canvas theme (see canvasTheme.ts for the names). Page-wide. */
   setTheme(theme: CanvasThemeName): void;
   dispose(): void;
@@ -141,8 +146,9 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
     fileProvider: options.files ?? null,
   });
   let wiring: PeekWiring | null = null; // created once the runtime exists
+  let sourceView: SourceView = DEFAULT_SOURCE_VIEW;
   const model = (): CanvasModel =>
-    buildCanvasModel(store.getState(), getCatalog(), getPreview(), wiring?.view());
+    buildCanvasModel(store.getState(), getCatalog(), getPreview(), wiring?.view(), { sources: sourceView });
   // The runtime's rest detector can doze off mid entrance-animation right
   // after a doc swap (boot, flow open), freezing the canvas on ghost-faint
   // nodes until the next interaction. `ambient` holds the loop awake briefly
@@ -194,6 +200,11 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
   // A viewer has no delete and no palette: the context menu is not installed at all.
   const disposeContextMenu = readOnly ? () => {} : installNodeContextMenu(canvas, {
     hitNode: (x, y) => nodeAtWorld(canvasToWorld(x, y)),
+    items: (nodeId) => sourceMenuItems({
+      view: () => sourceView,
+      setView: setSourceView,
+      isSource: (id) => isSourceDescriptor(getCatalog().get(store.getState().document.structure.nodes.find((n) => n.id === id)?.kind ?? "")),
+    }, nodeId),
     onDelete(nodeId) {
       try { store.dispatch({ type: "removeNode", id: nodeId }); }
       catch (error) { onError(error instanceof Error ? error.message : String(error)); }
@@ -214,6 +225,10 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
   // value, so the sync is deferred one microtask.
   // TODO: diff instead of full rebuild if large graphs make this hot.
   let queued = false;
+  function setSourceView(view: SourceView): void {
+    sourceView = view;
+    sync();
+  }
   const sync = () => {
     if (queued) return;
     queued = true;
@@ -242,6 +257,8 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
 
   return {
     refresh: sync,
+    sourceView: () => sourceView,
+    setSourceView,
     results: () => wiring?.view() ?? NO_PORT_RESULTS,
     focus(nodeId) {
       const node = model().nodes.find(n => n.id === nodeId) ?? model().nodes[0];

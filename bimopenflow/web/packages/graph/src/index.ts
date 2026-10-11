@@ -30,3 +30,5 @@ export { applyCanvasTheme, canvasThemeNames, currentCanvasTheme, defaultCanvasTh
 export type { CanvasThemeName } from "./canvasTheme.js";
 export type { PortResultsView, ReadPort, WireRows } from "./portResults.js";
 export { NO_PORT_RESULTS } from "./portResults.js";
+export { DEFAULT_SOURCE_VIEW, isSourceDescriptor, NO_SOURCE_VIEW } from "./sources.js";
+export type { SourceChip, SourceView } from "./sources.js";

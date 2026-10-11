@@ -8,6 +8,7 @@ import { nodeSize, NOTE_KIND, type Size } from "./nodeSize.js";
 import { upstreamIds } from "./graphPreview";
 import { wiredPreviews } from "./wiredParams.js";
 import { nodeBadge, type NodeBadge } from "./nodeBadge.js";
+import { NO_SOURCE_VIEW, sourceChips, sourceNodeIds, sourceUsers, type SourceView } from "./sources.js";
 import { NO_PORT_RESULTS, type PortPeekView, type PortResultsView, type WireRows } from "./portResults.js";
 
 export interface CanvasPort {
@@ -40,6 +41,10 @@ export interface CanvasNode {
    *  a sticky note instead of the normal ports/params card, so its text does
    *  not also travel through CanvasParam. */
   readonly noteText?: string;
+  /** Drawn in the sources rail (TKT-138): x and y are the rail's, not the saved layout's. */
+  readonly inRail?: boolean;
+  /** The hovered chip's source, or a node that uses it: drawn highlighted. */
+  readonly lit?: boolean;
 }
 
 export interface CanvasEdge {
@@ -141,28 +146,75 @@ export function cardContent(
  *  value is set: what the app places a new card by. */
 export const newNodeSize = (desc: NodeDescriptor, id: string): Size => nodeSize(cardContent(id, desc.kind, desc, {}));
 
+/** Space between the rail and the nodes to its right, and between two rail cards. */
+const RAIL_GAP = 48;
+const RAIL_STACK_GAP = 16;
+const RAIL_TOP = 24;
+
+/** What the editor tells buildCanvasModel besides the document. */
+export interface ModelOptions {
+  /** How source nodes are drawn; default none of it (every node a plain card). */
+  readonly sources?: SourceView;
+  /** The source whose chip is hovered: it and the nodes that use it are `lit`. */
+  readonly lit?: string | null;
+}
+
+/** Rail positions for cards of the given sizes, stacked in one column left of `others`, from their top. */
+function railPositions(rail: readonly Size[], others: readonly NodeBounds[]): { x: number; y: number }[] {
+  const left = others.length ? Math.min(...others.map((r) => r.x)) : RAIL_GAP + RAIL_TOP;
+  const x = left - RAIL_GAP - Math.max(0, ...rail.map((s) => s.w));
+  let y = others.length ? Math.min(...others.map((r) => r.y)) : RAIL_TOP;
+  return rail.map((s) => {
+    const at = { x, y };
+    y += s.h + RAIL_STACK_GAP;
+    return at;
+  });
+}
+
 /** Builds the drawable model; catalog gaps degrade to portless nodes. A node
  *  with no saved position goes to the first free spot (freePosition) among
- *  the nodes before it, at its real size, in document order. */
+ *  the nodes before it, at its real size, in document order. With
+ *  `options.sources.rail` the source nodes leave that flow and stack in a
+ *  rail; with `.chips` the edges out of a source become chips on the
+ *  parameters they feed. */
 export function buildCanvasModel(
   state: State,
   catalog: ReadonlyMap<string, NodeDescriptor>,
   preview: string | null = state.selection.at(-1) ?? null,
   results: PortResultsView = NO_PORT_RESULTS,
+  options: ModelOptions = {},
 ): CanvasModel {
+  const view = options.sources ?? NO_SOURCE_VIEW;
   const selected = new Set(state.selection);
   const contributing = upstreamIds(state.document,preview);
+  const sources = sourceNodeIds(state.document, catalog);
+  const chips = view.chips ? sourceChips(state.document, catalog, sources) : new Map();
+  const lit = options.lit ? new Set([options.lit, ...sourceUsers(state.document, options.lit)]) : new Set<string>();
   const cards = state.document.structure.nodes.map((n) => {
     const desc = catalog.get(n.kind);
     const content = cardContent(n.id, n.kind, desc, state.document.values[n.id] ?? {}, wiredPreviews(state.document, catalog, n.id, desc));
+    const nodeChips = chips.get(n.id);
+    const params = nodeChips ? content.params.map((p) => nodeChips[p.name] ? { ...p, chip: nodeChips[p.name] } : p) : content.params;
     const layout = state.document.layout[n.id];
-    return { desc, content, layout, size: nodeSize(content, layout ?? {}) };
+    return { desc, content: { ...content, params }, layout, size: nodeSize(content, layout ?? {}), inRail: view.rail && sources.has(n.id) };
   });
-  const placed: NodeBounds[] = cards.flatMap((c) => (c.layout ? [{ x: c.layout.x, y: c.layout.y, ...c.size }] : []));
-  const nodes = cards.map(({ desc, content, layout, size }): CanvasNode => {
-    const pos = layout ?? freePosition(placed, size.w, size.h);
-    if (!layout) placed.push({ ...pos, ...size });
-    const common = { x: pos.x, y: pos.y, ...size, ...content, selected: selected.has(content.id), contributing: contributing.has(content.id) };
+  const flowing = cards.filter((c) => !c.inRail);
+  const placed: NodeBounds[] = flowing.flatMap((c) => (c.layout ? [{ x: c.layout.x, y: c.layout.y, ...c.size }] : []));
+  const spots = new Map<string, { x: number; y: number }>();
+  for (const c of flowing) {
+    const pos = c.layout ?? freePosition(placed, c.size.w, c.size.h);
+    if (!c.layout) placed.push({ ...pos, ...c.size });
+    spots.set(c.content.id, pos);
+  }
+  const rail = cards.filter((c) => c.inRail);
+  railPositions(rail.map((c) => c.size), placed).forEach((pos, i) => spots.set(rail[i]!.content.id, pos));
+  const nodes = cards.map(({ desc, content, size, inRail }): CanvasNode => {
+    const pos = spots.get(content.id)!;
+    const common = {
+      x: pos.x, y: pos.y, ...size, ...content,
+      selected: selected.has(content.id), contributing: contributing.has(content.id),
+      ...(inRail ? { inRail } : {}), ...(lit.has(content.id) ? { lit: true } : {}),
+    };
     if (content.kind === NOTE_KIND) return common;
     return {
       ...common,
@@ -171,7 +223,7 @@ export function buildCanvasModel(
       ...(desc?.description ? { description: desc.description } : {}),
     };
   });
-  const edges = state.document.structure.edges.map((e) => {
+  const edges = state.document.structure.edges.filter((e) => !isChipEdge(chips, e)).map((e) => {
     const rows = results.counts.get(e.from);
     return {
       id: edgeId(e.from, e.to),
@@ -188,4 +240,13 @@ export function buildCanvasModel(
     openEditor: null,
     ...(results.peek ? { peek: results.peek } : {}),
   };
+}
+
+/** True for an edge a chip stands for. */
+function isChipEdge(
+  chips: ReadonlyMap<string, Readonly<Record<string, { sourceId: string }>>>,
+  edge: { from: string; to: string },
+): boolean {
+  const dot = edge.to.indexOf(".");
+  return chips.get(edge.to.slice(0, dot))?.[edge.to.slice(dot + 1)]?.sourceId === edge.from.slice(0, edge.from.indexOf("."));
 }

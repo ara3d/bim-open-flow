@@ -13,6 +13,7 @@ import type { Measure } from "gratify";
 import type { CanvasInstance } from "./instance.js";
 import { displayScale, paramLabel } from "./numericParam.js";
 import { fileName } from "./paramText.js";
+import type { SourceChip } from "./sources.js";
 
 export interface CanvasParam {
   readonly descending?: boolean;
@@ -30,6 +31,9 @@ export interface CanvasParam {
   /** Set while an edge feeds the parameter: the read-only preview of the
    *  wired value (wiredPreview), shown in place of the inline control. */
   readonly wired?: string;
+  /** Set while the wire comes from a source node and the canvas draws chips:
+   *  the row shows the source's name as a chip (TKT-138). */
+  readonly chip?: SourceChip;
 }
 
 /** Single compact row: label left, control right. */

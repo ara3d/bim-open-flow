@@ -74,6 +74,20 @@ public sealed class DocumentToolTests : FlowToolFixture
     }
 
     [Test]
+    public void GetNodeCatalog_ReportsDeclaredSchemas()
+    {
+        JsonElement Node(string kind)
+            => Json(FlowDocumentTools.GetNodeCatalog(Services)).EnumerateArray()
+                .Single(n => n.GetProperty("kind").GetString() == kind);
+
+        var range = Node("table.range").GetProperty("schemas").EnumerateArray().Single();
+        Assert.That(range.GetProperty("mode").GetString(), Is.EqualTo("Static"));
+        Assert.That(range.GetProperty("columns").EnumerateArray().Single().GetProperty("type").GetString(), Is.EqualTo("Number"));
+        Assert.That(Node("table.pivot").GetProperty("schemas").EnumerateArray().Single().GetProperty("mode").GetString(), Is.EqualTo("Dynamic"));
+        Assert.That(Node("table.sort").TryGetProperty("schemas", out _), Is.False, "omitted when undeclared");
+    }
+
+    [Test]
     public void GetNodeCatalog_ReportsBindableSocketsAndListParameters()
     {
         JsonElement Param(string kind, string name)

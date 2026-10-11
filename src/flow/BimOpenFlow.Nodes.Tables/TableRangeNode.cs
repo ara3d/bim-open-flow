@@ -20,7 +20,8 @@ public sealed class TableRangeNode : IFlowNode
             new ParamSpec("stop", ParamKind.Number),
             new ParamSpec("step", ParamKind.Number, "1"),
         ],
-        "Generates one numeric column from start to stop (inclusive when a step lands on it) by step; a negative step counts down.");
+        "Generates one numeric column from start to stop (inclusive when a step lands on it) by step; a negative step counts down.",
+        Schemas: [SchemaSpec.Static("table", new Schema([new Column("value", ColumnType.Number, Nullable: false)]))]);
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {

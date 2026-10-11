@@ -15,7 +15,8 @@ public sealed class TableTransposeNode : IFlowNode
         Inputs: [new PortSpec("table", PortType.Table)],
         Outputs: [new PortSpec("table", PortType.Table)],
         Params: [new ParamSpec("headerColumn", ParamKind.Text)],
-        "Turns rows into columns, using the header column's values as the new column names.");
+        "Turns rows into columns, using the header column's values as the new column names.",
+        Schemas: [SchemaSpec.Dynamic("table")]);
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context,
         IReadOnlyList<FlowValue> inputs, ParamValues parameters)

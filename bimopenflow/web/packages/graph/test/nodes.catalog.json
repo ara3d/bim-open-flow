@@ -1059,7 +1059,7 @@
           "list": true
         }
       ],
-      "description": "Keeps only the comma-separated columns, in that order."
+      "description": "Keeps only the comma-separated columns, in that order; \u0027column as Alias\u0027 renames one."
     },
     {
       "kind": "rel.sort",
@@ -2705,7 +2705,13 @@
           ]
         }
       ],
-      "description": "Pivots long data wide: one new column per distinct value of nameColumn."
+      "description": "Pivots long data wide: one new column per distinct value of nameColumn.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Dynamic"
+        }
+      ]
     },
     {
       "kind": "table.profile",
@@ -2758,7 +2764,7 @@
           "list": true
         }
       ],
-      "description": "Keeps the comma-separated columns, in that order; unknown names warn."
+      "description": "Keeps the comma-separated columns, in that order; \u0027column as Alias\u0027 renames one; unknown names warn."
     },
     {
       "kind": "table.range",
@@ -2794,7 +2800,20 @@
           "default": "1"
         }
       ],
-      "description": "Generates one numeric column from start to stop (inclusive when a step lands on it) by step; a negative step counts down."
+      "description": "Generates one numeric column from start to stop (inclusive when a step lands on it) by step; a negative step counts down.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Static",
+          "columns": [
+            {
+              "name": "value",
+              "type": "Number",
+              "nullable": false
+            }
+          ]
+        }
+      ]
     },
     {
       "kind": "table.rename",
@@ -3160,7 +3179,13 @@
           "default": ""
         }
       ],
-      "description": "Turns rows into columns, using the header column\u0027s values as the new column names."
+      "description": "Turns rows into columns, using the header column\u0027s values as the new column names.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Dynamic"
+        }
+      ]
     },
     {
       "kind": "table.unpivot",

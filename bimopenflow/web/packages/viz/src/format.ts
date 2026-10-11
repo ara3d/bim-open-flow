@@ -29,7 +29,7 @@ export const formatValue = (value: unknown, type: ColumnType): string => {
     case "Integer":
     case "Number":
       return formatNumber(Number(value));
-    case "Text":
+    default:
       return String(value);
   }
 };

@@ -23,7 +23,8 @@ public sealed class TablePivotNode : IFlowNode
             new ParamSpec("aggregate", ParamKind.Enum, "first",
                 ["first", "sum", "count", "min", "max", "avg"]),
         ],
-        "Pivots long data wide: one new column per distinct value of nameColumn.");
+        "Pivots long data wide: one new column per distinct value of nameColumn.",
+        Schemas: [SchemaSpec.Dynamic("table")]);
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context,
         IReadOnlyList<FlowValue> inputs, ParamValues parameters)

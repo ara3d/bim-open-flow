@@ -49,6 +49,24 @@ public static class MarkdownEmitter
         AppendPorts(sb, "Inputs", spec.Inputs, withOptional: true);
         AppendPorts(sb, "Outputs", spec.Outputs, withOptional: false);
         AppendParams(sb, spec.Params);
+        foreach (var schema in spec.Schemas)
+            AppendColumns(sb, schema);
+    }
+
+    private static void AppendColumns(StringBuilder sb, SchemaSpec schema)
+    {
+        sb.Append($"\n**Columns of `{schema.Output}`**");
+        if (schema is not StaticSchemaSpec fixedColumns)
+        {
+            sb.Append(schema is InferredSchemaSpec ? ": inferred from the inputs\n" : ": unknown until run\n");
+            return;
+        }
+        sb.Append("\n\n| Name | Type | Nullable | Kind |\n|---|---|---|---|\n");
+        foreach (var column in fixedColumns.Schema.Columns)
+        {
+            var kind = fixedColumns.Kinds is not null && fixedColumns.Kinds.TryGetValue(column.Name, out var name) ? $"`{name}`" : "—";
+            sb.Append($"| `{column.Name}` | {column.Type} | {(column.Nullable ? "yes" : "no")} | {kind} |\n");
+        }
     }
 
     private static void AppendPorts(StringBuilder sb, string title, IReadOnlyList<PortSpec> ports, bool withOptional)

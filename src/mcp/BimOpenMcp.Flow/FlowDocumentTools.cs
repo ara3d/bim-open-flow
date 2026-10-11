@@ -1,3 +1,4 @@
+using Ara3D.DataFlowEngine.Abstractions;
 using Ara3D.MCP;
 using Ara3D.NodeGraph;
 using BimOpenFlow.Host.Api;
@@ -105,8 +106,28 @@ public static class FlowDocumentTools
                     list = p.List,
                 }).ToList(),
                 description = spec.Description,
+                schemas = spec.Schemas.Count == 0 ? null : spec.Schemas.Select(ToSchemaView).ToList(),
             })
             .ToList();
+
+    private static object ToSchemaView(SchemaSpec schema)
+        => schema switch
+        {
+            StaticSchemaSpec s => new
+            {
+                output = s.Output,
+                mode = "Static",
+                columns = s.Schema.Columns.Select(c => new
+                {
+                    name = c.Name,
+                    type = c.Type.ToString(),
+                    nullable = c.Nullable,
+                    kind = s.Kinds is not null && s.Kinds.TryGetValue(c.Name, out var kind) ? kind : null,
+                }).ToList(),
+            },
+            InferredSchemaSpec => new { output = schema.Output, mode = "Inferred", columns = (object?)null },
+            _ => new { output = schema.Output, mode = "Dynamic", columns = (object?)null },
+        };
 
     /// <summary>Validate first, then save and set the standing session — the same
     /// order as the HTTP PUT, so invalid documents never land in the store.</summary>

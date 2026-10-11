@@ -8,7 +8,7 @@ using PortType = Ara3D.DataFlowEngine.Abstractions.PortType;
 
 namespace BimOpenFlow.Host.Api.Tests;
 
-/// <summary>The TablesInFile suggestion reads the file of a wired Database source before the path parameter.</summary>
+/// <summary>The TablesInFile suggestion reads the file of a Database wired into the path parameter before its string.</summary>
 public sealed class SuggestWiredSourceTests
 {
     private static readonly IFlowNode Source = new DelegateNode(
@@ -23,11 +23,11 @@ public sealed class SuggestWiredSourceTests
 
     private static readonly IFlowNode Table = new DelegateNode(
         new("test.dbTable", 1, NodeCapability.Pure,
-            Inputs: new PortSpec[] { new("source", PortType.Database, Optional: true) },
+            Inputs: Array.Empty<PortSpec>(),
             Outputs: Array.Empty<PortSpec>(),
             Params: new ParamSpec[]
             {
-                new("path", ParamKind.FilePath),
+                new("path", ParamKind.FilePath, Bindable: PortType.Database),
                 new("table", ParamKind.Text, Suggest: SuggestSource.TablesInFile("path")),
             },
             "Reads a table."),
@@ -45,7 +45,7 @@ public sealed class SuggestWiredSourceTests
         var snapshot = Graph
             .Node("s", "test.dbSource")
             .Node("t", "test.dbTable", ("path", "own.duckdb"))
-            .Connect("s.source", "t.source")
+            .Connect("s.source", "t.path")
             .Build()
             .Evaluate(Registry);
         var list = Resolve(snapshot);
@@ -59,7 +59,7 @@ public sealed class SuggestWiredSourceTests
         var snapshot = Graph
             .Node("s", "test.dbSource")
             .Node("t", "test.dbTable")
-            .Connect("s.source", "t.source")
+            .Connect("s.source", "t.path")
             .Build()
             .Evaluate(Registry);
         Assert.That(Resolve(snapshot).Status, Is.EqualTo(SuggestStatus.Ok));
@@ -71,7 +71,7 @@ public sealed class SuggestWiredSourceTests
         var snapshot = Graph
             .Node("s", "test.dbSource", ("fail", "true"))
             .Node("t", "test.dbTable", ("path", "own.duckdb"))
-            .Connect("s.source", "t.source")
+            .Connect("s.source", "t.path")
             .Build()
             .Evaluate(Registry);
         var list = Resolve(snapshot);

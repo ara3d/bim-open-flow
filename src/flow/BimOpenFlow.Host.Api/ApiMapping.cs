@@ -66,7 +66,8 @@ public static class ApiMapping
     public static ParamDescriptor ToDescriptor(this ParamSpec param)
         => new(param.Name, param.Kind.ByName<ParamKind>(), param.Default, param.EnumValues,
             param.Suggest.ToDescriptor(), param.Control is { } control
-                ? new(control.Kind, control.Min, control.Max, control.Step, control.Unit, control.Label) : null);
+                ? new(control.Kind, control.Min, control.Max, control.Step, control.Unit, control.Label) : null,
+            param.Bindable?.ByName<PortType>(), param.List ? true : null);
 
     public static SuggestDescriptor? ToDescriptor(this SuggestSource? suggest)
         => suggest is null

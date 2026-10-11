@@ -30,6 +30,34 @@ public sealed class EditGraphToolTests : FlowToolFixture
     }
 
     [Test]
+    public void AnEdgeIntoABindableParameterIsAnOrdinaryEdge()
+    {
+        FlowEditTools.EditGraph(Services, "bound", """
+            [
+              {"op":"addNode","nodeId":"db","kind":"duck.source"},
+              {"op":"addNode","nodeId":"tables","kind":"duck.tables"},
+              {"op":"connect","from":"db.source","to":"tables.path"}
+            ]
+            """);
+        var edge = Services.Host.Store.Load("bound").Edges.Single();
+        Assert.That((edge.From, edge.To), Is.EqualTo(("db.source", "tables.path")));
+    }
+
+    [Test]
+    public void AnEdgeWhoseKindTheSocketRejectsSavesNothing()
+    {
+        var error = Assert.Throws<ArgumentException>(() => FlowEditTools.EditGraph(Services, "bound", """
+            [
+              {"op":"addNode","nodeId":"data","kind":"table.inline"},
+              {"op":"addNode","nodeId":"tables","kind":"duck.tables"},
+              {"op":"connect","from":"data.table","to":"tables.path"}
+            ]
+            """));
+        Assert.That(error!.Message, Does.Contain("incompatible port types"));
+        Assert.That(Services.Host.Store.Exists("bound"), Is.False);
+    }
+
+    [Test]
     public void ContinuesFromTheSavedGraph()
     {
         FlowEditTools.EditGraph(Services, "batch", Build);

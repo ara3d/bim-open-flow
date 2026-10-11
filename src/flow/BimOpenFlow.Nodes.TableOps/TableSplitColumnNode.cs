@@ -17,7 +17,7 @@ public sealed class TableSplitColumnNode : IFlowNode
         [
             new ParamSpec("column", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
             new ParamSpec("separator", ParamKind.Text, "-"),
-            new ParamSpec("names", ParamKind.Text),
+            new ParamSpec("names", ParamKind.Text, List: true),
             new ParamSpec("keep", ParamKind.Boolean, "false"),
         ],
         "Splits a column on a separator into new columns named by 'names'.");

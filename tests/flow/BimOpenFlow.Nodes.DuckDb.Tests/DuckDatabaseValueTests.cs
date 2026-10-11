@@ -6,7 +6,7 @@ using DuckDB.NET.Data;
 namespace BimOpenFlow.Nodes.DuckDb.Tests;
 
 /// <summary>duck.source emits a Database value, and duck.query, duck.table and duck.tables use it
-/// when wired, falling back to their path parameter when not.</summary>
+/// when wired into their bindable path parameter, falling back to the typed path when not.</summary>
 [TestFixture]
 public sealed class DuckDatabaseValueTests
 {
@@ -74,25 +74,35 @@ public sealed class DuckDatabaseValueTests
     {
         using var cache = new DuckSourceCache();
         var source = Source(cache, second);
-        var (tables, warnings) = new DuckTablesNode().EvalWithWarnings([source]);
+        var (tables, warnings) = new DuckTablesNode().EvalWithWarnings(source);
         Assert.That(tables.Cell("name", 0), Is.EqualTo("doors"));
         Assert.That(warnings, Is.Empty);
-        Assert.That(new DuckTableNode().EvalTable([source], ("table", "doors")).Rows, Has.Count.EqualTo(3));
+        Assert.That(new DuckTableNode().EvalTable(source, ("table", "doors")).Rows, Has.Count.EqualTo(3));
     }
 
     [Test]
-    public void WiredSourceWinsOverPathAndWarnsNamingTheOneUsed()
+    public void WiredSourceWinsOverTheTypedPath()
     {
         using var cache = new DuckSourceCache();
         var source = Source(cache, second);
-        var (table, warnings) = new DuckTableNode().EvalWithWarnings([source], ("path", first), ("table", "doors"));
+        var (table, warnings) = new DuckTableNode().EvalWithWarnings(source, ("path", first), ("table", "doors"));
         Assert.That(table.Rows, Has.Count.EqualTo(3));
-        Assert.That(warnings, Has.Count.EqualTo(1));
-        Assert.That(warnings[0], Does.Contain(source.Path).And.Contain("using the source"));
+        Assert.That(warnings, Is.Empty);
 
-        var query = new DuckQueryNode(cache).EvalWithWarnings([source], ("path", first), ("sql", "SELECT * FROM doors"));
-        Assert.That(query.Table.Rows, Has.Count.EqualTo(3));
-        Assert.That(query.Warnings, Has.Count.EqualTo(1));
+        var query = new DuckQueryNode(cache).EvalTable(source, ("path", first), ("sql", "SELECT * FROM doors"));
+        Assert.That(query.Rows, Has.Count.EqualTo(3));
+    }
+
+    [Test]
+    public void ThePathParameterIsBindableToADatabaseAndTheNodesHaveNoSourceInput()
+    {
+        foreach (IFlowNode node in new IFlowNode[] { new DuckQueryNode(), new DuckTableNode(), new DuckTablesNode() })
+        {
+            var path = node.Spec.Params.Single(p => p.Name == "path");
+            Assert.That(path.Bindable, Is.EqualTo(PortType.Database), node.Spec.Kind);
+            Assert.That(path.Kind, Is.EqualTo(ParamKind.FilePath), node.Spec.Kind);
+            Assert.That(node.Spec.Inputs, Is.Empty, node.Spec.Kind);
+        }
     }
 
     [Test]
@@ -101,7 +111,7 @@ public sealed class DuckDatabaseValueTests
         using var cache = new DuckSourceCache();
         var source = Source(cache, second);
         var listed = ((Func<Ara3D.DataTable.IDataTable>)source.Payload!)();
-        var tables = new DuckTablesNode().EvalTable([source]);
+        var tables = new DuckTablesNode().EvalTable(source);
         Assert.That(listed.ColumnNames(), Is.EqualTo(tables.ColumnNames()));
         Assert.That(listed.Cell("name", 0), Is.EqualTo("doors"));
         Assert.That(listed.Cell("rowCount", 0), Is.EqualTo(3L));
@@ -110,12 +120,12 @@ public sealed class DuckDatabaseValueTests
     [Test]
     public void WithoutASourceThePathParameterIsUsedSilently()
     {
-        var (table, warnings) = new DuckTableNode().EvalWithWarnings([MissingValue.Instance], ("path", first), ("table", "walls"));
+        var (table, warnings) = new DuckTableNode().EvalWithWarnings([], ("path", first), ("table", "walls"));
         Assert.That(table.Rows, Has.Count.EqualTo(2));
         Assert.That(warnings, Is.Empty);
     }
 
     [Test]
     public void WithNeitherSourceNorPathTheNodeSaysSo()
-        => Assert.That(() => new DuckTablesNode().EvalTable([MissingValue.Instance]), Throws.Exception.Message.Contain("path"));
+        => Assert.That(() => new DuckTablesNode().EvalTable([]), Throws.Exception.Message.Contain("path"));
 }

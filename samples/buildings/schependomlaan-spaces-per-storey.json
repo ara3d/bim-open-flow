@@ -12,8 +12,8 @@
   },
   "structure": {
     "edges": [
-      { "from": "db.source", "to": "entities.source" },
-      { "from": "db.source", "to": "storeys.source" },
+      { "from": "db.source", "to": "entities.path" },
+      { "from": "db.source", "to": "storeys.path" },
       { "from": "entities.table", "to": "spaces.table" },
       { "from": "spaces.table", "to": "placed.a" },
       { "from": "storeys.table", "to": "placed.b" },

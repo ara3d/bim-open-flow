@@ -29,17 +29,23 @@ public static class Bindings
             .ToDictionary(g => g.Key, g => g.First().FromRef);
 
     /// <summary><c>id = kind@version(port: node.port, ..., param: "value", ...);</c> with inputs in
-    /// catalog order, then params in catalog order; names the catalog lacks follow in ordinal order.</summary>
+    /// catalog order, then params in catalog order; names the catalog lacks follow in ordinal order.
+    /// A bindable parameter with an edge prints as an input after the real inputs and drops its
+    /// stored string, since the edge supplies the value.</summary>
     public static string Line(GraphDocument doc, GraphNode node, NodeSpec? spec)
     {
         var incoming = Incoming(doc, node.Id);
         var values = doc.Values.GetValueOrDefault(node.Id) ?? new Dictionary<string, string>();
-        var inputs = CatalogOrder(incoming.Keys, spec?.Inputs.Select(p => p.Name))
+        var inputs = CatalogOrder(incoming.Keys, spec?.Inputs.Concat(BindableAsPorts(spec)).Select(p => p.Name))
             .Select(port => $"{port}: {incoming[port]}");
-        var parameters = CatalogOrder(values.Keys, spec?.Params.Select(p => p.Name))
+        var parameters = CatalogOrder(values.Keys.Where(name => !incoming.ContainsKey(name)),
+                spec?.Params.Select(p => p.Name))
             .Select(name => $"{name}: {Literals.Quote(values[name])}");
         return $"{node.Id} = {node.Kind}@{node.Version}({string.Join(", ", inputs.Concat(parameters))});";
     }
+
+    private static IEnumerable<PortSpec> BindableAsPorts(NodeSpec spec)
+        => spec.Params.Where(p => p.Bindable is not null).Select(p => new PortSpec(p.Name, p.Bindable!.Value, Optional: true));
 
     private static IReadOnlyList<string> CatalogOrder(IEnumerable<string> present, IEnumerable<string>? catalog)
     {

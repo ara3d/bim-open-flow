@@ -19,14 +19,14 @@ public sealed class DuckSourceNodeTests
                 setup.Execute("CREATE TABLE items (name VARCHAR, value INTEGER); INSERT INTO items VALUES ('a', 1), ('b', 2)");
             }
             using var cache = new DuckSourceCache();
-            var source = new DuckSourceNode(cache).Eval(NodeTestHelpers.Ctx, [], NodeTestHelpers.Params(("path", path)))[0];
+            var source = (DatabaseValue)new DuckSourceNode(cache).Eval(NodeTestHelpers.Ctx, [], NodeTestHelpers.Params(("path", path)))[0];
             var query = new DuckQueryNode(cache);
-            Assert.That(query.EvalTable([source], ("sql", "SELECT name FROM items")).Rows, Has.Count.EqualTo(2));
-            Assert.That(query.EvalTable([source], ("sql", "SELECT sum(value)::BIGINT AS total FROM items")).Cell("total", 0), Is.EqualTo(3L));
-            Assert.That(query.EvalTable([source], ("sql", "SELECT value AS Renamed FROM items")).ColumnNames(), Is.EqualTo(new[] { "Renamed" }));
+            Assert.That(query.EvalTable(source, ("sql", "SELECT name FROM items")).Rows, Has.Count.EqualTo(2));
+            Assert.That(query.EvalTable(source, ("sql", "SELECT sum(value)::BIGINT AS total FROM items")).Cell("total", 0), Is.EqualTo(3L));
+            Assert.That(query.EvalTable(source, ("sql", "SELECT value AS Renamed FROM items")).ColumnNames(), Is.EqualTo(new[] { "Renamed" }));
             Assert.That(cache.OpenedConnections, Is.EqualTo(1));
-            Assert.That(() => query.EvalTable([source], ("sql", "DELETE FROM items")), Throws.ArgumentException);
-            Assert.That(query.EvalTable([source], ("sql", "SELECT * FROM items")).Rows, Has.Count.EqualTo(2));
+            Assert.That(() => query.EvalTable(source, ("sql", "DELETE FROM items")), Throws.ArgumentException);
+            Assert.That(query.EvalTable(source, ("sql", "SELECT * FROM items")).Rows, Has.Count.EqualTo(2));
         }
         finally { File.Delete(path); }
     }

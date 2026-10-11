@@ -24,8 +24,8 @@ public sealed partial class TableAggregateNode : IFlowNode
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("groupBy", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
-            new ParamSpec("aggregates", ParamKind.Text),
+            new ParamSpec("groupBy", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table"), List: true),
+            new ParamSpec("aggregates", ParamKind.Text, List: true),
         ],
         "Groups by the comma-separated groupBy columns (may be empty) and computes "
         + "comma-separated 'func(column) as name' aggregates (count/sum/min/max/avg).");

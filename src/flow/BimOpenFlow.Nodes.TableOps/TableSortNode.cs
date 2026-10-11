@@ -19,7 +19,7 @@ public sealed class TableSortNode : IFlowNode
             new ParamSpec("descendingA", ParamKind.Boolean, "false", Control: new ParamControl("hidden")),
             new ParamSpec("descendingB", ParamKind.Boolean, "false", Control: new ParamControl("hidden")),
             new ParamSpec("descendingC", ParamKind.Boolean, "false", Control: new ParamControl("hidden")),
-            new ParamSpec("by", ParamKind.Text, Control: new ParamControl("hidden"))],
+            new ParamSpec("by", ParamKind.Text, Control: new ParamControl("hidden"), List: true)],
         "Sorts by columns A, B, then C, each with its own ascending or descending direction.");
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)

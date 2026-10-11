@@ -76,14 +76,16 @@ public static class MarkdownEmitter
             sb.Append(": none\n");
             return;
         }
-        sb.Append("\n\n| Name | Kind | Default | Allowed values | Suggestions |\n|---|---|---|---|---|\n");
+        sb.Append("\n\n| Name | Kind | Socket | Default | Allowed values | Suggestions |\n|---|---|---|---|---|---|\n");
         foreach (var p in parameters)
         {
             var @default = p.Default.Length == 0 ? "—" : $"`{p.Default}`";
             var allowed = p.EnumValues is { Count: > 0 } values
                 ? string.Join(", ", values.Select(v => $"`{v}`"))
                 : "—";
-            sb.Append($"| `{p.Name}` | {p.Kind} | {@default} | {allowed} | {Suggestion(p.Suggest)} |\n");
+            var kind = p.List ? $"{p.Kind} (list)" : p.Kind.ToString();
+            var socket = p.Bindable is { } type ? type.ToString() : "—";
+            sb.Append($"| `{p.Name}` | {kind} | {socket} | {@default} | {allowed} | {Suggestion(p.Suggest)} |\n");
         }
     }
 

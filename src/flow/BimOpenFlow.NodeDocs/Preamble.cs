@@ -39,6 +39,10 @@ public static class Preamble
         names): editors offer those values as a live pull-down, but they are
         advisory only — any string is accepted, and validation stays an
         evaluation-time concern (see docs/proposals/live-param-suggestions.md).
+        A text parameter marked (list) holds a comma-separated list. A parameter
+        with a Socket type is also an input: wire a node of that type into the
+        port named like the parameter and the wired value replaces the typed one;
+        unwired, the typed value is used.
 
         **File-reading nodes and caching.** Nodes that read files (`bos.load`,
         `duck.read`, `xlsx.read`, `view3d.instances`) are pure despite touching

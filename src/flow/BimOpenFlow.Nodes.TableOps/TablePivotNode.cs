@@ -17,7 +17,7 @@ public sealed class TablePivotNode : IFlowNode
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("groupBy", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
+            new ParamSpec("groupBy", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table"), List: true),
             new ParamSpec("nameColumn", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
             new ParamSpec("valueColumn", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
             new ParamSpec("aggregate", ParamKind.Enum, "first",

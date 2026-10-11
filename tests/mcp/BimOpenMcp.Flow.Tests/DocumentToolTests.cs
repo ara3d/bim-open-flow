@@ -74,6 +74,22 @@ public sealed class DocumentToolTests : FlowToolFixture
     }
 
     [Test]
+    public void GetNodeCatalog_ReportsBindableSocketsAndListParameters()
+    {
+        JsonElement Param(string kind, string name)
+            => Json(FlowDocumentTools.GetNodeCatalog(Services)).EnumerateArray()
+                .Single(n => n.GetProperty("kind").GetString() == kind)
+                .GetProperty("params").EnumerateArray()
+                .Single(p => p.GetProperty("name").GetString() == name);
+
+        Assert.That(Param("duck.table", "path").GetProperty("bindable").GetString(), Is.EqualTo("Database"));
+        Assert.That(Param("duck.table", "table").TryGetProperty("bindable", out _), Is.False, "omitted when not bindable");
+        Assert.That(Param("table.aggregate", "groupBy").GetProperty("list").GetBoolean(), Is.True);
+        Assert.That(Param("table.aggregate", "aggregates").GetProperty("list").GetBoolean(), Is.True);
+        Assert.That(Param("duck.table", "table").GetProperty("list").GetBoolean(), Is.False);
+    }
+
+    [Test]
     public async Task ToolRunner_ShapesFailuresAsErrorEnvelopes()
     {
         var body = await ToolRunner.RunAsync(

@@ -15,10 +15,12 @@ export function completionOptions(text: string, values: readonly string[]): stri
 
 const MULTI_COLUMN_NAME = /Columns$|^(columns|groupBy|keys|orderBy|partitionBy|keep)$/;
 
-/** True when a column parameter holds a comma-separated list: its name says
- *  so (`groupBy`, `columns`, `yColumns`) or its value already has a comma. */
-export function isMultiColumn(name: string, value: string): boolean {
-  return MULTI_COLUMN_NAME.test(name) || value.includes(",");
+/** True when a column parameter holds a comma-separated list. The catalog says so
+ *  (`list` on the parameter descriptor); a descriptor without the flag, from an older
+ *  catalog or a pack that has not declared it, falls back to a guess from the name
+ *  (`groupBy`, `columns`, `yColumns`). A value that already has a comma is a list either way. */
+export function isMultiColumn(name: string, value: string, list?: boolean): boolean {
+  return (list ?? MULTI_COLUMN_NAME.test(name)) || value.includes(",");
 }
 
 /** The names in a comma-separated column list, trimmed, empty entries dropped. */

@@ -9,14 +9,14 @@ are version 1 and Pure.
 | Kind | Inputs | Outputs | Params |
 |---|---|---|---|
 | `duck.source` | — | source (Database) | path (FilePath) |
-| `duck.query` | source (Database, optional) | table | sql (Text, one read-only SELECT/WITH); path (FilePath, hidden, kept for graphs saved before `duck.source`) |
+| `duck.query` | — | table | path (FilePath, bindable: Database), sql (Text, one read-only SELECT/WITH) |
 | `sql.query` | t1, t2–t4 (optional) | table | sql (Text, one read-only SELECT/WITH; inputs available as `t1`..`t4`, `t` = `t1`) |
 | `duck.read` | — | table | path (FilePath), format (Enum auto/csv/parquet/json, default auto) |
 | `csv.read` | — | table | path (FilePath or glob), delimiter (Text, default `,`), header (Boolean, default true), skipRows (Integer, default 0), quote (Text, default `"`), nullText (Text, default empty), encoding (Enum utf8/utf16/latin1, default utf8), inferTypes (Boolean, default true) |
 | `parquet.read` | — | table | path (FilePath or glob) |
 | `json.read` | — | table | path (FilePath), layout (Enum auto/records/lines, default auto), flatten (Boolean, default false) |
-| `duck.table` | source (Database, optional) | table | path (FilePath), table (Text, suggests the file's tables) |
-| `duck.tables` | source (Database, optional) | tables | path (FilePath) |
+| `duck.table` | — | table | path (FilePath, bindable: Database), table (Text, suggests the file's tables) |
+| `duck.tables` | — | tables | path (FilePath, bindable: Database) |
 
 ## Semantics
 
@@ -25,8 +25,8 @@ are version 1 and Pure.
   value's identity (a changed file is a new value). Connected `duck.query` nodes
   share one connection through `DuckSourceCache` (eight databases at most; a
   changed file stamp or eviction reopens). `duck.query`, `duck.table` and
-  `duck.tables` use a wired source over their own `path` parameter and warn,
-  naming the source, when both are set; with no source they open `path` per
+  `duck.tables` take the path as a bindable parameter: a Database value wired
+  into `path` replaces the typed string; unwired, they open the typed path per
   evaluation. A host pages a Database value as its table list, the rows
   `duck.tables` returns (`DuckTableList`).
 - `sql.query` writes its input tables into an in-memory database as `t1`..`t4`

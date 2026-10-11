@@ -30,7 +30,7 @@ public static class FlowEditTools
                 + "any existing edge into the target is replaced.",
                 FlowToolArgs.Analysis()
                     .String("from", "Source output port, e.g. 'load.entities'.", required: true)
-                    .String("to", "Target input port, e.g. 'filter.table'.", required: true)
+                    .String("to", "Target input port, or bindable parameter (the catalog's 'bindable' field), e.g. 'filter.table' or 'doors.path'.", required: true)
                     .Build(),
                 (args, _) => ToolRunner.RunAsync(
                     () => Connect(s, args.AnalysisId(), args.GetRequiredString("from"),
@@ -66,12 +66,12 @@ public static class FlowEditTools
                     .String("edits",
                         "A JSON array, as a string, of edit objects applied in order. Each has 'op': "
                         + "addNode {nodeId, kind, version?}, setParam {nodeId, name, value}, connect {from, to} "
-                        + "(ports as 'nodeId.port'), or removeNode {nodeId}. Example: "
+                        + "(ports as 'nodeId.port'; a bindable parameter takes an edge on its own name), or removeNode {nodeId}. Example: "
                         + "[{\"op\":\"addNode\",\"nodeId\":\"database\",\"kind\":\"duck.source\"},"
                         + "{\"op\":\"setParam\",\"nodeId\":\"database\",\"name\":\"path\",\"value\":\"C:/data/model.duckdb\"},"
                         + "{\"op\":\"addNode\",\"nodeId\":\"doors\",\"kind\":\"duck.query\"},"
                         + "{\"op\":\"setParam\",\"nodeId\":\"doors\",\"name\":\"sql\",\"value\":\"SELECT element_mark AS Mark FROM door\"},"
-                        + "{\"op\":\"connect\",\"from\":\"database.source\",\"to\":\"doors.source\"}]",
+                        + "{\"op\":\"connect\",\"from\":\"database.source\",\"to\":\"doors.path\"}]",
                         required: true)
                     .Build(),
                 (args, _) => ToolRunner.RunAsync(

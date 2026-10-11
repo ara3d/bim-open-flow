@@ -11,14 +11,14 @@ public sealed class DuckTablesNode : IFlowNode
 
     public NodeSpec Spec { get; } = new(
         Kind, 1, NodeCapability.Pure,
-        Inputs: [DuckSourceInput.Spec],
+        Inputs: [],
         Outputs: [new PortSpec("tables", PortType.Table)],
-        Params: [new ParamSpec("path", ParamKind.FilePath, Suggest: SuggestSource.FilesWith(".duckdb"))],
+        Params: [DuckSourceInput.Spec],
         "Lists the tables in a .duckdb database file with their column and row counts.");
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {
-        var path = DuckSourceInput.ResolvePath(context, inputs, parameters, Kind);
+        var path = DuckSourceInput.ResolvePath(parameters, Kind);
         using var conn = DuckDbOps.OpenReadOnly(path);
         return [new TableValue(DuckTableList.Of(conn))];
     }

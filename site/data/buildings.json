@@ -911,11 +911,11 @@
           "edges": [
             {
               "from": "db.source",
-              "to": "entities.source"
+              "to": "entities.path"
             },
             {
               "from": "db.source",
-              "to": "storeys.source"
+              "to": "storeys.path"
             },
             {
               "from": "entities.table",

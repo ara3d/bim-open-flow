@@ -30,4 +30,12 @@ describe("column list helpers", () => {
     expect(isMultiColumn("leftKey", "a,b")).toBe(true);
     expect(isMultiColumn("leftKey", "a")).toBe(false);
   });
+
+  it("reads the descriptor's list flag and guesses from the name only without it", async () => {
+    const { isMultiColumn } = await import("../src/suggestText.js");
+    expect(isMultiColumn("leftKey", "", true)).toBe(true);
+    expect(isMultiColumn("groupBy", "", false)).toBe(false);
+    expect(isMultiColumn("groupBy", "a,b", false)).toBe(true);
+    expect(isMultiColumn("groupBy", "", undefined)).toBe(true);
+  });
 });

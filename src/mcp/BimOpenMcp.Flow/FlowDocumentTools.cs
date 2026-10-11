@@ -92,6 +92,8 @@ public static class FlowDocumentTools
                     @default = p.Default,
                     enumValues = p.EnumValues,
                     suggest = p.Suggest is null ? null : new { kind = p.Suggest.Kind.ToString(), source = p.Suggest.Source },
+                    bindable = p.Bindable?.ToString(),
+                    list = p.List,
                 }).ToList(),
                 description = spec.Description,
             })

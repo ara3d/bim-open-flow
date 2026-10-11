@@ -12,18 +12,18 @@ public sealed class DuckTableNode : IFlowNode
 
     public NodeSpec Spec { get; } = new(
         Kind, 1, NodeCapability.Pure,
-        Inputs: [DuckSourceInput.Spec],
+        Inputs: [],
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("path", ParamKind.FilePath, Suggest: SuggestSource.FilesWith(".duckdb")),
+            DuckSourceInput.Spec,
             new ParamSpec("table", ParamKind.Text, Suggest: SuggestSource.TablesInFile("path")),
         ],
         "Reads one named table from a .duckdb database file, read-only.");
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {
-        var path = DuckSourceInput.ResolvePath(context, inputs, parameters, Kind);
+        var path = DuckSourceInput.ResolvePath(parameters, Kind);
         var tableName = parameters.RequiredText("table", Kind);
         using var conn = DuckDbOps.OpenReadOnly(path);
         var known = conn.Query(

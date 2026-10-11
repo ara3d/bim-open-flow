@@ -38,6 +38,23 @@ public sealed class StructureTests
             """.ReplaceLineEndings("\n")));
 
     [Test]
+    public void AWiredBindableParameter_PrintsAsAnInput_AndDropsItsStoredString()
+    {
+        var spec = new NodeSpec("test.bound", 1, NodeCapability.Pure, [], [], [
+            new ParamSpec("path", ParamKind.FilePath, Bindable: PortType.Text),
+            new ParamSpec("sql", ParamKind.Text)]);
+        var doc = GraphDocument.Empty
+            .AddNode("src", "test.text", 1).SetParam("src", "value", "x")
+            .AddNode("q", "test.bound", 1).SetParam("q", "path", "stale.duckdb").SetParam("q", "sql", "SELECT 1")
+            .Connect("src.out", "q.path");
+        Assert.That(Bindings.Line(doc, doc.FindNode("q")!, spec),
+            Is.EqualTo("""q = test.bound@1(path: src.out, sql: "SELECT 1");"""));
+        var unwired = doc.Disconnect("src.out", "q.path");
+        Assert.That(Bindings.Line(unwired, unwired.FindNode("q")!, spec),
+            Is.EqualTo("""q = test.bound@1(path: "stale.duckdb", sql: "SELECT 1");"""));
+    }
+
+    [Test]
     public void WithoutASnapshot_PrintsStructureOnly()
         => Assert.That(GraphText.Print(Sum, null, TestNodes.Registry), Does.Not.Contain("//   ").And.Not.Contain("Ok"));
 

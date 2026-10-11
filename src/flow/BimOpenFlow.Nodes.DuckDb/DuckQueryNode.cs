@@ -11,24 +11,20 @@ public sealed class DuckQueryNode(DuckSourceCache? cache = null) : IFlowNode
 
     public NodeSpec Spec { get; } = new(
         Kind, 1, NodeCapability.Pure,
-        Inputs: [DuckSourceInput.Spec],
+        Inputs: [],
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            // Used only when no source is wired; new graphs supply duck.source instead.
-            new ParamSpec("path", ParamKind.FilePath, Control: new ParamControl("hidden")),
+            DuckSourceInput.Spec,
             new ParamSpec("sql", ParamKind.Text),
         ],
-        "Runs read-only SQL against a connected shared DuckDB source.");
+        "Runs read-only SQL against a DuckDB file: type the path, or wire a duck.source into path.");
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {
         var validated = parameters.ReadOnlySql(Kind);
-        if (DuckSourceInput.Wired(inputs) is { } source)
-        {
-            DuckSourceInput.WarnIfBothSet(context, parameters, Kind, source.Path);
+        if (DuckSourceInput.Wired(parameters) is { } source)
             return [new TableValue((cache ?? DuckSourceCache.Shared).Query(source.Path, validated))];
-        }
         var path = parameters.RequiredText("path", Kind);
         if (!File.Exists(path))
             throw new FileNotFoundException($"{Kind}: file not found: {path}", path);

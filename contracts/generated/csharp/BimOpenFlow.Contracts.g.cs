@@ -41,6 +41,17 @@ public enum ColumnType
     Integer,
     Number,
     Text,
+    Date,
+    Timestamp,
+    Binary,
+    Unknown,
+}
+
+public enum SchemaMode
+{
+    Static,
+    Inferred,
+    Dynamic,
 }
 
 public enum NodeCapability
@@ -148,6 +159,17 @@ public sealed record PathStatus(
     string? Root,
     string? Relative);
 
+public sealed record SchemaColumn(
+    string Name,
+    ColumnType Type,
+    bool Nullable,
+    string? Kind);
+
+public sealed record OutputSchema(
+    string Output,
+    SchemaMode Mode,
+    IReadOnlyList<SchemaColumn>? Columns);
+
 public sealed record NodeDescriptor(
     string Kind,
     int Version,
@@ -155,7 +177,8 @@ public sealed record NodeDescriptor(
     IReadOnlyList<PortDescriptor> Inputs,
     IReadOnlyList<PortDescriptor> Outputs,
     IReadOnlyList<ParamDescriptor> Params,
-    string Description);
+    string Description,
+    IReadOnlyList<OutputSchema>? Schemas);
 
 public sealed record NodeCatalog(
     IReadOnlyList<NodeDescriptor> Nodes);

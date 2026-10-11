@@ -29,7 +29,16 @@ export type ColumnType =
   | "Boolean"
   | "Integer"
   | "Number"
-  | "Text";
+  | "Text"
+  | "Date"
+  | "Timestamp"
+  | "Binary"
+  | "Unknown";
+
+export type SchemaMode =
+  | "Static"
+  | "Inferred"
+  | "Dynamic";
 
 export type NodeCapability =
   | "Pure"
@@ -135,6 +144,19 @@ export interface PathStatus {
   relative?: string | undefined;
 }
 
+export interface SchemaColumn {
+  name: string;
+  type: ColumnType;
+  nullable: boolean;
+  kind?: string | undefined;
+}
+
+export interface OutputSchema {
+  output: string;
+  mode: SchemaMode;
+  columns?: SchemaColumn[] | undefined;
+}
+
 export interface NodeDescriptor {
   kind: string;
   version: number;
@@ -143,6 +165,7 @@ export interface NodeDescriptor {
   outputs: PortDescriptor[];
   params: ParamDescriptor[];
   description: string;
+  schemas?: OutputSchema[] | undefined;
 }
 
 export interface NodeCatalog {

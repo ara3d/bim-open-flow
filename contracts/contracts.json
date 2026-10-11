@@ -4,7 +4,8 @@
   "enums": {
     "ParamKind": ["Boolean", "Integer", "Number", "Text", "Enum", "FilePath", "ModelRef", "Expression", "Json", "DateTime", "Fraction", "Percent"],
     "PortType": ["Boolean", "Integer", "Number", "Text", "Table", "Relation", "Database", "Any"],
-    "ColumnType": ["Boolean", "Integer", "Number", "Text"],
+    "ColumnType": ["Boolean", "Integer", "Number", "Text", "Date", "Timestamp", "Binary", "Unknown"],
+    "SchemaMode": ["Static", "Inferred", "Dynamic"],
     "NodeCapability": ["Pure", "Effect"],
     "Verdict": ["Pass", "Fail", "NeedsReview", "InfoNotAvailable"],
     "ModelKind": ["Ifc", "Bos"],
@@ -75,6 +76,17 @@
       "root": "string?",
       "relative": "string?"
     },
+    "SchemaColumn": {
+      "name": "string",
+      "type": "ColumnType",
+      "nullable": "bool",
+      "kind": "string?"
+    },
+    "OutputSchema": {
+      "output": "string",
+      "mode": "SchemaMode",
+      "columns": "SchemaColumn[]?"
+    },
     "NodeDescriptor": {
       "kind": "string",
       "version": "int",
@@ -82,7 +94,8 @@
       "inputs": "PortDescriptor[]",
       "outputs": "PortDescriptor[]",
       "params": "ParamDescriptor[]",
-      "description": "string"
+      "description": "string",
+      "schemas": "OutputSchema[]?"
     },
     "NodeCatalog": {
       "nodes": "NodeDescriptor[]"

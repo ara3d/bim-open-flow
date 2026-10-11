@@ -11,11 +11,11 @@ public sealed class DuckQueryNode(DuckSourceCache? cache = null) : IFlowNode
 
     public NodeSpec Spec { get; } = new(
         Kind, 1, NodeCapability.Pure,
-        Inputs: [new PortSpec("source", PortType.Text, Optional: true)],
+        Inputs: [DuckSourceInput.Spec],
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            // Retained for old saved graphs; new graphs supply duck.source instead.
+            // Used only when no source is wired; new graphs supply duck.source instead.
             new ParamSpec("path", ParamKind.FilePath, Control: new ParamControl("hidden")),
             new ParamSpec("sql", ParamKind.Text),
         ],
@@ -24,8 +24,11 @@ public sealed class DuckQueryNode(DuckSourceCache? cache = null) : IFlowNode
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {
         var validated = parameters.ReadOnlySql(Kind);
-        if (inputs.Count > 0 && inputs[0] is TextValue source)
-            return [new TableValue((cache ?? DuckSourceCache.Shared).Query(source.Value, validated))];
+        if (DuckSourceInput.Wired(inputs) is { } source)
+        {
+            DuckSourceInput.WarnIfBothSet(context, parameters, Kind, source.Path);
+            return [new TableValue((cache ?? DuckSourceCache.Shared).Query(source.Path, validated))];
+        }
         var path = parameters.RequiredText("path", Kind);
         if (!File.Exists(path))
             throw new FileNotFoundException($"{Kind}: file not found: {path}", path);

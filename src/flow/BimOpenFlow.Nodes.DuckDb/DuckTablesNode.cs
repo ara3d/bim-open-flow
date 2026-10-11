@@ -1,6 +1,5 @@
 using Ara3D.BimOpenSchema.DuckDb;
 using Ara3D.DataFlowEngine.Abstractions;
-using Ara3D.DataTable;
 
 namespace BimOpenFlow.Nodes.DuckDb;
 
@@ -12,22 +11,15 @@ public sealed class DuckTablesNode : IFlowNode
 
     public NodeSpec Spec { get; } = new(
         Kind, 1, NodeCapability.Pure,
-        Inputs: [],
+        Inputs: [DuckSourceInput.Spec],
         Outputs: [new PortSpec("tables", PortType.Table)],
-        Params: [new ParamSpec("path", ParamKind.FilePath)],
+        Params: [new ParamSpec("path", ParamKind.FilePath, Suggest: SuggestSource.FilesWith(".duckdb"))],
         "Lists the tables in a .duckdb database file with their column and row counts.");
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {
-        var path = parameters.RequiredText("path", Kind);
-        if (!File.Exists(path))
-            throw new FileNotFoundException($"{Kind}: file not found: {path}", path);
+        var path = DuckSourceInput.ResolvePath(context, inputs, parameters, Kind);
         using var conn = DuckDbOps.OpenReadOnly(path);
-        var infos = conn.GetTableInfo();
-        var builder = new DataTableBuilder("tables");
-        builder.AddColumn(infos.Select(i => (object?)i.Table).ToArray(), "name", typeof(string));
-        builder.AddColumn(infos.Select(i => (object?)(long)i.Columns.Count).ToArray(), "columnCount", typeof(long));
-        builder.AddColumn(infos.Select(i => (object?)i.RowCount).ToArray(), "rowCount", typeof(long));
-        return [new TableValue(builder.Build())];
+        return [new TableValue(DuckTableList.Of(conn))];
     }
 }

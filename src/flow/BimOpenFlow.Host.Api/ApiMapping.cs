@@ -73,12 +73,27 @@ public static class ApiMapping
             ? null
             : new(suggest.Kind.ByName<Contracts.SuggestKind>(), suggest.Source);
 
-    /// <summary>Pages a node output into a TableSlice; a non-table output becomes
+    /// <summary>Pages a node output into a TableSlice; a Database becomes its table list (its
+    /// Payload, a Func&lt;IDataTable&gt;, supplies it); any other non-table output becomes
     /// a one-row, one-column slice named after the port.</summary>
     public static TableSlice ToSlice(this FlowValue value, string port, int skip, int take)
-        => value is TableValue table
-            ? table.Table.ToSlice(skip, take)
-            : ScalarSlice(value, port, skip, take);
+        => value switch
+        {
+            TableValue table => table.Table.ToSlice(skip, take),
+            DatabaseValue { Payload: Func<IDataTable> tables } => tables().ToSlice(skip, take),
+            DatabaseValue database => DatabaseSlice(database, skip, take),
+            _ => ScalarSlice(value, port, skip, take),
+        };
+
+    /// <summary>A Database value whose host supplied no table lister (read back from a run record):
+    /// one row naming the file and its content hash.</summary>
+    private static TableSlice DatabaseSlice(DatabaseValue database, int skip, int take)
+    {
+        var builder = new DataTableBuilder("database");
+        builder.AddColumn(new object?[] { database.Path }, "path", typeof(string));
+        builder.AddColumn(new object?[] { database.Hash }, "hash", typeof(string));
+        return builder.Build().ToSlice(skip, take);
+    }
 
     public static TableSlice ToSlice(this IDataTable table, int skip, int take)
     {

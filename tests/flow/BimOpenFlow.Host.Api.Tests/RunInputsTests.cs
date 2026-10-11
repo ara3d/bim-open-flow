@@ -1,6 +1,7 @@
 using Ara3D.DataFlowEngine;
 using Ara3D.DataFlowEngine.Abstractions;
 using Ara3D.DataFlowEngine.Runs;
+using Ara3D.DataFlowEngine.TestKit;
 using Ara3D.NodeGraph;
 using BimOpenFlow.Contracts;
 using BimOpenFlow.Host.Catalog;
@@ -84,4 +85,65 @@ public sealed class RunInputsTests
             Directory.Delete(root, recursive: true);
         }
     }
+
+    [Test]
+    public void DatabaseOutput_IsPinnedByItsHash()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "bof-runinputs-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var file = Path.Combine(root, "source.duckdb");
+            File.WriteAllText(file, "content");
+            var hash = ModelCatalog.HashFile(file);
+            var snapshot = SnapshotWithOutput(SingleNodeDoc(), new DatabaseValue(file, hash));
+
+            var inputs = RunInputs.Derive(snapshot, new NodeRegistry([]), Catalog(root), relations: null);
+
+            Assert.That(inputs, Is.EqualTo(new[] { new RunInput("src", "source", hash, file) }));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
+    public void DatabaseOutput_IsNotPinnedTwiceWhenTheNodesPathParameterPinnedTheSameFile()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "bof-runinputs-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var file = Path.Combine(root, "source.duckdb");
+            File.WriteAllText(file, "content");
+            var hash = ModelCatalog.HashFile(file);
+            var node = new DelegateNode(
+                new("test.dbSource", 1, Ara3D.DataFlowEngine.Abstractions.NodeCapability.Pure, [], [],
+                    [new("path", Ara3D.DataFlowEngine.Abstractions.ParamKind.FilePath)], "A database source."),
+                (_, _, _) => []);
+            var doc = new GraphDocument(
+                [new GraphNode("src", "test.dbSource", 1)],
+                [],
+                new Dictionary<string, IReadOnlyDictionary<string, string>> { ["src"] = new Dictionary<string, string> { ["path"] = file } },
+                new Dictionary<string, NodeLayout>());
+            var snapshot = SnapshotWithOutput(doc, new DatabaseValue(file, hash));
+
+            var inputs = RunInputs.Derive(snapshot, new NodeRegistry([node]), Catalog(root), relations: null);
+
+            Assert.That(inputs, Is.EqualTo(new[] { new RunInput("src", "path", hash, file) }));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    private static EvalSnapshot SnapshotWithOutput(GraphDocument doc, FlowValue value)
+        => new(doc,
+            new Dictionary<string, NodeResult>
+            {
+                ["src"] = new("src", NodeStatus.Ok, [value], ["out-hash"], [], []),
+            },
+            []);
 }

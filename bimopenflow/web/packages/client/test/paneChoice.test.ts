@@ -21,6 +21,10 @@ describe("firstTableOutput", () => {
     expect(firstTableOutput(withOutput("rel.filter", "Relation"))?.name).toBe("out");
   });
 
+  it("treats a Database output as its table list", () => {
+    expect(firstTableOutput(withOutput("duck.source", "Database"))?.name).toBe("out");
+  });
+
   it("ignores scalar outputs", () => {
     expect(firstTableOutput(withOutput("test.const", "Integer"))).toBeUndefined();
   });

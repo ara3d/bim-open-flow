@@ -1,4 +1,6 @@
+using System.Security.Cryptography;
 using Ara3D.BimOpenSchema.DuckDb;
+using Ara3D.DataFlowEngine.Abstractions;
 using Ara3D.DataTable;
 using DuckDB.NET.Data;
 
@@ -8,7 +10,7 @@ namespace BimOpenFlow.Nodes.DuckDb;
 /// eviction and disposal cannot close a connection while a branch is using it.</summary>
 public sealed class DuckSourceCache(int capacity = 8) : IDisposable
 {
-    private sealed record Entry(DuckDBConnection Connection, long Length, DateTime Modified)
+    private sealed record Entry(DuckDBConnection Connection, long Length, DateTime Modified, string Hash)
     {
         public long LastUse { get; set; }
     }
@@ -21,16 +23,28 @@ public sealed class DuckSourceCache(int capacity = 8) : IDisposable
     private bool disposed;
     public long OpenedConnections { get; private set; }
 
-    public string Load(string path)
+    /// <summary>Opens (or reuses) the connection and returns the database as a value: its full path and the
+    /// SHA-256 of its content, recomputed only when the file's length or modified time changes. The value's
+    /// Payload is a Func&lt;IDataTable&gt; that lists the tables, for hosts that show the value.</summary>
+    public DatabaseValue Load(string path)
     {
         var fullPath = Path.GetFullPath(path);
-        lock (gate) { Get(fullPath); }
-        return fullPath;
+        lock (gate)
+        {
+            Get(fullPath);
+            return new DatabaseValue(fullPath, entries[fullPath].Hash, Payload: (Func<IDataTable>)(() => Tables(fullPath)));
+        }
     }
 
     public IDataTable Query(string source, string sql)
     {
         lock (gate) return Get(Path.GetFullPath(source)).Query(sql, "query").NormalizeDatesToText();
+    }
+
+    /// <summary>The table list of an open source (see DuckTableList).</summary>
+    public IDataTable Tables(string source)
+    {
+        lock (gate) return DuckTableList.Of(Get(Path.GetFullPath(source)));
     }
 
     private DuckDBConnection Get(string path)
@@ -54,12 +68,18 @@ public sealed class DuckSourceCache(int capacity = 8) : IDisposable
                 entries.Remove(oldest.Key);
             }
             var connection = DuckDbOps.OpenReadOnly(path);
-            entry = new(connection, file.Length, file.LastWriteTimeUtc);
+            entry = new(connection, file.Length, file.LastWriteTimeUtc, HashContent(path));
             entries.Add(path, entry);
             OpenedConnections++;
         }
         entry.LastUse = ++clock;
         return entry.Connection;
+    }
+
+    private static string HashContent(string path)
+    {
+        using var stream = File.OpenRead(path);
+        return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
     }
 
     public void Dispose()

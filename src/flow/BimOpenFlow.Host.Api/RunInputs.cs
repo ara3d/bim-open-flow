@@ -42,24 +42,30 @@ public static class RunInputs
         return inputs;
     }
 
-    /// <summary>As the document overload, plus: for every Ok node with a RelationValue output,
-    /// each file relations.SourceFiles returns, recorded as RunInput(node, "source", sha256, path).</summary>
+    /// <summary>As the document overload, plus: every Database output of an Ok node, pinned by its
+    /// content hash as RunInput(node, "source", hash, path) unless the node's own FilePath parameter
+    /// already pinned that hash; and, when relations is given, each file relations.SourceFiles returns
+    /// for an Ok node's RelationValue output, recorded the same way with the file's sha256.</summary>
     public static IReadOnlyList<RunInput> Derive(EvalSnapshot snapshot, INodeRegistry registry,
         ModelCatalog catalog, IRelationResults? relations)
     {
         var inputs = Derive(snapshot.Document, registry, catalog).ToList();
-        if (relations is null)
-            return inputs;
         foreach (var (nodeId, result) in snapshot.Results)
         {
             if (result.Status != NodeStatus.Ok)
                 continue;
             foreach (var output in result.Outputs)
             {
-                if (output is not RelationValue relation)
-                    continue;
-                foreach (var file in relations.SourceFiles(relation))
-                    inputs.Add(new(nodeId, "source", ModelCatalog.HashFile(file), file));
+                if (output is DatabaseValue database)
+                {
+                    if (!inputs.Any(i => i.Node == nodeId && i.ContentHash == database.Hash))
+                        inputs.Add(new(nodeId, "source", database.Hash, database.Path));
+                }
+                else if (output is RelationValue relation && relations is not null)
+                {
+                    foreach (var file in relations.SourceFiles(relation))
+                        inputs.Add(new(nodeId, "source", ModelCatalog.HashFile(file), file));
+                }
             }
         }
         return inputs;

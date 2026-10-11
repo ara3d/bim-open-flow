@@ -38,3 +38,5 @@ export type { RelinkTarget, SourcePlan } from "./sourcePlans.js";
 export { findSourceByPath } from "./sources.js";
 export { INPUT_KIND, inputCardId, inputUses, inputValue } from "./graphInputs.js";
 export type { InputMark } from "./graphInputs.js";
+export { canInlineInput, canMakeInput, inlineInputPlan, inputNameFor, makeInputPlan } from "./inputPlans.js";
+export type { InputPlan } from "./inputPlans.js";

@@ -13,6 +13,7 @@ import type { MenuItem } from "./nodeContextMenu.js";
 import { showRelinkOffer } from "./relinkOffer.js";
 import { sourceMenuItems } from "./sourceMenu.js";
 import { dropSourcePlan, promotePlan, relinkActions, type SourcePlan } from "./sourcePlans.js";
+import { canInlineInput, canMakeInput, inlineInputPlan, inputOfParam, makeInputPlan, PATH_PARAM, type InputPlan } from "./inputPlans.js";
 import { isSourceDescriptor, type SourceView } from "./sources.js";
 import type { CanvasModel } from "./viewModel.js";
 
@@ -69,6 +70,12 @@ export function installSourceGestures(canvas: HTMLCanvasElement, deps: SourceGes
     },
   });
 
+  /** Dispatches a graph-input plan, or reports its error. */
+  const runInput = (plan: InputPlan): void => {
+    if ("error" in plan) onError(plan.error);
+    else dispatch(plan.actions);
+  };
+
   function promote(nodeId: string, param: string, client: Point): void {
     const plan = run(promotePlan(store.getState(), deps.getCatalog(), nodeId, param));
     if (!plan || plan.relink.length === 0) return;
@@ -92,6 +99,16 @@ export function installSourceGestures(canvas: HTMLCanvasElement, deps: SourceGes
         unlink(hit) {
           const edge = store.getState().document.structure.edges.find((e) => e.to === `${hit.nodeId}.${hit.param}`);
           if (edge) store.dispatch({ type: "disconnect", from: edge.from, to: edge.to });
+        },
+        inputs: {
+          canMake: (id) => canMakeInput(store.getState(), deps.getCatalog(), id),
+          make: (id) => runInput(makeInputPlan(store.getState(), deps.getCatalog(), id)),
+          inlineParam(id, row) {
+            const state = store.getState();
+            if (row?.nodeId === id && inputOfParam(state, id, row.param.name) !== null) return row.param.name;
+            return canInlineInput(state, deps.getCatalog(), id) ? PATH_PARAM : null;
+          },
+          inline: (id, param) => runInput(inlineInputPlan(store.getState(), id, param)),
         },
       }, nodeId, world.x, world.y);
     },

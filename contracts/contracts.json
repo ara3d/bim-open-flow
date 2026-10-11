@@ -9,7 +9,7 @@
     "Verdict": ["Pass", "Fail", "NeedsReview", "InfoNotAvailable"],
     "ModelKind": ["Ifc", "Bos"],
     "NodeStatus": ["Ok", "Unready", "EffectPending", "Unavailable", "Error"],
-    "SuggestKind": ["ColumnsOfInput", "TablesInFile"],
+    "SuggestKind": ["ColumnsOfInput", "TablesInFile", "FilesUnderRoots"],
     "SuggestStatus": ["Ok", "Unready", "Unavailable"]
   },
   "types": {
@@ -54,6 +54,24 @@
       "status": "SuggestStatus",
       "values": "Suggestion[]",
       "reason": "string?"
+    },
+    "FolderEntry": {
+      "name": "string",
+      "path": "string",
+      "isDirectory": "bool",
+      "sizeBytes": "long?"
+    },
+    "FolderListing": {
+      "dir": "string",
+      "parent": "string?",
+      "roots": "string[]",
+      "entries": "FolderEntry[]"
+    },
+    "PathStatus": {
+      "path": "string",
+      "exists": "bool",
+      "root": "string?",
+      "relative": "string?"
     },
     "NodeDescriptor": {
       "kind": "string",
@@ -140,6 +158,8 @@
     { "name": "putAnalysis", "method": "PUT", "path": "/api/analyses/{id}", "body": "text", "response": "AnalysisSummary" },
     { "name": "getAnalysisHistory", "method": "GET", "path": "/api/analyses/{id}/history", "response": "AnalysisVersion[]" },
     { "name": "getNodeCatalog", "method": "GET", "path": "/api/catalog/nodes", "response": "NodeCatalog" },
+    { "name": "browseFolder", "method": "GET", "path": "/api/files", "query": { "dir": "string?", "ext": "string?" }, "response": "FolderListing" },
+    { "name": "statPath", "method": "GET", "path": "/api/files/stat", "query": { "path": "string" }, "response": "PathStatus" },
     { "name": "getAnalysisState", "method": "GET", "path": "/api/analyses/{id}/state", "response": "EvalUpdate" },
     { "name": "getAnalysisText", "method": "GET", "path": "/api/analyses/{id}/text", "query": { "mode": "string?" }, "response": "text" },
     { "name": "getResult", "method": "GET", "path": "/api/analyses/{id}/results/{nodeId}/{port}", "query": { "skip": "int?", "take": "int?" }, "response": "TableSlice" },

@@ -54,7 +54,8 @@ export type NodeStatus =
 
 export type SuggestKind =
   | "ColumnsOfInput"
-  | "TablesInFile";
+  | "TablesInFile"
+  | "FilesUnderRoots";
 
 export type SuggestStatus =
   | "Ok"
@@ -109,6 +110,27 @@ export interface SuggestionList {
   status: SuggestStatus;
   values: Suggestion[];
   reason?: string | undefined;
+}
+
+export interface FolderEntry {
+  name: string;
+  path: string;
+  isDirectory: boolean;
+  sizeBytes?: number | undefined;
+}
+
+export interface FolderListing {
+  dir: string;
+  parent?: string | undefined;
+  roots: string[];
+  entries: FolderEntry[];
+}
+
+export interface PathStatus {
+  path: string;
+  exists: boolean;
+  root?: string | undefined;
+  relative?: string | undefined;
 }
 
 export interface NodeDescriptor {

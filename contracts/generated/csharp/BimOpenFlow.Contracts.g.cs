@@ -76,6 +76,7 @@ public enum SuggestKind
 {
     ColumnsOfInput,
     TablesInFile,
+    FilesUnderRoots,
 }
 
 public enum SuggestStatus
@@ -126,6 +127,24 @@ public sealed record SuggestionList(
     SuggestStatus Status,
     IReadOnlyList<Suggestion> Values,
     string? Reason);
+
+public sealed record FolderEntry(
+    string Name,
+    string Path,
+    bool IsDirectory,
+    long? SizeBytes);
+
+public sealed record FolderListing(
+    string Dir,
+    string? Parent,
+    IReadOnlyList<string> Roots,
+    IReadOnlyList<FolderEntry> Entries);
+
+public sealed record PathStatus(
+    string Path,
+    bool Exists,
+    string? Root,
+    string? Relative);
 
 public sealed record NodeDescriptor(
     string Kind,
@@ -212,6 +231,8 @@ public static class ApiRoutes
     public const string PutAnalysis = "/api/analyses/{id}";
     public const string GetAnalysisHistory = "/api/analyses/{id}/history";
     public const string GetNodeCatalog = "/api/catalog/nodes";
+    public const string BrowseFolder = "/api/files";
+    public const string StatPath = "/api/files/stat";
     public const string GetAnalysisState = "/api/analyses/{id}/state";
     public const string GetAnalysisText = "/api/analyses/{id}/text";
     public const string GetResult = "/api/analyses/{id}/results/{nodeId}/{port}";

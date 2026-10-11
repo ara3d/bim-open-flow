@@ -1,6 +1,6 @@
 // Generated from contracts/contracts.json v0.1.0 by contracts/generate.mjs.
 // Do not edit by hand.
-import type { ModelSummary, EntityProperties, AnalysisSummary, AnalysisVersion, NodeCatalog, EvalUpdate, TableSlice, SuggestionList, RunSummary, EditorSession } from "@bimopenflow/contracts";
+import type { ModelSummary, EntityProperties, AnalysisSummary, AnalysisVersion, NodeCatalog, FolderListing, PathStatus, EvalUpdate, TableSlice, SuggestionList, RunSummary, EditorSession } from "@bimopenflow/contracts";
 
 export interface ApiClientOptions {
   baseUrl?: string;
@@ -66,6 +66,16 @@ export class ApiClient {
   async getNodeCatalog(): Promise<NodeCatalog> {
     const res = await this.request("GET", `/api/catalog/nodes`, undefined, undefined);
     return res.json() as Promise<NodeCatalog>;
+  }
+
+  async browseFolder(dir?: string, ext?: string): Promise<FolderListing> {
+    const res = await this.request("GET", `/api/files`, { dir, ext }, undefined);
+    return res.json() as Promise<FolderListing>;
+  }
+
+  async statPath(path?: string): Promise<PathStatus> {
+    const res = await this.request("GET", `/api/files/stat`, { path }, undefined);
+    return res.json() as Promise<PathStatus>;
   }
 
   async getAnalysisState(id: string): Promise<EvalUpdate> {

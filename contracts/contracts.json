@@ -122,10 +122,18 @@
       "error": "string?",
       "warnings": "string[]"
     },
+    "GraphInputInfo": {
+      "name": "string",
+      "kind": "ParamKind",
+      "default": "string",
+      "description": "string",
+      "value": "string"
+    },
     "EvalUpdate": {
       "analysisId": "string",
       "nodes": "NodeState[]",
-      "graphHash": "string?"
+      "graphHash": "string?",
+      "graphInputs": "GraphInputInfo[]?"
     },
     "EditorSession": {
       "analysisId": "string?",
@@ -165,6 +173,8 @@
     { "name": "getAnalysisState", "method": "GET", "path": "/api/analyses/{id}/state", "response": "EvalUpdate" },
     { "name": "getAnalysisText", "method": "GET", "path": "/api/analyses/{id}/text", "query": { "mode": "string?" }, "response": "text" },
     { "name": "getResult", "method": "GET", "path": "/api/analyses/{id}/results/{nodeId}/{port}", "query": { "skip": "int?", "take": "int?" }, "response": "TableSlice" },
+    { "name": "getGraphInputs", "method": "GET", "path": "/api/analyses/{id}/inputs", "response": "GraphInputInfo[]" },
+    { "name": "putGraphInput", "method": "PUT", "path": "/api/analyses/{id}/inputs/{name}", "body": "text", "response": "GraphInputInfo[]" },
     { "name": "getSuggestions", "method": "GET", "path": "/api/analyses/{id}/suggestions/{nodeId}/{param}", "response": "SuggestionList" },
     { "name": "listRuns", "method": "GET", "path": "/api/analyses/{id}/runs", "response": "RunSummary[]" },
     { "name": "createRun", "method": "POST", "path": "/api/analyses/{id}/runs", "response": "RunSummary" },

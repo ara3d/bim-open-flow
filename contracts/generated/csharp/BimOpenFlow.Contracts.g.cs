@@ -195,10 +195,18 @@ public sealed record NodeState(
     string? Error,
     IReadOnlyList<string> Warnings);
 
+public sealed record GraphInputInfo(
+    string Name,
+    ParamKind Kind,
+    string Default,
+    string Description,
+    string Value);
+
 public sealed record EvalUpdate(
     string AnalysisId,
     IReadOnlyList<NodeState> Nodes,
-    string? GraphHash);
+    string? GraphHash,
+    IReadOnlyList<GraphInputInfo>? GraphInputs);
 
 public sealed record EditorSession(
     string? AnalysisId,
@@ -238,6 +246,8 @@ public static class ApiRoutes
     public const string GetAnalysisState = "/api/analyses/{id}/state";
     public const string GetAnalysisText = "/api/analyses/{id}/text";
     public const string GetResult = "/api/analyses/{id}/results/{nodeId}/{port}";
+    public const string GetGraphInputs = "/api/analyses/{id}/inputs";
+    public const string PutGraphInput = "/api/analyses/{id}/inputs/{name}";
     public const string GetSuggestions = "/api/analyses/{id}/suggestions/{nodeId}/{param}";
     public const string ListRuns = "/api/analyses/{id}/runs";
     public const string CreateRun = "/api/analyses/{id}/runs";

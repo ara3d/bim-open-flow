@@ -190,10 +190,19 @@ export interface NodeState {
   warnings: string[];
 }
 
+export interface GraphInputInfo {
+  name: string;
+  kind: ParamKind;
+  default: string;
+  description: string;
+  value: string;
+}
+
 export interface EvalUpdate {
   analysisId: string;
   nodes: NodeState[];
   graphHash?: string | undefined;
+  graphInputs?: GraphInputInfo[] | undefined;
 }
 
 export interface EditorSession {

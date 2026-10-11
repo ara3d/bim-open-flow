@@ -1,6 +1,6 @@
 // Generated from contracts/contracts.json v0.1.0 by contracts/generate.mjs.
 // Do not edit by hand.
-import type { ModelSummary, EntityProperties, AnalysisSummary, AnalysisVersion, NodeCatalog, FolderListing, PathStatus, EvalUpdate, TableSlice, SuggestionList, RunSummary, EditorSession } from "@bimopenflow/contracts";
+import type { ModelSummary, EntityProperties, AnalysisSummary, AnalysisVersion, NodeCatalog, FolderListing, PathStatus, EvalUpdate, TableSlice, GraphInputInfo, SuggestionList, RunSummary, EditorSession } from "@bimopenflow/contracts";
 
 export interface ApiClientOptions {
   baseUrl?: string;
@@ -91,6 +91,16 @@ export class ApiClient {
   async getResult(id: string, nodeId: string, port: string, skip?: number, take?: number): Promise<TableSlice> {
     const res = await this.request("GET", `/api/analyses/${encodeURIComponent(id)}/results/${encodeURIComponent(nodeId)}/${encodeURIComponent(port)}`, { skip, take }, undefined);
     return res.json() as Promise<TableSlice>;
+  }
+
+  async getGraphInputs(id: string): Promise<GraphInputInfo[]> {
+    const res = await this.request("GET", `/api/analyses/${encodeURIComponent(id)}/inputs`, undefined, undefined);
+    return res.json() as Promise<GraphInputInfo[]>;
+  }
+
+  async putGraphInput(id: string, name: string, body: string): Promise<GraphInputInfo[]> {
+    const res = await this.request("PUT", `/api/analyses/${encodeURIComponent(id)}/inputs/${encodeURIComponent(name)}`, undefined, body);
+    return res.json() as Promise<GraphInputInfo[]>;
   }
 
   async getSuggestions(id: string, nodeId: string, param: string): Promise<SuggestionList> {

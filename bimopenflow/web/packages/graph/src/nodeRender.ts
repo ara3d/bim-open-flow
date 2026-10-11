@@ -285,6 +285,17 @@ const STRIPE = { x: 1.5, y: 8, w: 3, h: NODE_HEADER - 16 };
 
 const BANNER_TINT = 0.22;
 
+/** A lit card (the chip under the pointer, TKT-138; TKT-217 found the first
+ *  highlight too faint to see): its fill leans this far toward the accent, and
+ *  its border is this wide, against 1.2 for a plain card and 2 for one on the
+ *  selected path. The edge itself is the accent at full strength. */
+export const LIT_FILL_MIX = 0.22;
+export const LIT_EDGE_WIDTH = 3;
+
+/** Width of a card's border. */
+export const cardEdgeWidth = (p: Pick<CanvasNode, "lit" | "contributing">): number =>
+  p.lit ? LIT_EDGE_WIDTH : p.contributing ? 2 : 1.2;
+
 function drawStatus(
   painter: Painter,
   r: Rect,
@@ -327,7 +338,7 @@ export function renderNodeCard(
   const layout = nodeCardLayout(p, style, painter.measure);
   const statusColor = p.status ? palette.status[p.status] : colors.dim;
 
-  painter.box(r, 8, colors.fill, p.contributing ? palette.contributing : colors.edge, p.contributing ? 2 : 1.2);
+  painter.box(r, 8, colors.fill, p.contributing && !p.lit ? palette.contributing : colors.edge, cardEdgeWidth(p));
   if (palette.packAccent) painter.box(rect(r.x + STRIPE.x, r.y + STRIPE.y, STRIPE.w, STRIPE.h), 1.5, palette.packAccent);
   if (layout.status) drawStatus(painter, r, layout.status, statusColor, colors);
   if (layout.footer) {

@@ -94,14 +94,17 @@ export interface SourceMatch {
   readonly endpoint: string;
 }
 
-/** The first source node holding `path` whose output has type `type`. */
+/** The first source node holding `path` whose output has type `type`, other
+ *  than `except` (the node asking: a source is never offered itself, TKT-217). */
 export function findSourceByPath(
   document: Document,
   catalog: Catalog,
   path: string,
   type: PortType,
+  except?: string,
 ): SourceMatch | null {
   for (const nodeId of sourceNodeIds(document, catalog)) {
+    if (nodeId === except) continue;
     const node = document.structure.nodes.find((n) => n.id === nodeId)!;
     const output = catalog.get(node.kind)!.outputs.find((o) => o.type === type);
     if (output && samePath(sourcePath(document, catalog, nodeId), path)) return { id: nodeId, endpoint: `${nodeId}.${output.name}` };
@@ -115,4 +118,19 @@ export function pathSourceKind(catalog: Catalog, type: PortType): NodeDescriptor
   return [...catalog.values()].find((d) =>
     isSourceDescriptor(d) && d.outputs.length === 1 && d.outputs[0]!.type === type
     && d.params.some((p) => p.name === "path" && p.kind === "FilePath"));
+}
+
+/** The source the path box of parameter `param` on `nodeId` offers to link to
+ *  ("use <source>"): one holding `value`, of the type the parameter's socket
+ *  takes, and never `nodeId` itself (TKT-217). Null for a parameter with no socket. */
+export function sourceOffer(
+  document: Document,
+  catalog: Catalog,
+  nodeId: string,
+  param: string,
+  value: string,
+): SourceMatch | null {
+  const kind = document.structure.nodes.find((n) => n.id === nodeId)?.kind ?? "";
+  const type = catalog.get(kind)?.params.find((p) => p.name === param)?.bindable;
+  return type ? findSourceByPath(document, catalog, value, type, nodeId) : null;
 }

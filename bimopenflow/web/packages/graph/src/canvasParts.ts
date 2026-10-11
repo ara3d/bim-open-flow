@@ -37,7 +37,7 @@ import { slotElement } from "./slotRegistry.js";
 import { canvasColors, canvasThemes, currentCanvasTheme } from "./canvasTheme.js";
 import { currentNodeStyle } from "./nodeStyle.js";
 import { nodePack } from "./graphPreview.js";
-import { portsBottom, renderNodeCard, type NodeCardColors } from "./nodeRender.js";
+import { LIT_FILL_MIX, portsBottom, renderNodeCard, type NodeCardColors } from "./nodeRender.js";
 import { animateSelection, selectionBorder } from "./selectionBorder";
 import { upstreamEdges } from "./upstreamEdges.js";
 const selectedBorder = selectionBorder(() => canvasColors().wireSelected, animateSelection);
@@ -203,7 +203,7 @@ const GraphNodePart = part<NodeProps, NodeCardColors>("bof-node", {
       };
     }
     return {
-      fill: t.mix(t.surface, t.surfaceHi, 0.4 * channels.hover + 0.6 * channels.drag),
+      fill: t.mix(t.mix(t.surface, t.surfaceHi, 0.4 * channels.hover + 0.6 * channels.drag), t.accent, props.lit ? LIT_FILL_MIX : 0),
       edge: t.mix(t.muted, t.accent, Math.min(1, (channels.sel || 0) + 0.5 * channels.hover + (props.lit ? 1 : 0))),
       text: t.mix(t.text, t.textBright, 0.4 + 0.6 * channels.hover),
       dim: t.textDim,

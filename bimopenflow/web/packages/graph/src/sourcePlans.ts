@@ -102,7 +102,7 @@ export function promotePlan(state: State, catalog: Catalog, nodeId: string, para
   if (path.trim() === "") return { error: `${nodeId} ${param} holds no path to share` };
   if (isWired(state, nodeId, param)) return { error: `${nodeId} ${param} is already linked to a source` };
   const type = spec.bindable;
-  let source = findSourceByPath(state.document, catalog, path, type);
+  let source = findSourceByPath(state.document, catalog, path, type, nodeId);
   let actions: Action[] = [];
   if (!source) {
     const desc = pathSourceKind(catalog, type);

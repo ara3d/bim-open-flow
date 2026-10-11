@@ -18,7 +18,7 @@ import { animateSelection } from "./selectionBorder.js";
 import { installNodeContextMenu } from "./nodeContextMenu.js";
 import { inputSuggest } from "./graphInputs.js";
 import { installSourceGestures } from "./sourceGestures.js";
-import { DEFAULT_SOURCE_VIEW, findSourceByPath, type SourceView } from "./sources.js";
+import { DEFAULT_SOURCE_VIEW, sourceOffer, type SourceView } from "./sources.js";
 import { installCanvasFocus } from "./canvasFocus.js";
 import { createPeekWiring, type PeekWiring } from "./peekWiring.js";
 import { NO_PORT_RESULTS, type PortResultsView, type ReadPort } from "./portResults.js";
@@ -210,12 +210,8 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
     [...runtime.doc.nodes].reverse().find((n) =>
       p.x >= n.x && p.x <= n.x + n.w && p.y >= n.y && p.y <= n.y + n.h)?.id ?? null;
 
-  instance.sourceMatcher = (nodeId, param, value) => {
-    const { document: graph } = store.getState();
-    const kind = graph.structure.nodes.find((n) => n.id === nodeId)?.kind ?? "";
-    const type = getCatalog().get(kind)?.params.find((p) => p.name === param)?.bindable;
-    return type ? findSourceByPath(graph, getCatalog(), value, type) : null;
-  };
+  instance.sourceMatcher = (nodeId, param, value) =>
+    sourceOffer(store.getState().document, getCatalog(), nodeId, param, value);
   const sourceGestures = installSourceGestures(canvas, {
     store, getCatalog, onError, readOnly,
     getDoc: () => runtime.doc,

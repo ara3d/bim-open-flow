@@ -140,7 +140,7 @@ The MCP server speaks stdio by default, which is how MCP clients launch a server
 }
 ```
 
-The server's tools fall into five groups: models and databases (`listModels`, `listDatabases`, `describeDatabase`), documents (`listAnalyses`, `getAnalysis`, `saveAnalysis`), edits (`addNode`, `connect`, `setParam`, `removeNode`, and `editGraph` for a batch), evaluation (`evaluate`, `getResult`, `createRun`, `listRuns`, `getNodeCatalog`), and the repository's own documentation (`readDoc`, `searchDocs`). The toolkit's `.claude/skills/bim-flow/` holds the guide an agent reads before its first call.
+The server's tools fall into five groups: models and databases (`listModels`, `listDatabases`, `describeDatabase`), documents (`listAnalyses`, `getAnalysis`, `saveAnalysis`), edits (`addNode`, `connect`, `setParam`, `removeNode`, and `editGraph` for a batch), evaluation (`evaluate`, `getResult`, `createRun`, `listRuns`, `getNodeCatalog`), and the repository's own documentation (`readDoc`, `searchDocs`). `setParam` with no `nodeId` and a name like `$model` sets a graph input; `evaluate` and `createRun` accept a `graphInputs` JSON object; `editGraph` has `declareInput` and `removeInput`. The toolkit's `.claude/skills/bim-flow/` holds the guide an agent reads before its first call.
 
 ## How it works
 

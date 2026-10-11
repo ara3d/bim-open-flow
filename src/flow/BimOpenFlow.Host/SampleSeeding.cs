@@ -202,11 +202,12 @@ public static class SampleSeeding
         }
     }
 
-    /// <summary>The first {WORD} placeholder any parameter value still holds after rewriting,
+    /// <summary>The first {WORD} placeholder any parameter value or input default still holds after rewriting,
     /// or null when every placeholder the graph names resolved to a real path.</summary>
     private static string? FirstUnresolvedPlaceholder(GraphDocument doc)
         => doc.Values.Values
             .SelectMany(p => p.Values)
+            .Concat(doc.Inputs.Select(i => i.Default))
             .Select(v => UnresolvedPlaceholder.Match(v))
             .FirstOrDefault(m => m.Success)
             ?.Value;
@@ -216,8 +217,9 @@ public static class SampleSeeding
     public static GraphDocument RewritePaths(GraphDocument doc, string samplesDir)
         => RewritePaths(doc, PathPlaceholder, samplesDir);
 
-    /// <summary>A copy of the document with the placeholder in every parameter
-    /// value replaced by the given directory (forward slashes, no trailing slash).</summary>
+    /// <summary>A copy of the document with the placeholder in every parameter value and
+    /// every graph input default replaced by the given directory (forward slashes, no
+    /// trailing slash).</summary>
     public static GraphDocument RewritePaths(GraphDocument doc, string placeholder, string targetDir)
     {
         var target = Path.GetFullPath(targetDir).Replace('\\', '/').TrimEnd('/');
@@ -228,6 +230,7 @@ public static class SampleSeeding
                 node => (IReadOnlyDictionary<string, string>)node.Value.ToDictionary(
                     p => p.Key,
                     p => p.Value.Replace(placeholder, target))),
+            Inputs = doc.Inputs.Select(i => i with { Default = i.Default.Replace(placeholder, target) }).ToList(),
         };
     }
 

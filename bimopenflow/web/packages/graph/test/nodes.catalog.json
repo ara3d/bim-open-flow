@@ -16,7 +16,11 @@
         {
           "name": "path",
           "kind": "FilePath",
-          "default": ""
+          "default": "",
+          "suggest": {
+            "kind": "FilesUnderRoots",
+            "source": ".bfast"
+          }
         },
         {
           "name": "name",
@@ -55,7 +59,11 @@
         {
           "name": "path",
           "kind": "FilePath",
-          "default": ""
+          "default": "",
+          "suggest": {
+            "kind": "FilesUnderRoots",
+            "source": ".bfast"
+          }
         }
       ],
       "description": "Lists the buffers in a BFAST file: name, byteLength, index (0-based file order). BFAST records no element types; bfast.buffer reads one buffer under a type you name."
@@ -186,7 +194,11 @@
         {
           "name": "path",
           "kind": "FilePath",
-          "default": ""
+          "default": "",
+          "suggest": {
+            "kind": "FilesUnderRoots",
+            "source": ".csv,.tsv,.txt"
+          }
         },
         {
           "name": "delimiter",
@@ -534,7 +546,7 @@
       "inputs": [
         {
           "name": "source",
-          "type": "Text",
+          "type": "Database",
           "optional": true
         }
       ],
@@ -578,7 +590,11 @@
         {
           "name": "path",
           "kind": "FilePath",
-          "default": ""
+          "default": "",
+          "suggest": {
+            "kind": "FilesUnderRoots",
+            "source": ".csv,.parquet,.json"
+          }
         },
         {
           "name": "format",
@@ -602,7 +618,7 @@
       "outputs": [
         {
           "name": "source",
-          "type": "Text",
+          "type": "Database",
           "optional": false
         }
       ],
@@ -610,7 +626,11 @@
         {
           "name": "path",
           "kind": "FilePath",
-          "default": ""
+          "default": "",
+          "suggest": {
+            "kind": "FilesUnderRoots",
+            "source": ".duckdb"
+          }
         }
       ],
       "description": "Opens one shared read-only DuckDB source for connected query branches."
@@ -619,7 +639,13 @@
       "kind": "duck.table",
       "version": 1,
       "capability": "Pure",
-      "inputs": [],
+      "inputs": [
+        {
+          "name": "source",
+          "type": "Database",
+          "optional": true
+        }
+      ],
       "outputs": [
         {
           "name": "table",
@@ -631,7 +657,11 @@
         {
           "name": "path",
           "kind": "FilePath",
-          "default": ""
+          "default": "",
+          "suggest": {
+            "kind": "FilesUnderRoots",
+            "source": ".duckdb"
+          }
         },
         {
           "name": "table",
@@ -649,7 +679,13 @@
       "kind": "duck.tables",
       "version": 1,
       "capability": "Pure",
-      "inputs": [],
+      "inputs": [
+        {
+          "name": "source",
+          "type": "Database",
+          "optional": true
+        }
+      ],
       "outputs": [
         {
           "name": "tables",
@@ -661,7 +697,11 @@
         {
           "name": "path",
           "kind": "FilePath",
-          "default": ""
+          "default": "",
+          "suggest": {
+            "kind": "FilesUnderRoots",
+            "source": ".duckdb"
+          }
         }
       ],
       "description": "Lists the tables in a .duckdb database file with their column and row counts."
@@ -682,7 +722,11 @@
         {
           "name": "path",
           "kind": "FilePath",
-          "default": ""
+          "default": "",
+          "suggest": {
+            "kind": "FilesUnderRoots",
+            "source": ".json,.ndjson"
+          }
         },
         {
           "name": "layout",
@@ -718,7 +762,11 @@
         {
           "name": "path",
           "kind": "FilePath",
-          "default": ""
+          "default": "",
+          "suggest": {
+            "kind": "FilesUnderRoots",
+            "source": ".parquet"
+          }
         }
       ],
       "description": "Reads a Parquet file or glob of files into a table using DuckDB read_parquet."
@@ -1975,7 +2023,11 @@
         {
           "name": "path",
           "kind": "FilePath",
-          "default": ""
+          "default": "",
+          "suggest": {
+            "kind": "FilesUnderRoots",
+            "source": ".sqlite,.sqlite3,.db"
+          }
         },
         {
           "name": "sql",
@@ -2001,7 +2053,11 @@
         {
           "name": "path",
           "kind": "FilePath",
-          "default": ""
+          "default": "",
+          "suggest": {
+            "kind": "FilesUnderRoots",
+            "source": ".sqlite,.sqlite3,.db"
+          }
         },
         {
           "name": "table",
@@ -2027,7 +2083,11 @@
         {
           "name": "path",
           "kind": "FilePath",
-          "default": ""
+          "default": "",
+          "suggest": {
+            "kind": "FilesUnderRoots",
+            "source": ".sqlite,.sqlite3,.db"
+          }
         }
       ],
       "description": "Lists the tables in a SQLite database file: name, columnCount, rowCount (read-only)."
@@ -3433,7 +3493,11 @@
         {
           "name": "path",
           "kind": "FilePath",
-          "default": ""
+          "default": "",
+          "suggest": {
+            "kind": "FilesUnderRoots",
+            "source": ".xlsx"
+          }
         },
         {
           "name": "sheet",
@@ -3469,7 +3533,11 @@
         {
           "name": "path",
           "kind": "FilePath",
-          "default": ""
+          "default": "",
+          "suggest": {
+            "kind": "FilesUnderRoots",
+            "source": ".xlsx"
+          }
         }
       ],
       "description": "Lists the worksheets in an .xlsx file: name, index (1-based), rowCount, columnCount of the used range."

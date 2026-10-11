@@ -16,7 +16,7 @@ public sealed class SqliteTableNode : IFlowNode
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("path", ParamKind.FilePath),
+            new ParamSpec("path", ParamKind.FilePath, Suggest: SuggestSource.FilesWith(".sqlite", ".sqlite3", ".db")),
             new ParamSpec("table", ParamKind.Text),
         ],
         "Reads one whole table from a SQLite database file (SELECT *, read-only).");

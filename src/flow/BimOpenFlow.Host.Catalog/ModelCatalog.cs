@@ -11,6 +11,8 @@ public sealed class ModelCatalog
 {
     public readonly IReadOnlyList<string> Roots;
     public readonly string CacheDir;
+    /// <summary>Lists and browses the files under the roots (the FilePath control's source).</summary>
+    public readonly ModelRootFiles Files;
     private readonly IIfcConverter _converter;
     private readonly Dictionary<string, (long Size, DateTime Written, DateTime Created, string Hash)> _hashes = new(StringComparer.Ordinal);
 
@@ -28,6 +30,7 @@ public sealed class ModelCatalog
             throw new ArgumentException("At least one root directory is required.", nameof(roots));
         Roots = roots.Select(Path.GetFullPath).ToList();
         CacheDir = Path.GetFullPath(cacheDir);
+        Files = new ModelRootFiles(Roots);
         _converter = converter ?? new IfcToBosFileConverter();
     }
 

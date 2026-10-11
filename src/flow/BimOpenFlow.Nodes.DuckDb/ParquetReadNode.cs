@@ -14,7 +14,7 @@ public sealed class ParquetReadNode : IFlowNode
         Kind, 1, NodeCapability.Pure,
         Inputs: [],
         Outputs: [new PortSpec("table", PortType.Table)],
-        Params: [new ParamSpec("path", ParamKind.FilePath)],
+        Params: [new ParamSpec("path", ParamKind.FilePath, Suggest: SuggestSource.FilesWith(".parquet"))],
         "Reads a Parquet file or glob of files into a table using DuckDB read_parquet.");
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)

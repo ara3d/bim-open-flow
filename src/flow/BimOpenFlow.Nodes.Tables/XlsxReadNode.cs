@@ -21,7 +21,7 @@ public sealed class XlsxReadNode : IFlowNode
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("path", ParamKind.FilePath),
+            new ParamSpec("path", ParamKind.FilePath, Suggest: SuggestSource.FilesWith(".xlsx")),
             new ParamSpec("sheet", ParamKind.Text, ""),
             new ParamSpec("headerRow", ParamKind.Integer, "1"),
             new ParamSpec("range", ParamKind.Text, ""),

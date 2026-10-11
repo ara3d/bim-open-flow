@@ -1,5 +1,6 @@
 using Ara3D.DataFlowEngine;
 using Ara3D.DataFlowEngine.Abstractions;
+using BimOpenFlow.Host.Catalog;
 using BimOpenFlow.Host.Store;
 using BimOpenFlow.Contracts;
 using EngineNodeStatus = Ara3D.DataFlowEngine.NodeStatus;
@@ -19,17 +20,18 @@ public static class SuggestEndpoints
 {
     public static void MapSuggestEndpoints(this IEndpointRouteBuilder app,
         AnalysisStore store, INodeRegistry registry, AnalysisSessions sessions,
-        FileTableProbe? fileTables, IRelationResults? relations = null)
+        FileTableProbe? fileTables, IRelationResults? relations = null, ModelRootFiles? rootFiles = null)
     {
         app.MapGet(ApiRoutes.GetSuggestions, (string id, string nodeId, string param)
             => ApiResults.Guard(() =>
                 store.Exists(id)
-                    ? GetSuggestions(sessions.Snapshot(id), registry, nodeId, param, fileTables, relations)
+                    ? GetSuggestions(sessions.Snapshot(id), registry, nodeId, param, fileTables, relations, rootFiles)
                     : ApiResults.NotFound($"Analysis '{id}' not found")));
     }
 
     private static IResult GetSuggestions(EvalSnapshot snapshot, INodeRegistry registry,
-        string nodeId, string param, FileTableProbe? fileTables, IRelationResults? relations)
+        string nodeId, string param, FileTableProbe? fileTables, IRelationResults? relations,
+        ModelRootFiles? rootFiles)
     {
         var node = snapshot.Document.FindNode(nodeId);
         if (node is null)
@@ -40,16 +42,17 @@ public static class SuggestEndpoints
             return ApiResults.NotFound($"Node '{nodeId}' has no parameter '{param}'");
         if (paramSpec.Suggest is null)
             return ApiResults.NotFound($"Parameter '{param}' of '{node.Kind}' declares no suggestions");
-        return ApiResults.Json(Resolve(snapshot, registry, nodeId, paramSpec.Suggest, fileTables, relations));
+        return ApiResults.Json(Resolve(snapshot, registry, nodeId, paramSpec.Suggest, fileTables, relations, rootFiles));
     }
 
     /// <summary>Pure resolution of one SuggestSource against a snapshot.</summary>
     public static SuggestionList Resolve(EvalSnapshot snapshot, INodeRegistry registry,
-        string nodeId, SuggestSource suggest, FileTableProbe? fileTables, IRelationResults? relations = null)
+        string nodeId, SuggestSource suggest, FileTableProbe? fileTables, IRelationResults? relations = null, ModelRootFiles? rootFiles = null)
         => suggest.Kind switch
         {
             SuggestKind.ColumnsOfInput => ColumnsOfInput(snapshot, registry, nodeId, suggest.Source, relations),
             SuggestKind.TablesInFile => TablesInFile(snapshot, nodeId, suggest.Source, fileTables),
+            SuggestKind.FilesUnderRoots => FilesUnderRoots(suggest.Source, rootFiles),
             _ => Unavailable($"Unknown suggestion kind '{suggest.Kind}'"),
         };
 
@@ -83,6 +86,17 @@ public static class SuggestEndpoints
         string nodeId, string pathParam, FileTableProbe? fileTables)
     {
         var path = snapshot.Document.Values.GetValueOrDefault(nodeId)?.GetValueOrDefault(pathParam) ?? "";
+        var wired = snapshot.Document.Edges.FirstOrDefault(e => e.ToRef.NodeId == nodeId && e.ToRef.Port == "source");
+        if (wired is not null)
+        {
+            var upstream = snapshot.Results.GetValueOrDefault(wired.FromRef.NodeId);
+            var database = upstream?.Status == EngineNodeStatus.Ok
+                ? upstream.Outputs.OfType<DatabaseValue>().FirstOrDefault()
+                : null;
+            if (database is null)
+                return Unavailable(upstream?.Error ?? $"Upstream '{wired.FromRef.NodeId}' has no database yet");
+            path = database.Path;
+        }
         if (path.Length == 0)
             return Unready($"Set '{pathParam}' to see tables");
         if (fileTables is null)
@@ -95,6 +109,17 @@ public static class SuggestEndpoints
         {
             return Unavailable(e.Message);
         }
+    }
+
+    private static SuggestionList FilesUnderRoots(string extensions, ModelRootFiles? rootFiles)
+    {
+        if (rootFiles is null)
+            return Unavailable("This host has no model roots");
+        var files = rootFiles.List(extensions, out var truncated);
+        var list = new SuggestionList(SuggestStatus.Ok,
+            files.Select(f => new Suggestion(f.Path, f.Relative)).ToList(),
+            truncated ? $"Only the first {ModelRootFiles.MaxFiles} files are listed; browse for the rest" : null);
+        return list;
     }
 
     private static SuggestionList Ok(IReadOnlyList<Suggestion> values)

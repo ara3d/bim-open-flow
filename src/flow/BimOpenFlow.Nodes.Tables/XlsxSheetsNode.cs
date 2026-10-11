@@ -18,7 +18,7 @@ public sealed class XlsxSheetsNode : IFlowNode
         Kind, 1, NodeCapability.Pure,
         Inputs: [],
         Outputs: [new PortSpec("sheets", PortType.Table)],
-        Params: [new ParamSpec("path", ParamKind.FilePath)],
+        Params: [new ParamSpec("path", ParamKind.FilePath, Suggest: SuggestSource.FilesWith(".xlsx"))],
         "Lists the worksheets in an .xlsx file: name, index (1-based), rowCount, columnCount of the used range.");
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)

@@ -14,7 +14,7 @@ public sealed class SqliteTablesNode : IFlowNode
         Kind, 1, NodeCapability.Pure,
         Inputs: [],
         Outputs: [new PortSpec("tables", PortType.Table)],
-        Params: [new ParamSpec("path", ParamKind.FilePath)],
+        Params: [new ParamSpec("path", ParamKind.FilePath, Suggest: SuggestSource.FilesWith(".sqlite", ".sqlite3", ".db"))],
         "Lists the tables in a SQLite database file: name, columnCount, rowCount (read-only).");
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)

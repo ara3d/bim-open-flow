@@ -18,7 +18,7 @@ public sealed class DuckReadNode : IFlowNode
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("path", ParamKind.FilePath),
+            new ParamSpec("path", ParamKind.FilePath, Suggest: SuggestSource.FilesWith(".csv", ".parquet", ".json")),
             new ParamSpec("format", ParamKind.Enum, "auto", ["auto", "csv", "parquet", "json"]),
         ],
         "Loads a CSV, Parquet, or JSON file into a table using DuckDB's readers.");

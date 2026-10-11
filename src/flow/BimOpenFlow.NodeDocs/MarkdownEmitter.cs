@@ -93,6 +93,7 @@ public static class MarkdownEmitter
             null => "—",
             { Kind: SuggestKind.ColumnsOfInput } => $"columns of input `{suggest.Source}`",
             { Kind: SuggestKind.TablesInFile } => $"tables in the file at `{suggest.Source}`",
+            { Kind: SuggestKind.FilesUnderRoots } => $"files under the model roots ending `{suggest.Source}`",
             _ => suggest.ToString()!,
         };
 }

@@ -113,6 +113,32 @@ public sealed class SuggestResolveTests
     }
 
     [Test]
+    public void FilesUnderRoots_ListsMatchingFilesWithTheirRootRelativePath()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "bof-files-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "a.bos"), "x");
+            File.WriteAllText(Path.Combine(root, "b.txt"), "x");
+            var snapshot = Graph.Node("c", "test.consumer").Build().Evaluate(Registry);
+            var suggest = SuggestSource.FilesWith(".bos", ".ifc");
+            Assert.That(suggest.Source, Is.EqualTo(".bos,.ifc"));
+            var list = SuggestEndpoints.Resolve(snapshot, Registry, "c", suggest, null, null,
+                new Catalog.ModelRootFiles([root]));
+            Assert.That(list.Status, Is.EqualTo(SuggestStatus.Ok));
+            Assert.That(list.Values.Select(v => v.Detail), Is.EqualTo(new[] { "a.bos" }));
+            Assert.That(list.Values[0].Value, Does.EndWith("/a.bos"));
+            var without = SuggestEndpoints.Resolve(snapshot, Registry, "c", suggest, null);
+            Assert.That(without.Status, Is.EqualTo(SuggestStatus.Unavailable));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
     public void ColumnsOfInput_NoEdge_IsUnready()
     {
         var snapshot = Graph.Node("c", "test.consumer").Build().Evaluate(Registry);

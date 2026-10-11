@@ -19,7 +19,7 @@ public sealed class WritePsetsNode : IFlowNode
         new[] { new PortSpec("out", PortType.Table) },
         new[]
         {
-            new ParamSpec("sourcePath", ParamKind.FilePath),
+            new ParamSpec("sourcePath", ParamKind.FilePath, Suggest: SuggestSource.FilesWith(".ifc")),
             new ParamSpec("targetPath", ParamKind.FilePath),
         },
         "Byte-exact pset write-back: reads sourcePath, appends psets from the input table, writes targetPath. "

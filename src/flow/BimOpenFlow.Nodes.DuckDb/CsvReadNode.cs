@@ -17,7 +17,7 @@ public sealed class CsvReadNode : IFlowNode
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("path", ParamKind.FilePath),
+            new ParamSpec("path", ParamKind.FilePath, Suggest: SuggestSource.FilesWith(".csv", ".tsv", ".txt")),
             new ParamSpec("delimiter", ParamKind.Text, ","),
             new ParamSpec("header", ParamKind.Boolean, "true"),
             new ParamSpec("skipRows", ParamKind.Integer, "0"),

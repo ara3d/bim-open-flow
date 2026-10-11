@@ -12,3 +12,22 @@ export function completionOptions(text: string, values: readonly string[]): stri
   const base = text.slice(0, idx + 1) + pad;
   return values.map((v) => base + v);
 }
+
+const MULTI_COLUMN_NAME = /Columns$|^(columns|groupBy|keys|orderBy|partitionBy|keep)$/;
+
+/** True when a column parameter holds a comma-separated list: its name says
+ *  so (`groupBy`, `columns`, `yColumns`) or its value already has a comma. */
+export function isMultiColumn(name: string, value: string): boolean {
+  return MULTI_COLUMN_NAME.test(name) || value.includes(",");
+}
+
+/** The names in a comma-separated column list, trimmed, empty entries dropped. */
+export function columnList(value: string): string[] {
+  return value.split(",").map((s) => s.trim()).filter((s) => s !== "");
+}
+
+/** `value` with `column` removed when listed, appended when not. */
+export function toggleColumn(value: string, column: string): string {
+  const list = columnList(value);
+  return (list.includes(column) ? list.filter((c) => c !== column) : [...list, column]).join(",");
+}

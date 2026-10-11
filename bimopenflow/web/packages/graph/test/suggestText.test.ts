@@ -19,3 +19,15 @@ describe("completionOptions", () => {
     expect(completionOptions("a, b, ", COLS)).toEqual(["a, b, name", "a, b, count"]);
   });
 });
+
+describe("column list helpers", () => {
+  it("toggles a column in and out", async () => {
+    const { toggleColumn, isMultiColumn } = await import("../src/suggestText.js");
+    expect(toggleColumn("", "a")).toBe("a");
+    expect(toggleColumn("a, b", "a")).toBe("b");
+    expect(toggleColumn("a", "b")).toBe("a,b");
+    expect(isMultiColumn("groupBy", "")).toBe(true);
+    expect(isMultiColumn("leftKey", "a,b")).toBe(true);
+    expect(isMultiColumn("leftKey", "a")).toBe(false);
+  });
+});

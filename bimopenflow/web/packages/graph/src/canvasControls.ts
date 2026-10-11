@@ -26,6 +26,7 @@ import {
 import type { ControlDescriptor, ParamKind, SuggestDescriptor } from "@bimopenflow/contracts";
 import { displayScale, isNumericParam, numericDisplay, numericFromDisplay, numericLimits, numericValue, paramLabel } from "./numericParam";
 import { attachSuggestions } from "./suggestInput.js";
+import { isMultiColumn } from "./suggestText.js";
 import type { CanvasParam, SlotContext } from "./canvasSlots.js";
 import {
   COMPACT_INPUT_W, COMPACT_SLOT_H, ENUM_CHEVRON_ROOM, ENUM_LABEL_ROOM, ENUM_VALUE_INSET, FIELD_SLOT_H,
@@ -359,7 +360,9 @@ function islandFor(props: IslandSlotProps): IslandEntry {
       entry.detachSuggest = attachSuggestions(el, `bof-suggest-${key}`, () =>
         instance.suggestionProvider
           ? instance.suggestionProvider(props.nodeId, props.name)
-          : Promise.reject(new Error("No suggestion provider")));
+          : Promise.reject(new Error("No suggestion provider")),
+        props.suggest.kind === "ColumnsOfInput"
+          ? { picker: { multi: isMultiColumn(props.name, props.value) } } : {});
     el.addEventListener("keydown", (e) => {
       if (e.key === "Enter") el.blur();
       if (e.key === "Escape") {

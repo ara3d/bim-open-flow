@@ -71,3 +71,54 @@ describe("attachSuggestions", () => {
     expect(input.getAttribute("list")).toBeNull();
   });
 });
+
+describe("attachSuggestions column picker", () => {
+  const cols = (): SuggestionList => ({
+    status: "Ok",
+    values: [
+      { value: "Category", detail: "Text" },
+      { value: "Storey", detail: "Text" },
+      { value: "Area", detail: "Number" },
+    ],
+  });
+  const rows = () => [...document.querySelectorAll('[role="option"]')] as HTMLElement[];
+
+  it("lists every column with its type when the field already names one", async () => {
+    const input = makeInput();
+    input.value = "Category";
+    const detach = attachSuggestions(input, "pick1", async () => cols(), { picker: { multi: true } });
+    expect(input.getAttribute("list")).toBeNull();
+    input.dispatchEvent(new Event("focus"));
+    await flush();
+    expect(rows().map((r) => r.textContent)).toEqual(["✓ CategoryText", " StoreyText", " AreaNumber"]);
+    detach();
+    expect(rows().length).toBe(0);
+  });
+
+  it("toggles a column in and out of the value and fires change", async () => {
+    const input = makeInput();
+    input.value = "Category";
+    const changes: string[] = [];
+    input.addEventListener("change", () => changes.push(input.value));
+    const detach = attachSuggestions(input, "pick2", async () => cols(), { picker: { multi: true } });
+    input.dispatchEvent(new Event("focus"));
+    await flush();
+    rows()[1]!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    rows()[0]!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    expect(changes).toEqual(["Category,Storey", "Storey"]);
+    expect(rows().length).toBe(3);
+    detach();
+  });
+
+  it("replaces the value for a single-column parameter and closes", async () => {
+    const input = makeInput();
+    input.value = "Category";
+    const detach = attachSuggestions(input, "pick3", async () => cols(), { picker: { multi: false } });
+    input.dispatchEvent(new Event("focus"));
+    await flush();
+    rows()[2]!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    expect(input.value).toBe("Area");
+    expect((document.querySelector('[role="listbox"]') as HTMLElement).hidden).toBe(true);
+    detach();
+  });
+});

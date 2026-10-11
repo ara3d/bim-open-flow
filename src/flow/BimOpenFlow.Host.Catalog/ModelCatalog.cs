@@ -66,7 +66,7 @@ public sealed class ModelCatalog
     /// <summary>Table sizes of the BOS form (converts first if needed).</summary>
     public ModelInfo GetInfo(ModelEntry entry)
     {
-        var data = new FilePath(GetBos(entry)).ReadBimDataFromParquetZip();
+        var data = new FilePath(GetBos(entry)).ReadBimDataFromParquetZip(ModelInfo.TablesRead);
         return new(data.Entities.Length, data.Parameters.Length, data.Documents.Length, data.Relations.Length);
     }
 
@@ -74,7 +74,7 @@ public sealed class ModelCatalog
     /// cached by BOS path (converting first if needed).</summary>
     public ModelEntityIndex GetEntityIndex(ModelEntry entry)
         => _entityIndexes.GetOrAdd(GetBos(entry),
-            path => ModelEntityIndex.Build(new FilePath(path).ReadBimDataFromParquetZip()));
+            path => ModelEntityIndex.Build(new FilePath(path).ReadBimDataFromParquetZip(ModelEntityIndex.TablesRead)));
 
     public static ModelKind? KindOf(string path)
         => Path.GetExtension(path).ToLowerInvariant() switch

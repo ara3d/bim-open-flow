@@ -60,4 +60,22 @@ internal static class CatalogTestHelpers
         return "";
     }
 
+    /// <summary>Walks up from the test directory looking for bim-open-data/samples/public/{fileName}
+    /// (the sibling repository when this one is checked out under a toolkit's deps/ folder);
+    /// ignores the test when absent.</summary>
+    public static string FindPublicSample(string fileName)
+    {
+        var dir = new DirectoryInfo(TestContext.CurrentContext.TestDirectory);
+        while (dir != null)
+        {
+            var candidate = Path.Combine(dir.FullName, "bim-open-data", "samples", "public", fileName);
+            if (File.Exists(candidate))
+                return candidate;
+            dir = dir.Parent;
+        }
+
+        Assert.Ignore($"Public sample {fileName} not found next to this repository.");
+        return "";
+    }
+
 }

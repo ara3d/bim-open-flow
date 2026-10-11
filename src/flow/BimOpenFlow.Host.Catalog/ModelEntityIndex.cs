@@ -1,5 +1,6 @@
 using System.Globalization;
 using Ara3D.BimOpenSchema;
+using Ara3D.BimOpenSchema.IO;
 
 namespace BimOpenFlow.Host.Catalog;
 
@@ -8,6 +9,11 @@ namespace BimOpenFlow.Host.Catalog;
 /// documents share a LocalId the first entity in table order wins.</summary>
 public sealed class ModelEntityIndex
 {
+    /// <summary>The tables <see cref="Build"/> uses: entities and their parameters (a read adds the
+    /// descriptors, strings, numbers, and points those index). Geometry, relations, documents, and
+    /// diagnostics are never read.</summary>
+    public const BosTables TablesRead = BosTables.Entities | BosTables.Parameters;
+
     private readonly Dictionary<long, ModelEntity> _byLocalId;
 
     private ModelEntityIndex(Dictionary<long, ModelEntity> byLocalId)

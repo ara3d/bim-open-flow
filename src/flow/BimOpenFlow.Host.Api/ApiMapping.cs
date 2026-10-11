@@ -31,8 +31,10 @@ public static class ApiMapping
         => new(entity.LocalId, entity.GlobalId, entity.Name, entity.Category,
             entity.Parameters.Select(ToParameter).ToList());
 
+    /// <summary>The wire contract's group, name, and value are non-null strings, so an absent
+    /// one is sent as "" until the contract allows null.</summary>
     public static EntityParameter ToParameter(this ModelEntityParameter parameter)
-        => new(parameter.Group, parameter.Name, parameter.Value, parameter.Units);
+        => new(parameter.Group ?? "", parameter.Name ?? "", parameter.Value ?? "", parameter.Units);
 
     public static EvalUpdate ToEvalUpdate(this EvalSnapshot snapshot, string analysisId)
         => new(analysisId, snapshot.Results.Values

@@ -20,6 +20,7 @@
     <ProjectReference Include="..\BimOpenFlow.Nodes.Spatial\BimOpenFlow.Nodes.Spatial.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Viz\BimOpenFlow.Nodes.Viz.csproj" />
     <ProjectReference Include="..\BimOpenFlow.Nodes.Relations\BimOpenFlow.Nodes.Relations.csproj" />
+    <ProjectReference Include="$(DepsRoot)bim-open-data\src\data\Ara3D.BimOpenSchema.ObjectModel\Ara3D.BimOpenSchema.ObjectModel.csproj" />
   </ItemGroup>
 
 </Project>

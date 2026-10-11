@@ -6,11 +6,11 @@ import { collect, fakeCtx, makeSlice } from "./helpers";
 
 const verdictSlice = makeSlice(
   [
-    ["globalId", "Text"],
-    ["verdict", "Text"],
-    ["checkId", "Text"],
-    ["checkTitle", "Text"],
-    ["citation", "Text"],
+    ["GlobalId", "Text"],
+    ["Verdict", "Text"],
+    ["CheckId", "Text"],
+    ["CheckTitle", "Text"],
+    ["Citation", "Text"],
   ],
   [
     ["g1", "Pass", "NBC-1", "Doors", "9.5.1"],
@@ -54,10 +54,18 @@ describe("groupVerdicts", () => {
     );
   });
 
+  it("reads recorded camelCase columns, ignoring case", () => {
+    const old = makeSlice(
+      [["verdict", "Text"], ["checkId", "Text"], ["checkTitle", "Text"], ["citation", "Text"]],
+      [["Fail", "NBC-1", "Doors", "9.5.1"]],
+    );
+    expect(groupVerdicts(old).map((g) => g.checkId)).toEqual(["NBC-1"]);
+  });
+
   it("throws on a missing convention column or unknown verdict text", () => {
     expect(() =>
-      groupVerdicts(makeSlice([["verdict", "Text"]], [["Pass"]])),
-    ).toThrow(/missing column "checkId"/);
+      groupVerdicts(makeSlice([["Verdict", "Text"]], [["Pass"]])),
+    ).toThrow(/missing column "CheckId"/);
     const bad = {
       ...verdictSlice,
       rows: [["g1", "Maybe", "NBC-1", "Doors", "9.5.1"]],

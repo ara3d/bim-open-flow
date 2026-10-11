@@ -1,6 +1,6 @@
 // Pure grouping logic for verdict tables (the convention defined in
-// src/BimOpenFlow.Nodes.Compliance/README.md): columns verdict, checkId,
-// checkTitle, citation, matched by exact name.
+// src/BimOpenFlow.Nodes.Compliance/README.md): columns Verdict, CheckId,
+// CheckTitle, Citation (the IssueColumns names in bim-open-data), matched ignoring case.
 import type { ColumnSchema, Verdict } from "@bimopenflow/contracts";
 import { columnIndex } from "./columns";
 
@@ -28,7 +28,7 @@ export interface CheckGroup {
   readonly rowIndices: readonly number[];
 }
 
-const REQUIRED = ["verdict", "checkId", "checkTitle", "citation"] as const;
+const REQUIRED = ["Verdict", "CheckId", "CheckTitle", "Citation"] as const;
 
 const isVerdict = (v: unknown): v is Verdict =>
   VERDICTS.includes(v as Verdict);

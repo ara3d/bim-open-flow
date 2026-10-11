@@ -6,7 +6,7 @@ import { columnIndex } from "./columns";
 import type { LegendEntry } from "./legend";
 
 /** Columns that drive colouring, most specific first: a check verdict, else the category. */
-export const LEGEND_COLUMNS = ["verdict", "category"] as const;
+export const LEGEND_COLUMNS = ["Verdict", "Category"] as const;
 
 export const LEGEND_MAX_ENTRIES = 12;
 

@@ -6,7 +6,7 @@ import { groupVerdicts, VERDICTS, type CheckGroup } from "./verdictGroups";
 
 /**
  * Verdict pane: renders a verdict table (compliance convention columns
- * verdict/checkId/checkTitle/citation) as one block per check, with
+ * Verdict/CheckId/CheckTitle/Citation) as one block per check, with
  * pass/fail/needsReview/infoNotAvailable count chips and severity coloring.
  *
  * Inputs: "table" (a verdict table) renders the check list; "selection"

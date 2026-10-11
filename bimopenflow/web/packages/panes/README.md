@@ -81,10 +81,10 @@ Definition list of a node's params, ports, and status. Plain DOM.
 
 ### VerdictPane — `createVerdictPane()`
 
-Renders a verdict table (compliance convention: `verdict`, `checkId`,
-`checkTitle`, `citation` columns — see
+Renders a verdict table (compliance convention: `Verdict`, `CheckId`,
+`CheckTitle`, `Citation` columns, matched ignoring case — see
 `src/BimOpenFlow.Nodes.Compliance/README.md`) as one block per check, grouped
-by `checkId` in first-appearance order, with count chips per verdict and
+by `CheckId` in first-appearance order, with count chips per verdict and
 border coloring by the group's most severe verdict
 (Fail > NeedsReview > InfoNotAvailable > Pass).
 

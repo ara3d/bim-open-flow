@@ -10,6 +10,7 @@ const colored = (rows: unknown[][]) =>
 
 describe("legendColumn", () => {
   it("prefers verdict over category and ignores other columns", () => {
+    expect(legendColumn([{ name: "Category", type: "Text" }, { name: "Verdict", type: "Text" }])).toBe(1);
     expect(legendColumn([{ name: "category", type: "Text" }, { name: "verdict", type: "Text" }])).toBe(1);
     expect(legendColumn([{ name: "entityId", type: "Integer" }, { name: "category", type: "Text" }])).toBe(1);
     expect(legendColumn([{ name: "entityId", type: "Integer" }])).toBe(-1);

@@ -20,3 +20,4 @@ export { createStore } from "./store.js";
 export type { Store } from "./store.js";
 export { connectAnalysis } from "./sync.js";
 export type { AnalysisApi, AnalysisConnection } from "./sync.js";
+export { schemaFeeding, schemaMessages, schemaOf } from "./schemas.js";

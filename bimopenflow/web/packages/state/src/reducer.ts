@@ -1,4 +1,4 @@
-import type { GraphInputInfo, NodeState } from "@bimopenflow/contracts";
+import type { GraphInputInfo, NodeState, PortSchema } from "@bimopenflow/contracts";
 import type { Action } from "./actions.js";
 import {
   emptyDocument,
@@ -16,6 +16,9 @@ export interface State {
   readonly evalState: Readonly<Record<string, NodeState>>;
   /** The graph inputs as the host last reported them, with their current values. */
   readonly graphInputs: readonly GraphInputInfo[];
+  /** The static schema pass (TKT-209) as the host last reported it, keyed by
+   *  "node.output". Empty until a host reports one; see schemas.ts for lookups. */
+  readonly schemas: Readonly<Record<string, PortSchema>>;
   readonly dirty: boolean;
   /** Undo history: serialized document snapshots, oldest first. */
   readonly undoStack: readonly string[];
@@ -27,6 +30,7 @@ export const initialState: State = {
   selection: [],
   evalState: {},
   graphInputs: [],
+  schemas: {},
   dirty: false,
   undoStack: [],
   redoStack: [],
@@ -189,6 +193,11 @@ export function reduce(state: State, action: Action): State {
           ...Object.fromEntries(action.update.nodes.map((n) => [n.nodeId, n])),
         },
         ...(action.update.graphInputs ? { graphInputs: action.update.graphInputs } : {}),
+        // The list replaces the old one (a removed node's schema must go);
+        // an update without it (an older host) leaves the state as it was.
+        ...(action.update.schemas
+          ? { schemas: Object.fromEntries(action.update.schemas.map((p) => [`${p.node}.${p.output}`, p])) }
+          : {}),
       };
     case "setDocument":
       return {

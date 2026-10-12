@@ -134,7 +134,8 @@
           "default": "",
           "suggest": {
             "kind": "ColumnsOfInput",
-            "source": "table"
+            "source": "table",
+            "use": "Label"
           }
         },
         {
@@ -143,7 +144,8 @@
           "default": "",
           "suggest": {
             "kind": "ColumnsOfInput",
-            "source": "table"
+            "source": "table",
+            "use": "Value"
           },
           "list": true
         },
@@ -199,7 +201,8 @@
           "default": "",
           "suggest": {
             "kind": "ColumnsOfInput",
-            "source": "table"
+            "source": "table",
+            "use": "Value"
           },
           "list": true
         },
@@ -886,6 +889,11 @@
           "name": "aggregates",
           "kind": "Text",
           "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "input",
+            "use": "Aggregate"
+          },
           "list": true
         }
       ],
@@ -1034,7 +1042,9 @@
           "default": "",
           "suggest": {
             "kind": "ColumnsOfInput",
-            "source": "left"
+            "source": "left",
+            "use": "JoinKey",
+            "sharedWith": "right"
           }
         },
         {
@@ -1043,7 +1053,9 @@
           "default": "",
           "suggest": {
             "kind": "ColumnsOfInput",
-            "source": "right"
+            "source": "right",
+            "use": "JoinKey",
+            "sharedWith": "left"
           }
         },
         {
@@ -2256,6 +2268,11 @@
           "name": "aggregates",
           "kind": "Text",
           "default": "",
+          "suggest": {
+            "kind": "ColumnsOfInput",
+            "source": "table",
+            "use": "Aggregate"
+          },
           "list": true
         }
       ],
@@ -2793,7 +2810,9 @@
           "default": "",
           "suggest": {
             "kind": "ColumnsOfInput",
-            "source": "a"
+            "source": "a",
+            "use": "JoinKey",
+            "sharedWith": "b"
           }
         },
         {
@@ -2802,7 +2821,9 @@
           "default": "",
           "suggest": {
             "kind": "ColumnsOfInput",
-            "source": "b"
+            "source": "b",
+            "use": "JoinKey",
+            "sharedWith": "a"
           }
         },
         {

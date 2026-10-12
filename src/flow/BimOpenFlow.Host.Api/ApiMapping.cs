@@ -92,7 +92,8 @@ public static class ApiMapping
     public static SuggestDescriptor? ToDescriptor(this SuggestSource? suggest)
         => suggest is null
             ? null
-            : new(suggest.Kind.ByName<Contracts.SuggestKind>(), suggest.Source);
+            : new(suggest.Kind.ByName<Contracts.SuggestKind>(), suggest.Source,
+                suggest.Use == Ara3D.DataFlowEngine.Abstractions.ColumnUse.Any ? null : suggest.Use.ByName<Contracts.ColumnUse>(), suggest.SharedWith);
 
     /// <summary>Pages a node output into a TableSlice; a Database becomes its table list (its
     /// Payload, a Func&lt;IDataTable&gt;, supplies it); any other non-table output becomes

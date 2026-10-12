@@ -47,10 +47,13 @@ namespace BimOpenFlow.Contracts;
 for (const [name, values] of Object.entries(idl.enums))
   cs += `public enum ${name}\n{\n${values.map((v) => `    ${v},`).join("\n")}\n}\n\n`;
 for (const [name, fields] of Object.entries(idl.types)) {
-  // No default values: an optional field before a required one is CS1737, and
-  // System.Text.Json constructor binding fills missing members with default(T) anyway.
-  const args = Object.entries(fields)
-    .map(([f, t]) => `    ${csType(t)} ${upper(f)}`)
+  // A run of optional fields at the end defaults to null, so adding one does not break callers; an
+  // optional field before a required one cannot (CS1737). System.Text.Json constructor binding fills
+  // missing members with default(T) anyway.
+  const entries = Object.entries(fields);
+  const firstDefaulted = entries.findLastIndex(([, t]) => !t.endsWith("?")) + 1;
+  const args = entries
+    .map(([f, t], i) => `    ${csType(t)} ${upper(f)}${i >= firstDefaulted ? " = null" : ""}`)
     .join(",\n");
   cs += `public sealed record ${name}(\n${args});\n\n`;
 }

@@ -72,6 +72,14 @@ export type SuggestKind =
   | "TablesInFile"
   | "FilesUnderRoots";
 
+export type ColumnUse =
+  | "Any"
+  | "Value"
+  | "Label"
+  | "Key"
+  | "JoinKey"
+  | "Aggregate";
+
 export type SuggestStatus =
   | "Ok"
   | "Unready"
@@ -116,11 +124,17 @@ export interface ControlDescriptor {
 export interface SuggestDescriptor {
   kind: SuggestKind;
   source: string;
+  use?: ColumnUse | undefined;
+  sharedWith?: string | undefined;
 }
 
 export interface Suggestion {
   value: string;
   detail?: string | undefined;
+  kind?: string | undefined;
+  meaning?: string | undefined;
+  role?: string | undefined;
+  functions?: string[] | undefined;
 }
 
 export interface SuggestionList {

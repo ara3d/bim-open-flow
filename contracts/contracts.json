@@ -12,6 +12,7 @@
     "ModelKind": ["Ifc", "Bos"],
     "NodeStatus": ["Ok", "Unready", "EffectPending", "Unavailable", "Error"],
     "SuggestKind": ["ColumnsOfInput", "TablesInFile", "FilesUnderRoots"],
+    "ColumnUse": ["Any", "Value", "Label", "Key", "JoinKey", "Aggregate"],
     "SuggestStatus": ["Ok", "Unready", "Unavailable"]
   },
   "types": {
@@ -48,11 +49,17 @@
     },
     "SuggestDescriptor": {
       "kind": "SuggestKind",
-      "source": "string"
+      "source": "string",
+      "use": "ColumnUse?",
+      "sharedWith": "string?"
     },
     "Suggestion": {
       "value": "string",
-      "detail": "string?"
+      "detail": "string?",
+      "kind": "string?",
+      "meaning": "string?",
+      "role": "string?",
+      "functions": "string[]?"
     },
     "SuggestionList": {
       "status": "SuggestStatus",

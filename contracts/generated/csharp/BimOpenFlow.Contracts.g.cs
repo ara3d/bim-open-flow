@@ -98,6 +98,16 @@ public enum SuggestKind
     FilesUnderRoots,
 }
 
+public enum ColumnUse
+{
+    Any,
+    Value,
+    Label,
+    Key,
+    JoinKey,
+    Aggregate,
+}
+
 public enum SuggestStatus
 {
     Ok,
@@ -122,38 +132,44 @@ public sealed record ParamDescriptor(
     string Name,
     ParamKind Kind,
     string Default,
-    IReadOnlyList<string>? EnumValues,
-    SuggestDescriptor? Suggest,
-    ControlDescriptor? Control,
-    PortType? Bindable,
-    bool? List);
+    IReadOnlyList<string>? EnumValues = null,
+    SuggestDescriptor? Suggest = null,
+    ControlDescriptor? Control = null,
+    PortType? Bindable = null,
+    bool? List = null);
 
 public sealed record ControlDescriptor(
     string Kind,
-    double? Min,
-    double? Max,
-    double? Step,
-    string? Unit,
-    string? Label);
+    double? Min = null,
+    double? Max = null,
+    double? Step = null,
+    string? Unit = null,
+    string? Label = null);
 
 public sealed record SuggestDescriptor(
     SuggestKind Kind,
-    string Source);
+    string Source,
+    ColumnUse? Use = null,
+    string? SharedWith = null);
 
 public sealed record Suggestion(
     string Value,
-    string? Detail);
+    string? Detail = null,
+    string? Kind = null,
+    string? Meaning = null,
+    string? Role = null,
+    IReadOnlyList<string>? Functions = null);
 
 public sealed record SuggestionList(
     SuggestStatus Status,
     IReadOnlyList<Suggestion> Values,
-    string? Reason);
+    string? Reason = null);
 
 public sealed record FolderEntry(
     string Name,
     string Path,
     bool IsDirectory,
-    long? SizeBytes);
+    long? SizeBytes = null);
 
 public sealed record FolderListing(
     string Dir,
@@ -164,19 +180,19 @@ public sealed record FolderListing(
 public sealed record PathStatus(
     string Path,
     bool Exists,
-    string? Root,
-    string? Relative);
+    string? Root = null,
+    string? Relative = null);
 
 public sealed record SchemaColumn(
     string Name,
     ColumnType Type,
     bool Nullable,
-    string? Kind);
+    string? Kind = null);
 
 public sealed record OutputSchema(
     string Output,
     SchemaMode Mode,
-    IReadOnlyList<SchemaColumn>? Columns);
+    IReadOnlyList<SchemaColumn>? Columns = null);
 
 public sealed record PortSchema(
     string Node,
@@ -200,7 +216,7 @@ public sealed record NodeDescriptor(
     IReadOnlyList<PortDescriptor> Outputs,
     IReadOnlyList<ParamDescriptor> Params,
     string Description,
-    IReadOnlyList<OutputSchema>? Schemas);
+    IReadOnlyList<OutputSchema>? Schemas = null);
 
 public sealed record NodeCatalog(
     IReadOnlyList<NodeDescriptor> Nodes);
@@ -217,7 +233,7 @@ public sealed record EntityParameter(
     string Group,
     string Name,
     string Value,
-    string? Units);
+    string? Units = null);
 
 public sealed record EntityProperties(
     long LocalId,
@@ -250,14 +266,14 @@ public sealed record GraphInputInfo(
 public sealed record EvalUpdate(
     string AnalysisId,
     IReadOnlyList<NodeState> Nodes,
-    string? GraphHash,
-    IReadOnlyList<GraphInputInfo>? GraphInputs,
-    IReadOnlyList<PortSchema>? Schemas);
+    string? GraphHash = null,
+    IReadOnlyList<GraphInputInfo>? GraphInputs = null,
+    IReadOnlyList<PortSchema>? Schemas = null);
 
 public sealed record EditorSession(
     string? AnalysisId,
     IReadOnlyList<string> Selection,
-    string? UpdatedUtc);
+    string? UpdatedUtc = null);
 
 public sealed record TableSlice(
     IReadOnlyList<ColumnSchema> Columns,

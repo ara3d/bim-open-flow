@@ -1,4 +1,5 @@
 using Ara3D.BimOpenSchema;
+using Ara3D.DataFlowEngine.Abstractions;
 using Ara3D.DataTable;
 
 namespace BimOpenFlow.Nodes.Compliance;
@@ -11,8 +12,18 @@ namespace BimOpenFlow.Nodes.Compliance;
 /// </summary>
 public static class VerdictSchema
 {
-    public static readonly IReadOnlyList<string> Columns =
-        new[] { IssueColumns.Verdict, IssueColumns.CheckId, IssueColumns.CheckTitle, IssueColumns.Citation };
+    /// <summary>The four columns as a node declares them: Text, never null.</summary>
+    public static readonly IReadOnlyList<KindColumn> Declared =
+        [ColumnKinds.Verdict.NotNull(), ColumnKinds.CheckId.NotNull(), ColumnKinds.CheckTitle.NotNull(), ColumnKinds.Citation.NotNull()];
+
+    public static readonly IReadOnlyList<string> Columns = [.. Declared.Select(c => c.Name)];
+
+    /// <summary>The input's columns followed by the verdict columns, as <c>WithVerdicts</c> builds the
+    /// table; a failure when the input already has one of them.</summary>
+    public static SchemaResult Append(SchemaResult input, string kind)
+        => input.Ok && Columns.FirstOrDefault(c => input.Schema!.Has(c)) is { } taken
+            ? SchemaResult.Fail($"{kind}: the input already has a '{taken}' column; check nodes take raw rows, not verdict tables.")
+            : input.Append([.. Declared]);
 
     /// <summary>Index of the first column with this name, ignoring case, or null.</summary>
     public static int? FindColumn(this IDataTable table, string name)

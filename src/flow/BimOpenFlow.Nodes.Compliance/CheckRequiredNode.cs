@@ -8,7 +8,7 @@ namespace BimOpenFlow.Nodes.Compliance;
 /// a null cell in a listed column = that row Fail; otherwise Pass.
 /// Data absence is reported, never skipped.
 /// </summary>
-public sealed class CheckRequiredNode : IFlowNode
+public sealed class CheckRequiredNode : ISchemaNode
 {
     public NodeSpec Spec { get; } = new(
         "check.required", 1, NodeCapability.Pure,
@@ -21,7 +21,11 @@ public sealed class CheckRequiredNode : IFlowNode
             new ParamSpec("citation", ParamKind.Text),
             new ParamSpec("columns", ParamKind.Text, List: true),
         },
-        "Required data check: missing column = InfoNotAvailable everywhere; null cell = Fail; else Pass.");
+        "Required data check: missing column = InfoNotAvailable everywhere; null cell = Fail; else Pass.",
+        Schemas: [SchemaSpec.Inferred("out")]);
+
+    public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
+        => VerdictSchema.Append(inputs[0].Schema ?? SchemaResult.Fail("check.required: input 0 has no table connected."), "check.required");
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {

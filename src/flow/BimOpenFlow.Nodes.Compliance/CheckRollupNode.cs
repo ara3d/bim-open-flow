@@ -16,7 +16,20 @@ public sealed class CheckRollupNode : IFlowNode
         new[] { new PortSpec("in", PortType.Table) },
         new[] { new PortSpec("out", PortType.Table) },
         Array.Empty<ParamSpec>(),
-        "Groups a verdict table by CheckId into counts and the worst verdict per check.");
+        "Groups a verdict table by CheckId into counts and the worst verdict per check.",
+        Schemas:
+        [
+            KindSchemas.Static("out",
+                ColumnKinds.CheckId.NotNull(), ColumnKinds.CheckTitle.NotNull(), ColumnKinds.Citation.NotNull(),
+                KindColumn.Plain(PassCount, ColumnType.Integer, nullable: false),
+                KindColumn.Plain(FailCount, ColumnType.Integer, nullable: false),
+                KindColumn.Plain(NeedsReviewCount, ColumnType.Integer, nullable: false),
+                KindColumn.Plain(InfoNotAvailableCount, ColumnType.Integer, nullable: false),
+                KindColumn.Plain(Worst, ColumnType.Text, nullable: false)),
+        ]);
+
+    private const string PassCount = "passCount", FailCount = "failCount", NeedsReviewCount = "needsReviewCount",
+        InfoNotAvailableCount = "infoNotAvailableCount", Worst = "worst";
 
     private sealed class Group
     {
@@ -75,11 +88,11 @@ public sealed class CheckRollupNode : IFlowNode
             Text(IssueColumns.CheckId, 0, (id, _) => id),
             Text(IssueColumns.CheckTitle, 1, (_, g) => g.Title),
             Text(IssueColumns.Citation, 2, (_, g) => g.Citation),
-            Count("passCount", 3, Verdict.Pass),
-            Count("failCount", 4, Verdict.Fail),
-            Count("needsReviewCount", 5, Verdict.NeedsReview),
-            Count("infoNotAvailableCount", 6, Verdict.InfoNotAvailable),
-            Text("worst", 7, (_, g) => g.Worst.ToText()),
+            Count(PassCount, 3, Verdict.Pass),
+            Count(FailCount, 4, Verdict.Fail),
+            Count(NeedsReviewCount, 5, Verdict.NeedsReview),
+            Count(InfoNotAvailableCount, 6, Verdict.InfoNotAvailable),
+            Text(Worst, 7, (_, g) => g.Worst.ToText()),
         });
     }
 }

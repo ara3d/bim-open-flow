@@ -83,16 +83,18 @@ public static class SampleSeeding
     /// <list type="bullet">
     /// <item>a sample the store lacks is seeded, unless the user deleted it and the sample
     /// has not changed since;</item>
-    /// <item>a copy still identical to what was seeded is refreshed when the sample changed
-    /// (the store archives the old copy under versions/);</item>
+    /// <item>a copy whose structure and values are still what was seeded is refreshed when the
+    /// sample changed, keeping the user's positions for nodes that still exist (the store
+    /// archives the old copy under versions/); moving or resizing nodes is not an edit;</item>
     /// <item>a copy the user edited is kept, and the log says the sample changed.</item>
     /// </list>
     /// A store follows a sample folder when it was empty, when the record names the folder,
     /// or when it already holds one of the folder's analyses; other folders are left out, so
     /// a store prepared for one purpose (the DuckDB studio's) does not fill with another's
-    /// samples. A store seeded before the record existed has no entries: a copy with no
-    /// saved versions was never edited (every store save after the first archives one) and
-    /// is refreshed; a copy with versions is kept; an analysis in .trash stays deleted.
+    /// samples. A store seeded before the record existed has no entries: its oldest saved
+    /// document (every store save after the first archives one) is taken as the seed; an
+    /// analysis in .trash stays deleted. A record written before 2026-10-11 hashed the whole
+    /// document; its copies are compared through the archived seed (see IsUntouched).
     /// Each source's placeholder becomes its target directory; a graph with a placeholder
     /// left over, or (given a registry) one the profile cannot run, is skipped and logged.
     /// Returns the ids seeded for the first time; refreshed and kept copies are logged.
@@ -135,26 +137,24 @@ public static class SampleSeeding
         var seed = new SampleSeed(source, hash);
         if (!store.Exists(id))
         {
-            var deleted = entry is null ? IsInTrash(store, id) : entry.Sha256 == hash;
+            var deleted = entry is null ? IsInTrash(store, id) : entry.IsSeedOf(doc);
             if (deleted)
                 return false;
             store.Save(id, doc);
             record[id] = seed;
             return true;
         }
-        var current = SampleSeedRecord.Hash(store.Load(id));
-        if (current == hash)
+        var current = store.Load(id);
+        if (SampleSeedRecord.Hash(current) == hash)
             record[id] = seed;
-        else if (entry is null ? !HasHistory(store, id) : current == entry.Sha256)
+        else if (IsUntouched(store, id, current, entry))
         {
-            store.Save(id, doc);
+            store.Save(id, WithLayoutOf(doc, current));
             record[id] = seed;
             log.WriteLine($"  refreshed sample analysis {id}: the sample changed; the previous copy is in its versions/");
         }
         else
         {
-            // An empty hash stands for "seeded from a version nobody recorded", so deleting
-            // the kept copy lets the next start seed the new sample.
             record[id] = entry ?? new SampleSeed(source, "");
             log.WriteLine($"  kept your edited copy of sample analysis {id}: samples/{source}/{id}.json has changed since. "
                 + "To take the new sample, delete the analysis (it moves to .trash) and restart the host.");
@@ -162,16 +162,40 @@ public static class SampleSeeding
         return false;
     }
 
+    /// <summary>True when the copy's structure and values are still those it was seeded with,
+    /// whatever its layout. A current record holds that graph hash. A legacy record holds the
+    /// whole seeded document's hash, so the seeded document is looked for among the copy and its
+    /// archived versions (a drag saved the copy, archiving the seed). With no record, or an
+    /// unrecorded one, the oldest saved document is the seed, since the first save of a
+    /// sample's id seeded it.</summary>
+    private static bool IsUntouched(AnalysisStore store, string id, GraphDocument current, SampleSeed? entry)
+    {
+        var graph = SampleSeedRecord.Hash(current);
+        return entry switch
+        {
+            null or { IsUnrecorded: true } => (store.History(id).FirstOrDefault()?.GraphHash ?? graph) == graph,
+            { IsLegacy: false } => entry.IsSeedOf(current),
+            _ => SavedDocuments(store, id).Where(entry.IsSeedOf).Any(d => SampleSeedRecord.Hash(d) == graph),
+        };
+    }
+
+    /// <summary>The analysis's archived versions, oldest first, then its current document.</summary>
+    private static IEnumerable<GraphDocument> SavedDocuments(AnalysisStore store, string id)
+        => store.History(id).Select(v => store.LoadVersion(id, v.Sequence)).Append(store.Load(id));
+
+    /// <summary>The sample with the copy's position and size for every node both hold; a node
+    /// new in the sample keeps the place the sample gives it.</summary>
+    private static GraphDocument WithLayoutOf(GraphDocument sample, GraphDocument copy)
+        => sample with
+        {
+            Layout = sample.Nodes.Select(n => n.Id)
+                .Select(nodeId => (nodeId, layout: copy.Layout.GetValueOrDefault(nodeId) ?? sample.Layout.GetValueOrDefault(nodeId)))
+                .Where(p => p.layout is not null)
+                .ToDictionary(p => p.nodeId, p => p.layout!),
+        };
+
     private static bool IsInTrash(AnalysisStore store, string id)
         => Directory.Exists(Path.Combine(store.RootDir, AnalysisStore.TrashDirName, id));
-
-    /// <summary>True when the store archived at least one earlier version of the analysis,
-    /// which it does on every save after the first.</summary>
-    private static bool HasHistory(AnalysisStore store, string id)
-    {
-        var versions = Path.Combine(store.RootDir, id, AnalysisStore.VersionsDirName);
-        return Directory.Exists(versions) && Directory.EnumerateFiles(versions).Any();
-    }
 
     /// <summary>A {WORD} placeholder still literally present in a parameter value: the profile
     /// named no target directory for it (e.g. {FEDERATION_CONFIRMATIONS}), so any node reading

@@ -57,7 +57,7 @@ public sealed class SampleSeedingRefreshTests
             Assert.That(seeded, Is.EqualTo(new[] { "walls" }));
             Assert.That(log, Is.Empty);
             Assert.That(record["walls"].Source, Is.EqualTo("demo-analyses"));
-            Assert.That(record["walls"].Sha256, Is.EqualTo(SampleSeedRecord.Hash(_store.Load("walls"))));
+            Assert.That(record["walls"].GraphSha256, Is.EqualTo(SampleSeedRecord.Hash(_store.Load("walls"))));
         });
     }
 
@@ -88,8 +88,128 @@ public sealed class SampleSeedingRefreshTests
             Assert.That(log, Does.Contain("refreshed sample analysis walls"));
             Assert.That(ReadPath("walls"), Does.EndWith("/walls-v2.csv"));
             Assert.That(_store.History("walls"), Has.Count.EqualTo(1));
-            Assert.That(SampleSeedRecord.Read(_store)["walls"].Sha256, Is.EqualTo(SampleSeedRecord.Hash(_store.Load("walls"))));
+            Assert.That(SampleSeedRecord.Read(_store)["walls"].GraphSha256, Is.EqualTo(SampleSeedRecord.Hash(_store.Load("walls"))));
         });
+    }
+
+    /// <summary>The sample a later revision of Sample becomes: a second node wired after the reader.</summary>
+    private static GraphDocument SampleWithHead(string file)
+        => Sample(file).AddNode("head", "table.head", 1).Connect("read.table", "head.table")
+            .SetLayout("read", new NodeLayout(0, 0)).SetLayout("head", new NodeLayout(300, 0));
+
+    private void Drag(string id, string nodeId, NodeLayout to)
+        => _store.Save(id, _store.Load(id).SetLayout(nodeId, to));
+
+    [Test]
+    public void ChangedSample_RefreshesACopyTheUserOnlyMoved_KeepingTheirPositions()
+    {
+        // TKT-257: a drag saved the copy; the copy must still count as the untouched sample.
+        WriteSample("walls", Sample("walls.csv").SetLayout("read", new NodeLayout(0, 0)));
+        Seed();
+        Drag("walls", "read", new NodeLayout(619.89, 40, 220, 120));
+        Assert.That(Seed().Log, Is.Empty, "a moved node alone is no change to log");
+        WriteSample("walls", SampleWithHead("walls-v2.csv"));
+        var (_, log) = Seed();
+        var copy = _store.Load("walls");
+        Assert.Multiple(() =>
+        {
+            Assert.That(log, Does.Contain("refreshed sample analysis walls"));
+            Assert.That(copy.Nodes.Select(n => n.Id), Is.EquivalentTo(new[] { "read", "head" }));
+            Assert.That(copy.Edges, Has.Count.EqualTo(1));
+            Assert.That(ReadPath("walls"), Does.EndWith("/walls-v2.csv"));
+            Assert.That(copy.Layout["read"], Is.EqualTo(new NodeLayout(619.89, 40, 220, 120)));
+            Assert.That(copy.Layout["head"], Is.EqualTo(new NodeLayout(300, 0)));
+            Assert.That(SampleSeedRecord.Read(_store)["walls"].GraphSha256, Is.EqualTo(SampleSeedRecord.Hash(copy)));
+        });
+    }
+
+    [Test]
+    public void RefreshedLayout_DropsPositionsOfNodesTheSampleRemoved()
+    {
+        WriteSample("walls", SampleWithHead("walls.csv"));
+        Seed();
+        Drag("walls", "head", new NodeLayout(900, 900));
+        WriteSample("walls", Sample("walls-v2.csv").SetLayout("read", new NodeLayout(0, 0)));
+        Seed();
+        Assert.That(_store.Load("walls").Layout.Keys, Is.EquivalentTo(new[] { "read" }));
+    }
+
+    /// <summary>Rewrites the record as a host before 2026-10-11 wrote it: the whole document's hash.</summary>
+    private void WriteLegacyRecord(string id, GraphDocument seeded)
+        => File.WriteAllText(SampleSeedRecord.PathOf(_store),
+            $$"""{ "{{id}}": { "source": "demo-analyses", "sha256": "{{SampleSeedRecord.WholeDocumentHash(seeded)}}" } }""");
+
+    [Test]
+    public void LegacyRecord_RefreshesACopyTheUserOnlyMoved()
+    {
+        // The stale bfast-buffers copy: seeded under the whole-document hash, then one node dragged.
+        WriteSample("walls", Sample("walls.csv").SetLayout("read", new NodeLayout(0, 0)));
+        Seed();
+        WriteLegacyRecord("walls", _store.Load("walls"));
+        Drag("walls", "read", new NodeLayout(619.89, 0));
+        WriteSample("walls", SampleWithHead("walls-v2.csv"));
+        var (_, log) = Seed();
+        var entry = SampleSeedRecord.Read(_store)["walls"];
+        Assert.Multiple(() =>
+        {
+            Assert.That(log, Does.Contain("refreshed sample analysis walls"));
+            Assert.That(ReadPath("walls"), Does.EndWith("/walls-v2.csv"));
+            Assert.That(_store.Load("walls").Layout["read"], Is.EqualTo(new NodeLayout(619.89, 0)));
+            Assert.That(entry.IsLegacy, Is.False);
+            Assert.That(entry.Sha256, Is.Null);
+            Assert.That(File.ReadAllText(SampleSeedRecord.PathOf(_store)), Does.Not.Contain("\"sha256\""));
+        });
+    }
+
+    [Test]
+    public void UnrecordedEntry_RefreshesACopyTheUserOnlyMoved_AndKeepsOneWithAnEditedValue()
+    {
+        // A store older than the record writes an empty hash for a copy with saved versions;
+        // its oldest saved document is the seed. walls was only moved; doors had a value changed.
+        foreach (var id in new[] { "walls", "doors" })
+        {
+            WriteSample(id, Sample(id + ".csv").SetLayout("read", new NodeLayout(0, 0)));
+            _store.Save(id, SampleSeeding.RewritePaths(Sample(id + ".csv").SetLayout("read", new NodeLayout(0, 0)), Path.Combine(_root, "tables")));
+        }
+        Drag("walls", "read", new NodeLayout(619.89, 0));
+        _store.Save("doors", _store.Load("doors").SetParam("read", "type", "int16"));
+        Drag("doors", "read", new NodeLayout(619.89, 0));
+        File.WriteAllText(SampleSeedRecord.PathOf(_store),
+            """{ "walls": { "source": "demo-analyses", "sha256": "" }, "doors": { "source": "demo-analyses", "sha256": "" } }""");
+        WriteSample("walls", SampleWithHead("walls-v2.csv"));
+        WriteSample("doors", Sample("doors-v2.csv"));
+        var (_, log) = Seed();
+        Assert.Multiple(() =>
+        {
+            Assert.That(log, Does.Contain("refreshed sample analysis walls"));
+            Assert.That(_store.Load("walls").Layout["read"], Is.EqualTo(new NodeLayout(619.89, 0)));
+            Assert.That(log, Does.Contain("kept your edited copy of sample analysis doors"));
+            Assert.That(_store.Load("doors").Values["read"]["type"], Is.EqualTo("int16"));
+        });
+    }
+
+    [Test]
+    public void LegacyRecord_KeepsACopyTheUserEdited()
+    {
+        WriteSample("walls", Sample("walls.csv"));
+        Seed();
+        WriteLegacyRecord("walls", _store.Load("walls"));
+        _store.Save("walls", _store.Load("walls").SetParam("read", "path", "C:/mine.csv"));
+        WriteSample("walls", Sample("walls-v2.csv"));
+        Assert.That(Seed().Log, Does.Contain("kept your edited copy of sample analysis walls"));
+        Assert.That(ReadPath("walls"), Is.EqualTo("C:/mine.csv"));
+    }
+
+    [Test]
+    public void LegacyRecord_LeavesADeletedCopyDeletedUntilTheSampleChanges()
+    {
+        WriteSample("walls", Sample("walls.csv"));
+        Seed();
+        WriteLegacyRecord("walls", _store.Load("walls"));
+        _store.Delete("walls");
+        Assert.That(Seed().Seeded, Is.Empty);
+        WriteSample("walls", Sample("walls-v2.csv"));
+        Assert.That(Seed().Seeded, Is.EqualTo(new[] { "walls" }));
     }
 
     [Test]

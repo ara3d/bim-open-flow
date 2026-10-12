@@ -56,4 +56,15 @@ describe("createProblemsPanel", () => {
     panel.dispose();
     expect(host.querySelector(".bof-app-problems-strip")).toBeNull();
   });
+
+  it("words schema warnings as warnings, with their own style, and selects the node on click", () => {
+    const { panel, host, onSelect } = mount();
+    panel.render([{ nodeId: "f", title: "Filter", status: "Warning", text: "Column 'Nme' is not in the input; nearest is 'Name'.", depth: 1 }]);
+    expect(host.querySelector(".bof-app-problems-summary")!.textContent).toBe("1 warning");
+    const row = host.querySelector<HTMLElement>('[data-node-id="f"]')!;
+    expect(row.classList.contains("bof-app-problems-Warning")).toBe(true);
+    expect(row.querySelector(".bof-app-problems-status")!.textContent).toBe("Warning");
+    row.click();
+    expect(onSelect).toHaveBeenCalledWith("f");
+  });
 });

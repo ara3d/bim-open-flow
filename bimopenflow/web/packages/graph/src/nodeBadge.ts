@@ -58,14 +58,19 @@ function upstreamCause(
  * The badge for one node: its status, the text to paint, and — for Unready,
  * Unavailable, or Error — the upstream node responsible when one exists.
  * Returns undefined when the node has no evaluation state yet (never
- * evaluated this session).
+ * evaluated this session). `schemaWarnings` is how many messages the static
+ * schema pass (TKT-209) has for the node; an Ok node then reads "Ok · 1 warning"
+ * (the status stays Ok: a warning never blocks anything).
  */
-export function nodeBadge(graph: BadgeGraph, nodeId: string): NodeBadge | undefined {
+export function nodeBadge(graph: BadgeGraph, nodeId: string, schemaWarnings = 0): NodeBadge | undefined {
   const state = graph.evalState[nodeId];
   if (!state) return undefined;
   switch (state.status) {
     case "Ok":
-      return { status: state.status, text: "Ok" };
+      return {
+        status: state.status,
+        text: schemaWarnings > 0 ? `Ok · ${schemaWarnings} ${schemaWarnings === 1 ? "warning" : "warnings"}` : "Ok",
+      };
     case "EffectPending":
       // Not an error and not blocked on anything — the node is simply an
       // effect, gated behind an explicit Run.

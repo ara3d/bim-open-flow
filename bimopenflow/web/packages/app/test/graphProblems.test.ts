@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { NodeState } from "@bimopenflow/contracts";
+import type { NodeState, PortSchema } from "@bimopenflow/contracts";
 import type { State } from "@bimopenflow/state";
 import { graphProblems, problemsSummary, type Problem } from "../src/graphProblems.js";
 
@@ -14,6 +14,7 @@ function stateOf(
   nodes: string[],
   edges: [string, string][],
   evalState: Record<string, NodeState>,
+  schemas: Record<string, PortSchema> = {},
 ): State {
   return {
     document: {
@@ -27,6 +28,7 @@ function stateOf(
     },
     selection: [],
     evalState,
+    schemas,
     dirty: false,
     undoStack: [],
     redoStack: [],
@@ -74,6 +76,29 @@ describe("graphProblems", () => {
   });
 });
 
+describe("schema warnings", () => {
+  const warned = (node: string, ...warnings: string[]): Record<string, PortSchema> => ({
+    [`${node}.out`]: { node, output: "out", status: "Ok", errors: [], warnings },
+  });
+
+  it("lists a warning on a node whose status is Ok, after the status problems of its depth", () => {
+    const s = stateOf(["a", "b"], [], { a: st("a", "Ok"), b: st("b", "Unready") },
+      warned("a", "Column 'Nme' is not in the input; nearest is 'Name'."));
+    const p = graphProblems(s);
+    expect(p.map((x) => [x.nodeId, x.status])).toEqual([["b", "Unready"], ["a", "Warning"]]);
+    expect(p[1]!.text).toBe("Column 'Nme' is not in the input; nearest is 'Name'.");
+  });
+
+  it("lists a warning on a node with no evaluation state yet, and keeps its status problem too", () => {
+    const s = stateOf(["a", "b"], [], { b: st("b", "Unready") }, { ...warned("a", "w1", "w2"), ...warned("b", "w3") });
+    expect(graphProblems(s).map((x) => `${x.nodeId}:${x.status}`)).toEqual(["b:Unready", "a:Warning", "a:Warning", "b:Warning"]);
+  });
+
+  it("adds nothing when the host reports no schemas", () => {
+    expect(graphProblems(stateOf(["a"], [], { a: st("a", "Ok") }))).toEqual([]);
+  });
+});
+
 describe("problemsSummary", () => {
   const p = (status: Problem["status"]): Problem => ({ nodeId: "n", title: "t", status, text: "", depth: 0 });
   it("is empty for none", () => expect(problemsSummary([])).toBe(""));
@@ -81,4 +106,8 @@ describe("problemsSummary", () => {
     expect(problemsSummary([p("Unready")])).toBe("1 problem"));
   it("counts errors", () =>
     expect(problemsSummary([p("Error"), p("Unready"), p("Unavailable")])).toBe("3 problems · 1 error"));
+  it("counts warnings apart from problems", () => {
+    expect(problemsSummary([p("Error"), p("Warning"), p("Warning")])).toBe("1 problem · 1 error · 2 warnings");
+    expect(problemsSummary([p("Warning")])).toBe("1 warning");
+  });
 });

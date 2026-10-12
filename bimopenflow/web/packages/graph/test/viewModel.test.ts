@@ -147,4 +147,19 @@ describe("buildCanvasModel", () => {
     expect(model.nodes.find((n) => n.id === "a")!.badge).toEqual({ status: "Error", text: "boom" });
     expect(model.nodes.find((n) => n.id === "b")!.badge).toBeUndefined();
   });
+
+  it("counts the schema pass's messages for a node in its badge (TKT-209)", () => {
+    const store = createStore();
+    store.dispatch({ type: "addNode", id: "a", kind: "k.a", version: 1 });
+    store.dispatch({
+      type: "applyServerState",
+      update: {
+        analysisId: "x",
+        nodes: [{ nodeId: "a", status: "Ok", warnings: [] }],
+        schemas: [{ node: "a", output: "out", status: "Ok", errors: [], warnings: ["Column 'Nme' is not in the input; nearest is 'Name'."] }],
+      },
+    });
+    const model = buildCanvasModel(store.getState(), catalog);
+    expect(model.nodes.find((n) => n.id === "a")!.badge).toEqual({ status: "Ok", text: "Ok · 1 warning" });
+  });
 });

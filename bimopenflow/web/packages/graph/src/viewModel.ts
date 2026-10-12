@@ -2,7 +2,7 @@
 // canvas draws. Gratify-free so it is testable headless.
 
 import type { NodeDescriptor, NodeStatus, PortType } from "@bimopenflow/contracts";
-import type { NodeLayout, State } from "@bimopenflow/state";
+import { schemaMessages, type NodeLayout, type State } from "@bimopenflow/state";
 import { inlineParams, type CanvasParam } from "./canvasSlots.js";
 import { nodeSize, NOTE_KIND, type Size } from "./nodeSize.js";
 import { upstreamIds } from "./graphPreview";
@@ -241,7 +241,7 @@ export function buildCanvasModel(
     return {
       ...common,
       status: state.evalState[content.id]?.status,
-      badge: nodeBadge({ edges: state.document.structure.edges, evalState: state.evalState }, content.id),
+      badge: nodeBadge({ edges: state.document.structure.edges, evalState: state.evalState }, content.id, schemaMessages(state, content.id).length),
       ...(desc?.description ? { description: desc.description } : {}),
     };
   });

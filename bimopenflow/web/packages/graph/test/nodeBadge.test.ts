@@ -105,4 +105,16 @@ describe("nodeBadge", () => {
     // to edge order in a graph that should never occur in practice.
     expect(nodeBadge(g, "a")).toEqual({ status: "Unready", text: "Waiting on b", causeNodeId: "b" });
   });
+
+  it("Ok with schema warnings counts them and stays Ok", () => {
+    const g = graph({ a: state("a", "Ok") }, []);
+    expect(nodeBadge(g, "a", 1)).toEqual({ status: "Ok", text: "Ok · 1 warning" });
+    expect(nodeBadge(g, "a", 3)).toEqual({ status: "Ok", text: "Ok · 3 warnings" });
+    expect(nodeBadge(g, "a", 0)).toEqual({ status: "Ok", text: "Ok" });
+  });
+
+  it("leaves the text of a non-Ok status alone", () => {
+    const g = graph({ a: state("a", "Unready") }, []);
+    expect(nodeBadge(g, "a", 2)!.text).toBe("Needs setup");
+  });
 });

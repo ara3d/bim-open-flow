@@ -29,6 +29,7 @@ function ensureStyles(doc: Document): void {
     .bof-app-problems-status { font-weight: 600; min-width: 90px; color: #ff8a80; }
     .bof-app-problems-Unavailable .bof-app-problems-status { color: #ffcc80; }
     .bof-app-problems-Unready .bof-app-problems-status { color: #ffe082; }
+    .bof-app-problems-Warning .bof-app-problems-status { color: #ffe082; font-weight: normal; }
     .bof-app-problems-info .bof-app-problems-status { color: #90caf9; font-weight: normal; }
     .bof-app-problems-info { opacity: 0.8; }
     .bof-app-problems-text { opacity: 0.85; }

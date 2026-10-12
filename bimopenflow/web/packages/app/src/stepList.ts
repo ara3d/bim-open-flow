@@ -18,8 +18,9 @@ export interface Step {
   readonly nodeId: string;
   readonly title: string;          // nodeTitle(kind) from graphPreview.ts
   readonly kind: string;
-  /** What the step does: the first sentence of the catalog's description,
-   *  so the list reads as a story; "" for a kind the catalog lacks. */
+  /** What the step does: the first two sentences of the catalog's
+   *  description (TKT-278), so the list reads as a story; "" for a kind the
+   *  catalog lacks. */
   readonly description: string;
   readonly summary: string;        // "table = doors · limit = 10"; "" when no params set
   readonly status?: NodeStatus;
@@ -48,13 +49,17 @@ function paramSummary(desc: NodeDescriptor | undefined, values: Readonly<Record<
     .join(" · ");
 }
 
-/** The first sentence (or line) of a catalog description; the whole text
- *  when it has no sentence end. */
-export const firstSentence = (text: string): string => {
-  const line = text.split("\n", 1)[0]!.trim();
-  const end = line.search(/[.;:]\s/);
-  return end < 0 ? line : line.slice(0, end + 1);
-};
+/** Sentences a step shows of its catalog description by default (TKT-278). */
+export const BRIEF_SENTENCES = 2;
+
+/** The first `count` sentences of a catalog description, joined by spaces.
+ *  A sentence ends at ".", "!", or "?" before a space, or at a line end. */
+export const leadSentences = (text: string, count: number): string =>
+  text.split("\n")
+    .flatMap((line) => line.trim().split(/(?<=[.!?])\s+/))
+    .filter((s) => s !== "")
+    .slice(0, count)
+    .join(" ");
 
 export function stepListModel(
   state: State,
@@ -81,7 +86,7 @@ export function stepListModel(
       nodeId,
       title: nodeTitle(kind),
       kind,
-      description: firstSentence(desc?.description ?? ""),
+      description: leadSentences(desc?.description ?? "", BRIEF_SENTENCES),
       summary: paramSummary(desc, document.values[nodeId] ?? {}),
       ...(badge ? { status: badge.status, badge: badge.text } : {}),
       ...(rows !== undefined ? { rows } : {}),

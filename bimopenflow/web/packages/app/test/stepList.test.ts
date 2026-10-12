@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { NodeDescriptor, NodeState, ParamKind } from "@bimopenflow/contracts";
 import { initialState, type State } from "@bimopenflow/state";
 import { NO_PORT_RESULTS, type PortResultsView } from "@bimopenflow/graph";
-import { createStepList, firstSentence, stepListModel, type Step } from "../src/stepList.js";
+import { BRIEF_SENTENCES, createStepList, leadSentences, stepListModel, type Step } from "../src/stepList.js";
 
 const desc = (kind: string, params: [string, ParamKind][] = []): NodeDescriptor => ({
   kind,
@@ -119,11 +119,22 @@ describe("stepListModel", () => {
   });
 });
 
-describe("firstSentence", () => {
-  it("keeps the first sentence, the first line, or the whole short text", () => {
-    expect(firstSentence("Emits one row per pair. Boxes come from the model.")).toBe("Emits one row per pair.");
-    expect(firstSentence("Sorts rows\nby a column")).toBe("Sorts rows");
-    expect(firstSentence("Groups by the given columns")).toBe("Groups by the given columns");
+describe("leadSentences", () => {
+  const text = "Emits one row per pair. Boxes come from the model. Pairs are unordered.";
+  it("keeps the first sentences, each line ending one, or the whole short text", () => {
+    expect(leadSentences(text, 1)).toBe("Emits one row per pair.");
+    expect(leadSentences(text, 2)).toBe("Emits one row per pair. Boxes come from the model.");
+    expect(leadSentences("Sorts rows\nby a column", 1)).toBe("Sorts rows");
+    expect(leadSentences("Groups by the given columns", 2)).toBe("Groups by the given columns");
+    expect(leadSentences("", 2)).toBe("");
+  });
+
+  it("gives a step the first two sentences of its catalog description (TKT-278)", () => {
+    expect(BRIEF_SENTENCES).toBe(2);
+    const long = new Map(catalog);
+    long.set("table.sort", { ...catalog.get("table.sort")!, description: "Sorts the rows. Ties keep their order. Nulls sort last." });
+    const answer = stepListModel(exampleState(), long, NO_PORT_RESULTS).find((s) => s.nodeId === "answer")!;
+    expect(answer.description).toBe("Sorts the rows. Ties keep their order.");
   });
 });
 

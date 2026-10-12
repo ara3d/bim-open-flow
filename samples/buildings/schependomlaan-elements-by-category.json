@@ -1,32 +1,43 @@
 {
   "formatVersion": "0.1.0",
   "layout": {
-    "byCategory": { "x": 680, "y": 40 },
-    "chart": { "x": 1000, "y": 40 },
-    "entities": { "x": 40, "y": 40 },
-    "placed": { "x": 360, "y": 40 },
-    "storeys": { "x": 40, "y": 300 }
+    "about": { "x": 40, "y": 40, "w": 560, "h": 158 },
+    "db": { "x": 40, "y": 224 },
+    "entities": { "x": 370, "y": 224 },
+    "placed": { "x": 700, "y": 224 },
+    "byCategory": { "x": 1030, "y": 224 },
+    "answer": { "x": 1360, "y": 224 },
+    "storeys": { "x": 370, "y": 464 }
   },
   "structure": {
+    "inputs": [
+      { "default": "{PUBLIC}/schependomlaan.duckdb", "description": "The building's BIM Open Schema DuckDB file; any public sample building works here.", "kind": "FilePath", "name": "model" }
+    ],
     "edges": [
+      { "from": "db.source", "to": "entities.path" },
+      { "from": "db.source", "to": "storeys.path" },
       { "from": "entities.table", "to": "placed.a" },
       { "from": "storeys.table", "to": "placed.b" },
       { "from": "placed.table", "to": "byCategory.table" },
-      { "from": "byCategory.table", "to": "chart.table" }
+      { "from": "byCategory.table", "to": "answer.table" }
     ],
     "nodes": [
+      { "id": "about", "kind": "view.note", "version": 1 },
+      { "id": "answer", "kind": "chart.bar", "version": 1 },
       { "id": "byCategory", "kind": "table.aggregate", "version": 1 },
-      { "id": "chart", "kind": "chart.bar", "version": 1 },
+      { "id": "db", "kind": "duck.source", "version": 1 },
       { "id": "entities", "kind": "duck.table", "version": 1 },
       { "id": "placed", "kind": "table.join", "version": 1 },
       { "id": "storeys", "kind": "duck.table", "version": 1 }
     ]
   },
   "values": {
+    "about": { "text": "What is on Schependomlaan's storeys, by IFC class. The inner join keeps only entities placed on a storey, which leaves out geometry, property, and type entities. StoreyOfElement places each element once: Depth 1 when the storey contains it directly, Depth 2 when it sits there through a parent, as a building element part does through its wall. Both depths count here; 289 of the 3,721 elements are at Depth 2 (277 building element parts, 7 members, 4 windows, 1 proxy)." },
+    "answer": { "labelColumn": "Category", "sort": "desc", "title": "Elements on a storey, by IFC class", "valueColumns": "Elements" },
     "byCategory": { "aggregates": "count(EntityIndex) as Elements", "groupBy": "Category" },
-    "chart": { "labelColumn": "Category", "sort": "desc", "title": "Elements on a storey, by IFC class", "valueColumns": "Elements" },
-    "entities": { "path": "{PUBLIC}/schependomlaan.duckdb", "table": "EntityText" },
+    "db": { "path": "$model" },
+    "entities": { "table": "EntityText" },
     "placed": { "aKey": "EntityIndex", "mode": "inner" },
-    "storeys": { "path": "{PUBLIC}/schependomlaan.duckdb", "table": "StoreyOfElement" }
+    "storeys": { "table": "StoreyOfElement" }
   }
 }

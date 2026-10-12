@@ -39,6 +39,20 @@ public sealed class PublicBuildingsTests
                 .Where(id => id != "index")
                 .Order(StringComparer.Ordinal)));
 
+    /// <summary>index.json names each graph's inputs, so a reader of the index knows what to set
+    /// without opening the graph.</summary>
+    [Test]
+    public void IndexListsEachGraphsInputs()
+    {
+        var index = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(PublicBuildings.GraphsDir, "index.json")))!;
+        foreach (var entry in index["graphs"]!.AsArray())
+        {
+            var id = (string)entry!["id"]!;
+            Assert.That(entry["inputs"]!.AsArray().Select(n => (string)n!),
+                Is.EqualTo(PublicBuildings.Load(id).Inputs.Select(i => i.Name)), id);
+        }
+    }
+
     [TestCaseSource(nameof(GraphIds))]
     public void ParsesAndValidates(string id)
     {
@@ -57,10 +71,31 @@ public sealed class PublicBuildingsTests
         Assert.That(failed, Is.Empty);
     }
 
+    /// <summary>Every graph reads its building through one duck.source, db, that holds the
+    /// graph input model, so one value points the whole graph at another file.</summary>
+    [TestCaseSource(nameof(GraphIds))]
+    public void ReadsTheModelInputThroughOneSource(string id)
+    {
+        var doc = PublicBuildings.Load(id);
+        Assert.That(doc.Inputs.Select(i => (i.Name, i.Kind)), Is.EqualTo(new[] { ("model", Ara3D.DataFlowEngine.Abstractions.ParamKind.FilePath) }));
+        Assert.That(doc.Nodes.Where(n => n.Kind == "duck.source").Select(n => n.Id), Is.EqualTo(new[] { "db" }));
+        Assert.That(doc.Values["db"]["path"], Is.EqualTo("$model"));
+        Assert.That(doc.Values.Where(v => v.Key != "db" && v.Value.ContainsKey("path")).Select(v => v.Key), Is.Empty,
+            "every reader takes its path from db");
+    }
+
+    [TestCaseSource(nameof(GraphIds))]
+    public void EndsInAnswer(string id)
+    {
+        var doc = PublicBuildings.Load(id);
+        Assert.That(doc.Nodes.Select(n => n.Id), Does.Contain("answer"));
+        Assert.That(doc.Edges.Where(e => e.From.StartsWith("answer.", StringComparison.Ordinal)), Is.Empty, "answer is the last node");
+    }
+
     [Test]
     public void Schependomlaan_ElementsByCategory()
     {
-        var chart = PublicBuildings.Evaluate("schependomlaan-elements-by-category").Table("chart");
+        var chart = PublicBuildings.Evaluate("schependomlaan-elements-by-category").Table("answer");
         Assert.That(chart.Rows.Count, Is.EqualTo(16));
         Assert.That(Total(chart, "Elements"), Is.EqualTo(3721));
         Assert.That(Lookup(chart, "Category", "Elements"), Does.Contain(("IFCCOVERING", 1262L))
@@ -75,7 +110,7 @@ public sealed class PublicBuildingsTests
     [Test]
     public void Schependomlaan_SpacesPerStorey()
     {
-        var chart = PublicBuildings.Evaluate("schependomlaan-spaces-per-storey").Table("chart");
+        var chart = PublicBuildings.Evaluate("schependomlaan-spaces-per-storey").Table("answer");
         Assert.That(Lookup(chart, "StoreyName", "Spaces"), Is.EqualTo(new[]
         {
             ("00 begane grond", 32L),
@@ -88,21 +123,17 @@ public sealed class PublicBuildingsTests
     private static IReadOnlyDictionary<string, string> Model(string fileName)
         => new Dictionary<string, string> { ["model"] = PublicBuildings.DataFile(fileName) };
 
-    /// <summary>The graph declares a model input held by its duck.source: the default is
-    /// Schependomlaan, and one value swaps in another building, whose own numbers come out.</summary>
+    /// <summary>The model input's default is Schependomlaan, and one value swaps in another
+    /// building, whose own numbers come out.</summary>
     [Test]
     public void SpacesPerStorey_ModelInput_SwapsTheBuilding()
     {
-        var doc = PublicBuildings.Load("schependomlaan-spaces-per-storey");
-        Assert.That(doc.Inputs.Select(i => (i.Name, i.Kind)), Is.EqualTo(new[] { ("model", Ara3D.DataFlowEngine.Abstractions.ParamKind.FilePath) }));
-        Assert.That(doc.Values["db"]["path"], Is.EqualTo("$model"));
-
         var own = PublicBuildings.Evaluate("schependomlaan-spaces-per-storey");
         Assert.That(own.Snapshot.GraphInputs!["model"], Is.EqualTo(PublicBuildings.DataFile("schependomlaan.duckdb")));
-        Assert.That(Total(own.Table("chart"), "Spaces"), Is.EqualTo(100));
+        Assert.That(Total(own.Table("answer"), "Spaces"), Is.EqualTo(100));
 
         var other = PublicBuildings.Evaluate("schependomlaan-spaces-per-storey", Model("digitalhub-arc.duckdb"));
-        Assert.That(Lookup(other.Table("chart"), "StoreyName", "Spaces"), Is.EqualTo(new[]
+        Assert.That(Lookup(other.Table("answer"), "StoreyName", "Spaces"), Is.EqualTo(new[]
         {
             ("B01_OKRD", 12L),
             ("E00_OKRD", 26L),
@@ -119,7 +150,7 @@ public sealed class PublicBuildingsTests
         var first = Freeze(session);
 
         session.Session.SetGraphInputs(Model("digitalhub-arc.duckdb"));
-        Assert.That(Total(session.Table("chart"), "Spaces"), Is.EqualTo(64));
+        Assert.That(Total(session.Table("answer"), "Spaces"), Is.EqualTo(64));
         var second = Freeze(session);
 
         var path = PublicBuildings.DataFile("digitalhub-arc.duckdb");
@@ -128,7 +159,7 @@ public sealed class PublicBuildingsTests
             Assert.That(second.GraphInputs, Is.EqualTo(new Dictionary<string, string> { ["model"] = path }));
             Assert.That(second.ToCanonicalJson(), Does.Contain("\"graphInputs\"").And.Contain("digitalhub-arc.duckdb"));
             Assert.That(second.GraphHash, Is.EqualTo(first.GraphHash), "the same graph, run on another building");
-            Assert.That(second.NodeOutputs["chart.table"], Is.Not.EqualTo(first.NodeOutputs["chart.table"]));
+            Assert.That(second.NodeOutputs["answer.table"], Is.Not.EqualTo(first.NodeOutputs["answer.table"]));
             var pinned = second.Inputs.Single(i => i.Node == "db" && i.Param == "path");
             Assert.That(pinned.Source, Is.EqualTo(path));
             Assert.That(pinned.ContentHash, Is.EqualTo(ModelCatalog.HashFile(path)));
@@ -151,7 +182,7 @@ public sealed class PublicBuildingsTests
     [Test]
     public void Schependomlaan_RoomNames()
     {
-        var chart = PublicBuildings.Evaluate("schependomlaan-room-names").Table("chart");
+        var chart = PublicBuildings.Evaluate("schependomlaan-room-names").Table("answer");
         Assert.That(Total(chart, "Spaces"), Is.EqualTo(100));
         Assert.That(Lookup(chart, "Name", "Spaces").Take(7), Is.EqualTo(new[]
         {
@@ -168,36 +199,38 @@ public sealed class PublicBuildingsTests
     [Test]
     public void DigitalHub_OpeningsPerStorey()
     {
-        var chart = PublicBuildings.Evaluate("digitalhub-openings-per-storey").Table("chart");
-        Assert.That(chart.Column("StoreyName"), Is.EqualTo(new[] { "B01_OKRD", "E00_OKRD", "E01_OKRD" }));
-        Assert.That(chart.Column("IFCDOOR").Select(Count), Is.EqualTo(new long?[] { 13, 26, 25 }));
-        Assert.That(chart.Column("IFCWINDOW").Select(Count), Is.EqualTo(new long?[] { 0, 21, 26 }),
+        var chart = PublicBuildings.Evaluate("digitalhub-openings-per-storey").Table("answer");
+        Assert.That(chart.Columns.Select(c => c.Descriptor.Name), Is.EqualTo(new[] { "Storey", "Doors", "Windows", "Spaces" }));
+        Assert.That(chart.Column("Storey"), Is.EqualTo(new[] { "B01_OKRD", "E00_OKRD", "E01_OKRD" }));
+        Assert.That(chart.Column("Doors").Select(Count), Is.EqualTo(new long?[] { 13, 26, 25 }));
+        Assert.That(chart.Column("Windows").Select(Count), Is.EqualTo(new long?[] { 0, 21, 26 }),
             "the basement has no windows, and the pivot's count of no rows is 0");
-        Assert.That(chart.Column("IFCSPACE").Select(Count), Is.EqualTo(new long?[] { 12, 26, 26 }));
+        Assert.That(chart.Column("Spaces").Select(Count), Is.EqualTo(new long?[] { 12, 26, 26 }));
     }
 
     [Test]
     public void DigitalHub_HeatingPerStorey()
     {
-        var table = PublicBuildings.Evaluate("digitalhub-heating-per-storey").Table("heating");
-        Assert.That(table.Column("Storey"), Is.EqualTo(new[] { "B01_OKRD", "E00_OKRD", "E01_OKRD" }));
-        Assert.That(table.Column("PipeSegments").Select(Count), Is.EqualTo(new long?[] { 157, 373, 384 }));
-        Assert.That(table.Column("PipeFittings").Select(Count), Is.EqualTo(new long?[] { 110, 310, 323 }));
-        Assert.That(table.Column("SpaceHeaters").Select(Count), Is.EqualTo(new long?[] { 0, 29, 34 }));
-        Assert.That(table.Column("Valves").Select(Count), Is.EqualTo(new long?[] { 25, 20, 20 }));
-        Assert.That(table.Column("AllElements").Select(Count), Is.EqualTo(new long?[] { 302, 732, 761 }));
+        var chart = PublicBuildings.Evaluate("digitalhub-heating-per-storey").Table("answer");
+        Assert.That(chart.Columns.Select(c => c.Descriptor.Name), Is.EqualTo(new[] { "Storey", "Pipes", "Fittings", "Radiators", "Valves" }));
+        Assert.That(chart.Column("Storey"), Is.EqualTo(new[] { "B01_OKRD", "E00_OKRD", "E01_OKRD" }));
+        Assert.That(chart.Column("Pipes").Select(Count), Is.EqualTo(new long?[] { 157, 373, 384 }));
+        Assert.That(chart.Column("Fittings").Select(Count), Is.EqualTo(new long?[] { 110, 310, 323 }));
+        Assert.That(chart.Column("Radiators").Select(Count), Is.EqualTo(new long?[] { 0, 29, 34 }),
+            "the basement has no radiators, and the pivot's count of no rows is 0");
+        Assert.That(chart.Column("Valves").Select(Count), Is.EqualTo(new long?[] { 25, 20, 20 }));
     }
 
     [Test]
     public void DigitalHub_FederatedModels()
     {
-        var table = PublicBuildings.Evaluate("digitalhub-federated-models").Table("chart");
-        Assert.That(Lookup(table, "Model", "Elements"), Is.EqualTo(new[]
+        var chart = PublicBuildings.Evaluate("digitalhub-federated-models").Table("answer");
+        Assert.That(Lookup(chart, "Discipline", "Elements"), Is.EqualTo(new[]
         {
-            ("DigitalHub_FM-ARC_v2", 777L),
-            ("DigitalHub_FM-HZG_v2", 1795L),
-            ("DigitalHub_FM-LFT_v2", 1310L),
-            ("DigitalHub_FM-SAN_v2", 1010L),
+            ("Architecture", 777L),
+            ("Heating", 1795L),
+            ("Ventilation", 1310L),
+            ("Plumbing", 1010L),
         }));
     }
 

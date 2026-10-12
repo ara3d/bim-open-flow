@@ -1,23 +1,55 @@
 {
   "formatVersion": "0.1.0",
   "layout": {
-    "chart": { "x": 680, "y": 40 },
-    "heating": { "x": 40, "y": 40 }
+    "about": { "x": 40, "y": 40, "w": 560, "h": 158 },
+    "db": { "x": 40, "y": 224 },
+    "entities": { "x": 370, "y": 224 },
+    "heating": { "x": 700, "y": 224 },
+    "placed": { "x": 1360, "y": 224 },
+    "pivot": { "x": 1690, "y": 224 },
+    "sorted": { "x": 2020, "y": 224 },
+    "labels": { "x": 2350, "y": 224 },
+    "answer": { "x": 3010, "y": 224 },
+    "storeys": { "x": 370, "y": 464 }
   },
   "structure": {
+    "inputs": [
+      { "default": "{PUBLIC}/digitalhub-hzg.duckdb", "description": "A heating model's BIM Open Schema DuckDB file; DigitalHub's heating model by default.", "kind": "FilePath", "name": "model" }
+    ],
     "edges": [
-      { "from": "heating.table", "to": "chart.table" }
+      { "from": "db.source", "to": "entities.path" },
+      { "from": "db.source", "to": "storeys.path" },
+      { "from": "entities.table", "to": "heating.table" },
+      { "from": "heating.table", "to": "placed.a" },
+      { "from": "storeys.table", "to": "placed.b" },
+      { "from": "placed.table", "to": "pivot.table" },
+      { "from": "pivot.table", "to": "sorted.table" },
+      { "from": "sorted.table", "to": "labels.table" },
+      { "from": "labels.table", "to": "answer.table" }
     ],
     "nodes": [
-      { "id": "chart", "kind": "chart.bar", "version": 1 },
-      { "id": "heating", "kind": "duck.query", "version": 1 }
+      { "id": "about", "kind": "view.note", "version": 1 },
+      { "id": "answer", "kind": "chart.bar", "version": 1 },
+      { "id": "db", "kind": "duck.source", "version": 1 },
+      { "id": "entities", "kind": "duck.table", "version": 1 },
+      { "id": "heating", "kind": "table.filter", "version": 1 },
+      { "id": "labels", "kind": "table.rename", "version": 1 },
+      { "id": "pivot", "kind": "table.pivot", "version": 1 },
+      { "id": "placed", "kind": "table.join", "version": 1 },
+      { "id": "sorted", "kind": "table.sort", "version": 1 },
+      { "id": "storeys", "kind": "duck.table", "version": 1 }
     ]
   },
   "values": {
-    "chart": { "labelColumn": "Storey", "title": "Heating parts per storey", "valueColumns": "PipeSegments, PipeFittings, SpaceHeaters, Valves" },
-    "heating": {
-      "path": "{PUBLIC}/digitalhub-hzg.duckdb",
-      "sql": "SELECT s.StoreyName AS Storey, count(*) FILTER (WHERE e.Category = 'IFCPIPESEGMENT') AS PipeSegments, count(*) FILTER (WHERE e.Category = 'IFCPIPEFITTING') AS PipeFittings, count(*) FILTER (WHERE e.Category = 'IFCSPACEHEATER') AS SpaceHeaters, count(*) FILTER (WHERE e.Category = 'IFCVALVE') AS Valves, count(*) AS AllElements FROM EntityText e JOIN StoreyOfElement s ON s.EntityIndex = e.EntityIndex GROUP BY s.StoreyName ORDER BY s.StoreyName"
-    }
+    "about": { "text": "How DigitalHub's heating pipes, fittings, radiators, and valves spread over its storeys, from the heating model alone. The steps are those of digitalhub-openings-per-storey: keep four IFC classes, place them on storeys, pivot to one column per class counting rows, and rename the columns to words. The basement has no radiators, so its count is 0. Storey codes: B01 is the basement, E00 the ground floor, E01 the first floor." },
+    "answer": { "labelColumn": "Storey", "title": "Heating parts per storey", "valueColumns": "Pipes, Fittings, Radiators, Valves" },
+    "db": { "path": "$model" },
+    "entities": { "table": "EntityText" },
+    "heating": { "expr": "Category in ('IFCPIPESEGMENT', 'IFCPIPEFITTING', 'IFCSPACEHEATER', 'IFCVALVE')" },
+    "labels": { "renames": "StoreyName=Storey, IFCPIPESEGMENT=Pipes, IFCPIPEFITTING=Fittings, IFCSPACEHEATER=Radiators, IFCVALVE=Valves" },
+    "pivot": { "aggregate": "count", "groupBy": "StoreyName", "nameColumn": "Category", "valueColumn": "EntityIndex" },
+    "placed": { "aKey": "EntityIndex", "mode": "inner" },
+    "sorted": { "A": "StoreyName" },
+    "storeys": { "table": "StoreyOfElement" }
   }
 }

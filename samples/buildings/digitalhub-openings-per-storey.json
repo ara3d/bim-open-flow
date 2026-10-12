@@ -1,26 +1,38 @@
 {
   "formatVersion": "0.1.0",
   "layout": {
-    "chart": { "x": 1800, "y": 40 },
-    "entities": { "x": 40, "y": 40 },
-    "openings": { "x": 360, "y": 40 },
-    "pivot": { "x": 1160, "y": 40 },
-    "placed": { "x": 840, "y": 40 },
-    "sorted": { "x": 1480, "y": 40 },
-    "storeys": { "x": 360, "y": 300 }
+    "about": { "x": 40, "y": 40, "w": 560, "h": 158 },
+    "db": { "x": 40, "y": 224 },
+    "entities": { "x": 370, "y": 224 },
+    "openings": { "x": 700, "y": 224 },
+    "placed": { "x": 1360, "y": 224 },
+    "pivot": { "x": 1690, "y": 224 },
+    "sorted": { "x": 2020, "y": 224 },
+    "labels": { "x": 2350, "y": 224 },
+    "answer": { "x": 3010, "y": 224 },
+    "storeys": { "x": 370, "y": 464 }
   },
   "structure": {
+    "inputs": [
+      { "default": "{PUBLIC}/digitalhub-arc.duckdb", "description": "The building's BIM Open Schema DuckDB file; any public sample building works here.", "kind": "FilePath", "name": "model" }
+    ],
     "edges": [
+      { "from": "db.source", "to": "entities.path" },
+      { "from": "db.source", "to": "storeys.path" },
       { "from": "entities.table", "to": "openings.table" },
       { "from": "openings.table", "to": "placed.a" },
       { "from": "storeys.table", "to": "placed.b" },
       { "from": "placed.table", "to": "pivot.table" },
       { "from": "pivot.table", "to": "sorted.table" },
-      { "from": "sorted.table", "to": "chart.table" }
+      { "from": "sorted.table", "to": "labels.table" },
+      { "from": "labels.table", "to": "answer.table" }
     ],
     "nodes": [
-      { "id": "chart", "kind": "chart.bar", "version": 1 },
+      { "id": "about", "kind": "view.note", "version": 1 },
+      { "id": "answer", "kind": "chart.bar", "version": 1 },
+      { "id": "db", "kind": "duck.source", "version": 1 },
       { "id": "entities", "kind": "duck.table", "version": 1 },
+      { "id": "labels", "kind": "table.rename", "version": 1 },
       { "id": "openings", "kind": "table.filter", "version": 1 },
       { "id": "pivot", "kind": "table.pivot", "version": 1 },
       { "id": "placed", "kind": "table.join", "version": 1 },
@@ -29,12 +41,15 @@
     ]
   },
   "values": {
-    "chart": { "labelColumn": "StoreyName", "title": "Doors, windows, and spaces per storey", "valueColumns": "IFCDOOR, IFCWINDOW, IFCSPACE" },
-    "entities": { "path": "{PUBLIC}/digitalhub-arc.duckdb", "table": "EntityText" },
+    "about": { "text": "How many doors, windows, and spaces are on each storey of DigitalHub's architecture model. The pivot makes one column per IFC class and counts rows, so the basement, which has no windows, shows 0 rather than an empty cell; labels renames the class columns to words. Storey codes: B01 is the basement, E00 the ground floor, E01 the first floor. Two of the 64 doors sit on their storey through a parent (Depth 2 in StoreyOfElement) and count like the rest." },
+    "answer": { "labelColumn": "Storey", "title": "Doors, windows, and spaces per storey", "valueColumns": "Doors, Windows, Spaces" },
+    "db": { "path": "$model" },
+    "entities": { "table": "EntityText" },
+    "labels": { "renames": "StoreyName=Storey, IFCDOOR=Doors, IFCWINDOW=Windows, IFCSPACE=Spaces" },
     "openings": { "expr": "Category in ('IFCDOOR', 'IFCWINDOW', 'IFCSPACE')" },
     "pivot": { "aggregate": "count", "groupBy": "StoreyName", "nameColumn": "Category", "valueColumn": "EntityIndex" },
     "placed": { "aKey": "EntityIndex", "mode": "inner" },
     "sorted": { "A": "StoreyName" },
-    "storeys": { "path": "{PUBLIC}/digitalhub-arc.duckdb", "table": "StoreyOfElement" }
+    "storeys": { "table": "StoreyOfElement" }
   }
 }

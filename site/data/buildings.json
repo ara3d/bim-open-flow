@@ -10,29 +10,55 @@
       "document": {
         "formatVersion": "0.1.0",
         "layout": {
-          "byCategory": {
-            "x": 680,
-            "y": 40
+          "about": {
+            "x": 40,
+            "y": 40,
+            "w": 560,
+            "h": 158
           },
-          "chart": {
-            "x": 1000,
-            "y": 40
+          "db": {
+            "x": 40,
+            "y": 224
           },
           "entities": {
-            "x": 40,
-            "y": 40
+            "x": 370,
+            "y": 224
           },
           "placed": {
-            "x": 360,
-            "y": 40
+            "x": 700,
+            "y": 224
+          },
+          "byCategory": {
+            "x": 1030,
+            "y": 224
+          },
+          "answer": {
+            "x": 1360,
+            "y": 224
           },
           "storeys": {
-            "x": 40,
-            "y": 300
+            "x": 370,
+            "y": 464
           }
         },
         "structure": {
+          "inputs": [
+            {
+              "default": "{PUBLIC}/schependomlaan.duckdb",
+              "description": "The building\u0027s BIM Open Schema DuckDB file; any public sample building works here.",
+              "kind": "FilePath",
+              "name": "model"
+            }
+          ],
           "edges": [
+            {
+              "from": "db.source",
+              "to": "entities.path"
+            },
+            {
+              "from": "db.source",
+              "to": "storeys.path"
+            },
             {
               "from": "entities.table",
               "to": "placed.a"
@@ -47,18 +73,28 @@
             },
             {
               "from": "byCategory.table",
-              "to": "chart.table"
+              "to": "answer.table"
             }
           ],
           "nodes": [
+            {
+              "id": "about",
+              "kind": "view.note",
+              "version": 1
+            },
+            {
+              "id": "answer",
+              "kind": "chart.bar",
+              "version": 1
+            },
             {
               "id": "byCategory",
               "kind": "table.aggregate",
               "version": 1
             },
             {
-              "id": "chart",
-              "kind": "chart.bar",
+              "id": "db",
+              "kind": "duck.source",
               "version": 1
             },
             {
@@ -79,18 +115,23 @@
           ]
         },
         "values": {
-          "byCategory": {
-            "aggregates": "count(EntityIndex) as Elements",
-            "groupBy": "Category"
+          "about": {
+            "text": "What is on Schependomlaan\u0027s storeys, by IFC class. The inner join keeps only entities placed on a storey, which leaves out geometry, property, and type entities. StoreyOfElement places each element once: Depth 1 when the storey contains it directly, Depth 2 when it sits there through a parent, as a building element part does through its wall. Both depths count here; 289 of the 3,721 elements are at Depth 2 (277 building element parts, 7 members, 4 windows, 1 proxy)."
           },
-          "chart": {
+          "answer": {
             "labelColumn": "Category",
             "sort": "desc",
             "title": "Elements on a storey, by IFC class",
             "valueColumns": "Elements"
           },
+          "byCategory": {
+            "aggregates": "count(EntityIndex) as Elements",
+            "groupBy": "Category"
+          },
+          "db": {
+            "path": "$model"
+          },
           "entities": {
-            "path": "{PUBLIC}/schependomlaan.duckdb",
             "table": "EntityText"
           },
           "placed": {
@@ -98,12 +139,94 @@
             "mode": "inner"
           },
           "storeys": {
-            "path": "{PUBLIC}/schependomlaan.duckdb",
             "table": "StoreyOfElement"
           }
         }
       },
       "nodes": {
+        "about": {
+          "status": "Ok"
+        },
+        "answer": {
+          "status": "Ok",
+          "rowCount": 16,
+          "columns": [
+            {
+              "name": "Category",
+              "type": "String"
+            },
+            {
+              "name": "Elements",
+              "type": "Int64"
+            }
+          ],
+          "rows": [
+            [
+              "IFCCOVERING",
+              1262
+            ],
+            [
+              "IFCWALL",
+              652
+            ],
+            [
+              "IFCWALLSTANDARDCASE",
+              282
+            ],
+            [
+              "IFCSLAB",
+              279
+            ],
+            [
+              "IFCBUILDINGELEMENTPART",
+              277
+            ],
+            [
+              "IFCWINDOW",
+              259
+            ],
+            [
+              "IFCDOOR",
+              205
+            ],
+            [
+              "IFCBEAM",
+              174
+            ],
+            [
+              "IFCSPACE",
+              100
+            ],
+            [
+              "IFCRAILING",
+              90
+            ],
+            [
+              "IFCFLOWSEGMENT",
+              60
+            ],
+            [
+              "IFCBUILDINGELEMENTPROXY",
+              27
+            ],
+            [
+              "IFCCOLUMN",
+              23
+            ],
+            [
+              "IFCDISTRIBUTIONELEMENT",
+              13
+            ],
+            [
+              "IFCMEMBER",
+              9
+            ],
+            [
+              "IFCSTAIR",
+              9
+            ]
+          ]
+        },
         "byCategory": {
           "status": "Ok",
           "rowCount": 16,
@@ -184,85 +307,8 @@
             ]
           ]
         },
-        "chart": {
-          "status": "Ok",
-          "rowCount": 16,
-          "columns": [
-            {
-              "name": "Category",
-              "type": "String"
-            },
-            {
-              "name": "Elements",
-              "type": "Int64"
-            }
-          ],
-          "rows": [
-            [
-              "IFCCOVERING",
-              1262
-            ],
-            [
-              "IFCWALL",
-              652
-            ],
-            [
-              "IFCWALLSTANDARDCASE",
-              282
-            ],
-            [
-              "IFCSLAB",
-              279
-            ],
-            [
-              "IFCBUILDINGELEMENTPART",
-              277
-            ],
-            [
-              "IFCWINDOW",
-              259
-            ],
-            [
-              "IFCDOOR",
-              205
-            ],
-            [
-              "IFCBEAM",
-              174
-            ],
-            [
-              "IFCSPACE",
-              100
-            ],
-            [
-              "IFCRAILING",
-              90
-            ],
-            [
-              "IFCFLOWSEGMENT",
-              60
-            ],
-            [
-              "IFCBUILDINGELEMENTPROXY",
-              27
-            ],
-            [
-              "IFCCOLUMN",
-              23
-            ],
-            [
-              "IFCDISTRIBUTIONELEMENT",
-              13
-            ],
-            [
-              "IFCMEMBER",
-              9
-            ],
-            [
-              "IFCSTAIR",
-              9
-            ]
-          ]
+        "db": {
+          "status": "Ok"
         },
         "entities": {
           "status": "Ok",
@@ -874,37 +920,43 @@
       "document": {
         "formatVersion": "0.1.0",
         "layout": {
-          "chart": {
-            "x": 1640,
-            "y": 40
+          "about": {
+            "x": 40,
+            "y": 40,
+            "w": 560,
+            "h": 140
           },
           "db": {
             "x": 40,
-            "y": 300
+            "y": 224
           },
           "entities": {
-            "x": 40,
-            "y": 40
-          },
-          "perStorey": {
-            "x": 1000,
-            "y": 40
-          },
-          "placed": {
-            "x": 680,
-            "y": 40
-          },
-          "sorted": {
-            "x": 1320,
-            "y": 40
+            "x": 370,
+            "y": 224
           },
           "spaces": {
-            "x": 360,
-            "y": 40
+            "x": 700,
+            "y": 224
+          },
+          "placed": {
+            "x": 1030,
+            "y": 224
+          },
+          "perStorey": {
+            "x": 1360,
+            "y": 224
+          },
+          "sorted": {
+            "x": 1690,
+            "y": 224
+          },
+          "answer": {
+            "x": 2020,
+            "y": 224
           },
           "storeys": {
-            "x": 360,
-            "y": 300
+            "x": 370,
+            "y": 464
           }
         },
         "structure": {
@@ -947,12 +999,17 @@
             },
             {
               "from": "sorted.table",
-              "to": "chart.table"
+              "to": "answer.table"
             }
           ],
           "nodes": [
             {
-              "id": "chart",
+              "id": "about",
+              "kind": "view.note",
+              "version": 1
+            },
+            {
+              "id": "answer",
               "kind": "chart.bar",
               "version": 1
             },
@@ -994,7 +1051,10 @@
           ]
         },
         "values": {
-          "chart": {
+          "about": {
+            "text": "How many spaces each storey of Schependomlaan has. One duck.source, db, opens the file the model input names, and both readers share it; set model to another building\u0027s .duckdb (digitalhub-arc.duckdb gives 12, 26, and 26 spaces) and every reader follows. Every space is placed on its storey directly (Depth 1 in StoreyOfElement), so each counts once."
+          },
+          "answer": {
             "labelColumn": "StoreyName",
             "title": "Spaces per storey",
             "valueColumns": "Spaces"
@@ -1025,7 +1085,10 @@
         }
       },
       "nodes": {
-        "chart": {
+        "about": {
+          "status": "Ok"
+        },
+        "answer": {
           "status": "Ok",
           "rowCount": 4,
           "columns": [
@@ -1926,29 +1989,51 @@
       "document": {
         "formatVersion": "0.1.0",
         "layout": {
-          "byName": {
-            "x": 680,
-            "y": 40
+          "about": {
+            "x": 40,
+            "y": 40,
+            "w": 560,
+            "h": 140
           },
-          "chart": {
-            "x": 1320,
-            "y": 40
+          "db": {
+            "x": 40,
+            "y": 224
           },
           "entities": {
-            "x": 40,
-            "y": 40
-          },
-          "sorted": {
-            "x": 1000,
-            "y": 40
+            "x": 370,
+            "y": 224
           },
           "spaces": {
-            "x": 360,
-            "y": 40
+            "x": 700,
+            "y": 224
+          },
+          "byName": {
+            "x": 1030,
+            "y": 224
+          },
+          "sorted": {
+            "x": 1360,
+            "y": 224
+          },
+          "answer": {
+            "x": 1690,
+            "y": 224
           }
         },
         "structure": {
+          "inputs": [
+            {
+              "default": "{PUBLIC}/schependomlaan.duckdb",
+              "description": "The building\u0027s BIM Open Schema DuckDB file; any public sample building works here.",
+              "kind": "FilePath",
+              "name": "model"
+            }
+          ],
           "edges": [
+            {
+              "from": "db.source",
+              "to": "entities.path"
+            },
             {
               "from": "entities.table",
               "to": "spaces.table"
@@ -1963,18 +2048,28 @@
             },
             {
               "from": "sorted.table",
-              "to": "chart.table"
+              "to": "answer.table"
             }
           ],
           "nodes": [
+            {
+              "id": "about",
+              "kind": "view.note",
+              "version": 1
+            },
+            {
+              "id": "answer",
+              "kind": "chart.bar",
+              "version": 1
+            },
             {
               "id": "byName",
               "kind": "table.aggregate",
               "version": 1
             },
             {
-              "id": "chart",
-              "kind": "chart.bar",
+              "id": "db",
+              "kind": "duck.source",
               "version": 1
             },
             {
@@ -1995,17 +2090,22 @@
           ]
         },
         "values": {
-          "byName": {
-            "aggregates": "count(EntityIndex) as Spaces",
-            "groupBy": "Name"
+          "about": {
+            "text": "Which room names occur in Schependomlaan, and how often. The names are the spaces\u0027 own Name values, in Dutch: entree is the entrance, instal. ruimte the plant space, mk the meter cupboard (meterkast), woonkamer the living room. The counts sort largest first, then by name, so the rooms every apartment has once (bathroom, kitchen, meter cupboard, toilet, living room) show as a run of 10s."
           },
-          "chart": {
+          "answer": {
             "labelColumn": "Name",
             "title": "Spaces by name",
             "valueColumns": "Spaces"
           },
+          "byName": {
+            "aggregates": "count(EntityIndex) as Spaces",
+            "groupBy": "Name"
+          },
+          "db": {
+            "path": "$model"
+          },
           "entities": {
-            "path": "{PUBLIC}/schependomlaan.duckdb",
             "table": "EntityText"
           },
           "sorted": {
@@ -2019,6 +2119,85 @@
         }
       },
       "nodes": {
+        "about": {
+          "status": "Ok"
+        },
+        "answer": {
+          "status": "Ok",
+          "rowCount": 15,
+          "columns": [
+            {
+              "name": "Name",
+              "type": "String"
+            },
+            {
+              "name": "Spaces",
+              "type": "Int64"
+            }
+          ],
+          "rows": [
+            [
+              "entree",
+              11
+            ],
+            [
+              "instal. ruimte",
+              11
+            ],
+            [
+              "badkamer",
+              10
+            ],
+            [
+              "keuken",
+              10
+            ],
+            [
+              "mk",
+              10
+            ],
+            [
+              "toilet",
+              10
+            ],
+            [
+              "woonkamer",
+              10
+            ],
+            [
+              "slaapkamer 1",
+              8
+            ],
+            [
+              "slaapkamer 2",
+              8
+            ],
+            [
+              "overloop",
+              3
+            ],
+            [
+              "berging",
+              2
+            ],
+            [
+              "gang",
+              2
+            ],
+            [
+              "kast",
+              2
+            ],
+            [
+              "slaapkamer",
+              2
+            ],
+            [
+              "onben. ruimte",
+              1
+            ]
+          ]
+        },
         "byName": {
           "status": "Ok",
           "rowCount": 15,
@@ -2095,81 +2274,8 @@
             ]
           ]
         },
-        "chart": {
-          "status": "Ok",
-          "rowCount": 15,
-          "columns": [
-            {
-              "name": "Name",
-              "type": "String"
-            },
-            {
-              "name": "Spaces",
-              "type": "Int64"
-            }
-          ],
-          "rows": [
-            [
-              "entree",
-              11
-            ],
-            [
-              "instal. ruimte",
-              11
-            ],
-            [
-              "badkamer",
-              10
-            ],
-            [
-              "keuken",
-              10
-            ],
-            [
-              "mk",
-              10
-            ],
-            [
-              "toilet",
-              10
-            ],
-            [
-              "woonkamer",
-              10
-            ],
-            [
-              "slaapkamer 1",
-              8
-            ],
-            [
-              "slaapkamer 2",
-              8
-            ],
-            [
-              "overloop",
-              3
-            ],
-            [
-              "berging",
-              2
-            ],
-            [
-              "gang",
-              2
-            ],
-            [
-              "kast",
-              2
-            ],
-            [
-              "slaapkamer",
-              2
-            ],
-            [
-              "onben. ruimte",
-              1
-            ]
-          ]
+        "db": {
+          "status": "Ok"
         },
         "entities": {
           "status": "Ok",
@@ -2641,37 +2747,67 @@
       "document": {
         "formatVersion": "0.1.0",
         "layout": {
-          "chart": {
-            "x": 1800,
-            "y": 40
+          "about": {
+            "x": 40,
+            "y": 40,
+            "w": 560,
+            "h": 158
+          },
+          "db": {
+            "x": 40,
+            "y": 224
           },
           "entities": {
-            "x": 40,
-            "y": 40
+            "x": 370,
+            "y": 224
           },
           "openings": {
-            "x": 360,
-            "y": 40
-          },
-          "pivot": {
-            "x": 1160,
-            "y": 40
+            "x": 700,
+            "y": 224
           },
           "placed": {
-            "x": 840,
-            "y": 40
+            "x": 1360,
+            "y": 224
+          },
+          "pivot": {
+            "x": 1690,
+            "y": 224
           },
           "sorted": {
-            "x": 1480,
-            "y": 40
+            "x": 2020,
+            "y": 224
+          },
+          "labels": {
+            "x": 2350,
+            "y": 224
+          },
+          "answer": {
+            "x": 3010,
+            "y": 224
           },
           "storeys": {
-            "x": 360,
-            "y": 300
+            "x": 370,
+            "y": 464
           }
         },
         "structure": {
+          "inputs": [
+            {
+              "default": "{PUBLIC}/digitalhub-arc.duckdb",
+              "description": "The building\u0027s BIM Open Schema DuckDB file; any public sample building works here.",
+              "kind": "FilePath",
+              "name": "model"
+            }
+          ],
           "edges": [
+            {
+              "from": "db.source",
+              "to": "entities.path"
+            },
+            {
+              "from": "db.source",
+              "to": "storeys.path"
+            },
             {
               "from": "entities.table",
               "to": "openings.table"
@@ -2694,18 +2830,37 @@
             },
             {
               "from": "sorted.table",
-              "to": "chart.table"
+              "to": "labels.table"
+            },
+            {
+              "from": "labels.table",
+              "to": "answer.table"
             }
           ],
           "nodes": [
             {
-              "id": "chart",
+              "id": "about",
+              "kind": "view.note",
+              "version": 1
+            },
+            {
+              "id": "answer",
               "kind": "chart.bar",
+              "version": 1
+            },
+            {
+              "id": "db",
+              "kind": "duck.source",
               "version": 1
             },
             {
               "id": "entities",
               "kind": "duck.table",
+              "version": 1
+            },
+            {
+              "id": "labels",
+              "kind": "table.rename",
               "version": 1
             },
             {
@@ -2736,14 +2891,22 @@
           ]
         },
         "values": {
-          "chart": {
-            "labelColumn": "StoreyName",
+          "about": {
+            "text": "How many doors, windows, and spaces are on each storey of DigitalHub\u0027s architecture model. The pivot makes one column per IFC class and counts rows, so the basement, which has no windows, shows 0 rather than an empty cell; labels renames the class columns to words. Storey codes: B01 is the basement, E00 the ground floor, E01 the first floor. Two of the 64 doors sit on their storey through a parent (Depth 2 in StoreyOfElement) and count like the rest."
+          },
+          "answer": {
+            "labelColumn": "Storey",
             "title": "Doors, windows, and spaces per storey",
-            "valueColumns": "IFCDOOR, IFCWINDOW, IFCSPACE"
+            "valueColumns": "Doors, Windows, Spaces"
+          },
+          "db": {
+            "path": "$model"
           },
           "entities": {
-            "path": "{PUBLIC}/digitalhub-arc.duckdb",
             "table": "EntityText"
+          },
+          "labels": {
+            "renames": "StoreyName=Storey, IFCDOOR=Doors, IFCWINDOW=Windows, IFCSPACE=Spaces"
           },
           "openings": {
             "expr": "Category in (\u0027IFCDOOR\u0027, \u0027IFCWINDOW\u0027, \u0027IFCSPACE\u0027)"
@@ -2762,30 +2925,32 @@
             "A": "StoreyName"
           },
           "storeys": {
-            "path": "{PUBLIC}/digitalhub-arc.duckdb",
             "table": "StoreyOfElement"
           }
         }
       },
       "nodes": {
-        "chart": {
+        "about": {
+          "status": "Ok"
+        },
+        "answer": {
           "status": "Ok",
           "rowCount": 3,
           "columns": [
             {
-              "name": "StoreyName",
+              "name": "Storey",
               "type": "String"
             },
             {
-              "name": "IFCDOOR",
+              "name": "Doors",
               "type": "Int64"
             },
             {
-              "name": "IFCWINDOW",
+              "name": "Windows",
               "type": "Int64"
             },
             {
-              "name": "IFCSPACE",
+              "name": "Spaces",
               "type": "Int64"
             }
           ],
@@ -2809,6 +2974,9 @@
               26
             ]
           ]
+        },
+        "db": {
+          "status": "Ok"
         },
         "entities": {
           "status": "Ok",
@@ -2999,6 +3167,48 @@
               "Cafeteria",
               "IFCSPACE",
               "Cafeteria 1-2:2716590"
+            ]
+          ]
+        },
+        "labels": {
+          "status": "Ok",
+          "rowCount": 3,
+          "columns": [
+            {
+              "name": "Storey",
+              "type": "String"
+            },
+            {
+              "name": "Doors",
+              "type": "Int64"
+            },
+            {
+              "name": "Spaces",
+              "type": "Int64"
+            },
+            {
+              "name": "Windows",
+              "type": "Int64"
+            }
+          ],
+          "rows": [
+            [
+              "B01_OKRD",
+              13,
+              12,
+              0
+            ],
+            [
+              "E00_OKRD",
+              26,
+              26,
+              21
+            ],
+            [
+              "E01_OKRD",
+              25,
+              26,
+              26
             ]
           ]
         },
@@ -3696,49 +3906,193 @@
       "document": {
         "formatVersion": "0.1.0",
         "layout": {
-          "chart": {
-            "x": 680,
-            "y": 40
+          "about": {
+            "x": 40,
+            "y": 40,
+            "w": 560,
+            "h": 158
+          },
+          "db": {
+            "x": 40,
+            "y": 224
+          },
+          "entities": {
+            "x": 370,
+            "y": 224
           },
           "heating": {
-            "x": 40,
-            "y": 40
+            "x": 700,
+            "y": 224
+          },
+          "placed": {
+            "x": 1360,
+            "y": 224
+          },
+          "pivot": {
+            "x": 1690,
+            "y": 224
+          },
+          "sorted": {
+            "x": 2020,
+            "y": 224
+          },
+          "labels": {
+            "x": 2350,
+            "y": 224
+          },
+          "answer": {
+            "x": 3010,
+            "y": 224
+          },
+          "storeys": {
+            "x": 370,
+            "y": 464
           }
         },
         "structure": {
+          "inputs": [
+            {
+              "default": "{PUBLIC}/digitalhub-hzg.duckdb",
+              "description": "A heating model\u0027s BIM Open Schema DuckDB file; DigitalHub\u0027s heating model by default.",
+              "kind": "FilePath",
+              "name": "model"
+            }
+          ],
           "edges": [
             {
+              "from": "db.source",
+              "to": "entities.path"
+            },
+            {
+              "from": "db.source",
+              "to": "storeys.path"
+            },
+            {
+              "from": "entities.table",
+              "to": "heating.table"
+            },
+            {
               "from": "heating.table",
-              "to": "chart.table"
+              "to": "placed.a"
+            },
+            {
+              "from": "storeys.table",
+              "to": "placed.b"
+            },
+            {
+              "from": "placed.table",
+              "to": "pivot.table"
+            },
+            {
+              "from": "pivot.table",
+              "to": "sorted.table"
+            },
+            {
+              "from": "sorted.table",
+              "to": "labels.table"
+            },
+            {
+              "from": "labels.table",
+              "to": "answer.table"
             }
           ],
           "nodes": [
             {
-              "id": "chart",
+              "id": "about",
+              "kind": "view.note",
+              "version": 1
+            },
+            {
+              "id": "answer",
               "kind": "chart.bar",
               "version": 1
             },
             {
+              "id": "db",
+              "kind": "duck.source",
+              "version": 1
+            },
+            {
+              "id": "entities",
+              "kind": "duck.table",
+              "version": 1
+            },
+            {
               "id": "heating",
-              "kind": "duck.query",
+              "kind": "table.filter",
+              "version": 1
+            },
+            {
+              "id": "labels",
+              "kind": "table.rename",
+              "version": 1
+            },
+            {
+              "id": "pivot",
+              "kind": "table.pivot",
+              "version": 1
+            },
+            {
+              "id": "placed",
+              "kind": "table.join",
+              "version": 1
+            },
+            {
+              "id": "sorted",
+              "kind": "table.sort",
+              "version": 1
+            },
+            {
+              "id": "storeys",
+              "kind": "duck.table",
               "version": 1
             }
           ]
         },
         "values": {
-          "chart": {
+          "about": {
+            "text": "How DigitalHub\u0027s heating pipes, fittings, radiators, and valves spread over its storeys, from the heating model alone. The steps are those of digitalhub-openings-per-storey: keep four IFC classes, place them on storeys, pivot to one column per class counting rows, and rename the columns to words. The basement has no radiators, so its count is 0. Storey codes: B01 is the basement, E00 the ground floor, E01 the first floor."
+          },
+          "answer": {
             "labelColumn": "Storey",
             "title": "Heating parts per storey",
-            "valueColumns": "PipeSegments, PipeFittings, SpaceHeaters, Valves"
+            "valueColumns": "Pipes, Fittings, Radiators, Valves"
+          },
+          "db": {
+            "path": "$model"
+          },
+          "entities": {
+            "table": "EntityText"
           },
           "heating": {
-            "path": "{PUBLIC}/digitalhub-hzg.duckdb",
-            "sql": "SELECT s.StoreyName AS Storey, count(*) FILTER (WHERE e.Category = \u0027IFCPIPESEGMENT\u0027) AS PipeSegments, count(*) FILTER (WHERE e.Category = \u0027IFCPIPEFITTING\u0027) AS PipeFittings, count(*) FILTER (WHERE e.Category = \u0027IFCSPACEHEATER\u0027) AS SpaceHeaters, count(*) FILTER (WHERE e.Category = \u0027IFCVALVE\u0027) AS Valves, count(*) AS AllElements FROM EntityText e JOIN StoreyOfElement s ON s.EntityIndex = e.EntityIndex GROUP BY s.StoreyName ORDER BY s.StoreyName"
+            "expr": "Category in (\u0027IFCPIPESEGMENT\u0027, \u0027IFCPIPEFITTING\u0027, \u0027IFCSPACEHEATER\u0027, \u0027IFCVALVE\u0027)"
+          },
+          "labels": {
+            "renames": "StoreyName=Storey, IFCPIPESEGMENT=Pipes, IFCPIPEFITTING=Fittings, IFCSPACEHEATER=Radiators, IFCVALVE=Valves"
+          },
+          "pivot": {
+            "aggregate": "count",
+            "groupBy": "StoreyName",
+            "nameColumn": "Category",
+            "valueColumn": "EntityIndex"
+          },
+          "placed": {
+            "aKey": "EntityIndex",
+            "mode": "inner"
+          },
+          "sorted": {
+            "A": "StoreyName"
+          },
+          "storeys": {
+            "table": "StoreyOfElement"
           }
         }
       },
       "nodes": {
-        "chart": {
+        "about": {
+          "status": "Ok"
+        },
+        "answer": {
           "status": "Ok",
           "rowCount": 3,
           "columns": [
@@ -3747,15 +4101,15 @@
               "type": "String"
             },
             {
-              "name": "PipeSegments",
+              "name": "Pipes",
               "type": "Int64"
             },
             {
-              "name": "PipeFittings",
+              "name": "Fittings",
               "type": "Int64"
             },
             {
-              "name": "SpaceHeaters",
+              "name": "Radiators",
               "type": "Int64"
             },
             {
@@ -3787,7 +4141,394 @@
             ]
           ]
         },
+        "db": {
+          "status": "Ok"
+        },
+        "entities": {
+          "status": "Ok",
+          "rowCount": 6467,
+          "columns": [
+            {
+              "name": "EntityIndex",
+              "type": "Int64"
+            },
+            {
+              "name": "StepId",
+              "type": "Int64"
+            },
+            {
+              "name": "GlobalId",
+              "type": "String"
+            },
+            {
+              "name": "Name",
+              "type": "String"
+            },
+            {
+              "name": "Category",
+              "type": "String"
+            },
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ],
+          "rows": [
+            [
+              290,
+              1083,
+              "2we3Epy6H86faCsXdTukwP",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts:7375114",
+              "IFCSPACEHEATER",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts"
+            ],
+            [
+              294,
+              1965,
+              "2we3Epy6H86faCsXdTukeo",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts:7376289",
+              "IFCSPACEHEATER",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts"
+            ],
+            [
+              295,
+              2146,
+              "3UKNiXo0b0q90ggSpIhg$I",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7376600",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              296,
+              2430,
+              "3UKNiXo0b0q90ggSpIhg$y",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7376630",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              299,
+              2734,
+              "3UKNiXo0b0q90ggSpIhguR",
+              "\u00DCbergang Kupfer:Standard:7376657",
+              "IFCPIPEFITTING",
+              "\u00DCbergang Kupfer:Standard"
+            ],
+            [
+              300,
+              2899,
+              "3UKNiXo0b0q90ggSpIhh7x",
+              "\u00DCbergang Kupfer:Standard:7377137",
+              "IFCPIPEFITTING",
+              "\u00DCbergang Kupfer:Standard"
+            ],
+            [
+              301,
+              3075,
+              "3UKNiXo0b0q90ggSpIhhKr",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7377983",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              302,
+              3316,
+              "3UKNiXo0b0q90ggSpIhhLw",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7378032",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              303,
+              3555,
+              "3UKNiXo0b0q90ggSpIhhH9",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7378243",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              304,
+              3802,
+              "3UKNiXo0b0q90ggSpIhhIe",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7378338",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              308,
+              4668,
+              "3UKNiXo0b0q90ggSpIhhP4",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts:7378766",
+              "IFCSPACEHEATER",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts"
+            ],
+            [
+              309,
+              4848,
+              "3UKNiXo0b0q90ggSpIhhPJ",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7378777",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              310,
+              5089,
+              "3UKNiXo0b0q90ggSpIhhPH",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7378779",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              311,
+              5279,
+              "3UKNiXo0b0q90ggSpIhhjn",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts:7379579",
+              "IFCSPACEHEATER",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts"
+            ],
+            [
+              312,
+              5453,
+              "3UKNiXo0b0q90ggSpIhhjq",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7379582",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              313,
+              5692,
+              "3UKNiXo0b0q90ggSpIhhkA",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7379584",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              314,
+              5933,
+              "3UKNiXo0b0q90ggSpIhhkC",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7379590",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              315,
+              6172,
+              "3UKNiXo0b0q90ggSpIhhk2",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7379592",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              316,
+              6411,
+              "3UKNiXo0b0q90ggSpIhhk0",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7379594",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              317,
+              6599,
+              "3UKNiXo0b0q90ggSpIhhl5",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts:7379663",
+              "IFCSPACEHEATER",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts"
+            ]
+          ]
+        },
         "heating": {
+          "status": "Ok",
+          "rowCount": 1785,
+          "columns": [
+            {
+              "name": "EntityIndex",
+              "type": "Int64"
+            },
+            {
+              "name": "StepId",
+              "type": "Int64"
+            },
+            {
+              "name": "GlobalId",
+              "type": "String"
+            },
+            {
+              "name": "Name",
+              "type": "String"
+            },
+            {
+              "name": "Category",
+              "type": "String"
+            },
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ],
+          "rows": [
+            [
+              290,
+              1083,
+              "2we3Epy6H86faCsXdTukwP",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts:7375114",
+              "IFCSPACEHEATER",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts"
+            ],
+            [
+              294,
+              1965,
+              "2we3Epy6H86faCsXdTukeo",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts:7376289",
+              "IFCSPACEHEATER",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts"
+            ],
+            [
+              295,
+              2146,
+              "3UKNiXo0b0q90ggSpIhg$I",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7376600",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              296,
+              2430,
+              "3UKNiXo0b0q90ggSpIhg$y",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7376630",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              299,
+              2734,
+              "3UKNiXo0b0q90ggSpIhguR",
+              "\u00DCbergang Kupfer:Standard:7376657",
+              "IFCPIPEFITTING",
+              "\u00DCbergang Kupfer:Standard"
+            ],
+            [
+              300,
+              2899,
+              "3UKNiXo0b0q90ggSpIhh7x",
+              "\u00DCbergang Kupfer:Standard:7377137",
+              "IFCPIPEFITTING",
+              "\u00DCbergang Kupfer:Standard"
+            ],
+            [
+              301,
+              3075,
+              "3UKNiXo0b0q90ggSpIhhKr",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7377983",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              302,
+              3316,
+              "3UKNiXo0b0q90ggSpIhhLw",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7378032",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              303,
+              3555,
+              "3UKNiXo0b0q90ggSpIhhH9",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7378243",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              304,
+              3802,
+              "3UKNiXo0b0q90ggSpIhhIe",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7378338",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              308,
+              4668,
+              "3UKNiXo0b0q90ggSpIhhP4",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts:7378766",
+              "IFCSPACEHEATER",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts"
+            ],
+            [
+              309,
+              4848,
+              "3UKNiXo0b0q90ggSpIhhPJ",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7378777",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              310,
+              5089,
+              "3UKNiXo0b0q90ggSpIhhPH",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7378779",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              311,
+              5279,
+              "3UKNiXo0b0q90ggSpIhhjn",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts:7379579",
+              "IFCSPACEHEATER",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts"
+            ],
+            [
+              312,
+              5453,
+              "3UKNiXo0b0q90ggSpIhhjq",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7379582",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              313,
+              5692,
+              "3UKNiXo0b0q90ggSpIhhkA",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7379584",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              314,
+              5933,
+              "3UKNiXo0b0q90ggSpIhhkC",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7379590",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              315,
+              6172,
+              "3UKNiXo0b0q90ggSpIhhk2",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7379592",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              316,
+              6411,
+              "3UKNiXo0b0q90ggSpIhhk0",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7379594",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet"
+            ],
+            [
+              317,
+              6599,
+              "3UKNiXo0b0q90ggSpIhhl5",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts:7379663",
+              "IFCSPACEHEATER",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts"
+            ]
+          ]
+        },
+        "labels": {
           "status": "Ok",
           "rowCount": 3,
           "columns": [
@@ -3796,50 +4537,549 @@
               "type": "String"
             },
             {
-              "name": "PipeSegments",
+              "name": "Fittings",
               "type": "Int64"
             },
             {
-              "name": "PipeFittings",
+              "name": "Pipes",
               "type": "Int64"
             },
             {
-              "name": "SpaceHeaters",
+              "name": "Radiators",
               "type": "Int64"
             },
             {
               "name": "Valves",
-              "type": "Int64"
-            },
-            {
-              "name": "AllElements",
               "type": "Int64"
             }
           ],
           "rows": [
             [
               "B01_OKRD",
-              157,
               110,
+              157,
               0,
-              25,
-              302
+              25
             ],
             [
               "E00_OKRD",
-              373,
               310,
+              373,
               29,
-              20,
-              732
+              20
             ],
             [
               "E01_OKRD",
-              384,
               323,
+              384,
               34,
-              20,
-              761
+              20
+            ]
+          ]
+        },
+        "pivot": {
+          "status": "Ok",
+          "rowCount": 3,
+          "columns": [
+            {
+              "name": "StoreyName",
+              "type": "String"
+            },
+            {
+              "name": "IFCPIPEFITTING",
+              "type": "Int64"
+            },
+            {
+              "name": "IFCPIPESEGMENT",
+              "type": "Int64"
+            },
+            {
+              "name": "IFCSPACEHEATER",
+              "type": "Int64"
+            },
+            {
+              "name": "IFCVALVE",
+              "type": "Int64"
+            }
+          ],
+          "rows": [
+            [
+              "B01_OKRD",
+              110,
+              157,
+              0,
+              25
+            ],
+            [
+              "E00_OKRD",
+              310,
+              373,
+              29,
+              20
+            ],
+            [
+              "E01_OKRD",
+              323,
+              384,
+              34,
+              20
+            ]
+          ]
+        },
+        "placed": {
+          "status": "Ok",
+          "rowCount": 1785,
+          "columns": [
+            {
+              "name": "EntityIndex",
+              "type": "Int64"
+            },
+            {
+              "name": "StepId",
+              "type": "Int64"
+            },
+            {
+              "name": "GlobalId",
+              "type": "String"
+            },
+            {
+              "name": "Name",
+              "type": "String"
+            },
+            {
+              "name": "Category",
+              "type": "String"
+            },
+            {
+              "name": "Type",
+              "type": "String"
+            },
+            {
+              "name": "StoreyIndex",
+              "type": "Int64"
+            },
+            {
+              "name": "StoreyName",
+              "type": "String"
+            },
+            {
+              "name": "Depth",
+              "type": "Int32"
+            }
+          ],
+          "rows": [
+            [
+              290,
+              1083,
+              "2we3Epy6H86faCsXdTukwP",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts:7375114",
+              "IFCSPACEHEATER",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts",
+              281,
+              "E00_OKRD",
+              1
+            ],
+            [
+              294,
+              1965,
+              "2we3Epy6H86faCsXdTukeo",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts:7376289",
+              "IFCSPACEHEATER",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts",
+              281,
+              "E00_OKRD",
+              1
+            ],
+            [
+              295,
+              2146,
+              "3UKNiXo0b0q90ggSpIhg$I",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7376600",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet",
+              281,
+              "E00_OKRD",
+              1
+            ],
+            [
+              296,
+              2430,
+              "3UKNiXo0b0q90ggSpIhg$y",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7376630",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet",
+              281,
+              "E00_OKRD",
+              1
+            ],
+            [
+              299,
+              2734,
+              "3UKNiXo0b0q90ggSpIhguR",
+              "\u00DCbergang Kupfer:Standard:7376657",
+              "IFCPIPEFITTING",
+              "\u00DCbergang Kupfer:Standard",
+              281,
+              "E00_OKRD",
+              1
+            ],
+            [
+              300,
+              2899,
+              "3UKNiXo0b0q90ggSpIhh7x",
+              "\u00DCbergang Kupfer:Standard:7377137",
+              "IFCPIPEFITTING",
+              "\u00DCbergang Kupfer:Standard",
+              281,
+              "E00_OKRD",
+              1
+            ],
+            [
+              301,
+              3075,
+              "3UKNiXo0b0q90ggSpIhhKr",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7377983",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet",
+              281,
+              "E00_OKRD",
+              1
+            ],
+            [
+              302,
+              3316,
+              "3UKNiXo0b0q90ggSpIhhLw",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7378032",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet",
+              281,
+              "E00_OKRD",
+              1
+            ],
+            [
+              303,
+              3555,
+              "3UKNiXo0b0q90ggSpIhhH9",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7378243",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet",
+              281,
+              "E00_OKRD",
+              1
+            ],
+            [
+              304,
+              3802,
+              "3UKNiXo0b0q90ggSpIhhIe",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7378338",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet",
+              281,
+              "E00_OKRD",
+              1
+            ],
+            [
+              308,
+              4668,
+              "3UKNiXo0b0q90ggSpIhhP4",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts:7378766",
+              "IFCSPACEHEATER",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts",
+              281,
+              "E00_OKRD",
+              1
+            ],
+            [
+              309,
+              4848,
+              "3UKNiXo0b0q90ggSpIhhPJ",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7378777",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet",
+              281,
+              "E00_OKRD",
+              1
+            ],
+            [
+              310,
+              5089,
+              "3UKNiXo0b0q90ggSpIhhPH",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7378779",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet",
+              281,
+              "E00_OKRD",
+              1
+            ],
+            [
+              311,
+              5279,
+              "3UKNiXo0b0q90ggSpIhhjn",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts:7379579",
+              "IFCSPACEHEATER",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts",
+              281,
+              "E00_OKRD",
+              1
+            ],
+            [
+              312,
+              5453,
+              "3UKNiXo0b0q90ggSpIhhjq",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7379582",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet",
+              281,
+              "E00_OKRD",
+              1
+            ],
+            [
+              313,
+              5692,
+              "3UKNiXo0b0q90ggSpIhhkA",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7379584",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet",
+              281,
+              "E00_OKRD",
+              1
+            ],
+            [
+              314,
+              5933,
+              "3UKNiXo0b0q90ggSpIhhkC",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7379590",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet",
+              281,
+              "E00_OKRD",
+              1
+            ],
+            [
+              315,
+              6172,
+              "3UKNiXo0b0q90ggSpIhhk2",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7379592",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet",
+              281,
+              "E00_OKRD",
+              1
+            ],
+            [
+              316,
+              6411,
+              "3UKNiXo0b0q90ggSpIhhk0",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet:7379594",
+              "IFCPIPESEGMENT",
+              "Rohrtypen:Kupfer - Hartgel\u00F6tet",
+              281,
+              "E00_OKRD",
+              1
+            ],
+            [
+              317,
+              6599,
+              "3UKNiXo0b0q90ggSpIhhl5",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts:7379663",
+              "IFCSPACEHEATER",
+              "Heizk\u00F6rper Plan Ventil Unten:Rechts",
+              281,
+              "E00_OKRD",
+              1
+            ]
+          ]
+        },
+        "sorted": {
+          "status": "Ok",
+          "rowCount": 3,
+          "columns": [
+            {
+              "name": "StoreyName",
+              "type": "String"
+            },
+            {
+              "name": "IFCPIPEFITTING",
+              "type": "Int64"
+            },
+            {
+              "name": "IFCPIPESEGMENT",
+              "type": "Int64"
+            },
+            {
+              "name": "IFCSPACEHEATER",
+              "type": "Int64"
+            },
+            {
+              "name": "IFCVALVE",
+              "type": "Int64"
+            }
+          ],
+          "rows": [
+            [
+              "B01_OKRD",
+              110,
+              157,
+              0,
+              25
+            ],
+            [
+              "E00_OKRD",
+              310,
+              373,
+              29,
+              20
+            ],
+            [
+              "E01_OKRD",
+              323,
+              384,
+              34,
+              20
+            ]
+          ]
+        },
+        "storeys": {
+          "status": "Ok",
+          "rowCount": 1795,
+          "columns": [
+            {
+              "name": "EntityIndex",
+              "type": "Int64"
+            },
+            {
+              "name": "StoreyIndex",
+              "type": "Int64"
+            },
+            {
+              "name": "StoreyName",
+              "type": "String"
+            },
+            {
+              "name": "Depth",
+              "type": "Int32"
+            }
+          ],
+          "rows": [
+            [
+              2662,
+              280,
+              "B01_OKRD",
+              1
+            ],
+            [
+              2401,
+              281,
+              "E00_OKRD",
+              1
+            ],
+            [
+              2392,
+              282,
+              "E01_OKRD",
+              1
+            ],
+            [
+              2661,
+              280,
+              "B01_OKRD",
+              1
+            ],
+            [
+              2398,
+              281,
+              "E00_OKRD",
+              1
+            ],
+            [
+              2391,
+              282,
+              "E01_OKRD",
+              1
+            ],
+            [
+              2660,
+              280,
+              "B01_OKRD",
+              1
+            ],
+            [
+              2395,
+              281,
+              "E00_OKRD",
+              1
+            ],
+            [
+              2390,
+              282,
+              "E01_OKRD",
+              1
+            ],
+            [
+              2659,
+              280,
+              "B01_OKRD",
+              1
+            ],
+            [
+              2394,
+              281,
+              "E00_OKRD",
+              1
+            ],
+            [
+              2378,
+              282,
+              "E01_OKRD",
+              1
+            ],
+            [
+              2658,
+              280,
+              "B01_OKRD",
+              1
+            ],
+            [
+              2393,
+              281,
+              "E00_OKRD",
+              1
+            ],
+            [
+              2373,
+              282,
+              "E01_OKRD",
+              1
+            ],
+            [
+              2657,
+              280,
+              "B01_OKRD",
+              1
+            ],
+            [
+              2389,
+              281,
+              "E00_OKRD",
+              1
+            ],
+            [
+              2351,
+              282,
+              "E01_OKRD",
+              1
+            ],
+            [
+              2656,
+              280,
+              "B01_OKRD",
+              1
+            ],
+            [
+              2384,
+              281,
+              "E00_OKRD",
+              1
             ]
           ]
         }
@@ -3853,54 +5093,127 @@
       "document": {
         "formatVersion": "0.1.0",
         "layout": {
-          "chart": {
-            "x": 680,
-            "y": 40
+          "about": {
+            "x": 40,
+            "y": 40,
+            "w": 560,
+            "h": 140
+          },
+          "db": {
+            "x": 40,
+            "y": 224
           },
           "models": {
-            "x": 40,
-            "y": 40
+            "x": 370,
+            "y": 224
+          },
+          "named": {
+            "x": 1030,
+            "y": 224
+          },
+          "answer": {
+            "x": 1360,
+            "y": 224
+          },
+          "disciplines": {
+            "x": 370,
+            "y": 528
           }
         },
         "structure": {
+          "inputs": [
+            {
+              "default": "{PUBLIC}/digitalhub-federated.duckdb",
+              "description": "A federated BIM Open Schema DuckDB file whose document titles carry DigitalHub\u0027s discipline codes (FM-ARC, FM-HZG, FM-LFT, FM-SAN).",
+              "kind": "FilePath",
+              "name": "model"
+            }
+          ],
           "edges": [
             {
+              "from": "db.source",
+              "to": "models.path"
+            },
+            {
               "from": "models.table",
-              "to": "chart.table"
+              "to": "named.a"
+            },
+            {
+              "from": "disciplines.table",
+              "to": "named.b"
+            },
+            {
+              "from": "named.table",
+              "to": "answer.table"
             }
           ],
           "nodes": [
             {
-              "id": "chart",
+              "id": "about",
+              "kind": "view.note",
+              "version": 1
+            },
+            {
+              "id": "answer",
               "kind": "chart.bar",
+              "version": 1
+            },
+            {
+              "id": "db",
+              "kind": "duck.source",
+              "version": 1
+            },
+            {
+              "id": "disciplines",
+              "kind": "table.inline",
               "version": 1
             },
             {
               "id": "models",
               "kind": "duck.query",
               "version": 1
+            },
+            {
+              "id": "named",
+              "kind": "table.join",
+              "version": 1
             }
           ]
         },
         "values": {
-          "chart": {
-            "labelColumn": "Model",
+          "about": {
+            "text": "How many placed elements each of DigitalHub\u0027s four discipline models contributes to the federated file. models counts the elements on a storey per source document and takes the discipline code from the document\u0027s title (DigitalHub_FM-ARC_v2 gives ARC); disciplines spells each German code out: ARC architecture, HZG heating (Heizung), LFT ventilation (L\u00FCftung), SAN plumbing (Sanit\u00E4r)."
+          },
+          "answer": {
+            "labelColumn": "Discipline",
             "title": "Elements on a storey, per discipline model",
             "valueColumns": "Elements"
           },
+          "db": {
+            "path": "$model"
+          },
+          "disciplines": {
+            "rows": "[{\u0022Code\u0022:\u0022ARC\u0022,\u0022Discipline\u0022:\u0022Architecture\u0022},{\u0022Code\u0022:\u0022HZG\u0022,\u0022Discipline\u0022:\u0022Heating\u0022},{\u0022Code\u0022:\u0022LFT\u0022,\u0022Discipline\u0022:\u0022Ventilation\u0022},{\u0022Code\u0022:\u0022SAN\u0022,\u0022Discipline\u0022:\u0022Plumbing\u0022}]"
+          },
           "models": {
-            "path": "{PUBLIC}/digitalhub-federated.duckdb",
-            "sql": "SELECT d.Strings AS Model, count(*) AS Elements, count(DISTINCT s.StoreyIndex) AS Storeys FROM StoreyOfElement s JOIN Entities e ON e.rowid = s.EntityIndex JOIN Documents doc ON doc.rowid = e.Document JOIN Strings d ON d.rowid = doc.Title GROUP BY d.Strings ORDER BY d.Strings"
+            "sql": "SELECT regexp_extract(d.Strings, \u0027FM-([A-Z]\u002B)\u0027, 1) AS Code, d.Strings AS Model, count(*) AS Elements, count(DISTINCT s.StoreyIndex) AS Storeys FROM StoreyOfElement s JOIN Entities e ON e.rowid = s.EntityIndex JOIN Documents doc ON doc.rowid = e.Document JOIN Strings d ON d.rowid = doc.Title GROUP BY d.Strings ORDER BY d.Strings"
+          },
+          "named": {
+            "aKey": "Code",
+            "mode": "inner"
           }
         }
       },
       "nodes": {
-        "chart": {
+        "about": {
+          "status": "Ok"
+        },
+        "answer": {
           "status": "Ok",
           "rowCount": 4,
           "columns": [
             {
-              "name": "Model",
+              "name": "Discipline",
               "type": "String"
             },
             {
@@ -3910,20 +5223,55 @@
           ],
           "rows": [
             [
-              "DigitalHub_FM-ARC_v2",
+              "Architecture",
               777
             ],
             [
-              "DigitalHub_FM-HZG_v2",
+              "Heating",
               1795
             ],
             [
-              "DigitalHub_FM-LFT_v2",
+              "Ventilation",
               1310
             ],
             [
-              "DigitalHub_FM-SAN_v2",
+              "Plumbing",
               1010
+            ]
+          ]
+        },
+        "db": {
+          "status": "Ok"
+        },
+        "disciplines": {
+          "status": "Ok",
+          "rowCount": 4,
+          "columns": [
+            {
+              "name": "Code",
+              "type": "String"
+            },
+            {
+              "name": "Discipline",
+              "type": "String"
+            }
+          ],
+          "rows": [
+            [
+              "ARC",
+              "Architecture"
+            ],
+            [
+              "HZG",
+              "Heating"
+            ],
+            [
+              "LFT",
+              "Ventilation"
+            ],
+            [
+              "SAN",
+              "Plumbing"
             ]
           ]
         },
@@ -3931,6 +5279,10 @@
           "status": "Ok",
           "rowCount": 4,
           "columns": [
+            {
+              "name": "Code",
+              "type": "String"
+            },
             {
               "name": "Model",
               "type": "String"
@@ -3946,24 +5298,84 @@
           ],
           "rows": [
             [
+              "ARC",
               "DigitalHub_FM-ARC_v2",
               777,
               3
             ],
             [
+              "HZG",
               "DigitalHub_FM-HZG_v2",
               1795,
               3
             ],
             [
+              "LFT",
               "DigitalHub_FM-LFT_v2",
               1310,
               3
             ],
             [
+              "SAN",
               "DigitalHub_FM-SAN_v2",
               1010,
               3
+            ]
+          ]
+        },
+        "named": {
+          "status": "Ok",
+          "rowCount": 4,
+          "columns": [
+            {
+              "name": "Code",
+              "type": "String"
+            },
+            {
+              "name": "Model",
+              "type": "String"
+            },
+            {
+              "name": "Elements",
+              "type": "Int64"
+            },
+            {
+              "name": "Storeys",
+              "type": "Int64"
+            },
+            {
+              "name": "Discipline",
+              "type": "String"
+            }
+          ],
+          "rows": [
+            [
+              "ARC",
+              "DigitalHub_FM-ARC_v2",
+              777,
+              3,
+              "Architecture"
+            ],
+            [
+              "HZG",
+              "DigitalHub_FM-HZG_v2",
+              1795,
+              3,
+              "Heating"
+            ],
+            [
+              "LFT",
+              "DigitalHub_FM-LFT_v2",
+              1310,
+              3,
+              "Ventilation"
+            ],
+            [
+              "SAN",
+              "DigitalHub_FM-SAN_v2",
+              1010,
+              3,
+              "Plumbing"
             ]
           ]
         }

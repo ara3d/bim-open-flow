@@ -1,14 +1,15 @@
 {
   "formatVersion": "0.1.0",
   "layout": {
-    "chart": { "x": 1640, "y": 40 },
-    "db": { "x": 40, "y": 300 },
-    "entities": { "x": 40, "y": 40 },
-    "perStorey": { "x": 1000, "y": 40 },
-    "placed": { "x": 680, "y": 40 },
-    "sorted": { "x": 1320, "y": 40 },
-    "spaces": { "x": 360, "y": 40 },
-    "storeys": { "x": 360, "y": 300 }
+    "about": { "x": 40, "y": 40, "w": 560, "h": 140 },
+    "db": { "x": 40, "y": 224 },
+    "entities": { "x": 370, "y": 224 },
+    "spaces": { "x": 700, "y": 224 },
+    "placed": { "x": 1030, "y": 224 },
+    "perStorey": { "x": 1360, "y": 224 },
+    "sorted": { "x": 1690, "y": 224 },
+    "answer": { "x": 2020, "y": 224 },
+    "storeys": { "x": 370, "y": 464 }
   },
   "structure": {
     "inputs": [
@@ -22,10 +23,11 @@
       { "from": "storeys.table", "to": "placed.b" },
       { "from": "placed.table", "to": "perStorey.table" },
       { "from": "perStorey.table", "to": "sorted.table" },
-      { "from": "sorted.table", "to": "chart.table" }
+      { "from": "sorted.table", "to": "answer.table" }
     ],
     "nodes": [
-      { "id": "chart", "kind": "chart.bar", "version": 1 },
+      { "id": "about", "kind": "view.note", "version": 1 },
+      { "id": "answer", "kind": "chart.bar", "version": 1 },
       { "id": "db", "kind": "duck.source", "version": 1 },
       { "id": "entities", "kind": "duck.table", "version": 1 },
       { "id": "perStorey", "kind": "table.aggregate", "version": 1 },
@@ -36,7 +38,8 @@
     ]
   },
   "values": {
-    "chart": { "labelColumn": "StoreyName", "title": "Spaces per storey", "valueColumns": "Spaces" },
+    "about": { "text": "How many spaces each storey of Schependomlaan has. One duck.source, db, opens the file the model input names, and both readers share it; set model to another building's .duckdb (digitalhub-arc.duckdb gives 12, 26, and 26 spaces) and every reader follows. Every space is placed on its storey directly (Depth 1 in StoreyOfElement), so each counts once." },
+    "answer": { "labelColumn": "StoreyName", "title": "Spaces per storey", "valueColumns": "Spaces" },
     "db": { "path": "$model" },
     "entities": { "table": "EntityText" },
     "perStorey": { "aggregates": "count(EntityIndex) as Spaces", "groupBy": "StoreyName" },

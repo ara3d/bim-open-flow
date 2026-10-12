@@ -1,31 +1,41 @@
 {
   "formatVersion": "0.1.0",
   "layout": {
-    "byName": { "x": 680, "y": 40 },
-    "chart": { "x": 1320, "y": 40 },
-    "entities": { "x": 40, "y": 40 },
-    "sorted": { "x": 1000, "y": 40 },
-    "spaces": { "x": 360, "y": 40 }
+    "about": { "x": 40, "y": 40, "w": 560, "h": 140 },
+    "db": { "x": 40, "y": 224 },
+    "entities": { "x": 370, "y": 224 },
+    "spaces": { "x": 700, "y": 224 },
+    "byName": { "x": 1030, "y": 224 },
+    "sorted": { "x": 1360, "y": 224 },
+    "answer": { "x": 1690, "y": 224 }
   },
   "structure": {
+    "inputs": [
+      { "default": "{PUBLIC}/schependomlaan.duckdb", "description": "The building's BIM Open Schema DuckDB file; any public sample building works here.", "kind": "FilePath", "name": "model" }
+    ],
     "edges": [
+      { "from": "db.source", "to": "entities.path" },
       { "from": "entities.table", "to": "spaces.table" },
       { "from": "spaces.table", "to": "byName.table" },
       { "from": "byName.table", "to": "sorted.table" },
-      { "from": "sorted.table", "to": "chart.table" }
+      { "from": "sorted.table", "to": "answer.table" }
     ],
     "nodes": [
+      { "id": "about", "kind": "view.note", "version": 1 },
+      { "id": "answer", "kind": "chart.bar", "version": 1 },
       { "id": "byName", "kind": "table.aggregate", "version": 1 },
-      { "id": "chart", "kind": "chart.bar", "version": 1 },
+      { "id": "db", "kind": "duck.source", "version": 1 },
       { "id": "entities", "kind": "duck.table", "version": 1 },
       { "id": "sorted", "kind": "table.sort", "version": 1 },
       { "id": "spaces", "kind": "table.filter", "version": 1 }
     ]
   },
   "values": {
+    "about": { "text": "Which room names occur in Schependomlaan, and how often. The names are the spaces' own Name values, in Dutch: entree is the entrance, instal. ruimte the plant space, mk the meter cupboard (meterkast), woonkamer the living room. The counts sort largest first, then by name, so the rooms every apartment has once (bathroom, kitchen, meter cupboard, toilet, living room) show as a run of 10s." },
+    "answer": { "labelColumn": "Name", "title": "Spaces by name", "valueColumns": "Spaces" },
     "byName": { "aggregates": "count(EntityIndex) as Spaces", "groupBy": "Name" },
-    "chart": { "labelColumn": "Name", "title": "Spaces by name", "valueColumns": "Spaces" },
-    "entities": { "path": "{PUBLIC}/schependomlaan.duckdb", "table": "EntityText" },
+    "db": { "path": "$model" },
+    "entities": { "table": "EntityText" },
     "sorted": { "A": "Spaces", "B": "Name", "descendingA": "true" },
     "spaces": { "expr": "Category == 'IFCSPACE'" }
   }

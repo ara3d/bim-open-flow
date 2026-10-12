@@ -2464,7 +2464,13 @@
           "list": true
         }
       ],
-      "description": "Keeps the first/last row per \u0027keys\u0027 by \u0027orderBy\u0027 (empty = input row order); warns with the duplicate count."
+      "description": "Keeps the first/last row per \u0027keys\u0027 by \u0027orderBy\u0027 (empty = input row order); warns with the duplicate count.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "table.derive",
@@ -2619,7 +2625,13 @@
           ]
         }
       ],
-      "description": "Drops rows where any/all of \u0027columns\u0027 (empty = all columns) are null; warns with the dropped count."
+      "description": "Drops rows where any/all of \u0027columns\u0027 (empty = all columns) are null; warns with the dropped count.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "table.fillNulls",
@@ -2676,7 +2688,13 @@
           "list": true
         }
       ],
-      "description": "Fills nulls in \u0027columns\u0027 with a constant, or the nearest earlier/later non-null value in row order."
+      "description": "Fills nulls in \u0027columns\u0027 with a constant, or the nearest earlier/later non-null value in row order.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "table.filter",
@@ -2927,7 +2945,55 @@
         }
       ],
       "params": [],
-      "description": "Profiles every column: type, counts, distinct count, min, max, and mean."
+      "description": "Profiles every column: type, counts, distinct count, min, max, and mean.",
+      "schemas": [
+        {
+          "output": "profile",
+          "mode": "Static",
+          "columns": [
+            {
+              "name": "column",
+              "type": "Text",
+              "nullable": false
+            },
+            {
+              "name": "type",
+              "type": "Text",
+              "nullable": false
+            },
+            {
+              "name": "count",
+              "type": "Integer",
+              "nullable": false
+            },
+            {
+              "name": "nullCount",
+              "type": "Integer",
+              "nullable": false
+            },
+            {
+              "name": "distinctCount",
+              "type": "Integer",
+              "nullable": true
+            },
+            {
+              "name": "min",
+              "type": "Text",
+              "nullable": true
+            },
+            {
+              "name": "max",
+              "type": "Text",
+              "nullable": true
+            },
+            {
+              "name": "mean",
+              "type": "Number",
+              "nullable": true
+            }
+          ]
+        }
+      ]
     },
     {
       "kind": "table.project",
@@ -3101,7 +3167,13 @@
           "default": "true"
         }
       ],
-      "description": "Replaces \u0027find\u0027 with \u0027replaceWith\u0027 in a text column, by exact/substring/regex match."
+      "description": "Replaces \u0027find\u0027 with \u0027replaceWith\u0027 in a text column, by exact/substring/regex match.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "table.sample",
@@ -3147,7 +3219,13 @@
           "default": "1"
         }
       ],
-      "description": "Takes a seeded random sample: a fixed number of rows, or a fraction of them."
+      "description": "Takes a seeded random sample: a fixed number of rows, or a fraction of them.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "table.schema",
@@ -3168,7 +3246,30 @@
         }
       ],
       "params": [],
-      "description": "Outputs the table\u0027s columns as a table: name, type, and index."
+      "description": "Outputs the table\u0027s columns as a table: name, type, and index.",
+      "schemas": [
+        {
+          "output": "schema",
+          "mode": "Static",
+          "columns": [
+            {
+              "name": "column",
+              "type": "Text",
+              "nullable": false
+            },
+            {
+              "name": "type",
+              "type": "Text",
+              "nullable": false
+            },
+            {
+              "name": "index",
+              "type": "Integer",
+              "nullable": false
+            }
+          ]
+        }
+      ]
     },
     {
       "kind": "table.setOp",
@@ -3364,7 +3465,13 @@
           "default": "false"
         }
       ],
-      "description": "Splits a column on a separator into new columns named by \u0027names\u0027."
+      "description": "Splits a column on a separator into new columns named by \u0027names\u0027.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "table.transpose",
@@ -3449,7 +3556,13 @@
           "default": "value"
         }
       ],
-      "description": "Unpivots columns into name/value rows, keeping the \u0027keep\u0027 columns as row ids."
+      "description": "Unpivots columns into name/value rows, keeping the \u0027keep\u0027 columns as row ids.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "table.window",
@@ -3530,7 +3643,13 @@
           "default": ""
         }
       ],
-      "description": "Adds one window-function column: ranking, lag/lead, cumulative sum, moving average, or percent of total."
+      "description": "Adds one window-function column: ranking, lag/lead, cumulative sum, moving average, or percent of total.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "text.extract",
@@ -3576,7 +3695,13 @@
           "default": ""
         }
       ],
-      "description": "Adds column \u0027name\u0027 holding capture group \u0027group\u0027 (0 = whole match) of \u0027pattern\u0027 from \u0027column\u0027; null when no match."
+      "description": "Adds column \u0027name\u0027 holding capture group \u0027group\u0027 (0 = whole match) of \u0027pattern\u0027 from \u0027column\u0027; null when no match.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "text.transform",
@@ -3619,7 +3744,13 @@
           ]
         }
       ],
-      "description": "Applies trim/upper/lower/normalizeSpace to \u0027columns\u0027 (empty = every text column) in place."
+      "description": "Applies trim/upper/lower/normalizeSpace to \u0027columns\u0027 (empty = every text column) in place.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "value.boolean",

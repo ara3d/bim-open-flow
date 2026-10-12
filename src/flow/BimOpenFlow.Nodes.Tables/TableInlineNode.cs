@@ -6,7 +6,7 @@ namespace BimOpenFlow.Nodes.Tables;
 
 /// <summary>Builds a small table from a JSON array of objects typed directly
 /// into the node — rate cards, mappings, thresholds — without a side file.</summary>
-public sealed class TableInlineNode : IFlowNode
+public sealed class TableInlineNode : ISchemaNode
 {
     public const string Kind = "table.inline";
 
@@ -15,15 +15,46 @@ public sealed class TableInlineNode : IFlowNode
         Inputs: [],
         Outputs: [new PortSpec("table", PortType.Table)],
         Params: [new ParamSpec("rows", ParamKind.Json)],
-        "Builds a table from a JSON array of objects, e.g. [{\"type\":\"Wall\",\"rate\":120.5}]. Column types are inferred (bool/integer/number/text); a column mixing value types is an error; nulls and missing keys are allowed.");
+        "Builds a table from a JSON array of objects, e.g. [{\"type\":\"Wall\",\"rate\":120.5}]. Column types are inferred (bool/integer/number/text); a column mixing value types is an error; nulls and missing keys are allowed.",
+        Schemas: [SchemaSpec.Inferred("table")]);
+
+    /// <summary>One parsed column: the evaluation builds a table from it and the shape rule reads its type.</summary>
+    private sealed record ColumnData(string Name, Type Type, object?[] Cells);
+
+    public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
+    {
+        try
+        {
+            var columns = Parse(parameters.RequiredText("rows", Kind)).Select(c =>
+                new Column(c.Name, ToColumnType(c.Type), Nullable: c.Cells.Any(cell => cell is null)));
+            return SchemaResult.Of(new Schema(columns.ToList()));
+        }
+        catch (ArgumentException e)
+        {
+            return SchemaResult.Fail(e.Message);
+        }
+    }
+
+    private static ColumnType ToColumnType(Type type)
+        => type == typeof(bool) ? ColumnType.Boolean
+            : type == typeof(long) ? ColumnType.Integer
+            : type == typeof(double) ? ColumnType.Number
+            : ColumnType.Text;
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {
-        var json = parameters.RequiredText("rows", Kind);
+        var builder = new DataTableBuilder("inline");
+        foreach (var column in Parse(parameters.RequiredText("rows", Kind)))
+            builder.AddColumn(column.Cells, column.Name, column.Type);
+        return [new TableValue(builder.Build())];
+    }
+
+    private static IReadOnlyList<ColumnData> Parse(string json)
+    {
         try
         {
             using var document = JsonDocument.Parse(json);
-            return [new TableValue(Build(document.RootElement))];
+            return Columns(document.RootElement);
         }
         catch (JsonException e)
         {
@@ -31,7 +62,7 @@ public sealed class TableInlineNode : IFlowNode
         }
     }
 
-    private static IDataTable Build(JsonElement root)
+    private static IReadOnlyList<ColumnData> Columns(JsonElement root)
     {
         if (root.ValueKind != JsonValueKind.Array)
             throw new ArgumentException($"{Kind}: 'rows' must be a JSON array of objects.");
@@ -61,16 +92,14 @@ public sealed class TableInlineNode : IFlowNode
                     cells.Add(null);
         }
 
-        var builder = new DataTableBuilder("inline");
-        foreach (var name in names)
+        return names.Select(name =>
         {
-            var type = ColumnType(columns[name], name);
+            var type = CellType(columns[name], name);
             var cells = type == typeof(double)
                 ? columns[name].Select(c => c is long l ? (object?)(double)l : c).ToArray()
                 : columns[name].ToArray();
-            builder.AddColumn(cells, name, type);
-        }
-        return builder.Build();
+            return new ColumnData(name, type, cells);
+        }).ToList();
     }
 
     private static object? Value(JsonElement value, string column)
@@ -89,7 +118,7 @@ public sealed class TableInlineNode : IFlowNode
     /// exception: integers and numbers in one column widen to number, because
     /// JSON has one number type and "120" next to "120.5" is the same column
     /// (the rate-card shape). Everything else mixing is an error.</summary>
-    private static Type ColumnType(IReadOnlyList<object?> cells, string name)
+    private static Type CellType(IReadOnlyList<object?> cells, string name)
     {
         var types = cells.Where(c => c != null).Select(c => c!.GetType()).Distinct().ToList();
         return types.Count switch

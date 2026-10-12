@@ -5,7 +5,7 @@ namespace BimOpenFlow.Nodes.Tables;
 
 /// <summary>Generates one numeric column from start to stop by step, inclusive
 /// of stop when a step lands exactly on it (generate_series semantics).</summary>
-public sealed class TableRangeNode : IFlowNode
+public sealed class TableRangeNode : ISchemaNode
 {
     public const string Kind = "table.range";
 
@@ -21,11 +21,18 @@ public sealed class TableRangeNode : IFlowNode
             new ParamSpec("step", ParamKind.Number, "1"),
         ],
         "Generates one numeric column from start to stop (inclusive when a step lands on it) by step; a negative step counts down.",
-        Schemas: [SchemaSpec.Static("table", new Schema([new Column("value", ColumnType.Number, Nullable: false)]))]);
+        Schemas: [SchemaSpec.Inferred("table")]);
+
+    /// <summary>The column is named by the 'name' parameter, 'value' when it is blank.</summary>
+    private static string ColumnName(ParamValues parameters)
+        => parameters.GetText("name").Trim() is { Length: > 0 } n ? n : "value";
+
+    public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
+        => SchemaResult.Of(new Column(ColumnName(parameters), ColumnType.Number, Nullable: false));
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {
-        var name = parameters.GetText("name").Trim() is { Length: > 0 } n ? n : "value";
+        var name = ColumnName(parameters);
         var start = parameters.GetNumber("start");
         var stop = parameters.RequiredNumber("stop", Kind);
         var step = parameters.GetNumber("step", 1);

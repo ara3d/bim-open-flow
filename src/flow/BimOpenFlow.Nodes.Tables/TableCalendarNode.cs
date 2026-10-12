@@ -6,7 +6,7 @@ namespace BimOpenFlow.Nodes.Tables;
 
 /// <summary>Generates one ISO-8601 date column from start to end inclusive —
 /// the calendar spine to left-join actuals onto so gaps show as nulls.</summary>
-public sealed class TableCalendarNode : IFlowNode
+public sealed class TableCalendarNode : ISchemaNode
 {
     public const string Kind = "table.calendar";
 
@@ -21,11 +21,20 @@ public sealed class TableCalendarNode : IFlowNode
             new ParamSpec("end", ParamKind.DateTime),
             new ParamSpec("step", ParamKind.Enum, "day", ["day", "week", "month", "quarter", "year"]),
         ],
-        "Generates one ISO-8601 date column from start to end inclusive; month/quarter/year steps use calendar arithmetic.");
+        "Generates one ISO-8601 date column from start to end inclusive; month/quarter/year steps use calendar arithmetic.",
+        Schemas: [SchemaSpec.Inferred("table")]);
+
+    /// <summary>The column is named by the 'name' parameter, 'date' when it is blank. Its cells are
+    /// ISO-8601 text, so its type is Text, not Date.</summary>
+    private static string ColumnName(ParamValues parameters)
+        => parameters.GetText("name").Trim() is { Length: > 0 } n ? n : "date";
+
+    public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
+        => SchemaResult.Of(new Column(ColumnName(parameters), ColumnType.Text, Nullable: false));
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {
-        var name = parameters.GetText("name").Trim() is { Length: > 0 } n ? n : "date";
+        var name = ColumnName(parameters);
         var start = parameters.RequiredDateTime("start", Kind);
         var end = parameters.RequiredDateTime("end", Kind);
         if (end < start)

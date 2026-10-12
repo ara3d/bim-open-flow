@@ -1,5 +1,6 @@
 using Ara3D.DataFlowEngine.Abstractions;
 using Ara3D.DataTable;
+using BimOpenFlow.Relations;
 
 namespace BimOpenFlow.Nodes.Tables;
 
@@ -8,7 +9,7 @@ namespace BimOpenFlow.Nodes.Tables;
 // TODO: full-mode appended b rows write b's key value into a's key column; when the
 // two columns' CLR types differ the column carries mixed types downstream. Coerce
 // to a's type or widen to text explicitly.
-public sealed class TableJoinNode : IFlowNode
+public sealed class TableJoinNode : ISchemaNode
 {
     public const string Kind = "table.join";
 
@@ -26,16 +27,42 @@ public sealed class TableJoinNode : IFlowNode
             new ParamSpec("bKey", ParamKind.Text, "", Suggest: SuggestSource.ColumnsOf("b")),
             new ParamSpec("mode", ParamKind.Enum, "left", ["left", "inner", "full", "semi", "anti"]),
         ],
-        "Joins b's columns onto a by key (bKey defaults to aKey). left keeps all a rows; inner keeps matches; full also appends unmatched b rows; semi/anti keep only a rows with/without a match and attach no b columns.");
+        "Joins b's columns onto a by key (bKey defaults to aKey). left keeps all a rows; inner keeps matches; full also appends unmatched b rows; semi/anti keep only a rows with/without a match and attach no b columns.",
+        Schemas: [SchemaSpec.Inferred("table")]);
+
+    /// <summary>The shape rule's view of this join: b's key column is not repeated, a collision takes
+    /// the suffix _b, and keys are compared as text so their types need not match.</summary>
+    private static readonly JoinOptions Options = new("_b", DropRightKeys: true, RequireComparableKeys: false);
+
+    private static readonly Dictionary<string, JoinKind> Kinds = new()
+    {
+        ["left"] = JoinKind.Left, ["inner"] = JoinKind.Inner, ["full"] = JoinKind.Full,
+        ["semi"] = JoinKind.Semi, ["anti"] = JoinKind.Anti,
+    };
+
+    private readonly record struct Args(string AKey, string BKey, string Mode)
+    {
+        public static Args Read(ParamValues parameters)
+        {
+            var aKey = parameters.RequiredText("aKey", Kind);
+            var bKeyText = parameters.GetText("bKey");
+            var mode = parameters.RequiredEnum("mode", Kind, "left", [.. Kinds.Keys]);
+            return new Args(aKey, string.IsNullOrWhiteSpace(bKeyText) ? aKey : bKeyText, mode);
+        }
+    }
+
+    public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
+        => SchemaInputs.Run(Spec, inputs, schemas =>
+        {
+            var args = Args.Read(parameters);
+            return SchemaRules.Join(schemas[0], schemas[1], [new JoinKey(args.AKey, args.BKey)], Kinds[args.Mode], Options);
+        });
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {
         var a = inputs.TableInput(0, Kind);
         var b = inputs.TableInput(1, Kind);
-        var aKey = parameters.RequiredText("aKey", Kind);
-        var bKeyText = parameters.GetText("bKey");
-        var bKey = string.IsNullOrWhiteSpace(bKeyText) ? aKey : bKeyText;
-        var mode = parameters.RequiredEnum("mode", Kind, "left", "left", "inner", "full", "semi", "anti");
+        var (aKey, bKey, mode) = Args.Read(parameters);
         var aKeyCol = a.RequireColumn(aKey, Kind);
         var bKeyCol = b.RequireColumn(bKey, Kind);
 
@@ -64,7 +91,7 @@ public sealed class TableJoinNode : IFlowNode
         {
             if (c.ColumnIndex == bKeyCol)
                 continue;
-            var name = aNames.Contains(c.Descriptor.Name) ? $"{c.Descriptor.Name}_b" : c.Descriptor.Name;
+            var name = aNames.Contains(c.Descriptor.Name) ? c.Descriptor.Name + Options.RightSuffix : c.Descriptor.Name;
             builder.AddColumn(Select(b, c.ColumnIndex, bRows), name, c.Descriptor.Type);
         }
         return [new TableValue(builder.Build())];

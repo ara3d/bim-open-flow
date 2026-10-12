@@ -5,6 +5,7 @@
 // touches gratify.
 
 import { addAdorn, at, part, v, type Color, type GNode, type PartExt } from "gratify";
+import type { PortSchema, SchemaColumn } from "@bimopenflow/contracts";
 import { PEEK_ROWS, type PortPeekView } from "./portResults.js";
 import { portY } from "./portGeometry.js";
 
@@ -24,11 +25,56 @@ export function rowCountText(rows: number): string {
   return `${rows.toLocaleString("en-US")} ${noun}`;
 }
 
+/** "Text", or "Text?" for a column that can be missing. */
+const typeText = (c: SchemaColumn): string => (c.nullable ? `${c.type}?` : c.type);
+
+/** The card for an endpoint with no result yet: the columns the static schema
+ *  pass inferred (names, then types, then kinds when any column has one), or
+ *  what is known instead when the status is not Ok. */
+function inferredGrid(endpoint: string, schema: PortSchema, reason: string): PeekGrid {
+  switch (schema.status) {
+    case "Ok": {
+      const all = schema.columns ?? [];
+      const shown = all.slice(0, PEEK_COLUMNS);
+      const rows = [shown.map(typeText)];
+      if (shown.some((c) => c.kind)) rows.push(shown.map((c) => c.kind ?? ""));
+      const hidden = all.length - shown.length;
+      return {
+        title: `${endpoint} · inferred · ${all.length} columns`,
+        columns: shown.map((c) => c.name),
+        rows: shown.length > 0 ? rows : [],
+        note: hidden > 0 ? `+${hidden} more columns · ${reason}` : reason,
+      };
+    }
+    case "Dynamic":
+      return { title: endpoint, columns: [], rows: [], note: `Columns known after Run: ${schema.reason ?? reason}` };
+    case "Unknown":
+      return { title: endpoint, columns: [], rows: [], note: `Columns unknown: ${schema.reason ?? reason}` };
+    case "Error":
+      return { title: endpoint, columns: [], rows: [], note: `Columns unavailable: ${schema.errors[0] ?? schema.reason ?? reason}` };
+  }
+}
+
+/** A note when the recorded columns are not the ones the pass inferred. */
+function differenceNote(recorded: readonly string[], schema: PortSchema | undefined): string | null {
+  if (schema?.status !== "Ok" || !schema.columns) return null;
+  const inferred = schema.columns.map((c) => c.name);
+  if (inferred.length === recorded.length && inferred.every((n, i) => n === recorded[i])) return null;
+  const missing = inferred.filter((n) => !recorded.includes(n));
+  const extra = recorded.filter((n) => !inferred.includes(n));
+  const parts = [
+    ...(missing.length > 0 ? [`not produced: ${missing.join(", ")}`] : []),
+    ...(extra.length > 0 ? [`not inferred: ${extra.join(", ")}`] : []),
+  ];
+  return `differs from inferred columns${parts.length > 0 ? ` (${parts.join("; ")})` : " (order)"}`;
+}
+
 /** The text a peek card shows for one endpoint's peek state. */
 export function peekGrid(view: PortPeekView): PeekGrid {
   const { peek } = view;
   if (peek.kind === "loading") return { title: view.endpoint, columns: [], rows: [], note: "loading…" };
   if (peek.kind === "absent") return { title: view.endpoint, columns: [], rows: [], note: peek.reason };
+  if (peek.kind === "inferred") return inferredGrid(view.endpoint, peek.schema, peek.reason);
 
   const { slice } = peek;
   const columnCount = slice.columns.length;
@@ -37,11 +83,13 @@ export function peekGrid(view: PortPeekView): PeekGrid {
     row.slice(0, PEEK_COLUMNS).map((cell) => (cell === null || cell === undefined ? "null" : String(cell))),
   );
   const hiddenColumns = columnCount - columns.length;
+  const differs = differenceNote(slice.columns.map((c) => c.name), peek.inferred);
+  const notes = [hiddenColumns > 0 ? `+${hiddenColumns} more columns` : null, differs].filter((n) => n !== null);
   return {
     title: `${view.endpoint} · ${rowCountText(slice.totalRows)} · ${columnCount} columns`,
     columns,
     rows,
-    note: hiddenColumns > 0 ? `+${hiddenColumns} more columns` : null,
+    note: notes.length > 0 ? notes.join(" · ") : null,
   };
 }
 
@@ -63,10 +111,29 @@ interface PeekCardStyle {
   readonly dim: Color;
 }
 
+/** Characters of a note that fit one line of the card at the note's size. */
+export const NOTE_LINE_CHARS = 44;
+
+/** A note broken at spaces into lines of at most NOTE_LINE_CHARS (a longer
+ *  word keeps its own line), so a long reason is shown whole. */
+export function noteLines(note: string | null): string[] {
+  if (!note) return [];
+  const lines: string[] = [];
+  let line = "";
+  for (const word of note.split(" ")) {
+    if (line !== "" && line.length + 1 + word.length > NOTE_LINE_CHARS) {
+      lines.push(line);
+      line = word;
+    } else line = line === "" ? word : `${line} ${word}`;
+  }
+  if (line !== "") lines.push(line);
+  return lines;
+}
+
 /** Rows the card body draws below its title: a header row of column names
- *  (when there are any), one line per data row, then the note. */
+ *  (when there are any), one line per data row, then the note's lines. */
 function cardLineCount(grid: PeekGrid): number {
-  return (grid.columns.length > 0 ? 1 : 0) + grid.rows.length + (grid.note ? 1 : 0);
+  return (grid.columns.length > 0 ? 1 : 0) + grid.rows.length + noteLines(grid.note).length;
 }
 
 const PeekCard = part<PeekCardProps, PeekCardStyle>("bof-peek-card", {
@@ -104,7 +171,10 @@ const PeekCard = part<PeekCardProps, PeekCardStyle>("bof-peek-card", {
       }
     }
 
-    if (grid.note) painter.label(grid.note, v(r.x + CARD_PAD, y), style.dim, { align: "left", size: 10 });
+    for (const line of noteLines(grid.note)) {
+      painter.label(line, v(r.x + CARD_PAD, y), style.dim, { align: "left", size: 10 });
+      y += LINE_HEIGHT;
+    }
   },
 });
 

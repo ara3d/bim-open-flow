@@ -3,8 +3,8 @@
 
 import { describe, expect, it } from "vitest";
 import { part, Runtime, v, withExt, type Element } from "gratify";
-import type { TableSlice } from "@bimopenflow/contracts";
-import { peekAdorn, peekGrid, rowCountText } from "../src/peekCard.js";
+import type { PortSchema, TableSlice } from "@bimopenflow/contracts";
+import { noteLines, peekAdorn, peekGrid, rowCountText } from "../src/peekCard.js";
 import type { PortPeekView } from "../src/portResults.js";
 
 const readySlice: TableSlice = {
@@ -140,5 +140,85 @@ describe("peekAdorn", () => {
       errors.push(String(err));
     }
     expect(errors).toEqual([]);
+  });
+});
+
+describe("peekGrid for an inferred schema", () => {
+  const schema = (extra: Partial<PortSchema>): PortSchema => ({
+    node: "n", output: "out", status: "Ok", errors: [], warnings: [], ...extra,
+  });
+  const inferred = (s: PortSchema, reason = "Not evaluated yet"): PortPeekView => ({
+    endpoint: "n.out", pinned: false, peek: { kind: "inferred", schema: s, reason },
+  });
+
+  it("Ok: column names, then types (? for nullable), then kinds when any column has one", () => {
+    const grid = peekGrid(inferred(schema({
+      columns: [
+        { name: "Id", type: "Text", nullable: false },
+        { name: "Height", type: "Number", nullable: true, kind: "length" },
+      ],
+    })));
+    expect(grid).toEqual({
+      title: "n.out · inferred · 2 columns",
+      columns: ["Id", "Height"],
+      rows: [["Text", "Number?"], ["", "length"]],
+      note: "Not evaluated yet",
+    });
+  });
+
+  it("Ok: omits the kind row when no column has a kind, and folds extra columns into the note", () => {
+    const names = ["a", "b", "c", "d", "e", "f", "g"];
+    const grid = peekGrid(inferred(schema({ columns: names.map((name) => ({ name, type: "Integer" as const, nullable: false })) })));
+    expect(grid.rows).toHaveLength(1);
+    expect(grid.note).toBe("+1 more columns · Not evaluated yet");
+  });
+
+  it("Dynamic: says the columns are known after Run, with the reason", () => {
+    const grid = peekGrid(inferred(schema({ status: "Dynamic", reason: "pivot columns come from the data" })));
+    expect(grid.note).toBe("Columns known after Run: pivot columns come from the data");
+    expect(grid.columns).toEqual([]);
+  });
+
+  it("Unknown: names the reason, which names the node that made it unknown", () => {
+    const grid = peekGrid(inferred(schema({ status: "Unknown", reason: "src reads a file that is not set" })));
+    expect(grid.note).toBe("Columns unknown: src reads a file that is not set");
+  });
+
+  it("Error: shows the first error", () => {
+    const grid = peekGrid(inferred(schema({ status: "Error", errors: ["no column Foo"] })));
+    expect(grid.note).toBe("Columns unavailable: no column Foo");
+  });
+});
+
+describe("peekGrid for a result that differs from the inferred columns", () => {
+  const inferredSchema = (names: string[]): PortSchema => ({
+    node: "tall", output: "relation", status: "Ok", errors: [], warnings: [],
+    columns: names.map((name) => ({ name, type: "Integer" as const, nullable: false })),
+  });
+
+  it("adds no marker when the names match", () => {
+    const view: PortPeekView = { ...readyView, peek: { kind: "ready", slice: readySlice, inferred: inferredSchema(["id", "height"]) } };
+    expect(peekGrid(view).note).toBeNull();
+  });
+
+  it("flags columns not produced and columns not inferred", () => {
+    const view: PortPeekView = { ...readyView, peek: { kind: "ready", slice: readySlice, inferred: inferredSchema(["id", "width"]) } };
+    expect(peekGrid(view).note).toBe("differs from inferred columns (not produced: width; not inferred: height)");
+  });
+
+  it("ignores an inferred schema that is not Ok", () => {
+    const schema: PortSchema = { node: "tall", output: "relation", status: "Dynamic", errors: [], warnings: [] };
+    const view: PortPeekView = { ...readyView, peek: { kind: "ready", slice: readySlice, inferred: schema } };
+    expect(peekGrid(view).note).toBeNull();
+  });
+});
+
+describe("noteLines", () => {
+  it("breaks at spaces and keeps a long word whole", () => {
+    expect(noteLines(null)).toEqual([]);
+    expect(noteLines("short")).toEqual(["short"]);
+    const lines = noteLines("Columns known after Run: pivot columns come from the data values");
+    expect(lines.every((l) => l.length <= 44)).toBe(true);
+    expect(lines.join(" ")).toBe("Columns known after Run: pivot columns come from the data values");
   });
 });

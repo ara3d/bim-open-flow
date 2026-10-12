@@ -3,8 +3,8 @@
 // "portResults.ts: the controller") so it is testable headless and reusable
 // by any surface that needs port results.
 
-import type { NodeDescriptor, TableSlice } from "@bimopenflow/contracts";
-import { parsePortRef, type State, type Store } from "@bimopenflow/state";
+import type { NodeDescriptor, PortSchema, TableSlice } from "@bimopenflow/contracts";
+import { parsePortRef, schemaOf, type State, type Store } from "@bimopenflow/state";
 
 /** One page of a node output from the host; PaneContext.requestTable's shape. */
 export type ReadPort = (nodeId: string, port: string, skip: number, take: number) => Promise<TableSlice>;
@@ -19,7 +19,12 @@ export interface WireRows { readonly rows: number; readonly current: boolean }
 
 export type PortPeek =
   | { readonly kind: "loading" }
-  | { readonly kind: "ready"; readonly slice: TableSlice }
+  /** `inferred` is the static schema pass's answer for the same endpoint, kept so
+   *  the card can flag recorded columns that differ from it. The data still wins. */
+  | { readonly kind: "ready"; readonly slice: TableSlice; readonly inferred?: PortSchema }
+  /** No result yet, but the static schema pass (TKT-209) knows something about the
+   *  columns. `reason` says why there is no result, as `absent` would. */
+  | { readonly kind: "inferred"; readonly schema: PortSchema; readonly reason: string }
   | { readonly kind: "absent"; readonly reason: string };
 
 export interface PortPeekView {
@@ -138,11 +143,18 @@ export function createPortResults(read: ReadPort, onChange: () => void): PortRes
     });
   }
 
+  /** What a card shows when there is no result: the inferred schema when the pass
+   *  has one for the endpoint, else the bare reason. */
+  function withoutResult(state: State, endpoint: string, reason: string): PortPeek {
+    const schema = schemaOf(state, endpoint);
+    return schema ? { kind: "inferred", schema, reason } : { kind: "absent", reason };
+  }
+
   function startPeekIfNeeded(endpoint: string, state: State): void {
     if (peekCache.has(endpoint) || peekInFlight.has(endpoint)) return;
     const reason = absentReason(state, endpoint);
     if (reason !== null) {
-      peekCache.set(endpoint, { kind: "absent", reason });
+      peekCache.set(endpoint, withoutResult(state, endpoint, reason));
       notify();
       return;
     }
@@ -153,13 +165,14 @@ export function createPortResults(read: ReadPort, onChange: () => void): PortRes
       (slice) => {
         peekInFlight.delete(endpoint);
         if (gen !== generation || disposed) return;
-        peekCache.set(endpoint, { kind: "ready", slice });
+        const inferred = schemaOf(state, endpoint);
+        peekCache.set(endpoint, { kind: "ready", slice, ...(inferred ? { inferred } : {}) });
         notify();
       },
       (err) => {
         peekInFlight.delete(endpoint);
         if (gen !== generation || disposed) return;
-        peekCache.set(endpoint, { kind: "absent", reason: reasonMessage(err) });
+        peekCache.set(endpoint, withoutResult(state, endpoint, reasonMessage(err)));
         notify();
       },
     );

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { NodeDescriptor, PortDescriptor, TableSlice } from "@bimopenflow/contracts";
+import type { NodeDescriptor, PortDescriptor, PortSchema, TableSlice } from "@bimopenflow/contracts";
 import { createStore, type State, type Store } from "@bimopenflow/state";
 import {
   absentReason,
@@ -287,5 +287,49 @@ describe("watchEvaluations", () => {
     unsubscribe();
     statusUpdate(store, { tall: "Ok" });
     expect(evaluated).toHaveBeenCalledTimes(1);
+  });
+});
+
+// --- createPortResults: inferred schema (TKT-209) -----------------------------
+
+describe("createPortResults inferred schema", () => {
+  const schemaUpdate = (store: Store, ports: (Partial<PortSchema> & { node: string; output: string })[]): void =>
+    store.dispatch({
+      type: "applyServerState",
+      update: { analysisId: "an1", nodes: [], schemas: ports.map((p) => ({ status: "Ok", errors: [], warnings: [], ...p })) as PortSchema[] },
+    });
+
+  it("shows the inferred columns instead of the bare reason when there is no result", () => {
+    const { read, calls } = fakeApi();
+    const results = createPortResults(read, () => {});
+    const { store } = makeOkGraph();
+    const columns = [{ name: "Id", type: "Text" as const, nullable: false }];
+    schemaUpdate(store, [{ node: "out", output: "out", columns }]);
+    results.hover("out.out", store.getState());
+    expect(calls).toHaveLength(0);
+    expect(results.view().peek?.peek).toMatchObject({
+      kind: "inferred",
+      reason: "Writes on Run; no rows until the graph runs",
+      schema: { columns },
+    });
+  });
+
+  it("keeps the bare reason when the pass has nothing for the endpoint", () => {
+    const { read } = fakeApi();
+    const results = createPortResults(read, () => {});
+    const { state } = makeOkGraph();
+    results.hover("out.out", state);
+    expect(results.view().peek?.peek.kind).toBe("absent");
+  });
+
+  it("lets the data win, carrying the inferred schema for the comparison", async () => {
+    const { read, calls } = fakeApi();
+    const results = createPortResults(read, () => {});
+    const { store } = makeOkGraph();
+    schemaUpdate(store, [{ node: "src", output: "relation", columns: [{ name: "Id", type: "Text", nullable: false }] }]);
+    results.hover("src.relation", store.getState());
+    calls[0]!.resolve(slice(2, [[1]]));
+    await flush();
+    expect(results.view().peek?.peek).toMatchObject({ kind: "ready", inferred: { node: "src" } });
   });
 });

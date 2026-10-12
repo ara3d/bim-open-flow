@@ -65,3 +65,16 @@ export function groupTemplates(
     .sort((a, b) => folderRank(a) - folderRank(b) || (a < b ? -1 : a > b ? 1 : 0))
     .map((folder) => ({ folder, label: folderLabel(folder), templates: byFolder.get(folder)! }));
 }
+
+/** The start page's two lists (TKT-254): the groups of templates the host
+ *  seeded, which open, and the groups of those it did not, which it cannot
+ *  run and shows collapsed after the first. */
+export function splitTemplates(
+  templates: readonly FlowTemplate[],
+  present: ReadonlySet<string>,
+): { seeded: TemplateGroup[]; unseeded: TemplateGroup[] } {
+  return {
+    seeded: groupTemplates(templates.filter((t) => present.has(t.id)), present),
+    unseeded: groupTemplates(templates.filter((t) => !present.has(t.id)), present),
+  };
+}

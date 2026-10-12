@@ -40,14 +40,19 @@ describe("searchWithAnalysis", () => {
 });
 
 describe("chooseInitialAnalysis", () => {
-  const ids = ["first", "nb-s07-own-data-join"];
+  const ids = ["first", "nb-s07-own-data-join", "door-schedule"];
   it("opens the requested analysis when the host has it", () => {
-    expect(chooseInitialAnalysis("nb-s07-own-data-join", ids)).toEqual({ open: "nb-s07-own-data-join", missing: undefined });
+    expect(chooseInitialAnalysis("nb-s07-own-data-join", ids, "door-schedule")).toEqual({ open: "nb-s07-own-data-join", missing: undefined });
   });
-  it("opens the default and names an unknown id", () => {
-    expect(chooseInitialAnalysis("no-such-graph", ids)).toEqual({ open: "first", missing: "no-such-graph" });
+  it("names an unknown requested id and opens the remembered one instead", () => {
+    expect(chooseInitialAnalysis("no-such-graph", ids, "door-schedule")).toEqual({ open: "door-schedule", missing: "no-such-graph" });
   });
-  it("opens the default without a parameter", () => {
-    expect(chooseInitialAnalysis(undefined, ids)).toEqual({ open: "first", missing: undefined });
+  it("opens the remembered analysis without a parameter", () => {
+    expect(chooseInitialAnalysis(undefined, ids, "door-schedule")).toEqual({ open: "door-schedule", missing: undefined });
+  });
+  it("opens nothing, never the first id, when nothing is requested or remembered", () => {
+    expect(chooseInitialAnalysis(undefined, ids)).toEqual({ open: undefined, missing: undefined });
+    expect(chooseInitialAnalysis(undefined, ids, "deleted-since")).toEqual({ open: undefined, missing: undefined });
+    expect(chooseInitialAnalysis("no-such-graph", ids)).toEqual({ open: undefined, missing: "no-such-graph" });
   });
 });

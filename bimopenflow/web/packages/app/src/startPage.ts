@@ -1,8 +1,10 @@
 // The start page: an overlay over the canvas host listing the flows the
 // sample folders define, grouped by folder, so a newcomer starts from one
-// instead of a blank canvas (PROJECT.md workflow 1, principle 9). It only
+// instead of a blank canvas (PROJECT.md workflow 1, principle 9). The flows
+// this host seeded come first; the templates it did not seed, which it
+// cannot open, sit collapsed under one heading after them (TKT-254). It only
 // calls back; opening, copying, and creating a flow belong to app.ts.
-import { groupTemplates, type FlowTemplate, type PresentTemplate } from "./templates.js";
+import { splitTemplates, type FlowTemplate, type PresentTemplate, type TemplateGroup } from "./templates.js";
 
 export interface StartPageDeps {
   readonly templates: readonly FlowTemplate[];
@@ -22,6 +24,8 @@ export interface StartPage {
 
 const STYLE_ID = "bof-app-start-styles";
 export const ABSENT_NOTE = "not seeded in this host profile";
+/** The collapsed heading over the templates this host did not seed. */
+export const ABSENT_HEADING = "Not in this host profile";
 
 function ensureStartStyles(doc: Document): void {
   if (doc.getElementById(STYLE_ID)) return;
@@ -35,6 +39,8 @@ function ensureStartStyles(doc: Document): void {
     .bof-app-start-head h2 { margin: 0; font: 600 18px/1.3 var(--bof-app-font-brand, var(--bof-app-font)); }
     .bof-app-start-close { cursor: pointer; }
     .bof-app-start-group h3 { margin: 20px 0 8px; font-size: 13px; opacity: 0.8; }
+    .bof-app-start-absent { margin-top: 24px; }
+    .bof-app-start-absent > summary { cursor: pointer; color: var(--bof-app-dim); }
     .bof-app-start-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
     .bof-app-start-card { border: 1px solid var(--bof-app-border); border-radius: 6px; padding: 10px; background: var(--bof-app-surface);
       cursor: pointer; display: flex; flex-direction: column; gap: 6px; }
@@ -100,7 +106,19 @@ export function createStartPage(host: HTMLElement, deps: StartPageDeps): StartPa
     return card;
   };
 
+  const groupSection = (g: TemplateGroup): HTMLElement => {
+    const section = el("section", "bof-app-start-group");
+    section.dataset.folder = g.folder;
+    section.appendChild(el("h3", "bof-app-start-group-label", g.label));
+    const grid = el("div", "bof-app-start-grid");
+    for (const t of g.templates) grid.appendChild(templateCard(t));
+    section.appendChild(grid);
+    return section;
+  };
+
   const render = (present: ReadonlySet<string>): void => {
+    // A re-render (the host's list changed) keeps the collapsed list as the user left it.
+    const absentOpen = root.querySelector<HTMLDetailsElement>(".bof-app-start-absent")?.open ?? false;
     root.replaceChildren();
     const head = el("div", "bof-app-start-head");
     head.appendChild(el("h2", "bof-app-start-heading", "Start from a flow"));
@@ -118,14 +136,15 @@ export function createStartPage(host: HTMLElement, deps: StartPageDeps): StartPa
     blankGrid.appendChild(blank);
     root.appendChild(blankGrid);
 
-    for (const g of groupTemplates(deps.templates, present)) {
-      const section = el("section", "bof-app-start-group");
-      section.dataset.folder = g.folder;
-      section.appendChild(el("h3", "bof-app-start-group-label", g.label));
-      const grid = el("div", "bof-app-start-grid");
-      for (const t of g.templates) grid.appendChild(templateCard(t));
-      section.appendChild(grid);
-      root.appendChild(section);
+    const { seeded, unseeded } = splitTemplates(deps.templates, present);
+    for (const g of seeded) root.appendChild(groupSection(g));
+    if (unseeded.length > 0) {
+      const absent = el("details", "bof-app-start-absent");
+      absent.open = absentOpen;
+      const count = unseeded.reduce((n, g) => n + g.templates.length, 0);
+      absent.appendChild(el("summary", "bof-app-start-absent-label", `${ABSENT_HEADING} (${count})`));
+      for (const g of unseeded) absent.appendChild(groupSection(g));
+      root.appendChild(absent);
     }
   };
 

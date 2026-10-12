@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupTemplates, type FlowTemplate } from "../src/templates.js";
+import { groupTemplates, splitTemplates, type FlowTemplate } from "../src/templates.js";
 
 const t = (id: string, folder: string): FlowTemplate => ({
   id, folder, title: id, description: "", nodeCount: 1, kinds: ["table.sort"],
@@ -19,5 +19,17 @@ describe("groupTemplates", () => {
     const [g] = groupTemplates([t("b", "nrc-analyses"), t("a", "nrc-analyses")], new Set(["a"]));
     expect(g!.label).toBe("NRC paper");
     expect(g!.templates.map((x) => [x.id, x.present])).toEqual([["b", false], ["a", true]]);
+  });
+});
+
+describe("splitTemplates", () => {
+  it("puts the seeded templates in one list and the rest in another, each grouped by folder", () => {
+    const { seeded, unseeded } = splitTemplates(
+      [t("a1", "analyses"), t("b1", "bim-analyses"), t("a2", "analyses"), t("n1", "nrc-analyses")],
+      new Set(["b1", "a2"]),
+    );
+    expect(seeded.map((g) => [g.folder, g.templates.map((x) => x.id)])).toEqual([["analyses", ["a2"]], ["bim-analyses", ["b1"]]]);
+    expect(unseeded.map((g) => [g.folder, g.templates.map((x) => x.id)])).toEqual([["analyses", ["a1"]], ["nrc-analyses", ["n1"]]]);
+    expect(unseeded.flatMap((g) => g.templates).every((x) => !x.present)).toBe(true);
   });
 });

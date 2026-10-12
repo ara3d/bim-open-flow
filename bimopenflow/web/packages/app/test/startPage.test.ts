@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { ABSENT_NOTE, createStartPage } from "../src/startPage.js";
+import { ABSENT_HEADING, ABSENT_NOTE, createStartPage } from "../src/startPage.js";
 import type { FlowTemplate } from "../src/templates.js";
 
 const t = (id: string, folder: string): FlowTemplate => ({
@@ -31,16 +31,34 @@ describe("createStartPage", () => {
     s.page.show();
   });
 
-  it("renders one section per group with a card per template", () => {
-    const labels = [...s.host.querySelectorAll(".bof-app-start-group-label")].map((h) => h.textContent);
-    expect(labels).toEqual(["Tables", "BIM"]);
-    const sections = [...s.host.querySelectorAll(".bof-app-start-group")];
-    expect(sections.map((g) => g.querySelectorAll(".bof-app-start-card").length)).toEqual([2, 1]);
+  it("renders the seeded groups first, a card per template", () => {
+    const seeded = [...s.host.querySelectorAll(".bof-app-start > .bof-app-start-group")];
+    expect(seeded.map((g) => g.querySelector(".bof-app-start-group-label")!.textContent)).toEqual(["Tables", "BIM"]);
+    expect(seeded.map((g) => [...g.querySelectorAll<HTMLElement>(".bof-app-start-card")].map((c) => c.dataset.id))).toEqual([["a1"], ["b1"]]);
     const a1 = s.card("a1");
     expect(a1.textContent).toContain("Title a1");
     expect(a1.textContent).toContain("about a1");
     expect(a1.textContent).toContain("3 nodes");
     expect([...a1.querySelectorAll(".bof-app-start-kind")].map((k) => k.textContent)).toEqual(["duck.read", "table.sort"]);
+  });
+
+  it("collapses the templates the host did not seed under one heading after the seeded ones (TKT-254)", () => {
+    const absent = s.host.querySelector<HTMLDetailsElement>(".bof-app-start > .bof-app-start-absent")!;
+    expect(absent.open).toBe(false);
+    expect(absent.querySelector("summary")!.textContent).toBe(`${ABSENT_HEADING} (1)`);
+    expect([...absent.querySelectorAll<HTMLElement>(".bof-app-start-card")].map((c) => c.dataset.id)).toEqual(["a2"]);
+    expect(s.host.querySelector(".bof-app-start")!.lastElementChild).toBe(absent);
+  });
+
+  it("keeps the collapsed list open across a re-render", () => {
+    s.host.querySelector<HTMLDetailsElement>(".bof-app-start-absent")!.open = true;
+    s.page.setPresent(["a1"]);
+    expect(s.host.querySelector<HTMLDetailsElement>(".bof-app-start-absent")!.open).toBe(true);
+  });
+
+  it("has no collapsed heading when every template is seeded", () => {
+    s.page.setPresent(["a1", "a2", "b1"]);
+    expect(s.host.querySelector(".bof-app-start-absent")).toBeNull();
   });
 
   it("opens a present card on click", () => {

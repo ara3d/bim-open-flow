@@ -41,6 +41,7 @@ import { graphProblems } from "./graphProblems.js";
 import { createStartPage } from "./startPage.js";
 import type { FlowTemplate } from "./templates.js";
 import { chooseInitialAnalysis, searchWithAnalysis } from "./analysisParam.js";
+import { loadLastFlow, saveLastFlow } from "./lastFlow.js";
 import { showToast } from "./toast.js";
 import { mountAskPanel, type AskPanel } from "./askPanel.js";
 import { nodeTitle, upstreamIds } from "@bimopenflow/graph";
@@ -79,6 +80,9 @@ export interface AppOptions {
   /** Keep `?analysis=<id>` in the address bar in step with the open analysis
    *  (main editor page only; other query parameters are kept). */
   syncUrl?: boolean;
+  /** Remember the open flow on this origin and reopen it when no
+   *  `initialAnalysis` is given (lastFlow.ts; the editor pages, TKT-254). */
+  rememberFlow?: boolean;
   /** Topbar heading of the classic chrome; defaults to the BimOpenFlow /
    *  Snowdon 3D link. Ignored when `chrome` is given. */
   heading?: string;
@@ -426,6 +430,8 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   }
 
   async function openAnalysis(id: string): Promise<void> {
+    // A flow opened from the picker or the Ask panel replaces the Start panel.
+    startPage.hide();
     resultSelection = [];
     lastPrimary = null;
     shownChoice = initialShownChoice();
@@ -451,6 +457,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       canvasEditor.refreshSuggestions();
       chrome.flowOpened(store.getState().document.structure.nodes.length > 0);
       chrome.setAnalyses(analyses, id);
+      if (options.rememberFlow) saveLastFlow(id);
       if (options.syncUrl) {
         const loc = root.ownerDocument.defaultView?.location;
         if (loc) root.ownerDocument.defaultView!.history.replaceState(null, "", loc.pathname + searchWithAnalysis(loc.search, id) + loc.hash);
@@ -563,21 +570,24 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       chrome.setCatalog(cat.nodes);
       canvasEditor.refresh();
       booted = true;
-      // Always land in an open analysis so no click can fail for lack of one;
-      // if the stored analysis fails to open, fall back to a fresh one.
-      const { open, missing } = chooseInitialAnalysis(options.initialAnalysis, analyses.map(a => a.id));
+      // What the page opens (TKT-254): the flow the URL names, else the one
+      // last opened here, else the Start panel over a blank flow, so a
+      // newcomer sees what the host offers (workflow 1) and a returning user
+      // lands where they left off. Never both a flow and the panel, and never
+      // the alphabetically first id. Always land in an open analysis so no
+      // click can fail for lack of one.
+      const remembered = options.rememberFlow ? loadLastFlow() : undefined;
+      const { open, missing } = chooseInitialAnalysis(options.initialAnalysis, analyses.map(a => a.id), remembered);
       if (missing && options.graphDemo) {
         fail(`Snowdon graph is missing. Start the BIM-profile host with a Snowdon model and an empty store, or import snowdon-toolkit.json (see docs/bim-flow-3d.md).`);
         return;
       }
-      if (missing) fail(`Analysis "${missing}" not found on this host; opened the default instead.`);
-      if (open) {
-        await openAnalysis(open);
-        // A newcomer sees what the host offers before the first graph
-        // (workflow 1: "a start page lists the supported demos").
-        if (!options.graphDemo && !options.initialAnalysis) startPage.show();
+      if (missing) fail(`Flow "${missing}" is not on this host.`);
+      if (open) await openAnalysis(open);
+      if (currentId === null) {
+        await newAnalysis();
+        if (!options.graphDemo) startPage.show();
       }
-      if (currentId === null) await newAnalysis();
     } catch (e) {
       if (connectedNow()) fail(`Could not load the host: ${e instanceof Error ? e.message : e}`);
     }

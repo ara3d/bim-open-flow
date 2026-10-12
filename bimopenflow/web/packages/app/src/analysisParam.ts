@@ -18,12 +18,19 @@ export const searchWithAnalysis = (search: string, id: string): string => {
   return `?${params}`;
 };
 
-/** What boot opens: the requested analysis when the host has it, else the
- *  first one; `missing` names a requested id the host lacks. */
+/** What boot opens (TKT-254): the requested analysis when the host has it,
+ *  else the one last opened on this page when the host still has it, else
+ *  nothing, and the page shows its Start panel over a blank flow instead.
+ *  Never the alphabetically first id: that is an accident of naming, often a
+ *  flow this host cannot evaluate. `missing` names a requested id the host lacks. */
 export const chooseInitialAnalysis = (
   requested: string | undefined,
   ids: readonly string[],
-): { open: string | undefined; missing: string | undefined } =>
-  requested && ids.includes(requested)
-    ? { open: requested, missing: undefined }
-    : { open: ids[0], missing: requested };
+  remembered?: string,
+): { open: string | undefined; missing: string | undefined } => {
+  const has = (id: string | undefined): id is string => id !== undefined && ids.includes(id);
+  return {
+    open: has(requested) ? requested : has(remembered) ? remembered : undefined,
+    missing: requested !== undefined && !has(requested) ? requested : undefined,
+  };
+};

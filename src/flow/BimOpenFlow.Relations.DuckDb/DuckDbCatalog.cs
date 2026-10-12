@@ -27,18 +27,31 @@ public sealed class DuckDbCatalog(IConnectionRegistry registry) : ISchemaCatalog
     public SchemaResult FileQuerySchema(string sql, IReadOnlyList<string> files)
         => Describe([], s => s.Connection.Query($"DESCRIBE {sql}"));
 
-    /// <summary>Reads the "duckdb" format: option "table" names a table of the database file. Any other
-    /// format belongs to a decorator that reads it, such as the Tables pack's.</summary>
+    /// <summary>Reads the "duckdb" format: option "table" names a table of the database file, option "sql"
+    /// is a query whose bare table names resolve in it. Any other format belongs to a decorator that
+    /// reads it, such as the Tables pack's.</summary>
     public SchemaResult FileSchema(string format, string path, IReadOnlyDictionary<string, string> options)
-        => format != "duckdb"
-            ? SchemaResult.Fail($"This catalog does not read the '{format}' format.")
-            : !options.TryGetValue("table", out var table) || table.Length == 0
-                ? SchemaResult.Fail("A DuckDB file needs a table name.")
-                : Describe([], s =>
-                {
-                    s.Connection.Execute($"ATTACH {path.Literal()} AS src (READ_ONLY)");
-                    return s.Connection.Query($"DESCRIBE SELECT * FROM src.{table.Ident()}");
-                });
+    {
+        if (format != "duckdb")
+            return SchemaResult.Fail($"This catalog does not read the '{format}' format.");
+        if (options.TryGetValue("sql", out var sql) && sql.Length > 0)
+            return Describe([], s =>
+            {
+                Attach(s, path);
+                s.Connection.Execute("USE src");
+                return s.Connection.Query($"DESCRIBE {sql}");
+            });
+        if (!options.TryGetValue("table", out var table) || table.Length == 0)
+            return SchemaResult.Fail("A DuckDB file needs a table name or a query.");
+        return Describe([], s =>
+        {
+            Attach(s, path);
+            return s.Connection.Query($"DESCRIBE SELECT * FROM src.{table.Ident()}");
+        });
+    }
+
+    private static void Attach(DuckDbSession session, string path)
+        => session.Connection.Execute($"ATTACH {path.Literal()} AS src (READ_ONLY)");
 
     private SchemaResult Describe(IReadOnlyList<SourceUse> sources, Func<DuckDbSession, Ara3D.DataTable.IDataTable> describe)
     {

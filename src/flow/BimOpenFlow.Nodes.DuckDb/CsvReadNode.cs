@@ -7,7 +7,7 @@ namespace BimOpenFlow.Nodes.DuckDb;
 /// <summary>Reads a CSV file (or glob of files) into a table via DuckDB
 /// read_csv with typed options. A glob unions all matching files and appends a
 /// filename column so provenance survives the union.</summary>
-public sealed class CsvReadNode : IFlowNode
+public sealed class CsvReadNode : ISchemaNode
 {
     public const string Kind = "csv.read";
 
@@ -26,7 +26,21 @@ public sealed class CsvReadNode : IFlowNode
             new ParamSpec("encoding", ParamKind.Enum, "utf8", ["utf8", "utf16", "latin1"]),
             new ParamSpec("inferTypes", ParamKind.Boolean, "true"),
         ],
-        "Reads a CSV file or glob of files into a table, with typed delimiter, header, skip, quote, null-text, and encoding options.");
+        "Reads a CSV file or glob of files into a table, with typed delimiter, header, skip, quote, null-text, and encoding options.",
+        Schemas: [SchemaSpec.Inferred("table")]);
+
+    public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
+        => SchemaGuards.Guard(() =>
+        {
+            var path = parameters.GetText("path");
+            var header = parameters.GetBoolean("header", true);
+            var described = DuckSchemas.OfFileSql(catalog, Kind, path,
+                ReadSql(path, Options(parameters, FileReadCache.IsGlob(path), header)));
+            return header || !described.Ok
+                ? described
+                : SchemaResult.Of(new Schema(described.Schema!.Columns
+                    .Select(c => c with { Name = DefaultColumnName(c.Name) }).ToList()));
+        });
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {
@@ -63,10 +77,13 @@ public sealed class CsvReadNode : IFlowNode
         return options;
     }
 
+    private static string ReadSql(string path, string options)
+        => $"SELECT * FROM read_csv('{path.ToSqlLiteral()}'{options})";
+
     private static IDataTable Load(string path, string options, bool header)
     {
         using var conn = BosDuckDb.OpenInMemory();
-        var table = conn.Query($"SELECT * FROM read_csv('{path.ToSqlLiteral()}'{options})",
+        var table = conn.Query(ReadSql(path, options),
             Path.GetFileNameWithoutExtension(path)).NormalizeDatesToText();
         return header ? table : table.RenameColumns(DefaultColumnName);
     }

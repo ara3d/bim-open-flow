@@ -6,7 +6,7 @@ namespace BimOpenFlow.Nodes.DuckDb;
 /// <summary>Reads one named table from a .duckdb database file, opened
 /// read-only so the node can never mutate the file. The no-SQL companion to
 /// duck.query: point at a database, name a table, get the table.</summary>
-public sealed class DuckTableNode : IFlowNode
+public sealed class DuckTableNode : ISchemaNode
 {
     public const string Kind = "duck.table";
 
@@ -19,7 +19,19 @@ public sealed class DuckTableNode : IFlowNode
             DuckSourceInput.Spec,
             new ParamSpec("table", ParamKind.Text, Suggest: SuggestSource.TablesInFile("path")),
         ],
-        "Reads one named table from a .duckdb database file, read-only.");
+        "Reads one named table from a .duckdb database file, read-only.",
+        Schemas: [SchemaSpec.Inferred("table")]);
+
+    public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
+        => SchemaGuards.Guard(() =>
+        {
+            var path = DuckSourceInput.PathForSchema(parameters);
+            var table = parameters.GetText("table");
+            return SchemaGuards.PathProblem(Kind, path)
+                   ?? (string.IsNullOrWhiteSpace(table)
+                       ? SchemaResult.Fail($"{Kind}: no table is named, so the columns are not known yet.")
+                       : DuckSchemas.OnTheWire(catalog.FileSchema("duckdb", path, new Dictionary<string, string> { ["table"] = table })));
+        });
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {

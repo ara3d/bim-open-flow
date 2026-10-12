@@ -8,7 +8,7 @@ namespace BimOpenFlow.Nodes.DuckDb;
 
 /// <summary>Loads one data file (csv/parquet/json) into a table via DuckDB's
 /// readers, cached by file content hash so unchanged files never reload.</summary>
-public sealed class DuckReadNode : IFlowNode
+public sealed class DuckReadNode : ISchemaNode
 {
     public const string Kind = "duck.read";
 
@@ -21,7 +21,16 @@ public sealed class DuckReadNode : IFlowNode
             new ParamSpec("path", ParamKind.FilePath, Suggest: SuggestSource.FilesWith(".csv", ".parquet", ".json")),
             new ParamSpec("format", ParamKind.Enum, "auto", ["auto", "csv", "parquet", "json"]),
         ],
-        "Loads a CSV, Parquet, or JSON file into a table using DuckDB's readers.");
+        "Loads a CSV, Parquet, or JSON file into a table using DuckDB's readers.",
+        Schemas: [SchemaSpec.Inferred("table")]);
+
+    public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
+        => SchemaGuards.Guard(() =>
+        {
+            var path = parameters.GetText("path");
+            return SchemaGuards.PathProblem(Kind, path)
+                   ?? DuckSchemas.OfFileSql(catalog, Kind, path, ReadSql(path, ReaderFunction(path, parameters.GetText("format", "auto"))));
+        });
 
     // TODO: unbounded cache; add eviction if long-lived hosts cycle through many files.
     private static readonly ConcurrentDictionary<string, IDataTable> Cache = new();
@@ -53,10 +62,13 @@ public sealed class DuckReadNode : IFlowNode
             _ => throw new ArgumentException($"{Kind}: unknown format '{format}'."),
         };
 
+    private static string ReadSql(string path, string reader)
+        => $"SELECT * FROM {reader}('{path.ToSqlLiteral()}')";
+
     private static IDataTable Load(string path, string reader)
     {
         using var conn = BosDuckDb.OpenInMemory();
-        return conn.Query($"SELECT * FROM {reader}('{path.ToSqlLiteral()}')", Path.GetFileNameWithoutExtension(path))
+        return conn.Query(ReadSql(path, reader), Path.GetFileNameWithoutExtension(path))
             .NormalizeDatesToText();
     }
 

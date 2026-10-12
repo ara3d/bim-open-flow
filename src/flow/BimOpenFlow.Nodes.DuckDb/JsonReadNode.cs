@@ -8,7 +8,7 @@ namespace BimOpenFlow.Nodes.DuckDb;
 /// <summary>Reads a JSON file into a table via DuckDB read_json. Layout picks
 /// the file shape (array of records vs newline-delimited); flatten expands one
 /// level of nested objects into dotted columns.</summary>
-public sealed class JsonReadNode : IFlowNode
+public sealed class JsonReadNode : ISchemaNode
 {
     public const string Kind = "json.read";
 
@@ -22,19 +22,27 @@ public sealed class JsonReadNode : IFlowNode
             new ParamSpec("layout", ParamKind.Enum, "auto", ["auto", "records", "lines"]),
             new ParamSpec("flatten", ParamKind.Boolean, "false"),
         ],
-        "Reads a JSON file (record array or newline-delimited) into a table, optionally flattening one level of nested objects into dotted columns.");
+        "Reads a JSON file (record array or newline-delimited) into a table, optionally flattening one level of nested objects into dotted columns.",
+        Schemas: [SchemaSpec.Inferred("table")]);
+
+    /// <summary>Without flatten the columns are the file's. With flatten they depend on which columns
+    /// hold nested objects, which the catalog's column types do not say, so the result is unknown.</summary>
+    public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
+        => SchemaGuards.Guard(() =>
+        {
+            var path = parameters.GetText("path");
+            var format = Format(parameters);
+            return parameters.GetBoolean("flatten")
+                ? SchemaGuards.PathProblem(Kind, path, allowGlob: true)
+                  ?? SchemaResult.Fail($"{Kind}: with flatten the columns are the nested fields in the file, which are not known before it is read.")
+                : DuckSchemas.OfFileSql(catalog, Kind, path, ReadSql(path, format));
+        });
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {
         var path = parameters.RequiredText("path", Kind);
         var files = FileReadCache.ResolveFiles(path, Kind);
-        var format = parameters.GetText("layout", "auto") switch
-        {
-            "auto" => "auto",
-            "records" => "array",
-            "lines" => "newline_delimited",
-            var l => throw new ArgumentException($"{Kind}: unknown layout '{l}'."),
-        };
+        var format = Format(parameters);
         var flatten = parameters.GetBoolean("flatten");
         var table = FileReadCache.GetOrLoad(
             FileReadCache.CacheKey(Kind, files, $"format={format},flatten={flatten}"),
@@ -42,11 +50,23 @@ public sealed class JsonReadNode : IFlowNode
         return [new TableValue(table)];
     }
 
+    private static string Format(ParamValues parameters)
+        => parameters.GetText("layout", "auto") switch
+        {
+            "auto" => "auto",
+            "records" => "array",
+            "lines" => "newline_delimited",
+            var l => throw new ArgumentException($"{Kind}: unknown layout '{l}'."),
+        };
+
+    private static string ReadSql(string path, string format)
+        => $"SELECT * FROM read_json('{path.ToSqlLiteral()}', format='{format}')";
+
     private static IDataTable Load(string path, string format, bool flatten)
     {
         var name = Path.GetFileNameWithoutExtension(path);
         using var conn = BosDuckDb.OpenInMemory();
-        conn.Execute($"CREATE VIEW src AS SELECT * FROM read_json('{path.ToSqlLiteral()}', format='{format}')");
+        conn.Execute($"CREATE VIEW src AS {ReadSql(path, format)}");
         var sql = flatten ? $"SELECT {string.Join(", ", FlattenedColumns(conn))} FROM src" : "SELECT * FROM src";
         return conn.Query(sql, name).NormalizeDatesToText();
     }

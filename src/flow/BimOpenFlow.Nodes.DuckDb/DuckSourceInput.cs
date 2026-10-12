@@ -15,6 +15,10 @@ internal static class DuckSourceInput
     public static DatabaseValue? Wired(ParamValues parameters)
         => parameters.GetBound(Name) as DatabaseValue;
 
+    /// <summary>The path to read while inferring: the wired Database's, else the typed string, which may be empty.</summary>
+    public static string PathForSchema(ParamValues parameters)
+        => Wired(parameters)?.Path ?? parameters.GetText(Name);
+
     /// <summary>The wired source's path, or the required path string. The file must exist.</summary>
     public static string ResolvePath(ParamValues parameters, string kind)
     {

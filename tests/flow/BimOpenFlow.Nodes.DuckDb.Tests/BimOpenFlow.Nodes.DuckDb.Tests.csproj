@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\flow\BimOpenFlow.Nodes.DuckDb\BimOpenFlow.Nodes.DuckDb.csproj" />
+    <ProjectReference Include="..\..\..\src\flow\BimOpenFlow.Relations.DuckDb\BimOpenFlow.Relations.DuckDb.csproj" />
     <ProjectReference Include="$(DepsRoot)ara3d-dataflow\src\Ara3D.DataFlowEngine.TestKit\Ara3D.DataFlowEngine.TestKit.csproj" />
   </ItemGroup>
 

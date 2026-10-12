@@ -14,7 +14,8 @@ public sealed class DuckTablesNode : IFlowNode
         Inputs: [],
         Outputs: [new PortSpec("tables", PortType.Table)],
         Params: [DuckSourceInput.Spec],
-        "Lists the tables in a .duckdb database file with their column and row counts.");
+        "Lists the tables in a .duckdb database file with their column and row counts.",
+        Schemas: [SchemaSpec.Static("tables", DuckTableList.Schema)]);
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {

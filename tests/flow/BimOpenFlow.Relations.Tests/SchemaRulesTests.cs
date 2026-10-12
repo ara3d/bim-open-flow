@@ -42,6 +42,17 @@ public class SchemaRulesTests
         Assert.That(Names(result), Is.EqualTo("id:Integer,height:Number,name:Text,name_b:Text,elevation:Integer"));
     }
 
+    [TestCase(JoinKind.Inner, false, false)]
+    [TestCase(JoinKind.Left, false, true)]
+    [TestCase(JoinKind.Right, true, false)]
+    [TestCase(JoinKind.Full, true, true)]
+    public void AnOuterJoinMakesThePaddedSideNullable(JoinKind kind, bool leftNullable, bool rightNullable)
+    {
+        var columns = SchemaRules.Join(Walls, Levels, [new JoinKey("id", "id")], kind).Schema!;
+        Assert.That(columns.Find("id")!.Value.Nullable, Is.EqualTo(leftNullable), "the left key");
+        Assert.That(columns.Find("id_right")!.Value.Nullable, Is.EqualTo(rightNullable), "a right-side key kept by the default options");
+    }
+
     [Test]
     public void JoinDefaultsKeepTheRelationLayersNaming()
     {

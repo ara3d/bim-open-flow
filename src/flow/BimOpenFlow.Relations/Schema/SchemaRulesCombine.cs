@@ -34,8 +34,14 @@ public static partial class SchemaRules
             : [];
         var carried = right.Columns.Where(c => !rightKeys.Contains(c.Name)).ToList();
         var names = RightOutputNames(left.Columns.Select(c => c.Name), carried.Select(c => c.Name).ToList(), options.RightSuffix);
-        return SchemaResult.Of(new Schema([.. left.Columns, .. carried.Select((c, i) => c with { Name = names[i] })]));
+        var leftColumns = kind is JoinKind.Right or JoinKind.Full ? left.Columns.Select(Nullable) : left.Columns;
+        var rightColumns = kind is JoinKind.Left or JoinKind.Full ? carried.Select(Nullable) : carried;
+        return SchemaResult.Of(new Schema([.. leftColumns, .. rightColumns.Select((c, i) => c with { Name = names[i] })]));
     }
+
+    /// <summary>An outer join pads the unmatched side with nulls, so that side's columns are nullable whatever they were.</summary>
+    private static Column Nullable(Column column)
+        => column with { Nullable = true };
 
     /// <summary>The names the right side's carried columns take in a join's output. A column the left does
     /// not have keeps its name. A column whose name the left has (ignoring case) gets the suffix, and the

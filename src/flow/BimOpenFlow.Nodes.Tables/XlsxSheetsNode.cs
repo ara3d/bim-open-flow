@@ -19,7 +19,14 @@ public sealed class XlsxSheetsNode : IFlowNode
         Inputs: [],
         Outputs: [new PortSpec("sheets", PortType.Table)],
         Params: [new ParamSpec("path", ParamKind.FilePath, Suggest: SuggestSource.FilesWith(".xlsx"))],
-        "Lists the worksheets in an .xlsx file: name, index (1-based), rowCount, columnCount of the used range.");
+        "Lists the worksheets in an .xlsx file: name, index (1-based), rowCount, columnCount of the used range.",
+        Schemas: [SchemaSpec.Static("sheets", new Schema(
+        [
+            new Column("name", ColumnType.Text, Nullable: false),
+            new Column("index", ColumnType.Integer, Nullable: false),
+            new Column("rowCount", ColumnType.Integer, Nullable: false),
+            new Column("columnCount", ColumnType.Integer, Nullable: false),
+        ]))]);
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {

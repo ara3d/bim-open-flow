@@ -19,7 +19,13 @@ public sealed class BfastReadNode : IFlowNode
         Outputs: [new PortSpec("buffers", PortType.Table)],
         Params: [new ParamSpec("path", ParamKind.FilePath, Bindable: PortType.Text, Suggest: SuggestSource.FilesWith(".bfast"))],
         "Lists the buffers in a BFAST file: name, byteLength, index (0-based file order). "
-        + "BFAST records no element types; bfast.buffer reads one buffer under a type you name.");
+        + "BFAST records no element types; bfast.buffer reads one buffer under a type you name.",
+        Schemas: [SchemaSpec.Static("buffers", new Schema(
+        [
+            new Column("name", ColumnType.Text, Nullable: false),
+            new Column("byteLength", ColumnType.Integer, Nullable: false),
+            new Column("index", ColumnType.Integer, Nullable: false),
+        ]))]);
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {

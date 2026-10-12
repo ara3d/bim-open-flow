@@ -41,6 +41,15 @@ internal static class SqliteOps
         return builder.Build();
     }
 
+    /// <summary>The names of the columns a statement returns, without reading its rows.</summary>
+    public static IReadOnlyList<string> ColumnNames(SqliteConnection connection, string sql)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        using var reader = command.ExecuteReader();
+        return Enumerable.Range(0, reader.FieldCount).Select(reader.GetName).ToList();
+    }
+
     public static long QueryScalar(SqliteConnection connection, string sql)
     {
         using var command = connection.CreateCommand();

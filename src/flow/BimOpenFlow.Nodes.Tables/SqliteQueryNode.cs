@@ -6,7 +6,7 @@ namespace BimOpenFlow.Nodes.Tables;
 
 /// <summary>Opens a SQLite database file read-only and runs one validated
 /// SELECT/WITH query against it.</summary>
-public sealed class SqliteQueryNode : IFlowNode
+public sealed class SqliteQueryNode : ISchemaNode
 {
     public const string Kind = "sqlite.query";
 
@@ -19,7 +19,18 @@ public sealed class SqliteQueryNode : IFlowNode
             new ParamSpec("path", ParamKind.FilePath, Suggest: SuggestSource.FilesWith(".sqlite", ".sqlite3", ".db")),
             new ParamSpec("sql", ParamKind.Text),
         ],
-        "Runs one read-only SQL query against a SQLite database file.");
+        "Runs one read-only SQL query against a SQLite database file.",
+        Schemas: [SchemaSpec.Inferred("table")]);
+
+    /// <summary>The names are the query's; SQLite types each value, not each column, so the types are unknown.</summary>
+    public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
+        => SchemaGuards.Guard(() =>
+        {
+            var path = parameters.GetText("path");
+            var sql = ValidateSelect(parameters.RequiredText("sql", Kind));
+            return SchemaGuards.PathProblem(Kind, path)
+                   ?? catalog.FileSchema(TablesCatalog.Sqlite, path, new Dictionary<string, string> { ["sql"] = sql });
+        });
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {

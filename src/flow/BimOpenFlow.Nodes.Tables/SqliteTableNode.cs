@@ -6,7 +6,7 @@ namespace BimOpenFlow.Nodes.Tables;
 
 /// <summary>Reads one whole SQLite table by name — the no-SQL companion to
 /// sqlite.query, with the same column-type unification.</summary>
-public sealed class SqliteTableNode : IFlowNode
+public sealed class SqliteTableNode : ISchemaNode
 {
     public const string Kind = "sqlite.table";
 
@@ -19,7 +19,20 @@ public sealed class SqliteTableNode : IFlowNode
             new ParamSpec("path", ParamKind.FilePath, Suggest: SuggestSource.FilesWith(".sqlite", ".sqlite3", ".db")),
             new ParamSpec("table", ParamKind.Text),
         ],
-        "Reads one whole table from a SQLite database file (SELECT *, read-only).");
+        "Reads one whole table from a SQLite database file (SELECT *, read-only).",
+        Schemas: [SchemaSpec.Inferred("table")]);
+
+    /// <summary>The names are the table's; SQLite types each value, not each column, so the types are unknown.</summary>
+    public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
+        => SchemaGuards.Guard(() =>
+        {
+            var path = parameters.GetText("path");
+            return SchemaGuards.PathProblem(Kind, path)
+                   ?? catalog.FileSchema(TablesCatalog.Sqlite, path, new Dictionary<string, string>
+                   {
+                       ["table"] = parameters.RequiredText("table", Kind),
+                   });
+        });
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {

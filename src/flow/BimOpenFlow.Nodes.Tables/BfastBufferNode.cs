@@ -1,13 +1,14 @@
 using System.Collections.Concurrent;
 using Ara3D.DataFlowEngine.Abstractions;
 using Ara3D.DataTable;
+using BimOpenFlow.Relations;
 
 namespace BimOpenFlow.Nodes.Tables;
 
 /// <summary>Reads one BFAST buffer as a one-column table under a primitive element type
 /// the caller names, since the container stores none. Cached by file content hash,
 /// buffer name, and type.</summary>
-public sealed class BfastBufferNode : IFlowNode
+public sealed class BfastBufferNode : ISchemaNode
 {
     public const string Kind = "bfast.buffer";
     public const string ColumnName = "value";
@@ -27,7 +28,14 @@ public sealed class BfastBufferNode : IFlowNode
         ],
         "Reads one buffer of a BFAST file as a table with a single `value` column, interpreting "
         + "its bytes as the given element type (integers widen to long, floats to double). "
-        + "An unknown buffer name or a byte length that is not a multiple of the element size is an error.");
+        + "An unknown buffer name or a byte length that is not a multiple of the element size is an error.",
+        Schemas: [SchemaSpec.Inferred("table")]);
+
+    /// <summary>One `value` column whose type the element type alone decides, so no file is read.</summary>
+    public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
+        => parameters.GetText("type", "float32") is var type && BfastOps.ElementTypes.Contains(type)
+            ? SchemaResult.Of(new Column(ColumnName, TableSchemas.TypeOf(BfastOps.ColumnType(type)), Nullable: false))
+            : SchemaResult.Fail($"{Kind}: unknown element type '{type}'; one of {string.Join(", ", BfastOps.ElementTypes)}.");
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {

@@ -8,7 +8,7 @@ namespace BimOpenFlow.Nodes.Tables;
 
 /// <summary>Reads one worksheet of an .xlsx workbook into a table; the first
 /// row is the header. Cached by file content hash.</summary>
-public sealed class XlsxReadNode : IFlowNode
+public sealed class XlsxReadNode : ISchemaNode
 {
     public const string Kind = "xlsx.read";
 
@@ -26,21 +26,40 @@ public sealed class XlsxReadNode : IFlowNode
             new ParamSpec("headerRow", ParamKind.Integer, "1"),
             new ParamSpec("range", ParamKind.Text, ""),
         ],
-        "Reads a worksheet (named, or the first) from an .xlsx file. headerRow is the header's row within the range (rows above are skipped); range is an A1-style rectangle like B3:F100 (empty = used range).");
+        "Reads a worksheet (named, or the first) from an .xlsx file. headerRow is the header's row within the range (rows above are skipped); range is an A1-style rectangle like B3:F100 (empty = used range).",
+        Schemas: [SchemaSpec.Inferred("table")]);
+
+    /// <summary>The header row names the columns and the cells give their types, so the catalog reads
+    /// the worksheet through <see cref="Read"/>, which Eval uses and caches.</summary>
+    public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
+        => SchemaGuards.Guard(() =>
+        {
+            var path = parameters.GetText("path");
+            return SchemaGuards.PathProblem(Kind, path)
+                   ?? catalog.FileSchema(TablesCatalog.Xlsx, path, new Dictionary<string, string>
+                   {
+                       ["sheet"] = parameters.GetText("sheet"),
+                       ["headerRow"] = parameters.GetInteger("headerRow", 1).ToString(CultureInfo.InvariantCulture),
+                       ["range"] = parameters.GetText("range").Trim(),
+                   });
+        });
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {
         var path = parameters.RequiredText("path", Kind);
         if (!File.Exists(path))
             throw new FileNotFoundException($"{Kind}: file not found: {path}", path);
-        var sheet = parameters.GetText("sheet");
-        var headerRow = parameters.GetInteger("headerRow", 1);
+        var table = Read(path, parameters.GetText("sheet"), parameters.GetInteger("headerRow", 1), parameters.GetText("range").Trim());
+        return [new TableValue(table)];
+    }
+
+    /// <summary>The worksheet as a table, cached by file content hash and options.</summary>
+    internal static IDataTable Read(string path, string sheet, long headerRow, string range)
+    {
         if (headerRow < 1)
             throw new ArgumentException($"{Kind}: 'headerRow' must be 1 or greater.");
-        var range = parameters.GetText("range").Trim();
-        var table = Cache.GetOrAdd($"{FileHashes.HashFile(path)}:{sheet}:{headerRow}:{range}",
+        return Cache.GetOrAdd($"{FileHashes.HashFile(path)}:{sheet}:{headerRow}:{range}",
             _ => Load(path, sheet, (int)headerRow, range));
-        return [new TableValue(table)];
     }
 
     private static IDataTable Load(string path, string sheet, int headerRow, string range)

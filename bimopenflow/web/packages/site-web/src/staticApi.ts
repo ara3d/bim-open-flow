@@ -4,14 +4,14 @@
 // file is written by the test PublicBuildingsSiteData.Write
 // (tests/flow/BimOpenFlow.TableWorkflows.Tests): each graph's document, and per
 // node its status and, for a table output, the row count, columns, and first
-// rows. Nothing is evaluated here. A PUT (autosave, the session, a new flow) is
+// rows. Nothing is evaluated here, and the schema pass is the recorded columns. A PUT (autosave, the session, a new flow) is
 // kept in memory until the page reloads and re-evaluates nothing; a Run, a
 // history, or a model request fails with NO_HOST.
 
 import { ApiClient } from "@bimopenflow/api-client";
 import type {
-  AnalysisSummary, ColumnSchema, ColumnType, EditorSession, EvalUpdate, NodeCatalog,
-  NodeStatus, SuggestionList, TableSlice,
+  AnalysisSchemas, AnalysisSummary, ColumnSchema, ColumnType, EditorSession, EvalUpdate, NodeCatalog,
+  NodeStatus, PortSchema, SuggestionList, TableSlice,
 } from "@bimopenflow/contracts";
 
 /** One node of a graph in buildings.json. Column types are .NET type names (String, Int64). */
@@ -85,11 +85,24 @@ export function staticFetch(data: SiteData, catalog: NodeCatalog): typeof fetch 
 
   const summaries = (): AnalysisSummary[] => [...documents.keys()].map((id) => ({ id, graphHash: "" }));
 
+  /** With no host there is no schema pass: the recorded columns of each output
+   *  stand in for it (status Ok, no warnings), and an output with no record has
+   *  no entry, which the editor reads as "no schema information". */
+  const schemas = (id: string): PortSchema[] =>
+    Object.entries(graphs.get(id)?.nodes ?? {}).flatMap(([node, n]) =>
+      n.columns
+        ? [{
+            node, output: RECORDED_PORT, status: "Ok" as const, errors: [], warnings: [],
+            columns: columnsOf(n).map((c) => ({ ...c, nullable: true })),
+          }]
+        : []);
+
   const state = (id: string): EvalUpdate => ({
     analysisId: id,
     nodes: Object.entries(graphs.get(id)?.nodes ?? {}).map(([nodeId, n]) => ({
       nodeId, status: n.status, warnings: [], ...(n.error ? { error: n.error } : {}),
     })),
+    schemas: schemas(id),
   });
 
   const result = (id: string, nodeId: string, port: string, query: URLSearchParams): Response => {
@@ -148,6 +161,7 @@ export function staticFetch(data: SiteData, catalog: NodeCatalog): typeof fetch 
     }
     if (method !== "GET" || !documents.has(id)) return refused();
     if (sub === "state") return json(state(id));
+    if (sub === "schemas") return json({ analysisId: id, graphHash: "", ports: schemas(id) } satisfies AnalysisSchemas);
     if (sub === "results" && rest.length === 2) return result(id, rest[0]!, rest[1]!, url.searchParams);
     if (sub === "suggestions" && rest.length === 2) return json(suggestions(id, rest[0]!, rest[1]!));
     return refused();

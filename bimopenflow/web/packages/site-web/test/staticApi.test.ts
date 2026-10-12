@@ -41,6 +41,28 @@ describe("staticApi over site/data/buildings.json", () => {
     expect(doc.structure.nodes.some((n) => n.kind === "chart.bar")).toBe(true);
   });
 
+  it("serves the recorded columns as the schema pass, and nothing for an output with no record", async () => {
+    const graph = data.graphs.find((g) => g.id === "schependomlaan-elements-by-category")!;
+    const client = api();
+    const { analysisId, ports } = await client.getAnalysisSchemas(graph.id);
+    expect(analysisId).toBe(graph.id);
+    const placed = ports.find((p) => p.node === "placed")!;
+    expect(placed).toMatchObject({ output: RECORDED_PORT, status: "Ok", errors: [], warnings: [] });
+    expect(placed.columns!.map((c) => c.name)).toEqual(graph.nodes.placed!.columns!.map((c) => c.name));
+    expect(ports.map((p) => p.node).sort()).toEqual(
+      Object.entries(graph.nodes).filter(([, n]) => n.columns).map(([id]) => id).sort());
+    expect((await client.getAnalysisState(graph.id)).schemas).toEqual(ports);
+  });
+
+  it("has no schema entry for a node without a recorded table", async () => {
+    const withoutTable: SiteData = {
+      ...data,
+      graphs: [{ ...data.graphs[0]!, nodes: { chart: { status: "Ok" } } }],
+    };
+    const client = new StaticApiClient({ baseUrl: "", fetch: staticFetch(withoutTable, nodeCatalog) });
+    expect((await client.getAnalysisSchemas(withoutTable.graphs[0]!.id)).ports).toEqual([]);
+  });
+
   it("pages within the recorded rows", async () => {
     const graph = data.graphs[0]!;
     const [nodeId, node] = Object.entries(graph.nodes).find(([, n]) => (n.rows?.length ?? 0) > 10)!;

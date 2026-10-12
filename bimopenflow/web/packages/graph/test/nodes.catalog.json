@@ -231,7 +231,8 @@
           "suggest": {
             "kind": "FilesUnderRoots",
             "source": ".csv,.tsv,.txt"
-          }
+          },
+          "bindable": "Text"
         },
         {
           "name": "delimiter",
@@ -635,7 +636,8 @@
           "suggest": {
             "kind": "FilesUnderRoots",
             "source": ".csv,.parquet,.json"
-          }
+          },
+          "bindable": "Text"
         },
         {
           "name": "format",
@@ -792,7 +794,8 @@
           "suggest": {
             "kind": "FilesUnderRoots",
             "source": ".json,.ndjson"
-          }
+          },
+          "bindable": "Text"
         },
         {
           "name": "layout",
@@ -838,7 +841,8 @@
           "suggest": {
             "kind": "FilesUnderRoots",
             "source": ".parquet"
-          }
+          },
+          "bindable": "Text"
         }
       ],
       "description": "Reads a Parquet file or glob of files into a table using DuckDB read_parquet.",
@@ -2116,7 +2120,8 @@
           "suggest": {
             "kind": "FilesUnderRoots",
             "source": ".sqlite,.sqlite3,.db"
-          }
+          },
+          "bindable": "Text"
         },
         {
           "name": "sql",
@@ -2152,7 +2157,8 @@
           "suggest": {
             "kind": "FilesUnderRoots",
             "source": ".sqlite,.sqlite3,.db"
-          }
+          },
+          "bindable": "Text"
         },
         {
           "name": "table",
@@ -2188,7 +2194,8 @@
           "suggest": {
             "kind": "FilesUnderRoots",
             "source": ".sqlite,.sqlite3,.db"
-          }
+          },
+          "bindable": "Text"
         }
       ],
       "description": "Lists the tables in a SQLite database file: name, columnCount, rowCount (read-only).",
@@ -3989,7 +3996,8 @@
           "suggest": {
             "kind": "FilesUnderRoots",
             "source": ".xlsx"
-          }
+          },
+          "bindable": "Text"
         },
         {
           "name": "sheet",
@@ -4035,7 +4043,8 @@
           "suggest": {
             "kind": "FilesUnderRoots",
             "source": ".xlsx"
-          }
+          },
+          "bindable": "Text"
         }
       ],
       "description": "Lists the worksheets in an .xlsx file: name, index (1-based), rowCount, columnCount of the used range.",

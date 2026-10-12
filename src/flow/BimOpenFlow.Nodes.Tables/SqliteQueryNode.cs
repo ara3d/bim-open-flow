@@ -16,7 +16,7 @@ public sealed class SqliteQueryNode : ISchemaNode
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("path", ParamKind.FilePath, Suggest: SuggestSource.FilesWith(".sqlite", ".sqlite3", ".db")),
+            new ParamSpec("path", ParamKind.FilePath, Bindable: PortType.Text, Suggest: SuggestSource.FilesWith(".sqlite", ".sqlite3", ".db")),
             new ParamSpec("sql", ParamKind.Text),
         ],
         "Runs one read-only SQL query against a SQLite database file.",

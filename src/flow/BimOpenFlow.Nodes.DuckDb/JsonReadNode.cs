@@ -18,7 +18,7 @@ public sealed class JsonReadNode : ISchemaNode
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("path", ParamKind.FilePath, Suggest: SuggestSource.FilesWith(".json", ".ndjson")),
+            new ParamSpec("path", ParamKind.FilePath, Bindable: PortType.Text, Suggest: SuggestSource.FilesWith(".json", ".ndjson")),
             new ParamSpec("layout", ParamKind.Enum, "auto", ["auto", "records", "lines"]),
             new ParamSpec("flatten", ParamKind.Boolean, "false"),
         ],

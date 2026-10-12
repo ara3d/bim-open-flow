@@ -14,7 +14,7 @@ public sealed class ParquetReadNode : ISchemaNode
         Kind, 1, NodeCapability.Pure,
         Inputs: [],
         Outputs: [new PortSpec("table", PortType.Table)],
-        Params: [new ParamSpec("path", ParamKind.FilePath, Suggest: SuggestSource.FilesWith(".parquet"))],
+        Params: [new ParamSpec("path", ParamKind.FilePath, Bindable: PortType.Text, Suggest: SuggestSource.FilesWith(".parquet"))],
         "Reads a Parquet file or glob of files into a table using DuckDB read_parquet.",
         Schemas: [SchemaSpec.Inferred("table")]);
 

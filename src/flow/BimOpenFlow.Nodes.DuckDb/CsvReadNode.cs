@@ -17,7 +17,7 @@ public sealed class CsvReadNode : ISchemaNode
         Outputs: [new PortSpec("table", PortType.Table)],
         Params:
         [
-            new ParamSpec("path", ParamKind.FilePath, Suggest: SuggestSource.FilesWith(".csv", ".tsv", ".txt")),
+            new ParamSpec("path", ParamKind.FilePath, Bindable: PortType.Text, Suggest: SuggestSource.FilesWith(".csv", ".tsv", ".txt")),
             new ParamSpec("delimiter", ParamKind.Text, ","),
             new ParamSpec("header", ParamKind.Boolean, "true"),
             new ParamSpec("skipRows", ParamKind.Integer, "0"),

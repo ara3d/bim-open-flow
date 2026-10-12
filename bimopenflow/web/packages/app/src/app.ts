@@ -622,10 +622,11 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   };
   root.ownerDocument.addEventListener("keydown", onKeyDown);
 
-  // A tab that becomes visible again resends the session unchanged, in case
-  // it is the most recently reported editor and another tab took over.
+  // A tab that becomes visible again takes the session back if another tab
+  // took it over meanwhile; a burst of visibility changes (a browser pane
+  // toggles them many times a second) is one read and at most one PUT (TKT-255).
   const onVisibilityChange = () => {
-    if (root.ownerDocument.visibilityState === "visible") sessionReporter.flush();
+    if (root.ownerDocument.visibilityState === "visible") sessionReporter.reclaim();
   };
   root.ownerDocument.addEventListener("visibilitychange", onVisibilityChange);
 

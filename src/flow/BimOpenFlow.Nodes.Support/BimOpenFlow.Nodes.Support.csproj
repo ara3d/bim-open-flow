@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="$(DepsRoot)ara3d-dataflow\src\Ara3D.DataFlowEngine.Abstractions\Ara3D.DataFlowEngine.Abstractions.csproj" />
+    <ProjectReference Include="$(DepsRoot)bim-open-data\src\data\Ara3D.BimOpenSchema.ObjectModel\Ara3D.BimOpenSchema.ObjectModel.csproj" />
   </ItemGroup>
 
 </Project>

@@ -17,6 +17,7 @@ depend on the Windows-only DuckDB project; one-table SQL lives in the data layer
 | `TableRows.cs` | `KeepRows`: a copy of a table holding only the given rows, for filters that select without SQL |
 | `MemoryTable.cs` | `MemoryTable`, `MemoryColumn`, `MemoryRow`: a minimal immutable in-memory `IDataTable` for summary rows and verdict tables |
 | `FileHashes.cs` | `HashFile`: uppercase hex SHA-256 of a file's bytes, the key of the in-memory read caches |
+| `KindSchemas.cs` | `KindColumn`, `KindSchemas`: a declared schema from registry column kinds (`ColumnKinds` in bim-open-data) with the one `ColumnScalarType` to `ColumnType` mapping; `Static(output, kinds...)` builds a Static `SchemaSpec` with its column-to-kind map, `Append` adds columns to an inferred input schema |
 | `ColorMaps.cs` | `Rgb`, `ColorMaps`: gradients (viridis, redgreen) and the category10 palette, moved here unchanged from `Nodes.Geometry` so both Geometry and Viz can reach it without referencing each other |
 | `ColorScale.cs` | `ColorScale`: the colour scale behind a `legend` table (auto or manual domain, gradient or categorical), shared by `view3d.color`, `view.colormap`, and `chart.bar` so the three nodes colour cells the same way and never each carry their own domain logic |
 
@@ -43,6 +44,6 @@ built once can colour more than one consumer's cells identically.
 
 ## Dependencies
 
-`Ara3D.DataFlowEngine.Abstractions` only (`Ara3D.DataTable` arrives through it). Packs that reference
+`Ara3D.DataFlowEngine.Abstractions` (`Ara3D.DataTable` arrives through it) and bim-open-data's `Ara3D.BimOpenSchema.ObjectModel` for the column kind registry. Packs that reference
 `Support` may not reference any other `Nodes.*` project; the layering tests in
 `tests/BimOpenToolkit.Layering.Tests` enforce this.

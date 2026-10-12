@@ -51,7 +51,9 @@ export const TITLE_SIZE = 17;
 export const ID_SIZE = 13;
 export const PORT_LABEL_SIZE = 13;
 export const PORT_LABEL_INSET = 11;
-/** Room the classic style keeps right of the title for its status dot. */
+/** Room a card's width keeps right of the title. The status chip is fitted
+ *  into the header, not sized for; this spare room is what the committed
+ *  sample layouts were sized with (the classic style's status dot, TKT-98). */
 export const STATUS_DOT_ROOM = 2 * CARD_PAD;
 /** How much wider the 600-weight title is than the regular-weight text a
  *  Measure reports (gratify's CanvasPainter measures at weight 400). */

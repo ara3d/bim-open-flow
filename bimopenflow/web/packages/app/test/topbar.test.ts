@@ -10,32 +10,11 @@ const handlers = (extra: Partial<TopbarHandlers> = {}): TopbarHandlers => ({
   ...extra,
 });
 
-const stylePicker = (root: HTMLElement) =>
-  root.querySelector<HTMLSelectElement>('select[aria-label="Node style"]');
-
-describe("topbar node style picker", () => {
-  it("lists the four styles next to the theme picker and calls the handler on change", () => {
+describe("topbar", () => {
+  it("offers no node style picker (TKT-277: the chip is the only card style)", () => {
     const root = document.createElement("div");
-    const onNodeStyleChange = vi.fn();
-    const topbar = createTopbar(root, handlers({ onNodeStyleChange }));
-    const select = stylePicker(root)!;
-    expect([...select.options].map((o) => o.value)).toEqual(["classic", "banner", "chip", "bar"]);
-    expect(select.previousElementSibling?.getAttribute("title")).toBe("Canvas theme");
-
-    select.value = "chip";
-    select.dispatchEvent(new Event("change"));
-    expect(onNodeStyleChange).toHaveBeenCalledWith("chip");
-
-    topbar.setNodeStyle("bar");
-    expect(select.value).toBe("bar");
-    expect(onNodeStyleChange).toHaveBeenCalledTimes(1);
-  });
-
-  it("shows no picker when the page passes no handler", () => {
-    const root = document.createElement("div");
-    const topbar = createTopbar(root, handlers());
-    expect(stylePicker(root)).toBeNull();
-    expect(() => topbar.setNodeStyle("chip")).not.toThrow();
+    createTopbar(root, handlers());
+    expect(root.querySelector('select[aria-label="Node style"]')).toBeNull();
   });
 
   it("still calls the theme handler", () => {

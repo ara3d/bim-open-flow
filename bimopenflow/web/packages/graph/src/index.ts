@@ -22,8 +22,6 @@ export { autoLayout } from "./autoLayout.js";
 export { nodePack, nodeTitle, previewAfterEdit, upstreamIds } from "./graphPreview.js";
 export { nodeBadge } from "./nodeBadge.js";
 export type { NodeBadge } from "./nodeBadge.js";
-export { currentNodeStyle, defaultNodeStyle, isNodeStyleName, nodeStyleNames, onNodeStyleChange, setNodeStyle } from "./nodeStyle.js";
-export type { NodeStyleName } from "./nodeStyle.js";
 export { nodeCardLayout } from "./nodeRender.js";
 export type { NodeCardLayout } from "./nodeRender.js";
 export { applyCanvasTheme, canvasThemeNames, currentCanvasTheme, defaultCanvasTheme, isCanvasThemeName } from "./canvasTheme.js";

@@ -90,7 +90,7 @@ describe("the lit highlight", () => {
     const boxes: { stroke: unknown; width: unknown }[] = [];
     const painter = Object.create(new NullPainter()) as Painter;
     painter.box = ((_r: unknown, _radius: unknown, _fill: unknown, stroke?: unknown, width?: unknown) => { boxes.push({ stroke, width }); }) as Painter["box"];
-    renderNodeCard({ rect: { x: 0, y: 0, w: props.w, h: props.h, right: props.w, bottom: props.h } as never, props }, painter, colors, palette, "classic");
+    renderNodeCard({ rect: { x: 0, y: 0, w: props.w, h: props.h, right: props.w, bottom: props.h } as never, props }, painter, colors, palette);
     return boxes[0]!;
   }
 

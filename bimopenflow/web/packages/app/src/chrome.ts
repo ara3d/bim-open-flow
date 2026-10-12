@@ -9,7 +9,7 @@
 
 import type { NodeDescriptor } from "@bimopenflow/contracts";
 import type { FlowGroup } from "./flowList.js";
-import type { CanvasThemeName, NodeStyleName } from "@bimopenflow/graph";
+import type { CanvasThemeName } from "@bimopenflow/graph";
 import type { HostStatus } from "@bimopenflow/client/host";
 import type { ThemePrefs } from "./themeChoice.js";
 
@@ -22,7 +22,6 @@ export interface ChromeActions {
   save(): void;
   run(): void;
   setTheme(name: CanvasThemeName): void;
-  setNodeStyle(name: NodeStyleName): void;
   /** Adds the node at the first free spot, selected, as one undo step. */
   addNode(desc: NodeDescriptor): void;
   /** Selects the node and brings it into view (the step list's gesture). */
@@ -69,7 +68,6 @@ export interface AppChrome extends ChromeSlots {
   setConnection(status: HostStatus): void;
   /** Shows the choice without calling the action. */
   setTheme(name: CanvasThemeName): void;
-  setNodeStyle(name: NodeStyleName): void;
   setCatalog(nodes: readonly NodeDescriptor[]): void;
   /** A flow opened; `hasNodes` lets an empty flow lead with the catalog. */
   flowOpened(hasNodes: boolean): void;

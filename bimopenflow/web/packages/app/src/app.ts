@@ -33,8 +33,6 @@ import { freshCopyId, freshUntitledId, isUntitledId } from "./ids.js";
 import { emptyUntitledFinder, flowGroups } from "./flowList.js";
 import { askFlowName } from "./namePrompt.js";
 import { loadThemeChoice, saveThemeChoice } from "./themeChoice.js";
-import { setNodeStyle } from "@bimopenflow/graph";
-import { loadNodeStyleChoice, saveNodeStyleChoice } from "./nodeStyleChoice.js";
 import { installCanvasPalette, paletteClientPoint, paletteKeyOpens } from "./canvasPalette.js";
 import { addNodeActions, freeSpot } from "./addNodePlan.js";
 import { createStepList, stepListModel } from "./stepList.js";
@@ -169,11 +167,6 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       saveThemeChoice(name, themePrefs);
       canvasEditor.setTheme(name);
     },
-    setNodeStyle: (name) => {
-      saveNodeStyleChoice(name);
-      setNodeStyle(name);
-      canvasEditor.refresh();
-    },
     addNode: (desc) => addNode(desc),
     selectAndFocus: (nodeId) => selectAndFocus(nodeId),
     showInPane: (nodeId) => {
@@ -240,7 +233,6 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       dispatch({ type: "batch", actions });
     },
   });
-  setNodeStyle(loadNodeStyleChoice());
   /** A graph input's value edited on its card (TKT-204): the host keeps it and re-evaluates;
    *  the answer lists every input, which the store takes as the host's current values. */
   const setGraphInput = async (name: string, value: string): Promise<void> => {
@@ -290,7 +282,6 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   };
 
   chrome.setTheme(loadThemeChoice(themePrefs));
-  chrome.setNodeStyle(loadNodeStyleChoice());
   const stepList = createStepList(chrome.stepsEl, { onSelect: selectAndFocus });
 
   // The start page (TKT-14): one card per sample flow, over the canvas. Shown

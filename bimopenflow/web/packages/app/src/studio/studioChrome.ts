@@ -3,7 +3,7 @@
 //
 // - A command bar with the flow's title (flowTitle.ts) as the heading, one
 //   primary Run button, Save with an unsaved dot, a View menu holding the
-//   canvas theme and node style pickers, and a connection dot.
+//   canvas theme picker, and a connection dot.
 // - A left column with the shared sidebar (Steps / Nodes).
 // - The canvas with a floating toolbar (Fit, Tidy, Add node), an empty-state
 //   card when the flow has no nodes, and a "?" popover for the gestures.
@@ -14,7 +14,7 @@
 // canvas theme choice (studio by default), so a look never leaks its theme
 // into the other.
 
-import { canvasThemeNames, isCanvasThemeName, isNodeStyleName, nodeStyleNames } from "@bimopenflow/graph";
+import { canvasThemeNames, isCanvasThemeName } from "@bimopenflow/graph";
 import type { AppChrome, ChromeActions, ChromeFactory } from "../chrome.js";
 import { installSplitter, LEFT_SPLIT, restoreWidth, RIGHT_SPLIT } from "../columnSplitter.js";
 import { createSidebar } from "../sidebar.js";
@@ -107,13 +107,12 @@ export const studioChrome = (options: StudioChromeOptions = {}): ChromeFactory =
     menuSummary.append(icon(doc, ICON.gear), el("span", "bof-studio-btn-label", "View"));
     const menuBody = el("div", "bof-studio-menu-body");
     const themePicker = namePicker(doc, "Canvas theme", canvasThemeNames, isCanvasThemeName, actions.setTheme);
-    const stylePicker = namePicker(doc, "Node style", nodeStyleNames, isNodeStyleName, actions.setNodeStyle);
     const field = (label: string, control: HTMLElement) => {
       const l = el("label", "bof-studio-field");
       l.append(el("span", "bof-studio-field-label", label), control);
       return l;
     };
-    menuBody.append(field("Canvas theme", themePicker), field("Node style", stylePicker));
+    menuBody.append(field("Canvas theme", themePicker));
     menu.append(menuSummary, menuBody);
 
     const status = el("span", "bof-studio-status");
@@ -220,7 +219,6 @@ export const studioChrome = (options: StudioChromeOptions = {}): ChromeFactory =
         statusDot.title = CONNECTION_LABEL[status];
       },
       setTheme: (name) => { themePicker.value = name; },
-      setNodeStyle: (name) => { stylePicker.value = name; },
       setCatalog: (nodes) => sidebar.setCatalog([...nodes]),
       flowOpened: sidebar.flowOpened,
       setNodes(nodes) {

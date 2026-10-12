@@ -1,5 +1,5 @@
 // Top bar: analysis picker + new, save (with dirty indicator), run, canvas
-// theme picker, node style picker, and host connection status. The page-level
+// theme picker, and host connection status. The page-level
 // host banner is mountHostBanner in @bimopenflow/client/host.
 
 import type { FlowGroup } from "./flowList.js";
@@ -8,7 +8,6 @@ import {
   isCanvasThemeName,
   type CanvasThemeName,
 } from "@bimopenflow/graph";
-import { isNodeStyleName, nodeStyleNames, type NodeStyleName } from "@bimopenflow/graph";
 import type { HostStatus } from "@bimopenflow/client/host";
 import { brandMark } from "./brand.js";
 
@@ -20,9 +19,6 @@ export interface TopbarHandlers {
   onSave(): void;
   onRun(): void;
   onThemeChange(name: CanvasThemeName): void;
-  /** Called with the node card style the user picked (TKT-98). The "Node
-   *  style" picker is shown only when a page passes this handler. */
-  onNodeStyleChange?(name: NodeStyleName): void;
 }
 
 export interface Topbar {
@@ -30,8 +26,6 @@ export interface Topbar {
   setDirty(dirty: boolean): void;
   setConnection(status: HostStatus): void;
   setTheme(name: CanvasThemeName): void;
-  /** Shows `name` in the node style picker without calling the handler. */
-  setNodeStyle(name: NodeStyleName): void;
 }
 
 /** A <select> over `names` that calls `onPick` with a validated choice. */
@@ -109,16 +103,12 @@ export function createTopbar(root: HTMLElement, handlers: TopbarHandlers): Topba
   runBtn.addEventListener("click", handlers.onRun);
 
   const themePicker = namePicker(doc, "Canvas theme", canvasThemeNames, isCanvasThemeName, handlers.onThemeChange);
-  const onNodeStyleChange = handlers.onNodeStyleChange;
-  const stylePicker = onNodeStyleChange
-    ? namePicker(doc, "Node style", nodeStyleNames, isNodeStyleName, onNodeStyleChange)
-    : null;
 
   const conn = doc.createElement("span");
   conn.className = "bof-app-conn";
   conn.textContent = "reconnecting…";
 
-  root.append(title, picker, newBtn, saveBtn, dirtyMark, runBtn, themePicker, ...(stylePicker ? [stylePicker] : []), conn);
+  root.append(title, picker, newBtn, saveBtn, dirtyMark, runBtn, themePicker, conn);
 
   return {
     setAnalyses(groups, activeId) {
@@ -130,9 +120,6 @@ export function createTopbar(root: HTMLElement, handlers: TopbarHandlers): Topba
     },
     setTheme(name) {
       themePicker.value = name;
-    },
-    setNodeStyle(name) {
-      if (stylePicker) stylePicker.value = name;
     },
     setConnection(status) {
       conn.textContent = status === "reconnecting" ? "reconnecting…" : status;

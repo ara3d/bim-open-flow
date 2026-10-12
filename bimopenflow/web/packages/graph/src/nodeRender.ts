@@ -1,20 +1,15 @@
 // Node card drawing (TKT-98), moved out of canvasParts.ts: a pure layout
-// function that decides where each text and the status indicator go in each
-// of the four styles (nodeStyle.ts), and a renderer that paints that layout
-// plus the ports and the separator above the param slots.
+// function that decides where each text and the status chip go, and a
+// renderer that paints that layout plus the ports and the separator above
+// the param slots. One style since TKT-277: the chip. TKT-98 drew four
+// (classic, banner, chip, bar) behind a picker; the owner kept the chip.
 //
 // Fixed frame, shared with portGeometry.ts, viewModel.ts, and canvasSlots.ts:
 // the header is NODE_HEADER (46) tall, port rows are PORT_SPACING apart below
-// it, and the card's height is viewModel.nodeHeight. No style changes those.
-// A card has no spare room inside that frame (a param-less card ends 12 px
-// under its last port centre; a card with params keeps 10 px of padding), so
-// a style that keeps the two-line header of today draws the description in a
-// footer strip hanging below the card's bottom edge. The strip is drawn only;
-// the node's hit rect stays the card. The compact styles (banner, chip) shrink
-// the title and the id so both lines of the header hold text: the title and
-// the status on line 1, the id and then the description on line 2. The id
-// beside the title was tried first; a 184 px card with a badge on line 1 left
-// it one letter wide.
+// it, and the card's height is viewModel.nodeHeight. The header holds two
+// lines: the title and the status chip on line 1, the id and then the
+// description on line 2. The id beside the title was tried first; a 184 px
+// card with a badge on line 1 left it one letter wide.
 //
 // Every text is fitted (gratify's fitText) to the room the card actually has
 // (TKT-125): the card's width comes from nodeSize.ts, which sizes it for its
@@ -22,19 +17,13 @@
 // than that. The 600-weight title is fitted to its room divided by
 // BOLD_WIDEN, since a Measure reports regular-weight widths.
 
-import { calpha, cmix, fitText, rect, v, type Color, type Measure, type Painter, type Rect } from "gratify";
+import { calpha, fitText, rect, v, type Color, type Measure, type Painter, type Rect } from "gratify";
 import { nodeTitle } from "./graphPreview";
-import { nodeStyleNames, type NodeStyleName } from "./nodeStyle.js";
 import { paramSockets, portY } from "./portGeometry.js";
 import {
-  BOLD_WIDEN, CARD_GAP as GAP, CARD_PAD as PAD, ID_SIZE, NODE_HEADER, PORT_LABEL_INSET, PORT_LABEL_SIZE as PORT_SIZE,
-  portRowsBottom, STATUS_DOT_ROOM, TITLE_SIZE,
+  BOLD_WIDEN, CARD_GAP as GAP, CARD_PAD as PAD, NODE_HEADER, PORT_LABEL_INSET, PORT_LABEL_SIZE as PORT_SIZE, portRowsBottom,
 } from "./nodeSize.js";
 import type { CanvasNode } from "./viewModel.js";
-
-/** Where the description line is drawn: on the header's second line, or in a
- *  strip hanging below the card. */
-export type DescriptionPlacement = "header" | "footer";
 
 /** Everything is in card-local coordinates: (0, 0) is the card's top-left.
  *  Texts are already fitted to their room with fitText. */
@@ -42,35 +31,23 @@ export interface NodeCardLayout {
   readonly title: { text: string; x: number; y: number; size: number; weight: number };
   /** The node id. */
   readonly subtitle?: { text: string; x: number; y: number; size: number };
-  readonly description?: {
-    text: string;
-    x: number;
-    y: number;
-    size: number;
-    maxWidth: number;
-    placement: DescriptionPlacement;
-  };
-  /** The strip behind a footer description; below the card (y >= card height). */
-  readonly footer?: { x: number; y: number; w: number; h: number };
-  readonly status?: { kind: "dot" | "chip" | "bar" | "tint"; x: number; y: number; w: number; h: number; text?: string };
-  readonly badge?: { text: string; x: number; y: number; size: number; align: "left" | "right" | "center" };
+  readonly description?: { text: string; x: number; y: number; size: number; maxWidth: number };
+  /** The status chip at the top right, holding `text`. */
+  readonly status?: { x: number; y: number; w: number; h: number; text: string };
+  /** The chip's text, centred in it. */
+  readonly badge?: { text: string; x: number; y: number; size: number };
 }
 
 const SOCKET_RADIUS = 4.5;
 const BADGE_SIZE = 10;
 const DESC_SIZE = 11;
-/** The header of today: a 17 px title on the first line, the 13 px id on the second. */
-const TALL_TITLE = { size: TITLE_SIZE, y: 16 };
-const TALL_ID = { size: ID_SIZE, y: NODE_HEADER - 9 };
-/** The compact header: a 15 px title on line 1, the 11 px id and the
- *  description after it on line 2. */
+/** The header: a 15 px title on line 1, the 11 px id and the description
+ *  after it on line 2. */
 const COMPACT_TITLE = { size: 15, y: 14 };
 const COMPACT_ID_SIZE = 11;
 const COMPACT_LINE2_Y = 33;
 /** Least room worth drawing the compact description in, after the id. */
 const COMPACT_DESC_MIN = 40;
-const FOOTER_H = 18;
-const FOOTER_GAP = 3;
 /** Share of the card width the status text may take. */
 const BADGE_SHARE = 0.45;
 
@@ -81,21 +58,10 @@ export const portsBottom = (p: { inputs: readonly unknown[]; outputs: readonly u
 type Title = NodeCardLayout["title"];
 type Subtitle = NonNullable<NodeCardLayout["subtitle"]>;
 type Description = NonNullable<NodeCardLayout["description"]>;
-type Badge = NonNullable<NodeCardLayout["badge"]>;
 
 /** `text` in the 600-weight title font, fitted to `room`. */
 const fitTitle = (m: Measure, text: string, room: number, size: number): string =>
   fitText(m, text, room / BOLD_WIDEN, size);
-
-/** Title on line 1 and the id on line 2, both left, at the sizes of today.
- *  The id stops short of a right-aligned badge of width `badgeW` on line 2. */
-function tallHeader(p: CanvasNode, m: Measure, titleRoom: number, badgeW: number): { title: Title; subtitle: Subtitle } {
-  const idRoom = p.w - 2 * PAD - (badgeW > 0 ? badgeW + GAP : 0);
-  return {
-    title: { text: fitTitle(m, nodeTitle(p.kind), titleRoom, TALL_TITLE.size), x: PAD, y: TALL_TITLE.y, size: TALL_TITLE.size, weight: 600 },
-    subtitle: { text: fitText(m, p.id, idRoom, TALL_ID.size), x: PAD, y: TALL_ID.y, size: TALL_ID.size },
-  };
-}
 
 /** Title on line 1 ending before `right`; the id and then the description
  *  on line 2. The id comes first, since the card is sized to hold it; the
@@ -119,86 +85,25 @@ function compactHeader(p: CanvasNode, m: Measure, right: number): Pick<NodeCardL
     y: COMPACT_LINE2_Y,
     size: DESC_SIZE,
     maxWidth,
-    placement: "header",
   };
   return { title, subtitle, description };
 }
 
-function footerDescription(p: CanvasNode, m: Measure): Pick<NodeCardLayout, "description" | "footer"> {
-  if (!p.description) return {};
-  const maxWidth = p.w - 2 * PAD;
-  const top = p.h + FOOTER_GAP;
-  return {
-    footer: { x: GAP, y: top, w: p.w - 2 * GAP, h: FOOTER_H },
-    description: { text: fitText(m, p.description, maxWidth, DESC_SIZE), x: PAD, y: top + FOOTER_H / 2, size: DESC_SIZE, maxWidth, placement: "footer" },
-  };
-}
-
-/** A right-aligned badge on line `y`, fitted to BADGE_SHARE of the card. */
-function rightBadge(p: CanvasNode, m: Measure, y: number): Badge | undefined {
-  if (!p.status || !p.badge) return undefined;
-  return { text: fitText(m, p.badge.text, p.w * BADGE_SHARE, BADGE_SIZE), x: p.w - PAD, y, size: BADGE_SIZE, align: "right" };
-}
-
-const badgeWidth = (m: Measure, badge: Badge | undefined): number => (badge ? m.text(badge.text, BADGE_SIZE).x : 0);
-
-const withBadge = (badge: Badge | undefined): { badge?: Badge } => (badge ? { badge } : {});
-
-/** Where each text and the status indicator go for `props` in `style`.
- *  Pure: `measure` sizes the texts, so a test can pass a fixed one. */
-export function nodeCardLayout(props: CanvasNode, style: NodeStyleName, measure: Measure): NodeCardLayout {
+/** Where each text and the status chip go for `props`. Pure: `measure`
+ *  sizes the texts, so a test can pass a fixed one. The chip holds the
+ *  badge, or the bare status name before the first badge arrives. */
+export function nodeCardLayout(props: CanvasNode, measure: Measure): NodeCardLayout {
   const p = props;
   const m = measure;
-  switch (style) {
-    case "classic": {
-      // The card of today: dot at the top right, the badge under it, the
-      // description in the hanging footer.
-      const badge = rightBadge(p, m, TALL_ID.y);
-      const dotRoom = p.status ? STATUS_DOT_ROOM : 0;
-      return {
-        ...tallHeader(p, m, p.w - 2 * PAD - dotRoom, badgeWidth(m, badge)),
-        ...footerDescription(p, m),
-        ...(p.status ? { status: { kind: "dot" as const, x: p.w - PAD - 4, y: 9, w: 8, h: 8 } } : {}),
-        ...withBadge(badge),
-      };
-    }
-    case "bar": {
-      // A status bar down the left edge, inset past the rounded corners;
-      // title and id as today, the badge right on line 2.
-      const badge = rightBadge(p, m, TALL_ID.y);
-      return {
-        ...tallHeader(p, m, p.w - 2 * PAD, badgeWidth(m, badge)),
-        ...footerDescription(p, m),
-        ...(p.status ? { status: { kind: "bar" as const, x: 1, y: 6, w: 4, h: p.h - 12 } } : {}),
-        ...withBadge(badge),
-      };
-    }
-    case "banner": {
-      // The header band tinted by status; the title and the badge (right)
-      // on line 1, the id and the description on line 2.
-      const badge = rightBadge(p, m, COMPACT_TITLE.y);
-      const right = p.w - PAD - (badge ? badgeWidth(m, badge) + GAP : 0);
-      return {
-        ...compactHeader(p, m, right),
-        ...(p.status ? { status: { kind: "tint" as const, x: 0, y: 0, w: p.w, h: NODE_HEADER } } : {}),
-        ...withBadge(badge),
-      };
-    }
-    case "chip": {
-      // A rounded chip at the top right holding the status text (the badge,
-      // or the bare status name before the first badge arrives); the id
-      // and the description on line 2.
-      if (!p.status) return compactHeader(p, m, p.w - PAD);
-      const text = fitText(m, p.badge?.text ?? p.status, p.w * BADGE_SHARE - 2 * GAP, BADGE_SIZE);
-      const w = m.text(text, BADGE_SIZE).x + 2 * GAP;
-      const chip = { kind: "chip" as const, x: p.w - PAD - w, y: 6, w, h: 16, text };
-      return {
-        ...compactHeader(p, m, chip.x - GAP),
-        status: chip,
-        badge: { text, x: chip.x + w / 2, y: chip.y + chip.h / 2, size: BADGE_SIZE, align: "center" },
-      };
-    }
-  }
+  if (!p.status) return compactHeader(p, m, p.w - PAD);
+  const text = fitText(m, p.badge?.text ?? p.status, p.w * BADGE_SHARE - 2 * GAP, BADGE_SIZE);
+  const w = m.text(text, BADGE_SIZE).x + 2 * GAP;
+  const chip = { x: p.w - PAD - w, y: 6, w, h: 16, text };
+  return {
+    ...compactHeader(p, m, chip.x - GAP),
+    status: chip,
+    badge: { text, x: chip.x + w / 2, y: chip.y + chip.h / 2, size: BADGE_SIZE },
+  };
 }
 
 /** A box in card-local coordinates. */
@@ -209,28 +114,14 @@ export interface CardBox {
   readonly h: number;
 }
 
-/** The box `props` paints in `style`: the card, the port sockets half outside
- *  its left and right edges, and a footer strip hanging below it. */
-export function nodeCardExtent(props: CanvasNode, style: NodeStyleName, measure: Measure): CardBox {
-  const footer = nodeCardLayout(props, style, measure).footer;
+/** The box `props` paints: the card and the port sockets half outside its
+ *  left and right edges. What a layout must keep clear between cards.
+ *  `_measure` is unused since the description footer went (TKT-277); it is
+ *  kept only because scripts/sampleGraphs.ts, outside that change, passes one. */
+export function nodeFootprint(props: CanvasNode, _measure?: Measure): CardBox {
   const left = props.inputs.length > 0 ? SOCKET_RADIUS : 0;
   const right = props.outputs.length > 0 ? SOCKET_RADIUS : 0;
-  const bottom = Math.max(props.h, footer ? footer.y + footer.h : 0);
-  return { x: 0 - left, y: 0, w: props.w + left + right, h: bottom };
-}
-
-/** The box `props` paints in whichever style paints the most: what a layout
- *  must keep clear so no style switch makes two cards overlap. */
-export function nodeFootprint(props: CanvasNode, measure: Measure): CardBox {
-  const boxes = nodeStyleNames.map((style) => nodeCardExtent(props, style, measure));
-  const x = Math.min(...boxes.map((b) => b.x));
-  const y = Math.min(...boxes.map((b) => b.y));
-  return {
-    x,
-    y,
-    w: Math.max(...boxes.map((b) => b.x + b.w)) - x,
-    h: Math.max(...boxes.map((b) => b.y + b.h)) - y,
-  };
+  return { x: 0 - left, y: 0, w: props.w + left + right, h: props.h };
 }
 
 /** How much of `room` two texts `a` and `b` wide on one line each get: both
@@ -283,8 +174,6 @@ export interface NodeCardPalette {
 /** The pack stripe: inset from the card's rounded corner, header-high. */
 const STRIPE = { x: 1.5, y: 8, w: 3, h: NODE_HEADER - 16 };
 
-const BANNER_TINT = 0.22;
-
 /** A lit card (the chip under the pointer, TKT-138; TKT-217 found the first
  *  highlight too faint to see): its fill leans this far toward the accent, and
  *  its border is this wide, against 1.2 for a plain card and 2 for one on the
@@ -296,54 +185,23 @@ export const LIT_EDGE_WIDTH = 3;
 export const cardEdgeWidth = (p: Pick<CanvasNode, "lit" | "contributing">): number =>
   p.lit ? LIT_EDGE_WIDTH : p.contributing ? 2 : 1.2;
 
-function drawStatus(
-  painter: Painter,
-  r: Rect,
-  s: NonNullable<NodeCardLayout["status"]>,
-  color: Color,
-  colors: NodeCardColors,
-): void {
-  const at = rect(r.x + s.x, r.y + s.y, s.w, s.h);
-  switch (s.kind) {
-    case "dot":
-      painter.dot(v(at.x + s.w / 2, at.y + s.h / 2), s.w / 2, color);
-      return;
-    case "bar":
-      painter.box(at, 2, color);
-      return;
-    case "chip":
-      painter.box(at, s.h / 2, calpha(color, 0.16), color, 1);
-      return;
-    case "tint": {
-      // Inset 1 px so the card border stays visible; the second box squares
-      // the band's bottom corners where it meets the port rows.
-      const tint = cmix(colors.fill, color, BANNER_TINT);
-      painter.box(rect(at.x + 1, at.y + 1, s.w - 2, s.h - 1), 7, tint);
-      painter.box(rect(at.x + 1, at.y + s.h / 2, s.w - 2, s.h / 2), 0, tint);
-    }
-  }
-}
-
-/** Draws the card body (box, texts, status, ports, separator) for `node` in
- *  `style`. */
+/** Draws the card body (box, texts, status chip, ports, separator) for `node`. */
 export function renderNodeCard(
   node: { readonly rect: Rect; readonly props: CanvasNode },
   painter: Painter,
   colors: NodeCardColors,
   palette: NodeCardPalette,
-  style: NodeStyleName,
 ): void {
   const r = node.rect;
   const p = node.props;
-  const layout = nodeCardLayout(p, style, painter.measure);
+  const layout = nodeCardLayout(p, painter.measure);
   const statusColor = p.status ? palette.status[p.status] : colors.dim;
 
   painter.box(r, 8, colors.fill, p.contributing && !p.lit ? palette.contributing : colors.edge, cardEdgeWidth(p));
   if (palette.packAccent) painter.box(rect(r.x + STRIPE.x, r.y + STRIPE.y, STRIPE.w, STRIPE.h), 1.5, palette.packAccent);
-  if (layout.status) drawStatus(painter, r, layout.status, statusColor, colors);
-  if (layout.footer) {
-    const f = layout.footer;
-    painter.box(rect(r.x + f.x, r.y + f.y, f.w, f.h), 4, calpha(colors.fill, 0.92), calpha(colors.dim, 0.3), 1);
+  if (layout.status) {
+    const s = layout.status;
+    painter.box(rect(r.x + s.x, r.y + s.y, s.w, s.h), s.h / 2, calpha(statusColor, 0.16), statusColor, 1);
   }
 
   const t = layout.title;
@@ -351,12 +209,9 @@ export function renderNodeCard(
   for (const s of [layout.subtitle, layout.description])
     if (s) painter.label(s.text, v(r.x + s.x, r.y + s.y), colors.dim, { align: "left", size: s.size });
   if (layout.badge) {
-    // Badge text (TKT-10): the state's own hint, or the upstream node
-    // responsible for it. On the banner's tint it leans toward the text
-    // colour so it still reads against its own hue.
+    // Badge text (TKT-10): the state's own hint, or the upstream node responsible for it.
     const b = layout.badge;
-    const color = style === "banner" ? cmix(statusColor, colors.text, 0.4) : statusColor;
-    painter.label(b.text, v(r.x + b.x, r.y + b.y), color, { align: b.align, size: b.size });
+    painter.label(b.text, v(r.x + b.x, r.y + b.y), statusColor, { align: "center", size: b.size });
   }
 
   const labels = portLabels(p, painter.measure);

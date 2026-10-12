@@ -28,7 +28,6 @@ export const classicChrome = (options: ClassicChromeOptions = {}): ChromeFactory
       onSave: actions.save,
       onRun: actions.run,
       onThemeChange: actions.setTheme,
-      onNodeStyleChange: actions.setNodeStyle,
     });
     const sidebar = createSidebar(shell.sidebarEl, (desc) => {
       actions.addNode(desc);
@@ -75,7 +74,6 @@ export const classicChrome = (options: ClassicChromeOptions = {}): ChromeFactory
       setDirty: topbar.setDirty,
       setConnection: topbar.setConnection,
       setTheme: topbar.setTheme,
-      setNodeStyle: topbar.setNodeStyle,
       setCatalog: (nodes) => sidebar.setCatalog([...nodes]),
       flowOpened: sidebar.flowOpened,
       setNodes(nodes) {

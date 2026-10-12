@@ -1,4 +1,3 @@
-import { NullPainter, type Measure } from 'gratify';
 import { nodeFootprint, type CardBox } from './nodeRender.js';
 import type { CanvasModel, CanvasNode } from './viewModel.js';
 
@@ -9,24 +8,20 @@ const LAYOUT_GAP_ACROSS = 48;
 const LAYOUT_GAP_ALONG = 64;
 const MARGIN = 24;
 
-/** NullPainter's measure: a footprint depends on which texts a card has, not
- *  on their width, so the fixed measure gives the same boxes as the canvas. */
-const defaultMeasure: Measure = new NullPainter().measure;
-
 /** The model without the sources rail (TKT-138): its nodes keep the rail's place whatever layout runs. */
 const mainFlow = (model: CanvasModel): CanvasModel => ({ ...model, nodes: model.nodes.filter(node => !node.inRail) });
 
-/** Each card's footprint in its largest style (nodeRender.nodeFootprint): a
- *  layout that keeps these apart has no overlap in any style (TKT-110). */
-function footprints(model: CanvasModel, measure: Measure): Map<string, CardBox> {
-  return new Map(model.nodes.map(node => [node.id, nodeFootprint(node, measure)]));
+/** Each card's footprint (nodeRender.nodeFootprint): a layout that keeps
+ *  these apart has no overlap (TKT-110). */
+function footprints(model: CanvasModel): Map<string, CardBox> {
+  return new Map(model.nodes.map(node => [node.id, nodeFootprint(node)]));
 }
 
 /** Layered layout, following the earlier PlatoFlow depth/centering approach.
  * Choose horizontal or vertical flow to use the available panel without overlapping cards. */
-export function autoLayout(canvas: CanvasModel, viewport: { width: number; height: number }, measure: Measure = defaultMeasure): Positions {
+export function autoLayout(canvas: CanvasModel, viewport: { width: number; height: number }): Positions {
   const model = mainFlow(canvas);
-  const boxes = footprints(model, measure);
+  const boxes = footprints(model);
   const nodes = new Set(model.nodes.map(node => node.id));
   const parents = new Map(model.nodes.map(node => [node.id, [] as string[]]));
   for (const edge of model.edges) {
@@ -99,9 +94,9 @@ const pushTo = (stored: number, least: number) => stored >= least ? stored : Mat
  *  Columns keep their left-to-right order and cards their top-to-bottom order;
  *  each card keeps its stored position unless the footprints before it push
  *  it right or down, so a graph with no overlap keeps its shape. */
-export function tidyLayout(canvas: CanvasModel, measure: Measure = defaultMeasure, columnSnap = 100): Positions {
+export function tidyLayout(canvas: CanvasModel, columnSnap = 100): Positions {
   const model = mainFlow(canvas);
-  const boxes = footprints(model, measure);
+  const boxes = footprints(model);
   const box = (node: CanvasNode) => boxes.get(node.id)!;
   const byX = [...model.nodes].sort((a, b) => a.x - b.x || a.y - b.y || a.id.localeCompare(b.id));
   const columns: CanvasNode[][] = [];

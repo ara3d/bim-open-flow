@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { NullPainter, rect, rgb, type Painter } from "gratify";
 import { nodeCardLayout, renderNodeCard, type NodeCardLayout } from "../src/nodeRender.js";
-import { nodeStyleNames, type NodeStyleName } from "../src/nodeStyle.js";
 import { NODE_HEADER, type CanvasNode } from "../src/viewModel.js";
 
 // NullPainter's measure: 0.55 * size px per character.
@@ -27,9 +26,6 @@ const described: CanvasNode = {
   description: "Keeps the rows whose value in one column matches a condition, dropping the others.",
 };
 
-const statusKind: Record<NodeStyleName, string> = { classic: "dot", banner: "tint", chip: "chip", bar: "bar" };
-const placement: Record<NodeStyleName, string> = { classic: "footer", banner: "header", chip: "header", bar: "footer" };
-
 /** Every text entry with its left and right edge, from its alignment. */
 function textSpans(layout: NodeCardLayout): { text: string; left: number; right: number }[] {
   const spans: { text: string; left: number; right: number }[] = [];
@@ -41,84 +37,60 @@ function textSpans(layout: NodeCardLayout): { text: string; left: number; right:
   if (layout.badge) {
     const b = layout.badge;
     const w = measure.text(b.text, b.size).x;
-    const x0 = b.align === "left" ? b.x : b.align === "right" ? b.x - w : b.x - w / 2;
+    const x0 = b.x - w / 2;
     spans.push({ text: b.text, left: x0, right: x0 + w });
   }
   return spans;
 }
 
 describe("nodeCardLayout", () => {
-  for (const style of nodeStyleNames) {
-    describe(style, () => {
-      const layout = nodeCardLayout(described, style, measure);
+  const layout = nodeCardLayout(described, measure);
 
-      it(`draws the description in the ${placement[style]}, truncated to the card`, () => {
-        const d = layout.description!;
-        expect(d.placement).toBe(placement[style]);
-        expect(d.text.endsWith("…")).toBe(true);
-        expect(measure.text(d.text, d.size).x).toBeLessThanOrEqual(d.maxWidth);
-        if (d.placement === "header") {
-          expect(d.y).toBeLessThan(NODE_HEADER);
-          expect(layout.footer).toBeUndefined();
-        } else {
-          expect(d.y).toBeGreaterThan(described.h);
-          expect(layout.footer!.y).toBeGreaterThanOrEqual(described.h);
-        }
-      });
-
-      it(`shows status as a ${statusKind[style]} and places the badge text`, () => {
-        expect(layout.status?.kind).toBe(statusKind[style]);
-        expect(layout.badge?.text).toBe("Needs setup");
-        expect(layout.badge!.y).toBeLessThan(NODE_HEADER);
-      });
-
-      it("keeps every text and the status inside the card width", () => {
-        for (const span of textSpans(layout)) {
-          expect(span.left, span.text).toBeGreaterThanOrEqual(0);
-          expect(span.right, span.text).toBeLessThanOrEqual(described.w);
-        }
-        const s = layout.status!;
-        expect(s.x).toBeGreaterThanOrEqual(0);
-        expect(s.x + s.w).toBeLessThanOrEqual(described.w);
-      });
-
-      it("omits the description, footer, status, and badge on a bare node", () => {
-        const bare = nodeCardLayout(base, style, measure);
-        expect(bare.description).toBeUndefined();
-        expect(bare.footer).toBeUndefined();
-        expect(bare.status).toBeUndefined();
-        expect(bare.badge).toBeUndefined();
-        expect(bare.title.text).not.toBe("");
-      });
-    });
-  }
-
-  it("puts the id on line 2 in every style, and the description after it in banner and chip", () => {
-    for (const style of nodeStyleNames) {
-      const layout = nodeCardLayout(described, style, measure);
-      expect(layout.subtitle!.text, style).toBe("doors");
-      expect(layout.subtitle!.y, style).toBeGreaterThan(layout.title.y);
-      expect(layout.subtitle!.y, style).toBeLessThan(NODE_HEADER);
-    }
-    for (const style of ["banner", "chip"] as const) {
-      const layout = nodeCardLayout(described, style, measure);
-      const idRight = layout.subtitle!.x + measure.text("doors", layout.subtitle!.size).x;
-      expect(layout.description!.x).toBeGreaterThan(idRight);
-      expect(layout.description!.y).toBe(layout.subtitle!.y);
-    }
+  it("draws the description on header line 2 after the id, truncated to the card", () => {
+    const d = layout.description!;
+    expect(d.text.endsWith("…")).toBe(true);
+    expect(measure.text(d.text, d.size).x).toBeLessThanOrEqual(d.maxWidth);
+    expect(d.y).toBeLessThan(NODE_HEADER);
+    const idRight = layout.subtitle!.x + measure.text("doors", layout.subtitle!.size).x;
+    expect(d.x).toBeGreaterThan(idRight);
+    expect(d.y).toBe(layout.subtitle!.y);
   });
 
-  it("puts the chip's text inside the chip", () => {
-    const layout = nodeCardLayout(described, "chip", measure);
+  it("puts the id on line 2", () => {
+    expect(layout.subtitle!.text).toBe("doors");
+    expect(layout.subtitle!.y).toBeGreaterThan(layout.title.y);
+    expect(layout.subtitle!.y).toBeLessThan(NODE_HEADER);
+  });
+
+  it("keeps every text and the chip inside the card width", () => {
+    for (const span of textSpans(layout)) {
+      expect(span.left, span.text).toBeGreaterThanOrEqual(0);
+      expect(span.right, span.text).toBeLessThanOrEqual(described.w);
+    }
+    const s = layout.status!;
+    expect(s.x).toBeGreaterThanOrEqual(0);
+    expect(s.x + s.w).toBeLessThanOrEqual(described.w);
+  });
+
+  it("omits the description, status, and badge on a bare node", () => {
+    const bare = nodeCardLayout(base, measure);
+    expect(bare.description).toBeUndefined();
+    expect(bare.status).toBeUndefined();
+    expect(bare.badge).toBeUndefined();
+    expect(bare.title.text).not.toBe("");
+  });
+
+  it("puts the chip's text inside the chip, in the header", () => {
     const chip = layout.status!;
     expect(chip.text).toBe("Needs setup");
+    expect(layout.badge!.text).toBe("Needs setup");
     expect(layout.badge!.x).toBeCloseTo(chip.x + chip.w / 2);
     expect(layout.badge!.y).toBeCloseTo(chip.y + chip.h / 2);
+    expect(layout.badge!.y).toBeLessThan(NODE_HEADER);
   });
 
-  it("chip shows the bare status name before the first badge", () => {
-    const layout = nodeCardLayout({ ...base, status: "Ok" }, "chip", measure);
-    expect(layout.status?.text).toBe("Ok");
+  it("shows the bare status name before the first badge", () => {
+    expect(nodeCardLayout({ ...base, status: "Ok" }, measure).status?.text).toBe("Ok");
   });
 });
 
@@ -139,14 +111,12 @@ describe("renderNodeCard", () => {
     contributing: grey,
   };
 
-  it("draws the title, id, description, badge, and port names in every style", () => {
-    for (const style of nodeStyleNames) {
-      const spy = labelSpy();
-      renderNodeCard({ rect: rect(100, 50, described.w, described.h), props: described }, spy.painter, colors, palette, style);
-      const layout = nodeCardLayout(described, style, measure);
-      expect(spy.labels, style).toEqual(
-        expect.arrayContaining([layout.title.text, "doors", layout.description!.text, "Needs setup", "in", "out"]),
-      );
-    }
+  it("draws the title, id, description, badge, and port names", () => {
+    const spy = labelSpy();
+    renderNodeCard({ rect: rect(100, 50, described.w, described.h), props: described }, spy.painter, colors, palette);
+    const layout = nodeCardLayout(described, measure);
+    expect(spy.labels).toEqual(
+      expect.arrayContaining([layout.title.text, "doors", layout.description!.text, "Needs setup", "in", "out"]),
+    );
   });
 });

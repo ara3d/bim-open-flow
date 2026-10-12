@@ -9,7 +9,6 @@ import { makeCanvasUpdate, type CanvasIntent } from "../src/canvasIntents.js";
 import { canvasView } from "../src/canvasParts.js";
 import { createCanvasInstance } from "../src/instance.js";
 import { buildCanvasModel, NOTE_KIND, type CanvasModel } from "../src/viewModel.js";
-import { defaultNodeStyle, nodeStyleNames, setNodeStyle } from "../src/nodeStyle.js";
 
 const instance = createCanvasInstance({ document });
 
@@ -97,7 +96,7 @@ describe("view.note (headless gratify)", () => {
 });
 
 describe("node card styles (headless gratify)", () => {
-  it("steps a described node in every style without errors", () => {
+  it("steps a described node without errors", () => {
     const store = createStore();
     store.dispatch({ type: "addNode", id: "a", kind: "k.a", version: 1 });
     const catalog = new Map([["k.a", { ...desc, description: "Keeps the rows that match." }]]);
@@ -109,14 +108,7 @@ describe("node card styles (headless gratify)", () => {
       { init: model, update: makeCanvasUpdate(store, (m) => errors.push(m)), view: (doc) => canvasView(doc, instance) },
       { headless: true, width: 800, height: 600 },
     );
-    try {
-      for (const style of nodeStyleNames) {
-        setNodeStyle(style);
-        runtime.step(2, 1 / 60);
-      }
-    } finally {
-      setNodeStyle(defaultNodeStyle);
-    }
+    runtime.step(2, 1 / 60);
     expect(errors).toEqual([]);
   });
 });

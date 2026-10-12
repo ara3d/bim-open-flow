@@ -111,9 +111,20 @@ public static class MarkdownEmitter
         => suggest switch
         {
             null => "—",
-            { Kind: SuggestKind.ColumnsOfInput } => $"columns of input `{suggest.Source}`",
+            { Kind: SuggestKind.ColumnsOfInput } => $"columns of input `{suggest.Source}`{ColumnUseText(suggest)}",
             { Kind: SuggestKind.TablesInFile } => $"tables in the file at `{suggest.Source}`",
             { Kind: SuggestKind.FilesUnderRoots } => $"files under the model roots ending `{suggest.Source}`",
             _ => suggest.ToString()!,
+        };
+
+    private static string ColumnUseText(SuggestSource suggest)
+        => suggest.Use switch
+        {
+            ColumnUse.Value => ", numeric only",
+            ColumnUse.Label => ", labels and categories first",
+            ColumnUse.Key => ", keys first",
+            ColumnUse.JoinKey => $", keys shared with `{suggest.SharedWith}` first",
+            ColumnUse.Aggregate => ", each with the aggregate functions its type allows",
+            _ => "",
         };
 }

@@ -7,7 +7,8 @@
 // Two looks exist today, classicChrome.ts and studio/studioChrome.ts, and a
 // third is one more factory. The controller never reads a chrome's DOM.
 
-import type { AnalysisSummary, NodeDescriptor } from "@bimopenflow/contracts";
+import type { NodeDescriptor } from "@bimopenflow/contracts";
+import type { FlowGroup } from "./flowList.js";
 import type { CanvasThemeName, NodeStyleName } from "@bimopenflow/graph";
 import type { HostStatus } from "@bimopenflow/client/host";
 import type { ThemePrefs } from "./themeChoice.js";
@@ -62,7 +63,8 @@ export interface AppChrome extends ChromeSlots {
   /** True when the look explains the gestures itself, so the canvas draws no
    *  hint line of its own. */
   readonly ownsCanvasHint?: boolean;
-  setAnalyses(list: readonly AnalysisSummary[], activeId: string | null): void;
+  /** The flow picker's groups (flowList.ts) and the open flow's id. */
+  setAnalyses(groups: readonly FlowGroup[], activeId: string | null): void;
   setDirty(dirty: boolean): void;
   setConnection(status: HostStatus): void;
   /** Shows the choice without calling the action. */

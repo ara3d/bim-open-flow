@@ -2,7 +2,7 @@
 // theme picker, node style picker, and host connection status. The page-level
 // host banner is mountHostBanner in @bimopenflow/client/host.
 
-import type { AnalysisSummary } from "@bimopenflow/contracts";
+import type { FlowGroup } from "./flowList.js";
 import {
   canvasThemeNames,
   isCanvasThemeName,
@@ -26,7 +26,7 @@ export interface TopbarHandlers {
 }
 
 export interface Topbar {
-  setAnalyses(list: AnalysisSummary[], activeId: string | null): void;
+  setAnalyses(groups: readonly FlowGroup[], activeId: string | null): void;
   setDirty(dirty: boolean): void;
   setConnection(status: HostStatus): void;
   setTheme(name: CanvasThemeName): void;
@@ -55,6 +55,27 @@ export function namePicker<T extends string>(
     if (isName(select.value)) onPick(select.value);
   });
   return select;
+}
+
+/** Fills a flow picker with `groups`, one optgroup per labelled group,
+ *  `activeId` selected, each option titled by `title` (its id by default).
+ *  `leading` options (a placeholder) come first. */
+export function fillFlowPicker(
+  select: HTMLSelectElement,
+  groups: readonly FlowGroup[],
+  activeId: string | null,
+  leading: readonly HTMLOptionElement[] = [],
+  title: (id: string) => string = (id) => id,
+): void {
+  const doc = select.ownerDocument;
+  const option = (id: string) => new Option(title(id), id, false, id === activeId);
+  select.replaceChildren(...leading, ...groups.map((g) => {
+    if (g.label === null) return g.flows.map((a) => option(a.id));
+    const group = doc.createElement("optgroup");
+    group.label = g.label;
+    group.append(...g.flows.map((a) => option(a.id)));
+    return [group];
+  }).flat());
 }
 
 export function createTopbar(root: HTMLElement, handlers: TopbarHandlers): Topbar {
@@ -100,19 +121,8 @@ export function createTopbar(root: HTMLElement, handlers: TopbarHandlers): Topba
   root.append(title, picker, newBtn, saveBtn, dirtyMark, runBtn, themePicker, ...(stylePicker ? [stylePicker] : []), conn);
 
   return {
-    setAnalyses(list, activeId) {
-      picker.textContent = "";
-      const placeholder = doc.createElement("option");
-      placeholder.value = "";
-      placeholder.textContent = list.length ? "— open flow —" : "no flows";
-      picker.appendChild(placeholder);
-      for (const a of list) {
-        const opt = doc.createElement("option");
-        opt.value = a.id;
-        opt.textContent = a.id;
-        opt.selected = a.id === activeId;
-        picker.appendChild(opt);
-      }
+    setAnalyses(groups, activeId) {
+      fillFlowPicker(picker, groups, activeId, [new Option(groups.length ? "— open flow —" : "no flows", "")]);
     },
     setDirty(dirty) {
       dirtyMark.textContent = dirty ? "● unsaved" : "";

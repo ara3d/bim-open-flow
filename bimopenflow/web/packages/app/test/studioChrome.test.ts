@@ -56,10 +56,14 @@ describe("studioChrome", () => {
 
   it("lists flows by title, keeps the id as the value, and opens on change", () => {
     const { root, acts, chrome } = setup();
-    chrome.setAnalyses([{ id: "door-schedule", graphHash: "" }, { id: "my-flow", graphHash: "" }], "my-flow");
+    chrome.setAnalyses([
+      { label: "Your flows", flows: [{ id: "my-flow", graphHash: "" }] },
+      { label: "Samples", flows: [{ id: "door-schedule", graphHash: "" }] },
+    ], "my-flow");
     const picker = root.querySelector<HTMLSelectElement>('select[aria-label="Open flow"]')!;
+    expect([...picker.querySelectorAll("optgroup")].map((g) => g.label)).toEqual(["Your flows", "Samples"]);
     expect([...picker.options].map((o) => [o.value, o.textContent])).toEqual([
-      ["door-schedule", "Door schedule"], ["my-flow", "My flow"],
+      ["my-flow", "My flow"], ["door-schedule", "Door schedule"],
     ]);
     expect(picker.value).toBe("my-flow");
     expect(root.querySelector(".bof-studio-flow-id")?.textContent).toBe("my-flow");

@@ -29,7 +29,9 @@ import { createHostStatus, type HostStatusSource } from "@bimopenflow/client/hos
 import { createGraphEditor } from "@bimopenflow/graph";
 import { autoLayout } from "@bimopenflow/graph";
 import { buildCanvasModel } from "@bimopenflow/graph";
-import { freshCopyId, freshUntitledId } from "./ids.js";
+import { freshCopyId, freshUntitledId, isUntitledId } from "./ids.js";
+import { emptyUntitledFinder, flowGroups } from "./flowList.js";
+import { askFlowName } from "./namePrompt.js";
 import { loadThemeChoice, saveThemeChoice } from "./themeChoice.js";
 import { setNodeStyle } from "@bimopenflow/graph";
 import { loadNodeStyleChoice, saveNodeStyleChoice } from "./nodeStyleChoice.js";
@@ -110,7 +112,15 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   const panes = paneRegistry(...(options.panes ?? genericPanes));
 
   let analyses: AnalysisSummary[] = [];
+  /** Untitled flows earlier presses of New left empty: kept by the host,
+   *  left out of the picker, and reused by the next New (TKT-253). */
+  let hiddenFlows = new Set<string>();
+  const findEmptyUntitled = emptyUntitledFinder((id) => api.getAnalysis(id));
+  const sampleIds = new Set((options.templates ?? []).map((t) => t.id));
   let currentId: string | null = null;
+  /** The open flow is New's blank flow, not stored yet: currentId is the
+   *  untitled id it will be stored under at its first edit (TKT-253). */
+  let draft = false;
   let connection: AnalysisConnection | null = null;
   /** The open in progress; a newer open aborts it. */
   let opening: AbortController | null = null;
@@ -131,8 +141,10 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   const sessionReporter = createSessionReporter(api, {
     onError: (e) => fail(`Could not report the open session: ${e instanceof Error ? e.message : e}`),
   });
+  /** The open flow as the host knows it; an unstored new flow is none. */
+  const sessionAnalysisId = () => (draft ? undefined : currentId ?? undefined);
   const reportSession = () => {
-    currentSession = { analysisId: currentId ?? undefined, selection: selectedNodeIds(store.getState()) };
+    currentSession = { analysisId: sessionAnalysisId(), selection: selectedNodeIds(store.getState()) };
     sessionReporter.report(currentSession);
   };
 
@@ -287,7 +299,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     templates: options.templates ?? [],
     onOpen: (id) => { startPage.hide(); void openAnalysis(id); },
     onCopy: (id) => { startPage.hide(); void copyAnalysis(id); },
-    onBlank: () => { startPage.hide(); void newAnalysis(); },
+    onBlank: () => { startPage.hide(); newAnalysis(); },
   });
 
   /** The two whole-graph readings (TKT-95, TKT-97), re-rendered on every
@@ -376,7 +388,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
 
   const unsubscribe = store.subscribe(() => {
     const state = store.getState();
-    chrome.setDirty(state.dirty);
+    renderDirty();
     // Deferred one microtask so it runs after canvasEditor's own subscriber
     // (registered first, above) has pruned the previous document's column
     // selects; otherwise a flow switch re-requests suggestions for the old
@@ -394,6 +406,8 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       const selected = selectedNodeIds(state);
       if (selected.length === 1) showNodeInPane(selected[0]!);
     }
+    // The first edit of New's blank flow stores it (TKT-253).
+    if (draft && state.dirty && state.document !== lastDoc) void storeDraft();
     lastSelection = state.selection;
     lastDoc = state.document;
     lastEval = state.evalState;
@@ -401,7 +415,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     // Report whenever the selected nodes or the open analysis changed
     // (openAnalysis itself reports too, for the case the store does not fire).
     const selection = selectedNodeIds(state);
-    const sessionChanged = currentSession.analysisId !== (currentId ?? undefined) ||
+    const sessionChanged = currentSession.analysisId !== sessionAnalysisId() ||
       selection.length !== currentSession.selection.length ||
       selection.some((id, i) => id !== currentSession.selection[i]);
     if (sessionChanged) reportSession();
@@ -412,8 +426,28 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   // ── actions ────────────────────────────────────────────────────────────────
   const refreshAnalyses = async () => {
     analyses = await api.listAnalyses();
-    chrome.setAnalyses(analyses, currentId);
+    hiddenFlows = await findEmptyUntitled(analyses);
+    renderPicker();
     startPage.setPresent(analyses.map((a) => a.id));
+  };
+
+  /** The flow picker: the user's flows apart from the samples, without the empty untitled ones. */
+  const renderPicker = () => chrome.setAnalyses(flowGroups(analyses, sampleIds, hiddenFlows, currentId), currentId);
+
+  /** Save stays offered on an untitled flow, where it asks for a name. */
+  const renderDirty = () => chrome.setDirty(store.getState().dirty || isUntitledId(currentId));
+
+  /** Clears what the pane area and the last connection held for the flow being left. */
+  const leaveFlow = () => {
+    resultSelection = [];
+    lastPrimary = null;
+    shownChoice = initialShownChoice();
+    paneArea.showNode(null);
+    connection?.dispose();
+    connection = null;
+    opening?.abort();
+    opening = null;
+    draft = false;
   };
 
   /** "New from template": the host's seeded copy already has resolved paths,
@@ -429,16 +463,12 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     }
   }
 
-  async function openAnalysis(id: string): Promise<void> {
+  /** Opens a stored flow. `fit` (default true) fits the whole flow in view;
+   *  a reopen in place (storing a new flow, renaming it) keeps the viewport. */
+  async function openAnalysis(id: string, { fit = true }: { fit?: boolean } = {}): Promise<void> {
     // A flow opened from the picker or the Ask panel replaces the Start panel.
     startPage.hide();
-    resultSelection = [];
-    lastPrimary = null;
-    shownChoice = initialShownChoice();
-    paneArea.showNode(null);
-    connection?.dispose();
-    connection = null;
-    opening?.abort();
+    leaveFlow();
     const thisOpen = new AbortController();
     opening = thisOpen;
     // Panes read results by (currentId, node id). The new document enters the
@@ -456,7 +486,8 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       reportSession();
       canvasEditor.refreshSuggestions();
       chrome.flowOpened(store.getState().document.structure.nodes.length > 0);
-      chrome.setAnalyses(analyses, id);
+      renderPicker();
+      renderDirty();
       if (options.rememberFlow) saveLastFlow(id);
       if (options.syncUrl) {
         const loc = root.ownerDocument.defaultView?.location;
@@ -473,7 +504,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       } else {
         // TKT-81: the plain editor never auto-fit on open, so a graph wider
         // than the canvas left its answer node off-screen to the right.
-        canvasEditor.fit();
+        if (fit) canvasEditor.fit();
       }
     } catch (e) {
       if (thisOpen.signal.aborted) return; // a newer open replaced this one
@@ -482,20 +513,39 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     }
   }
 
-  // No prompt: embedded browsers throw on window.prompt. The id is the next
-  // free untitled-N. TODO: no rename UI exists yet, so the name sticks.
-  async function newAnalysis(): Promise<void> {
-    const id = freshUntitledId(analyses.map((a) => a.id));
+  /** New's blank flow (TKT-253): opened under the next free untitled id
+   *  (an empty one left from before is reused) and not stored until its
+   *  first edit (storeDraft) or a Save, so pressing New leaves nothing behind. */
+  function newAnalysis(): void {
+    leaveFlow();
+    currentId = freshUntitledId(analyses.map((a) => a.id).filter((id) => !hiddenFlows.has(id)));
+    draft = true;
+    dispatch({ type: "setDocument", json: serializeDocument(emptyDocument) });
+    reportSession();
+    chrome.flowOpened(false);
+    renderPicker();
+    renderDirty();
+  }
+
+  /** Stores New's blank flow at its first edit, then connects to it so
+   *  autosave and evaluation take over. The reopen reloads the document the
+   *  host now holds, which is the one just sent; the undo history starts there. */
+  async function storeDraft(): Promise<void> {
+    const id = currentId!;
+    draft = false;
     try {
-      await api.putAnalysis(id, serializeDocument(emptyDocument));
+      await api.putAnalysis(id, serializeDocument(store.getState().document));
       await refreshAnalyses();
-      await openAnalysis(id);
+      if (currentId === id) await reopenKeepingSelection(store, () => openAnalysis(id, { fit: false }));
     } catch (e) {
-      fail(`Could not create '${id}': ${e instanceof Error ? e.message : e}`);
+      if (currentId === id) draft = true; // the next edit tries again
+      fail(`Could not store the new flow: ${e instanceof Error ? e.message : e}`);
     }
   }
 
   async function save(): Promise<void> {
+    if (!currentId) return fail("No flow open");
+    if (draft || isUntitledId(currentId)) return saveAs(currentId);
     if (!connection) return fail("No flow open");
     try {
       await connection.save();
@@ -505,8 +555,33 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     }
   }
 
+  /** Save on a new flow (TKT-253): asks for a name, stores the flow under
+   *  it, and empties the untitled id it had, which the picker then hides and
+   *  the next New reuses. The host has no delete (DocumentEndpoints.cs). */
+  async function saveAs(from: string): Promise<void> {
+    const name = await askFlowName(chrome.canvasHost, {
+      taken: (id) => id !== from && analyses.some((a) => a.id === id && !hiddenFlows.has(id)),
+    });
+    if (name === null || currentId !== from) return;
+    const wasStored = !draft;
+    try {
+      await api.putAnalysis(name, serializeDocument(store.getState().document));
+      if (wasStored && name !== from) {
+        await connection?.save();
+        leaveFlow();
+        await api.putAnalysis(from, serializeDocument(emptyDocument));
+      }
+      await refreshAnalyses();
+      await reopenKeepingSelection(store, () => openAnalysis(name, { fit: false }));
+      showToast(`Saved as ${name}.`);
+    } catch (e) {
+      fail(`Save failed: ${e instanceof Error ? e.message : e}`);
+    }
+  }
+
   async function run(): Promise<void> {
     if (!currentId) return fail("No flow open");
+    if (draft) return fail("This flow is empty: add a node first");
     try {
       const summary = await api.createRun(currentId);
       showToast(`Run recorded: ${summary.fileName}`);
@@ -585,7 +660,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       if (missing) fail(`Flow "${missing}" is not on this host.`);
       if (open) await openAnalysis(open);
       if (currentId === null) {
-        await newAnalysis();
+        newAnalysis();
         if (!options.graphDemo) startPage.show();
       }
     } catch (e) {

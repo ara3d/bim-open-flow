@@ -19,7 +19,7 @@ import type { AppChrome, ChromeActions, ChromeFactory } from "../chrome.js";
 import { installSplitter, LEFT_SPLIT, restoreWidth, RIGHT_SPLIT } from "../columnSplitter.js";
 import { createSidebar } from "../sidebar.js";
 import type { FlowTemplate } from "../templates.js";
-import { namePicker } from "../topbar.js";
+import { fillFlowPicker, namePicker } from "../topbar.js";
 import type { ThemePrefs } from "../themeChoice.js";
 import { brandMark, svgIcon } from "../brand.js";
 import { flowTitle } from "./flowTitle.js";
@@ -205,11 +205,8 @@ export const studioChrome = (options: StudioChromeOptions = {}): ChromeFactory =
       themePrefs: STUDIO_THEME_PREFS,
       askExamples: STUDIO_ASK_EXAMPLES,
       ownsCanvasHint: true,
-      setAnalyses(list, activeId) {
-        picker.replaceChildren(...(list.length ? [] : [new Option("No flows on this host", "")]), ...list.map((a) => {
-          const option = new Option(flowTitle(a.id, templates), a.id, false, a.id === activeId);
-          return option;
-        }));
+      setAnalyses(groups, activeId) {
+        fillFlowPicker(picker, groups, activeId, groups.length ? [] : [new Option("No flows on this host", "")], (id) => flowTitle(id, templates));
         flowId.textContent = activeId ?? "";
         doc.title = activeId ? `${flowTitle(activeId, templates)} · BIM Open Flow` : "BIM Open Flow";
       },

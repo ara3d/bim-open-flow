@@ -71,7 +71,7 @@ export const classicChrome = (options: ClassicChromeOptions = {}): ChromeFactory
       paneEl: shell.paneEl,
       askHost: shell.askHost,
       stepsEl: sidebar.stepsEl,
-      setAnalyses: (list, activeId) => topbar.setAnalyses([...list], activeId),
+      setAnalyses: topbar.setAnalyses,
       setDirty: topbar.setDirty,
       setConnection: topbar.setConnection,
       setTheme: topbar.setTheme,

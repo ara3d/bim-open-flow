@@ -27,7 +27,8 @@ describe("the root URL (TKT-254)", () => {
     expect(startOpen(root)).toBe(true);
     expect(opened).not.toContain("a-red-first");
     expect(opened).not.toContain("door-schedule");
-    expect(app.session().analysisId).toMatch(/^untitled-/);
+    // The blank flow is not stored yet, so the session names no flow (TKT-253).
+    expect(app.session().analysisId).toBeUndefined();
   });
 
   it("reopens the flow last opened here, without the Start panel", async () => {

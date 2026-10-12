@@ -12,3 +12,13 @@ export function freshUntitledId(existing: Iterable<string>): string {
 export function freshCopyId(source: string, existing: Iterable<string>): string {
   return firstFree((n) => (n === 1 ? `${source}-copy` : `${source}-copy-${n}`), existing);
 }
+
+const UNTITLED = /^untitled-\d+$/;
+
+/** True for the id New gives a flow before the user names it (TKT-253). */
+export const isUntitledId = (id: string | null | undefined): boolean => !!id && UNTITLED.test(id);
+
+/** A name typed by a person as a host analysis id: a lowercase slug of
+ *  a-z, 0-9, and interior hyphens (AnalysisId on the host); "" when nothing is left. */
+export const slugId = (name: string): string =>
+  name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");

@@ -42,7 +42,13 @@
           ]
         }
       ],
-      "description": "Reads one buffer of a BFAST file as a table with a single \u0060value\u0060 column, interpreting its bytes as the given element type (integers widen to long, floats to double). An unknown buffer name or a byte length that is not a multiple of the element size is an error."
+      "description": "Reads one buffer of a BFAST file as a table with a single \u0060value\u0060 column, interpreting its bytes as the given element type (integers widen to long, floats to double). An unknown buffer name or a byte length that is not a multiple of the element size is an error.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "bfast.read",
@@ -68,7 +74,30 @@
           "bindable": "Text"
         }
       ],
-      "description": "Lists the buffers in a BFAST file: name, byteLength, index (0-based file order). BFAST records no element types; bfast.buffer reads one buffer under a type you name."
+      "description": "Lists the buffers in a BFAST file: name, byteLength, index (0-based file order). BFAST records no element types; bfast.buffer reads one buffer under a type you name.",
+      "schemas": [
+        {
+          "output": "buffers",
+          "mode": "Static",
+          "columns": [
+            {
+              "name": "name",
+              "type": "Text",
+              "nullable": false
+            },
+            {
+              "name": "byteLength",
+              "type": "Integer",
+              "nullable": false
+            },
+            {
+              "name": "index",
+              "type": "Integer",
+              "nullable": false
+            }
+          ]
+        }
+      ]
     },
     {
       "kind": "chart.bar",
@@ -245,7 +274,13 @@
           "default": "true"
         }
       ],
-      "description": "Reads a CSV file or glob of files into a table, with typed delimiter, header, skip, quote, null-text, and encoding options."
+      "description": "Reads a CSV file or glob of files into a table, with typed delimiter, header, skip, quote, null-text, and encoding options.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "date.diff",
@@ -572,7 +607,13 @@
           "default": ""
         }
       ],
-      "description": "Runs read-only SQL against a DuckDB file: type the path, or wire a duck.source into path."
+      "description": "Runs read-only SQL against a DuckDB file: type the path, or wire a duck.source into path.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "duck.read",
@@ -608,7 +649,13 @@
           ]
         }
       ],
-      "description": "Loads a CSV, Parquet, or JSON file into a table using DuckDB\u0027s readers."
+      "description": "Loads a CSV, Parquet, or JSON file into a table using DuckDB\u0027s readers.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "duck.source",
@@ -668,7 +715,13 @@
           }
         }
       ],
-      "description": "Reads one named table from a .duckdb database file, read-only."
+      "description": "Reads one named table from a .duckdb database file, read-only.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "duck.tables",
@@ -694,7 +747,30 @@
           "bindable": "Database"
         }
       ],
-      "description": "Lists the tables in a .duckdb database file with their column and row counts."
+      "description": "Lists the tables in a .duckdb database file with their column and row counts.",
+      "schemas": [
+        {
+          "output": "tables",
+          "mode": "Static",
+          "columns": [
+            {
+              "name": "name",
+              "type": "Text",
+              "nullable": false
+            },
+            {
+              "name": "columnCount",
+              "type": "Integer",
+              "nullable": false
+            },
+            {
+              "name": "rowCount",
+              "type": "Integer",
+              "nullable": false
+            }
+          ]
+        }
+      ]
     },
     {
       "kind": "json.read",
@@ -734,7 +810,13 @@
           "default": "false"
         }
       ],
-      "description": "Reads a JSON file (record array or newline-delimited) into a table, optionally flattening one level of nested objects into dotted columns."
+      "description": "Reads a JSON file (record array or newline-delimited) into a table, optionally flattening one level of nested objects into dotted columns.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "parquet.read",
@@ -759,7 +841,13 @@
           }
         }
       ],
-      "description": "Reads a Parquet file or glob of files into a table using DuckDB read_parquet."
+      "description": "Reads a Parquet file or glob of files into a table using DuckDB read_parquet.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "rel.aggregate",
@@ -2000,7 +2088,13 @@
           "default": ""
         }
       ],
-      "description": "Runs one read-only SQL query over the connected input tables t1..t4 (t = t1)."
+      "description": "Runs one read-only SQL query over the connected input tables t1..t4 (t = t1).",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "sqlite.query",
@@ -2030,7 +2124,13 @@
           "default": ""
         }
       ],
-      "description": "Runs one read-only SQL query against a SQLite database file."
+      "description": "Runs one read-only SQL query against a SQLite database file.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "sqlite.table",
@@ -2060,7 +2160,13 @@
           "default": ""
         }
       ],
-      "description": "Reads one whole table from a SQLite database file (SELECT *, read-only)."
+      "description": "Reads one whole table from a SQLite database file (SELECT *, read-only).",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "sqlite.tables",
@@ -2085,7 +2191,30 @@
           }
         }
       ],
-      "description": "Lists the tables in a SQLite database file: name, columnCount, rowCount (read-only)."
+      "description": "Lists the tables in a SQLite database file: name, columnCount, rowCount (read-only).",
+      "schemas": [
+        {
+          "output": "tables",
+          "mode": "Static",
+          "columns": [
+            {
+              "name": "name",
+              "type": "Text",
+              "nullable": false
+            },
+            {
+              "name": "columnCount",
+              "type": "Integer",
+              "nullable": false
+            },
+            {
+              "name": "rowCount",
+              "type": "Integer",
+              "nullable": false
+            }
+          ]
+        }
+      ]
     },
     {
       "kind": "table.aggregate",
@@ -2123,7 +2252,13 @@
           "list": true
         }
       ],
-      "description": "Groups by the comma-separated groupBy columns (may be empty) and computes comma-separated \u0027func(column) as name\u0027 aggregates (count/sum/min/max/avg)."
+      "description": "Groups by the comma-separated groupBy columns (may be empty) and computes comma-separated \u0027func(column) as name\u0027 aggregates (count/sum/min/max/avg).",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "table.calendar",
@@ -2166,7 +2301,13 @@
           ]
         }
       ],
-      "description": "Generates one ISO-8601 date column from start to end inclusive; month/quarter/year steps use calendar arithmetic."
+      "description": "Generates one ISO-8601 date column from start to end inclusive; month/quarter/year steps use calendar arithmetic.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "table.cast",
@@ -2224,7 +2365,13 @@
           "default": ""
         }
       ],
-      "description": "Converts a column to boolean, integer, number, text, date, or datetime."
+      "description": "Converts a column to boolean, integer, number, text, date, or datetime.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "table.concat",
@@ -2260,7 +2407,13 @@
           ]
         }
       ],
-      "description": "Appends b\u0027s rows after a\u0027s, matching columns strictly by position or loosely by name."
+      "description": "Appends b\u0027s rows after a\u0027s, matching columns strictly by position or loosely by name.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "table.dedupe",
@@ -2343,7 +2496,13 @@
           "default": ""
         }
       ],
-      "description": "Outputs the input table plus one computed column."
+      "description": "Outputs the input table plus one computed column.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "table.distinct",
@@ -2375,7 +2534,13 @@
           "list": true
         }
       ],
-      "description": "Removes duplicate rows; with key columns named, keeps the first row per key with all columns."
+      "description": "Removes duplicate rows; with key columns named, keeps the first row per key with all columns.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "table.drop",
@@ -2407,7 +2572,13 @@
           "list": true
         }
       ],
-      "description": "Removes the named columns and keeps all others."
+      "description": "Removes the named columns and keeps all others.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "table.dropNulls",
@@ -2532,7 +2703,13 @@
           "default": ""
         }
       ],
-      "description": "Keeps rows where the Boolean expression is true; null results exclude the row."
+      "description": "Keeps rows where the Boolean expression is true; null results exclude the row.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "table.inline",
@@ -2553,7 +2730,13 @@
           "default": ""
         }
       ],
-      "description": "Builds a table from a JSON array of objects, e.g. [{\u0022type\u0022:\u0022Wall\u0022,\u0022rate\u0022:120.5}]. Column types are inferred (bool/integer/number/text); a column mixing value types is an error; nulls and missing keys are allowed."
+      "description": "Builds a table from a JSON array of objects, e.g. [{\u0022type\u0022:\u0022Wall\u0022,\u0022rate\u0022:120.5}]. Column types are inferred (bool/integer/number/text); a column mixing value types is an error; nulls and missing keys are allowed.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "table.join",
@@ -2610,7 +2793,13 @@
           ]
         }
       ],
-      "description": "Joins b\u0027s columns onto a by key (bKey defaults to aKey). left keeps all a rows; inner keeps matches; full also appends unmatched b rows; semi/anti keep only a rows with/without a match and attach no b columns."
+      "description": "Joins b\u0027s columns onto a by key (bKey defaults to aKey). left keeps all a rows; inner keeps matches; full also appends unmatched b rows; semi/anti keep only a rows with/without a match and attach no b columns.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "table.limit",
@@ -2642,7 +2831,13 @@
           "default": "0"
         }
       ],
-      "description": "Keeps \u0027count\u0027 rows starting at \u0027offset\u0027 in the table\u0027s order."
+      "description": "Keeps \u0027count\u0027 rows starting at \u0027offset\u0027 in the table\u0027s order.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "table.pivot",
@@ -2764,7 +2959,13 @@
           "list": true
         }
       ],
-      "description": "Keeps the comma-separated columns, in that order; \u0027column as Alias\u0027 renames one; unknown names warn."
+      "description": "Keeps the comma-separated columns, in that order; \u0027column as Alias\u0027 renames one; unknown names warn.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "table.range",
@@ -2804,14 +3005,7 @@
       "schemas": [
         {
           "output": "table",
-          "mode": "Static",
-          "columns": [
-            {
-              "name": "value",
-              "type": "Number",
-              "nullable": false
-            }
-          ]
+          "mode": "Inferred"
         }
       ]
     },
@@ -2845,7 +3039,13 @@
           "list": true
         }
       ],
-      "description": "Renames columns using comma-separated \u0027old=new\u0027 pairs."
+      "description": "Renames columns using comma-separated \u0027old=new\u0027 pairs.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "table.replace",
@@ -3014,7 +3214,13 @@
           }
         }
       ],
-      "description": "Keeps a\u0027s rows by key-set operation with b: union, intersect, or subtract."
+      "description": "Keeps a\u0027s rows by key-set operation with b: union, intersect, or subtract.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "table.sort",
@@ -3105,7 +3311,13 @@
           "list": true
         }
       ],
-      "description": "Sorts by columns A, B, then C, each with its own ascending or descending direction."
+      "description": "Sorts by columns A, B, then C, each with its own ascending or descending direction.",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "table.splitColumn",
@@ -3664,7 +3876,13 @@
           "default": ""
         }
       ],
-      "description": "Reads a worksheet (named, or the first) from an .xlsx file. headerRow is the header\u0027s row within the range (rows above are skipped); range is an A1-style rectangle like B3:F100 (empty = used range)."
+      "description": "Reads a worksheet (named, or the first) from an .xlsx file. headerRow is the header\u0027s row within the range (rows above are skipped); range is an A1-style rectangle like B3:F100 (empty = used range).",
+      "schemas": [
+        {
+          "output": "table",
+          "mode": "Inferred"
+        }
+      ]
     },
     {
       "kind": "xlsx.sheets",
@@ -3689,7 +3907,35 @@
           }
         }
       ],
-      "description": "Lists the worksheets in an .xlsx file: name, index (1-based), rowCount, columnCount of the used range."
+      "description": "Lists the worksheets in an .xlsx file: name, index (1-based), rowCount, columnCount of the used range.",
+      "schemas": [
+        {
+          "output": "sheets",
+          "mode": "Static",
+          "columns": [
+            {
+              "name": "name",
+              "type": "Text",
+              "nullable": false
+            },
+            {
+              "name": "index",
+              "type": "Integer",
+              "nullable": false
+            },
+            {
+              "name": "rowCount",
+              "type": "Integer",
+              "nullable": false
+            },
+            {
+              "name": "columnCount",
+              "type": "Integer",
+              "nullable": false
+            }
+          ]
+        }
+      ]
     }
   ]
 }

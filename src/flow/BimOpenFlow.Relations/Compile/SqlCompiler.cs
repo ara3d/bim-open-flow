@@ -5,7 +5,7 @@ namespace BimOpenFlow.Relations;
 /// schemas as it goes and fails with the first schema error.</summary>
 public static class SqlCompiler
 {
-    public static CompiledQuery Compile(this Plan plan, ICatalog catalog)
+    public static CompiledQuery Compile(this Plan plan, ISchemaCatalog catalog)
         => Compile(plan, new SchemaCache(catalog));
 
     public static CompiledQuery Compile(this Plan plan, SchemaCache schemas)

@@ -13,7 +13,6 @@
 
   <ItemGroup>
     <Using Include="Ara3D.DataFlowEngine.Abstractions" />
-    <Using Include="Ara3D.DataFlowEngine.Abstractions.ISchemaCatalog" Alias="ICatalog" />
   </ItemGroup>
 
 </Project>

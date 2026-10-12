@@ -9,10 +9,10 @@ public static class SchemaInference
 {
     public const string RightSuffix = "_right";
 
-    public static SchemaResult Infer(this Plan plan, ICatalog catalog)
+    public static SchemaResult Infer(this Plan plan, ISchemaCatalog catalog)
         => new SchemaCache(catalog).Infer(plan);
 
-    internal static SchemaResult InferNode(Plan plan, IReadOnlyList<SchemaResult> inputs, ICatalog catalog)
+    internal static SchemaResult InferNode(Plan plan, IReadOnlyList<SchemaResult> inputs, ISchemaCatalog catalog)
     {
         var failed = inputs.FirstOrDefault(r => !r.Ok);
         if (failed is not null) return failed;

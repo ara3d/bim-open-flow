@@ -3,7 +3,7 @@ namespace BimOpenFlow.Relations.Tests;
 /// <summary>Compile is text generation, so every test is a string comparison.</summary>
 public class SqlCompilerTests
 {
-    static readonly ICatalog Catalog = new StaticCatalog(new Dictionary<string, Schema>
+    static readonly ISchemaCatalog Catalog = new StaticCatalog(new Dictionary<string, Schema>
     {
         [StaticCatalog.Key("files", "walls.csv")] = new([new("id", ColumnType.Integer), new("height", ColumnType.Number), new("level_id", ColumnType.Integer)]),
         [StaticCatalog.Key("db", "levels")] = new([new("id", ColumnType.Integer), new("name", ColumnType.Text)]),

@@ -7,7 +7,7 @@ public class SchemaInferenceTests
         new("id", ColumnType.Integer, false), new("height", ColumnType.Number), new("level_id", ColumnType.Integer), new("name", ColumnType.Text)]);
     static readonly Schema Levels = new([new("id", ColumnType.Integer, false), new("name", ColumnType.Text), new("built", ColumnType.Date)]);
 
-    static readonly ICatalog Catalog = new StaticCatalog(new Dictionary<string, Schema>
+    static readonly ISchemaCatalog Catalog = new StaticCatalog(new Dictionary<string, Schema>
     {
         [StaticCatalog.Key("files", "walls.csv")] = Walls,
         [StaticCatalog.Key("db", "levels")] = Levels,

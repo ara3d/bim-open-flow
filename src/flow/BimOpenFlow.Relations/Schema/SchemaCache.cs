@@ -2,7 +2,7 @@ namespace BimOpenFlow.Relations;
 
 /// <summary>Schema inference memoized by plan hash, so editing one node re-infers only it
 /// and the nodes above it. One instance per catalog; not thread-safe.</summary>
-public sealed class SchemaCache(ICatalog catalog)
+public sealed class SchemaCache(ISchemaCatalog catalog)
 {
     private readonly Dictionary<string, SchemaResult> _results = new();
 

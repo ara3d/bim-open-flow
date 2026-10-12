@@ -1,12 +1,14 @@
 {
   "formatVersion": "0.1.0",
   "layout": {
-    "customers": { "x": 40, "y": 480 },
-    "joined": { "x": 370, "y": 40 },
-    "orders": { "x": 40, "y": 40 },
-    "products": { "x": 40, "y": 260 },
-    "revenue": { "x": 940, "y": 40 },
-    "top": { "x": 1450, "y": 40 }
+    "about": { "x": 40, "y": 40, "w": 560, "h": 104 },
+    "orders": { "x": 40, "y": 224 },
+    "products": { "x": 40, "y": 408 },
+    "customers": { "x": 40, "y": 592 },
+    "joined": { "x": 370, "y": 224 },
+    "revenue": { "x": 700, "y": 224 },
+    "ranked": { "x": 1030, "y": 224 },
+    "answer": { "x": 1360, "y": 224 }
   },
   "structure": {
     "edges": [
@@ -14,23 +16,28 @@
       { "from": "products.table", "to": "joined.t2" },
       { "from": "customers.table", "to": "joined.t3" },
       { "from": "joined.table", "to": "revenue.table" },
-      { "from": "revenue.table", "to": "top.table" }
+      { "from": "revenue.table", "to": "ranked.table" },
+      { "from": "ranked.table", "to": "answer.table" }
     ],
     "nodes": [
-      { "id": "customers", "kind": "duck.read", "version": 1 },
-      { "id": "joined", "kind": "sql.query", "version": 1 },
+      { "id": "about", "kind": "view.note", "version": 1 },
       { "id": "orders", "kind": "duck.read", "version": 1 },
       { "id": "products", "kind": "duck.read", "version": 1 },
+      { "id": "customers", "kind": "duck.read", "version": 1 },
+      { "id": "joined", "kind": "sql.query", "version": 1 },
       { "id": "revenue", "kind": "table.aggregate", "version": 1 },
-      { "id": "top", "kind": "table.sort", "version": 1 }
+      { "id": "ranked", "kind": "table.sort", "version": 1 },
+      { "id": "answer", "kind": "view.table", "version": 1 }
     ]
   },
   "values": {
-    "customers": { "path": "{SAMPLES}/customers.csv" },
-    "joined": { "sql": "SELECT c.Name AS Customer, o.Quantity * p.UnitPrice AS Revenue FROM t1 o JOIN t2 p ON o.ProductId = p.ProductId JOIN t3 c ON o.CustomerId = c.CustomerId" },
+    "about": { "text": "The SQL showcase: one sql.query joins three CSV files (t1 orders, t2 products, t3 customers) and prices each order line. The table nodes then total the revenue per customer and rank it. Acme Construction leads with 6,242 over 3 orders." },
     "orders": { "path": "{SAMPLES}/orders.csv" },
     "products": { "path": "{SAMPLES}/products.csv" },
+    "customers": { "path": "{SAMPLES}/customers.csv" },
+    "joined": { "sql": "SELECT c.Name AS Customer, o.Quantity * p.UnitPrice AS Revenue FROM t1 o JOIN t2 p ON o.ProductId = p.ProductId JOIN t3 c ON o.CustomerId = c.CustomerId" },
     "revenue": { "aggregates": "sum(Revenue) as TotalRevenue, count(Revenue) as Orders", "groupBy": "Customer" },
-    "top": { "by": "TotalRevenue desc" }
+    "ranked": { "A": "TotalRevenue", "descendingA": "true" },
+    "answer": { "title": "Revenue per customer" }
   }
 }

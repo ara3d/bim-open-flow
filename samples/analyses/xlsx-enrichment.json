@@ -1,32 +1,39 @@
 {
   "formatVersion": "0.1.0",
   "layout": {
-    "big": { "x": 1030, "y": 40 },
-    "enriched": { "x": 370, "y": 40 },
-    "orders": { "x": 40, "y": 40 },
-    "products": { "x": 40, "y": 260 },
-    "revenue": { "x": 700, "y": 40 }
+    "about": { "x": 40, "y": 40, "w": 560, "h": 104 },
+    "orders": { "x": 40, "y": 224 },
+    "products": { "x": 40, "y": 408 },
+    "enriched": { "x": 370, "y": 224 },
+    "revenue": { "x": 700, "y": 224 },
+    "big": { "x": 1030, "y": 224 },
+    "answer": { "x": 1360, "y": 224 }
   },
   "structure": {
     "edges": [
-      { "from": "revenue.table", "to": "big.table" },
       { "from": "orders.table", "to": "enriched.a" },
       { "from": "products.table", "to": "enriched.b" },
-      { "from": "enriched.table", "to": "revenue.table" }
+      { "from": "enriched.table", "to": "revenue.table" },
+      { "from": "revenue.table", "to": "big.table" },
+      { "from": "big.table", "to": "answer.table" }
     ],
     "nodes": [
-      { "id": "big", "kind": "table.filter", "version": 1 },
-      { "id": "enriched", "kind": "table.join", "version": 1 },
+      { "id": "about", "kind": "view.note", "version": 1 },
       { "id": "orders", "kind": "duck.read", "version": 1 },
       { "id": "products", "kind": "xlsx.read", "version": 1 },
-      { "id": "revenue", "kind": "table.derive", "version": 1 }
+      { "id": "enriched", "kind": "table.join", "version": 1 },
+      { "id": "revenue", "kind": "table.derive", "version": 1 },
+      { "id": "big", "kind": "table.filter", "version": 1 },
+      { "id": "answer", "kind": "view.table", "version": 1 }
     ]
   },
   "values": {
-    "big": { "expr": "Revenue > 500" },
-    "enriched": { "aKey": "ProductId", "mode": "inner" },
+    "about": { "text": "CSV orders enriched from the Products sheet of sample.xlsx: the join adds each product's name and price, table.derive computes Revenue, and the filter keeps the order lines worth more than 500." },
     "orders": { "path": "{SAMPLES}/orders.csv" },
     "products": { "path": "{SAMPLES}/sample.xlsx", "sheet": "Products" },
-    "revenue": { "expr": "Quantity * UnitPrice", "name": "Revenue" }
+    "enriched": { "aKey": "ProductId", "mode": "inner" },
+    "revenue": { "expr": "Quantity * UnitPrice", "name": "Revenue" },
+    "big": { "expr": "Revenue > 500" },
+    "answer": { "columns": "OrderId, ProductName, Quantity, UnitPrice, Revenue", "title": "Order lines over 500" }
   }
 }

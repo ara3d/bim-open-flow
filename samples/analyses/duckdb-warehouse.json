@@ -1,23 +1,26 @@
 {
   "formatVersion": "0.1.0",
   "layout": {
-    "slim": { "x": 610, "y": 40 },
-    "warehouse": { "x": 40, "y": 40 }
+    "about": { "x": 40, "y": 40, "w": 560, "h": 104 },
+    "warehouse": { "x": 40, "y": 224 },
+    "answer": { "x": 370, "y": 224 }
   },
   "structure": {
     "edges": [
-      { "from": "warehouse.table", "to": "slim.table" }
+      { "from": "warehouse.table", "to": "answer.table" }
     ],
     "nodes": [
-      { "id": "slim", "kind": "table.project", "version": 1 },
-      { "id": "warehouse", "kind": "duck.query", "version": 1 }
+      { "id": "about", "kind": "view.note", "version": 1 },
+      { "id": "warehouse", "kind": "duck.query", "version": 1 },
+      { "id": "answer", "kind": "view.table", "version": 1 }
     ]
   },
   "values": {
-    "slim": { "columns": "Customer, Product, Revenue" },
+    "about": { "text": "One duck.query joins the Orders, Products, and Customers tables inside sample.duckdb. The three tables live in one database file, so the join runs there in SQL instead of loading each table into the graph. Largest order line first." },
     "warehouse": {
       "path": "{SAMPLES}/sample.duckdb",
-      "sql": "SELECT c.Name AS Customer, p.ProductName AS Product, o.OrderDate AS OrderDate, CAST(o.Quantity * p.UnitPrice AS DOUBLE) AS Revenue FROM Orders o JOIN Products p ON o.ProductId = p.ProductId JOIN Customers c ON o.CustomerId = c.CustomerId ORDER BY Revenue DESC"
-    }
+      "sql": "SELECT c.Name AS Customer, p.ProductName AS Product, o.Quantity * p.UnitPrice AS Revenue FROM Orders o JOIN Products p ON o.ProductId = p.ProductId JOIN Customers c ON o.CustomerId = c.CustomerId ORDER BY Revenue DESC"
+    },
+    "answer": { "title": "Revenue per order line" }
   }
 }

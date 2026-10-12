@@ -2,7 +2,7 @@
   "formatVersion": "0.1.0",
   "layout": {
     "answer": {
-      "x": 1780,
+      "x": 1690,
       "y": 40
     },
     "customers": {
@@ -15,7 +15,7 @@
     },
     "orders": {
       "x": 40,
-      "y": 280
+      "y": 224
     },
     "priced": {
       "x": 370,
@@ -23,7 +23,7 @@
     },
     "products": {
       "x": 40,
-      "y": 520
+      "y": 408
     },
     "revenue": {
       "x": 700,

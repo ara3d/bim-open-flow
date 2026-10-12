@@ -2,7 +2,7 @@
   "formatVersion": "0.1.0",
   "layout": {
     "answer": {
-      "x": 1160,
+      "x": 1030,
       "y": 40
     },
     "counts": {
@@ -19,7 +19,7 @@
     },
     "orders": {
       "x": 40,
-      "y": 280
+      "y": 224
     }
   },
   "structure": {

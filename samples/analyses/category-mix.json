@@ -1,32 +1,47 @@
 {
   "formatVersion": "0.1.0",
   "layout": {
-    "byCategory": { "x": 940, "y": 40 },
-    "mix": { "x": 370, "y": 40 },
-    "orders": { "x": 40, "y": 40 },
-    "products": { "x": 40, "y": 260 },
-    "ranked": { "x": 1450, "y": 40 }
+    "about": { "x": 40, "y": 40, "w": 560, "h": 104 },
+    "orders": { "x": 40, "y": 224 },
+    "products": { "x": 40, "y": 408 },
+    "priced": { "x": 370, "y": 224 },
+    "revenue": { "x": 700, "y": 224 },
+    "byCategory": { "x": 1030, "y": 224 },
+    "ranked": { "x": 1360, "y": 224 },
+    "answer": { "x": 1690, "y": 224 },
+    "chart": { "x": 1690, "y": 408 }
   },
   "structure": {
     "edges": [
-      { "from": "mix.table", "to": "byCategory.table" },
-      { "from": "orders.table", "to": "mix.t1" },
-      { "from": "products.table", "to": "mix.t2" },
-      { "from": "byCategory.table", "to": "ranked.table" }
+      { "from": "orders.table", "to": "priced.a" },
+      { "from": "products.table", "to": "priced.b" },
+      { "from": "priced.table", "to": "revenue.table" },
+      { "from": "revenue.table", "to": "byCategory.table" },
+      { "from": "byCategory.table", "to": "ranked.table" },
+      { "from": "ranked.table", "to": "answer.table" },
+      { "from": "ranked.table", "to": "chart.table" }
     ],
     "nodes": [
-      { "id": "byCategory", "kind": "table.aggregate", "version": 1 },
-      { "id": "mix", "kind": "sql.query", "version": 1 },
+      { "id": "about", "kind": "view.note", "version": 1 },
       { "id": "orders", "kind": "duck.read", "version": 1 },
       { "id": "products", "kind": "duck.read", "version": 1 },
-      { "id": "ranked", "kind": "table.sort", "version": 1 }
+      { "id": "priced", "kind": "table.join", "version": 1 },
+      { "id": "revenue", "kind": "table.derive", "version": 1 },
+      { "id": "byCategory", "kind": "table.aggregate", "version": 1 },
+      { "id": "ranked", "kind": "table.sort", "version": 1 },
+      { "id": "answer", "kind": "view.table", "version": 1 },
+      { "id": "chart", "kind": "chart.bar", "version": 1 }
     ]
   },
   "values": {
-    "byCategory": { "aggregates": "sum(Revenue) as TotalRevenue, count(Revenue) as Orders", "groupBy": "Category" },
-    "mix": { "sql": "SELECT p.Category AS Category, o.Quantity * p.UnitPrice AS Revenue FROM t1 o JOIN t2 p ON o.ProductId = p.ProductId" },
+    "about": { "text": "Revenue per product category with no SQL: table.join puts each product's price and category on its order, table.derive multiplies Quantity by UnitPrice, and the totals are ranked and charted. Structural leads with 8,880 from 2 orders." },
     "orders": { "path": "{SAMPLES}/orders.csv" },
     "products": { "path": "{SAMPLES}/products.csv" },
-    "ranked": { "by": "TotalRevenue desc" }
+    "priced": { "aKey": "ProductId", "mode": "inner" },
+    "revenue": { "expr": "Quantity * UnitPrice", "name": "Revenue" },
+    "byCategory": { "aggregates": "sum(Revenue) as TotalRevenue, count(*) as Orders", "groupBy": "Category" },
+    "ranked": { "A": "TotalRevenue", "descendingA": "true" },
+    "answer": { "title": "Revenue per category" },
+    "chart": { "labelColumn": "Category", "title": "Revenue per category", "valueColumns": "TotalRevenue" }
   }
 }

@@ -1,27 +1,34 @@
 {
   "formatVersion": "0.1.0",
   "layout": {
-    "common": { "x": 370, "y": 40 },
-    "csvOrders": { "x": 40, "y": 40 },
-    "dbOrders": { "x": 40, "y": 260 }
+    "about": { "x": 40, "y": 40, "w": 560, "h": 104 },
+    "csvOrders": { "x": 40, "y": 224 },
+    "dbOrders": { "x": 40, "y": 408 },
+    "common": { "x": 370, "y": 224 },
+    "answer": { "x": 700, "y": 224 }
   },
   "structure": {
     "edges": [
       { "from": "csvOrders.table", "to": "common.a" },
-      { "from": "dbOrders.table", "to": "common.b" }
+      { "from": "dbOrders.table", "to": "common.b" },
+      { "from": "common.table", "to": "answer.table" }
     ],
     "nodes": [
-      { "id": "common", "kind": "table.setOp", "version": 1 },
+      { "id": "about", "kind": "view.note", "version": 1 },
       { "id": "csvOrders", "kind": "duck.read", "version": 1 },
-      { "id": "dbOrders", "kind": "sqlite.query", "version": 1 }
+      { "id": "dbOrders", "kind": "sqlite.query", "version": 1 },
+      { "id": "common", "kind": "table.setOp", "version": 1 },
+      { "id": "answer", "kind": "view.table", "version": 1 }
     ]
   },
   "values": {
-    "common": { "key": "OrderId", "op": "intersect" },
+    "about": { "text": "A parity check: the same orders read from orders.csv and from sample.sqlite, intersected on OrderId. All 8 of the CSV's 8 rows are in the database, so the two sources agree; a row missing from either would drop out of the answer." },
     "csvOrders": { "path": "{SAMPLES}/orders.csv" },
     "dbOrders": {
       "path": "{SAMPLES}/sample.sqlite",
       "sql": "SELECT OrderId, CustomerId, ProductId, Quantity FROM Orders"
-    }
+    },
+    "common": { "key": "OrderId", "op": "intersect" },
+    "answer": { "columns": "OrderDate, Quantity, OrderId, CustomerId, ProductId", "title": "Orders in both sources" }
   }
 }

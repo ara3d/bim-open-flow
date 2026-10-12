@@ -43,6 +43,11 @@ public static class HostComposition
     /// composes the "bim" profile (src/studio/BimOpenFlow.Studio/StudioComposition.cs).</summary>
     public static readonly HostProfiles Generic = new(HostConfig.TablesProfile, [Tables]);
 
+    /// <summary>The catalog the schema pass asks about files and SQL: DuckDB over the runtime's sources, wrapped
+    /// by the Tables pack for xlsx and SQLite, with answers kept until a file changes. One per process.</summary>
+    public static ISchemaCatalog SchemaCatalog(RelationRuntime relations)
+        => new CachedCatalog(new TablesCatalog(new DuckDbCatalog(relations.Registry)));
+
     /// <summary>A relation runtime with no sources: rel.csv and rel.table resolve nothing.</summary>
     public static RelationRuntime NoSources()
         => RelationRuntime.FromRoots([]);
@@ -63,7 +68,7 @@ public static class HostComposition
             store,
             registry,
             relations,
-            new AnalysisSessions(store, registry),
+            new AnalysisSessions(store, registry, SchemaCatalog(relations)),
             new EditorSessions(store));
     }
 

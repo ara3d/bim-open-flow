@@ -25,7 +25,12 @@ internal static class EvalEndpoints
     {
         app.MapGet(ApiRoutes.GetAnalysisState, (string id) => ApiResults.Guard(() =>
             store.Exists(id)
-                ? ApiResults.Json(sessions.Snapshot(id).ToEvalUpdate(id))
+                ? ApiResults.Json(sessions.Update(id, sessions.Snapshot(id)))
+                : ApiResults.NotFound($"Analysis '{id}' not found")));
+
+        app.MapGet(ApiRoutes.GetAnalysisSchemas, (string id) => ApiResults.Guard(() =>
+            store.Exists(id)
+                ? ApiResults.Json(sessions.Schemas(id))
                 : ApiResults.NotFound($"Analysis '{id}' not found")));
 
         app.MapGet(ApiRoutes.GetAnalysisText, (string id, string? mode) => ApiResults.Guard(() =>
@@ -139,10 +144,10 @@ internal static class EvalEndpoints
         var ct = context.RequestAborted;
         var channel = Channel.CreateUnbounded<EvalUpdate>();
         using var subscription = sessions.Subscribe(id,
-            snapshot => channel.Writer.TryWrite(snapshot.ToEvalUpdate(id)));
+            snapshot => channel.Writer.TryWrite(sessions.Update(id, snapshot)));
         try
         {
-            await WriteUpdate(response, sessions.Snapshot(id).ToEvalUpdate(id), ct);
+            await WriteUpdate(response, sessions.Update(id, sessions.Snapshot(id)), ct);
             Task<EvalUpdate>? pending = null;
             while (!ct.IsCancellationRequested)
             {

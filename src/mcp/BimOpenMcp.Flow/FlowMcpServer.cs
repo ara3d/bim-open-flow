@@ -15,7 +15,7 @@ public sealed record FlowServices(HostServices Host, AnalysisSessions Sessions)
     public static FlowServices Create(HostConfig config, HostProfile profile)
     {
         var host = HostComposition.BuildServices(config, profile);
-        return new(host, new AnalysisSessions(host.Store, host.Registry));
+        return new(host, host.Sessions);
     }
 }
 

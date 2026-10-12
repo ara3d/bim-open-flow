@@ -23,7 +23,10 @@ public static class FlowDocumentTools
             .Tool(
                 "getAnalysis",
                 "Returns one analysis document as canonical graph JSON, plus its hash and its graph "
-                + "inputs (name, kind, default, description, and the current value).",
+                + "inputs (name, kind, default, description, and the current value), and the columns "
+                + "(Name:Type) of every Table and Relation output, worked out without running anything, "
+                + "with the reason when a node's columns cannot be known before a run and any warnings "
+                + "(a parameter naming a missing column, with the nearest match).",
                 FlowToolArgs.Analysis().Build(),
                 (args, _) => ToolRunner.RunAsync(
                     () => GetAnalysis(s, args.AnalysisId()),
@@ -77,6 +80,7 @@ public static class FlowDocumentTools
             json = doc.ToCanonicalJson(),
             inputs = GraphInputValues.Describe(doc, GraphInputValues.Held(doc, s.Host.Store.LoadGraphInputs(id)))
                 .Select(FlowEvalTools.ToInputView).ToList(),
+            schemas = SchemaViews.Of(s.Sessions.Schemas(id).Ports),
         };
     }
 

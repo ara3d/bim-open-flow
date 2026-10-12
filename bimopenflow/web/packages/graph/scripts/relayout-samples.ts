@@ -1,6 +1,6 @@
-// Relays out the committed sample graphs whose cards overlap (TKT-110), with
-// autoLayout.tidyLayout: columns and reading order stay as stored, cards move
-// right or down only as far as their painted footprints need.
+// Relays out the committed sample graphs that layoutReport.ts finds a layout
+// fault in (overlapping cards, a wire behind a card, a wire running
+// backwards), with autoLayout. A graph with no fault keeps its positions.
 //
 //   npm run relayout-samples -- [--host http://127.0.0.1:5214] [--catalog file] [--samples dir,dir]
 //                                [--root dir] [--dry] [path-substring ...]
@@ -20,8 +20,9 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tidyLayout } from "../src/autoLayout.js";
-import { committedCatalog, fetchCatalog, FLOW_SAMPLE_DIRS, overlappingPairs, repoRoot, sampleGraphs, sampleModel } from "./sampleGraphs.js";
+import { autoLayout } from "../src/autoLayout.js";
+import { sampleIssues } from "./layoutReport.js";
+import { committedCatalog, fetchCatalog, FLOW_SAMPLE_DIRS, repoRoot, sampleGraphs, sampleModel } from "./sampleGraphs.js";
 
 const args = process.argv.slice(2);
 const option = (name: string) => {
@@ -70,19 +71,21 @@ const texts = new Map<string, string>();
 // DuckDB studio lays each graph out afresh with autoLayout when it opens it.
 for (const sample of sampleGraphs(sampleDirs, root)) {
   if (filters.length && !filters.some((f) => sample.name.includes(f))) continue;
-  const model = sampleModel(sample.document, catalog);
-  const before = overlappingPairs(model);
+  const before = sampleIssues(sample, catalog);
   if (!before.length || sample.autoLaidOut) continue;
   if (dirty.has(sample.file)) {
-    console.log(`skip ${sample.name}: uncommitted changes (${before.length} overlapping pairs)`);
+    console.log(`skip ${sample.name}: uncommitted changes (${before.length} faults)`);
     continue;
   }
-  const positions = tidyLayout(model);
-  const after = overlappingPairs({ ...model, nodes: model.nodes.map((n) => ({ ...n, ...positions[n.id]! })) });
+  const model = sampleModel(sample.document, catalog);
+  const positions = autoLayout(model);
+  const layout = Object.fromEntries(Object.entries(positions).map(([id, at]) => [id, { ...sample.document.layout[id], ...at }]));
+  const document = { ...sample.document, layout: { ...sample.document.layout, ...layout } };
+  const after = sampleIssues({ ...sample, document }, catalog);
+  console.log(`${sample.name}: ${before.length} faults -> ${after.length}${after.length ? `: ${after.join("; ")}` : ""}`);
   let text = readFileSync(join(root, sample.file), "utf8");
-  for (const node of model.nodes) text = setPosition(text, node.id, positions[node.id]!);
+  for (const [id, at] of Object.entries(positions)) text = setPosition(text, id, at);
   texts.set(sample.file, text);
-  console.log(`${sample.name}: ${before.length} overlapping pairs -> ${after.length}`);
 }
 if (!dry) for (const [file, text] of texts) writeFileSync(join(root, file), text);
 console.log(`${dry ? "would rewrite" : "rewrote"} ${texts.size} file(s)`);

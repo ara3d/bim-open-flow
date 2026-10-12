@@ -12,7 +12,8 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "relayout-samples": "vite-node --config vitest.config.ts scripts/relayout-samples.ts --"
+    "relayout-samples": "vite-node --config vitest.config.ts scripts/relayout-samples.ts --",
+    "layout-report": "vite-node --config vitest.config.ts scripts/layout-report.ts --"
   },
   "dependencies": {
     "@bimopenflow/contracts": "0.1.0",

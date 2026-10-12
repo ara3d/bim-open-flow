@@ -51,10 +51,11 @@ export function paramSockets(
     param.bindable ? [{ name: param.name, type: param.bindable, dy: y + PARAM_SOCKET_DY }] : []);
 }
 
-/** World position of `node`'s socket for `port`, or undefined if the node
- *  has no such port on that side. */
-function socketPos(
-  node: CanvasNode,
+/** Where `node`'s socket for `port` sits relative to the card's top-left
+ *  corner, or undefined if the node has no such port on that side. Layouts
+ *  use it to line wires up before the node has a position. */
+export function socketOffset(
+  node: Pick<CanvasNode, "w" | "inputs" | "outputs" | "params">,
   port: string,
   dir: "in" | "out",
 ): { x: number; y: number } | undefined {
@@ -62,12 +63,25 @@ function socketPos(
   const index = ports.findIndex((p) => p.name === port);
   if (index < 0) {
     const param = dir === "in" ? paramSockets(node).find((s) => s.name === port) : undefined;
-    return param ? { x: node.x, y: node.y + param.dy } : undefined;
+    return param ? { x: 0, y: param.dy } : undefined;
   }
-  return { x: dir === "in" ? node.x : node.x + node.w, y: portY(node.y, index) };
+  return { x: dir === "in" ? 0 : node.w, y: portY(0, index) };
 }
 
-function endpointPos(
+/** World position of `node`'s socket for `port`, or undefined if the node
+ *  has no such port on that side. */
+function socketPos(
+  node: CanvasNode,
+  port: string,
+  dir: "in" | "out",
+): { x: number; y: number } | undefined {
+  const at = socketOffset(node, port, dir);
+  return at && { x: node.x + at.x, y: node.y + at.y };
+}
+
+/** World position of the socket `endpoint` ("node.port") names, or
+ *  undefined when no node or port matches. */
+export function endpointPos(
   nodes: readonly CanvasNode[],
   endpoint: string,
   dir: "in" | "out",

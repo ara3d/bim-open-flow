@@ -22,6 +22,13 @@ public static class ColumnDocs
 
     public static string Json() => ColumnKinds.ToJson();
 
+    /// <summary>The registry's meaning of the kind with exactly this name, as a table cell; a name the
+    /// registry lacks says so, so a stale declaration shows in the docs.</summary>
+    public static string MeaningOf(string kindName)
+        => ColumnKinds.All.FirstOrDefault(k => k.Name == kindName) is { } kind
+            ? Cell(kind.Meaning)
+            : "(not in the column registry)";
+
     public static string Markdown()
     {
         var text = new StringBuilder();

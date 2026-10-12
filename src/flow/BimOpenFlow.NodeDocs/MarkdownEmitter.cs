@@ -61,11 +61,11 @@ public static class MarkdownEmitter
             sb.Append(schema is InferredSchemaSpec ? ": inferred from the inputs\n" : ": unknown until run\n");
             return;
         }
-        sb.Append("\n\n| Name | Type | Nullable | Kind |\n|---|---|---|---|\n");
+        sb.Append("\n\n| Name | Type | Nullable | Kind | Meaning |\n|---|---|---|---|---|\n");
         foreach (var column in fixedColumns.Schema.Columns)
         {
-            var kind = fixedColumns.Kinds is not null && fixedColumns.Kinds.TryGetValue(column.Name, out var name) ? $"`{name}`" : "—";
-            sb.Append($"| `{column.Name}` | {column.Type} | {(column.Nullable ? "yes" : "no")} | {kind} |\n");
+            var kind = fixedColumns.Kinds is not null && fixedColumns.Kinds.TryGetValue(column.Name, out var name) ? name : null;
+            sb.Append($"| `{column.Name}` | {column.Type} | {(column.Nullable ? "yes" : "no")} | {(kind is null ? "—" : $"`{kind}`")} | {(kind is null ? "—" : ColumnDocs.MeaningOf(kind))} |\n");
         }
     }
 

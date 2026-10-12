@@ -23,6 +23,23 @@ public sealed class DuckDbCatalog(IConnectionRegistry registry) : ISchemaCatalog
             return s.Connection.Query($"DESCRIBE {sql}");
         });
 
+    /// <summary>SQL that reads files itself, such as <c>SELECT * FROM read_parquet('a.parquet')</c>.</summary>
+    public SchemaResult FileQuerySchema(string sql, IReadOnlyList<string> files)
+        => Describe([], s => s.Connection.Query($"DESCRIBE {sql}"));
+
+    /// <summary>Reads the "duckdb" format: option "table" names a table of the database file. Any other
+    /// format belongs to a decorator that reads it, such as the Tables pack's.</summary>
+    public SchemaResult FileSchema(string format, string path, IReadOnlyDictionary<string, string> options)
+        => format != "duckdb"
+            ? SchemaResult.Fail($"This catalog does not read the '{format}' format.")
+            : !options.TryGetValue("table", out var table) || table.Length == 0
+                ? SchemaResult.Fail("A DuckDB file needs a table name.")
+                : Describe([], s =>
+                {
+                    s.Connection.Execute($"ATTACH {path.Literal()} AS src (READ_ONLY)");
+                    return s.Connection.Query($"DESCRIBE SELECT * FROM src.{table.Ident()}");
+                });
+
     private SchemaResult Describe(IReadOnlyList<SourceUse> sources, Func<DuckDbSession, Ara3D.DataTable.IDataTable> describe)
     {
         try

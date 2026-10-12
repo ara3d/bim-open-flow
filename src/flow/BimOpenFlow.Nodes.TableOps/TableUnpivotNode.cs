@@ -1,12 +1,14 @@
 using Ara3D.BimOpenSchema.DuckDb;
 using Ara3D.DataFlowEngine.Abstractions;
+using SchemaRules = BimOpenFlow.Relations.SchemaRules;
+using SchemaInputs = BimOpenFlow.Relations.SchemaInputs;
 
 namespace BimOpenFlow.Nodes.TableOps;
 
 /// <summary>Wide to long: folds the chosen columns into name/value rows, keeping
 /// the id columns as-is. Mixed-type columns widen to text with a warning; null
 /// cells produce no row.</summary>
-public sealed class TableUnpivotNode : IFlowNode
+public sealed class TableUnpivotNode : ISchemaNode
 {
     public const string Kind = "table.unpivot";
 
@@ -21,16 +23,31 @@ public sealed class TableUnpivotNode : IFlowNode
             new ParamSpec("nameColumn", ParamKind.Text, "name"),
             new ParamSpec("valueColumn", ParamKind.Text, "value"),
         ],
-        "Unpivots columns into name/value rows, keeping the 'keep' columns as row ids.");
+        "Unpivots columns into name/value rows, keeping the 'keep' columns as row ids.",
+        Schemas: [SchemaSpec.Inferred("table")]);
+
+    /// <summary>The parameters; evaluation and the shape rule both read them here.</summary>
+    private readonly record struct Args(IReadOnlyList<string> Keep, IReadOnlyList<string> Columns, string NameColumn, string ValueColumn)
+    {
+        public static Args Read(ParamValues parameters)
+            => new(parameters.GetText("keep").SplitNames(), parameters.GetText("columns").SplitNames(),
+                parameters.GetText("nameColumn", "name"), parameters.GetText("valueColumn", "value"));
+    }
+
+    public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
+        => SchemaInputs.Run(Spec, inputs, schemas =>
+        {
+            var args = Args.Read(parameters);
+            return SchemaRules.Unpivot(schemas[0], args.Keep, args.Columns, args.NameColumn, args.ValueColumn);
+        }, throughDuckDb: true);
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context,
         IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {
         var table = inputs.TableInput(0, Kind);
-        var keep = parameters.GetText("keep").SplitNames()
-            .Select(n => table.CanonicalName(n, Kind)).ToList();
-        var named = parameters.GetText("columns").SplitNames()
-            .Select(n => table.CanonicalName(n, Kind)).ToList();
+        var args = Args.Read(parameters);
+        var keep = args.Keep.Select(n => table.CanonicalName(n, Kind)).ToList();
+        var named = args.Columns.Select(n => table.CanonicalName(n, Kind)).ToList();
         var columns = named.Count > 0
             ? named
             : table.Names().Where(n => !keep.Contains(n, StringComparer.OrdinalIgnoreCase)).ToList();
@@ -46,8 +63,7 @@ public sealed class TableUnpivotNode : IFlowNode
             if (dropped.Count > 0)
                 context.Warn($"{Kind}: columns not kept or unpivoted are dropped: {string.Join(", ", dropped)}.");
         }
-        var nameColumn = parameters.GetText("nameColumn", "name");
-        var valueColumn = parameters.GetText("valueColumn", "value");
+        var (nameColumn, valueColumn) = (args.NameColumn, args.ValueColumn);
         foreach (var output in new[] { nameColumn, valueColumn })
             if (keep.Contains(output, StringComparer.OrdinalIgnoreCase))
                 throw new ArgumentException($"{Kind}: output column '{output}' collides with a kept column.");

@@ -26,7 +26,7 @@ public sealed class TableProjectNode : ISchemaNode
     }
 
     public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
-        => SchemaInputs.Run(Spec, inputs, schemas => SchemaRules.Select(schemas[0], ReadTerms(parameters)));
+        => SchemaInputs.Run(Spec, inputs, schemas => SchemaRules.Select(schemas[0], ReadTerms(parameters), skipMissing: true));
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {

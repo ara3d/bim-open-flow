@@ -37,7 +37,8 @@ public sealed class TableSortNode : ISchemaNode
     }
 
     public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
-        => SchemaInputs.Run(Spec, inputs, schemas => SchemaRules.Sort(schemas[0], ReadKeys(parameters).Select(k => k.Column)));
+        => SchemaInputs.Run(Spec, inputs, schemas => SchemaRules.Sort(schemas[0], ReadKeys(parameters).Select(k => k.Column)),
+            throughDuckDb: ReadKeys(parameters).Count > 0);
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {

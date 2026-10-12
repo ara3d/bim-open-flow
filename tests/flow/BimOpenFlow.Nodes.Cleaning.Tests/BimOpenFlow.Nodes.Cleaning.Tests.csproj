@@ -23,6 +23,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\BimOpenFlow.Nodes.Tables.Tests\SchemaGolden.cs" Link="SchemaGolden.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="NUnit.Framework" />
     <Using Include="Ara3D.DataFlowEngine.TestKit" />
   </ItemGroup>

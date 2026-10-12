@@ -30,7 +30,7 @@ public sealed class TableRenameNode : ISchemaNode
         }).ToList();
 
     public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
-        => SchemaInputs.Run(Spec, inputs, schemas => SchemaRules.Rename(schemas[0], ReadRenamings(parameters)));
+        => SchemaInputs.Run(Spec, inputs, schemas => SchemaRules.Rename(schemas[0], ReadRenamings(parameters), skipMissing: true), throughDuckDb: true);
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context,
         IReadOnlyList<FlowValue> inputs, ParamValues parameters)

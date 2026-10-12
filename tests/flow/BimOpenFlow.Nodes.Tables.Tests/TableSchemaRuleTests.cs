@@ -35,6 +35,30 @@ public sealed class TableSchemaRuleTests
         => SchemaGolden.AssertMatchesEvaluation(new TableJoinNode(), [Orders, CustomersWithId()], ("aKey", "CustomerId"));
 
     [Test]
+    public void Join_SuffixThatCollidesGetsTheSuffixAgain()
+    {
+        var left = new DataTableBuilder("a");
+        left.AddColumn(new object?[] { "k1" }, "k", typeof(string));
+        left.AddColumn(new object?[] { 1L }, "x", typeof(long));
+        left.AddColumn(new object?[] { 2L }, "x_b", typeof(long));
+        var right = new DataTableBuilder("b");
+        right.AddColumn(new object?[] { "k1" }, "k", typeof(string));
+        right.AddColumn(new object?[] { 3L }, "x", typeof(long));
+        right.AddColumn(new object?[] { 4L }, "X_B", typeof(long));
+        SchemaGolden.AssertMatchesEvaluation(new TableJoinNode(), [left.Build(), right.Build()], ("aKey", "k"));
+        var names = SchemaGolden.Infer(new TableJoinNode(), [left.Build(), right.Build()], ("aKey", "k")).Schema!.Columns.Select(c => c.Name);
+        Assert.That(names, Is.EqualTo(new[] { "k", "x", "x_b", "x_b_b", "X_B_b_b" }));
+    }
+
+    [Test]
+    public void Project_WarnsOnAMissingColumnAndKeepsTheRest()
+    {
+        Assert.That(SchemaGolden.Warnings(new TableProjectNode(), [Customers], ("columns", "Nme, CustomerId")),
+            Has.Count.EqualTo(1).And.Some.Contain("No column named 'Nme'; did you mean 'Name'?"));
+        SchemaGolden.AssertMatchesEvaluation(new TableProjectNode(), [Customers], ("columns", "Nme, CustomerId"));
+    }
+
+    [Test]
     public void Join_DifferentKeyNames()
     {
         var customers = new DataTableBuilder("c");
@@ -84,8 +108,8 @@ public sealed class TableSchemaRuleTests
         => SchemaGolden.AssertMatchesEvaluation(new TableProjectNode(), [Customers], ("columns", "name as Label, CUSTOMERID"));
 
     [Test]
-    public void Project_UnknownColumnFailsNamingIt()
-        => SchemaGolden.AssertFails(new TableProjectNode(), [Customers], "No column named 'Age'", ("columns", "Name, Age"));
+    public void Project_UnknownColumnWarnsNamingIt()
+        => Assert.That(SchemaGolden.Warnings(new TableProjectNode(), [Customers], ("columns", "Name, Age")), Has.Some.Contain("No column named 'Age'"));
 
     [Test]
     public void Project_DuplicateOutputName()

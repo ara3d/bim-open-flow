@@ -19,7 +19,7 @@ public sealed class TableDropNode : ISchemaNode
         Schemas: [SchemaSpec.Inferred("table")]);
 
     public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
-        => SchemaInputs.Run(Spec, inputs, schemas => SchemaRules.Drop(schemas[0], parameters.RequiredText("columns", Kind).SplitNames()));
+        => SchemaInputs.Run(Spec, inputs, schemas => SchemaRules.Drop(schemas[0], parameters.RequiredText("columns", Kind).SplitNames(), skipMissing: true), throughDuckDb: true);
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context,
         IReadOnlyList<FlowValue> inputs, ParamValues parameters)

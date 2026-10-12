@@ -20,7 +20,7 @@ public sealed class TableDistinctNode : ISchemaNode
         Schemas: [SchemaSpec.Inferred("table")]);
 
     public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
-        => SchemaInputs.Run(Spec, inputs, schemas => SchemaRules.Distinct(schemas[0], parameters.GetText("columns").SplitNames()));
+        => SchemaInputs.Run(Spec, inputs, schemas => SchemaRules.Distinct(schemas[0], parameters.GetText("columns").SplitNames()), throughDuckDb: true);
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context,
         IReadOnlyList<FlowValue> inputs, ParamValues parameters)

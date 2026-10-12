@@ -56,7 +56,7 @@ public sealed class TableCastNode : ISchemaNode
         {
             var args = Args.Read(parameters);
             return SchemaRules.Cast(schemas[0], args.Column, args.OutputType, args.Name.Length == 0 ? null : args.Name);
-        });
+        }, throughDuckDb: true);
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context,
         IReadOnlyList<FlowValue> inputs, ParamValues parameters)

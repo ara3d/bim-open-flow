@@ -1,11 +1,14 @@
 using Ara3D.BimOpenSchema.DuckDb;
 using Ara3D.DataFlowEngine.Abstractions;
+using SchemaRules = BimOpenFlow.Relations.SchemaRules;
+using SchemaInputs = BimOpenFlow.Relations.SchemaInputs;
+using WindowFunction = BimOpenFlow.Relations.WindowFunction;
 
 namespace BimOpenFlow.Nodes.TableOps;
 
 /// <summary>Adds one window-function column — rankings, lag/lead, running totals,
 /// moving averages, share-of-total — leaving the input rows and order unchanged.</summary>
-public sealed class TableWindowNode : IFlowNode
+public sealed class TableWindowNode : ISchemaNode
 {
     public const string Kind = "table.window";
 
@@ -26,33 +29,56 @@ public sealed class TableWindowNode : IFlowNode
             new ParamSpec("windowSize", ParamKind.Integer, "3"),
             new ParamSpec("name", ParamKind.Text),
         ],
-        "Adds one window-function column: ranking, lag/lead, cumulative sum, moving average, or percent of total.");
+        "Adds one window-function column: ranking, lag/lead, cumulative sum, moving average, or percent of total.",
+        Schemas: [SchemaSpec.Inferred("table")]);
+
+    /// <summary>The parameters, checked; evaluation and the shape rule both read them here.</summary>
+    private readonly record struct Args(string Function, string Name, string? Column, IReadOnlyList<string> PartitionBy,
+        IReadOnlyList<string> OrderColumns, long Offset, long WindowSize)
+    {
+        public bool Ranking => Function is "rowNumber" or "rank" or "denseRank";
+
+        public static Args Read(ParamValues parameters)
+        {
+            var function = parameters.RequiredEnum("function", Kind, "", Functions);
+            var offset = parameters.GetInteger("offset", 1);
+            if (offset < 0)
+                throw new ArgumentException($"{Kind}: parameter 'offset' must be a non-negative integer.");
+            var windowSize = parameters.GetInteger("windowSize", 3);
+            if (windowSize < 1)
+                throw new ArgumentException($"{Kind}: parameter 'windowSize' must be at least 1.");
+            var ranking = function is "rowNumber" or "rank" or "denseRank";
+            return new Args(function, parameters.RequiredText("name", Kind),
+                ranking ? null : parameters.RequiredText("column", Kind),
+                parameters.GetText("partitionBy").SplitNames(),
+                SortSyntax.ParseKeys(parameters.GetText("orderBy"), Kind).Select(k => k.Column).ToList(),
+                offset, windowSize);
+        }
+    }
+
+    public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
+        => SchemaInputs.Run(Spec, inputs, schemas =>
+        {
+            var args = Args.Read(parameters);
+            return SchemaRules.Window(schemas[0], args.Name, Enum.Parse<WindowFunction>(args.Function, ignoreCase: true),
+                args.Column, args.PartitionBy, args.OrderColumns);
+        }, throughDuckDb: true);
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context,
         IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {
         var table = inputs.TableInput(0, Kind);
-        var function = parameters.RequiredEnum("function", Kind, "", Functions);
-        var name = parameters.RequiredText("name", Kind);
+        var (function, name, columnParameter, partitionNames, _, offset, windowSize) = Args.Read(parameters);
         if (table.ColumnIndex(name) >= 0)
             throw new ArgumentException($"{Kind}: column '{name}' already exists.");
 
-        var ranking = function is "rowNumber" or "rank" or "denseRank";
-        var column = ranking ? "" : table.CanonicalName(parameters.RequiredText("column", Kind), Kind);
-        var partitionBy = parameters.GetText("partitionBy").SplitNames()
-            .Select(n => table.CanonicalName(n, Kind).Ident()).ToList();
+        var column = columnParameter is null ? "" : table.CanonicalName(columnParameter, Kind);
+        var partitionBy = partitionNames.Select(n => table.CanonicalName(n, Kind).Ident()).ToList();
         var ord = TableColumns.FreeName("__row__", table);
         var userOrder = table.SortTerms(parameters.GetText("orderBy"), Kind);
         var fullOrder = string.Join(", ", userOrder.Append($"{ord.Ident()} ASC"));
         var rankOrder = userOrder.Count > 0 ? string.Join(", ", userOrder) : $"{ord.Ident()} ASC";
         var partition = partitionBy.Count > 0 ? $"PARTITION BY {string.Join(", ", partitionBy)} " : "";
-
-        var offset = parameters.GetInteger("offset", 1);
-        if (offset < 0)
-            throw new ArgumentException($"{Kind}: parameter 'offset' must be a non-negative integer.");
-        var windowSize = parameters.GetInteger("windowSize", 3);
-        if (windowSize < 1)
-            throw new ArgumentException($"{Kind}: parameter 'windowSize' must be at least 1.");
 
         var expr = function switch
         {

@@ -14,7 +14,16 @@ public sealed class TableSchemaNode : IFlowNode
         Inputs: [new PortSpec("table", PortType.Table)],
         Outputs: [new PortSpec("schema", PortType.Table)],
         Params: [],
-        "Outputs the table's columns as a table: name, type, and index.");
+        "Outputs the table's columns as a table: name, type, and index.",
+        Schemas: [SchemaSpec.Static("schema", Shape)]);
+
+    /// <summary>The output columns, whatever the input; none is ever null.</summary>
+    private static readonly Schema Shape = new(
+    [
+        new Column("column", ColumnType.Text, Nullable: false),
+        new Column("type", ColumnType.Text, Nullable: false),
+        new Column("index", ColumnType.Integer, Nullable: false),
+    ]);
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context,
         IReadOnlyList<FlowValue> inputs, ParamValues parameters)

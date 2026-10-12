@@ -1,11 +1,13 @@
 using Ara3D.BimOpenSchema.DuckDb;
 using Ara3D.DataFlowEngine.Abstractions;
+using SchemaRules = BimOpenFlow.Relations.SchemaRules;
+using SchemaInputs = BimOpenFlow.Relations.SchemaInputs;
 
 namespace BimOpenFlow.Nodes.Cleaning;
 
 /// <summary>Replaces values in one text column by exact match, substring, or
 /// regular expression, optionally case-insensitive.</summary>
-public sealed class TableReplaceNode : IFlowNode
+public sealed class TableReplaceNode : ISchemaNode
 {
     public const string Kind = "table.replace";
 
@@ -21,7 +23,13 @@ public sealed class TableReplaceNode : IFlowNode
             new ParamSpec("match", ParamKind.Enum, "exact", ["exact", "substring", "regex"]),
             new ParamSpec("caseSensitive", ParamKind.Boolean, "true"),
         ],
-        "Replaces 'find' with 'replaceWith' in a text column, by exact/substring/regex match.");
+        "Replaces 'find' with 'replaceWith' in a text column, by exact/substring/regex match.",
+        Schemas: [SchemaSpec.Inferred("table")]);
+
+    /// <summary>The shape stays; the column must be Text.</summary>
+    public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
+        => SchemaInputs.Run(Spec, inputs, schemas => SchemaRules.TextInPlace(schemas[0], [parameters.RequiredText("column", Kind)]),
+            throughDuckDb: true);
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context,
         IReadOnlyList<FlowValue> inputs, ParamValues parameters)

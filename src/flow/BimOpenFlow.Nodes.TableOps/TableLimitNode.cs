@@ -39,7 +39,7 @@ public sealed class TableLimitNode : ISchemaNode
         {
             ReadRange(parameters);
             return SchemaResult.Of(schemas[0]);
-        });
+        }, throughDuckDb: true);
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context,
         IReadOnlyList<FlowValue> inputs, ParamValues parameters)

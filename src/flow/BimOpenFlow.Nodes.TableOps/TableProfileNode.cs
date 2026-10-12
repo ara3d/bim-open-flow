@@ -17,7 +17,21 @@ public sealed class TableProfileNode : IFlowNode
         Inputs: [new PortSpec("table", PortType.Table)],
         Outputs: [new PortSpec("profile", PortType.Table)],
         Params: [],
-        "Profiles every column: type, counts, distinct count, min, max, and mean.");
+        "Profiles every column: type, counts, distinct count, min, max, and mean.",
+        Schemas: [SchemaSpec.Static("profile", Shape)]);
+
+    /// <summary>The output columns, whatever the input: the sampled statistics are nullable, the identity and counts are not.</summary>
+    private static readonly Schema Shape = new(
+    [
+        new Column("column", ColumnType.Text, Nullable: false),
+        new Column("type", ColumnType.Text, Nullable: false),
+        new Column("count", ColumnType.Integer, Nullable: false),
+        new Column("nullCount", ColumnType.Integer, Nullable: false),
+        new Column("distinctCount", ColumnType.Integer),
+        new Column("min", ColumnType.Text),
+        new Column("max", ColumnType.Text),
+        new Column("mean", ColumnType.Number),
+    ]);
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context,
         IReadOnlyList<FlowValue> inputs, ParamValues parameters)

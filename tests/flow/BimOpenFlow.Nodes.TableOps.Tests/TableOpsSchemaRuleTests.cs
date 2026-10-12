@@ -158,7 +158,7 @@ public sealed class TableOpsSchemaRuleTests
     public void Drop_MatchesEvaluation()
     {
         SchemaGolden.AssertMatchesEvaluation(new TableDropNode(), [Sample], ("columns", "height, CATEGORY"));
-        SchemaGolden.AssertFails(new TableDropNode(), [Sample], "No column named 'Width'", ("columns", "Width"));
+        Assert.That(SchemaGolden.Warnings(new TableDropNode(), [Sample], ("columns", "Width")), Has.Some.Contain("No column named 'Width'"));
         SchemaGolden.AssertFails(new TableDropNode(), [Sample], "empty table", ("columns", "Name, Height, Count, Category"));
     }
 
@@ -173,7 +173,7 @@ public sealed class TableOpsSchemaRuleTests
     public void Rename_MatchesEvaluationKeepingTheStoredSpellingOfTheRest()
     {
         SchemaGolden.AssertMatchesEvaluation(new TableRenameNode(), [Sample], ("renames", "name=Label, HEIGHT=Metres"));
-        SchemaGolden.AssertFails(new TableRenameNode(), [Sample], "No column named 'Width'", ("renames", "Width=W"));
+        Assert.That(SchemaGolden.Warnings(new TableRenameNode(), [Sample], ("renames", "Width=W")), Has.Some.Contain("No column named 'Width'"));
         SchemaGolden.AssertFails(new TableRenameNode(), [Sample], "duplicate column", ("renames", "Name=Count"));
         SchemaGolden.AssertFails(new TableRenameNode(), [Sample], "renamed more than once", ("renames", "Name=A, name=B"));
         SchemaGolden.AssertFails(new TableRenameNode(), [Sample], "cannot parse rename", ("renames", "Name"));

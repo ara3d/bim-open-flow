@@ -1,11 +1,13 @@
 using Ara3D.BimOpenSchema.DuckDb;
 using Ara3D.DataFlowEngine.Abstractions;
+using SchemaRules = BimOpenFlow.Relations.SchemaRules;
+using SchemaInputs = BimOpenFlow.Relations.SchemaInputs;
 
 namespace BimOpenFlow.Nodes.Cleaning;
 
 /// <summary>Applies trim/upper/lower/normalizeSpace in place to the named text
 /// columns (empty = every text column) — the standard pre-join whitespace fix.</summary>
-public sealed class TextTransformNode : IFlowNode
+public sealed class TextTransformNode : ISchemaNode
 {
     public const string Kind = "text.transform";
 
@@ -18,7 +20,13 @@ public sealed class TextTransformNode : IFlowNode
             new ParamSpec("columns", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table"), List: true),
             new ParamSpec("op", ParamKind.Enum, "trim", ["trim", "upper", "lower", "normalizeSpace"]),
         ],
-        "Applies trim/upper/lower/normalizeSpace to 'columns' (empty = every text column) in place.");
+        "Applies trim/upper/lower/normalizeSpace to 'columns' (empty = every text column) in place.",
+        Schemas: [SchemaSpec.Inferred("table")]);
+
+    /// <summary>The shape stays; every named column must be Text.</summary>
+    public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
+        => SchemaInputs.Run(Spec, inputs, schemas => SchemaRules.TextInPlace(schemas[0], parameters.GetText("columns").SplitNames()),
+            throughDuckDb: true);
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context,
         IReadOnlyList<FlowValue> inputs, ParamValues parameters)

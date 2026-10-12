@@ -1,6 +1,8 @@
 using System.Globalization;
 using Ara3D.BimOpenSchema.DuckDb;
 using Ara3D.DataFlowEngine.Abstractions;
+using SchemaRules = BimOpenFlow.Relations.SchemaRules;
+using SchemaInputs = BimOpenFlow.Relations.SchemaInputs;
 using Ara3D.DataTable;
 
 namespace BimOpenFlow.Nodes.Cleaning;
@@ -8,7 +10,7 @@ namespace BimOpenFlow.Nodes.Cleaning;
 /// <summary>Fills nulls in the named columns with a typed constant, or the nearest
 /// earlier (forward) or later (backward) non-null value in the table's row order,
 /// resetting at 'partitionBy' boundaries.</summary>
-public sealed class TableFillNullsNode : IFlowNode
+public sealed class TableFillNullsNode : ISchemaNode
 {
     public const string Kind = "table.fillNulls";
 
@@ -23,7 +25,16 @@ public sealed class TableFillNullsNode : IFlowNode
             new ParamSpec("value", ParamKind.Text),
             new ParamSpec("partitionBy", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table"), List: true),
         ],
-        "Fills nulls in 'columns' with a constant, or the nearest earlier/later non-null value in row order.");
+        "Fills nulls in 'columns' with a constant, or the nearest earlier/later non-null value in row order.",
+        Schemas: [SchemaSpec.Inferred("table")]);
+
+    private static string ReadStrategy(ParamValues parameters)
+        => parameters.RequiredEnum("strategy", Kind, "constant", "constant", "forward", "backward");
+
+    public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
+        => SchemaInputs.Run(Spec, inputs, schemas => SchemaRules.FillNulls(schemas[0],
+            parameters.RequiredText("columns", Kind).SplitNames(), ReadStrategy(parameters) == "constant",
+            parameters.GetText("value"), parameters.GetText("partitionBy").SplitNames()), throughDuckDb: true);
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context,
         IReadOnlyList<FlowValue> inputs, ParamValues parameters)
@@ -31,7 +42,7 @@ public sealed class TableFillNullsNode : IFlowNode
         var table = inputs.TableInput(0, Kind);
         var targets = parameters.RequiredText("columns", Kind).SplitNames()
             .Select(n => table.RequireColumn(n, Kind)).ToList();
-        var strategy = parameters.RequiredEnum("strategy", Kind, "constant", "constant", "forward", "backward");
+        var strategy = ReadStrategy(parameters);
         var partitions = parameters.GetText("partitionBy").SplitNames()
             .Select(n => DuckTableSql.QuoteIdent(table.RequireColumn(n, Kind).Descriptor.Name)).ToList();
         var ordinal = table.OrdinalName();

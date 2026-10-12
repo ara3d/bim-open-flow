@@ -64,7 +64,7 @@ public sealed partial class TableAggregateNode : ISchemaNode
 
     public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
         => SchemaInputs.Run(Spec, inputs, schemas => SchemaRules.Aggregate(schemas[0],
-            parameters.GetText("groupBy").SplitNames(), ReadAggregations(parameters)));
+            parameters.GetText("groupBy").SplitNames(), ReadAggregations(parameters)), throughDuckDb: true);
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {

@@ -9,6 +9,24 @@ public class SchemaRulesTests
 
     static string Names(SchemaResult r) => r.Ok ? string.Join(",", r.Schema!.Columns.Select(c => $"{c.Name}:{c.Type}")) : r.ToString();
 
+    [Test] public void NearestNameIgnoresCaseAndGivesUpWhenFar()
+    {
+        Assert.That(SchemaRules.NearestName(["id", "height", "name"], "Heigth"), Is.EqualTo("height"));
+        Assert.That(SchemaRules.NearestName(["id", "height", "name"], "volume"), Is.Null);
+    }
+    [Test] public void MissingColumnFailureOffersTheNearest() => Assert.That(Names(SchemaRules.Drop(Walls, ["nam"])), Is.EqualTo("No column named 'nam'; did you mean 'name'?"));
+    [Test] public void SkippedMissingColumnsAreWarningsOnAnOkResult()
+    {
+        var dropped = SchemaRules.Drop(Walls, ["width", "HEIGHT"], skipMissing: true);
+        Assert.That(Names(dropped), Is.EqualTo("id:Integer,name:Text"));
+        Assert.That(dropped.Warnings.Select(w => w.Message), Is.EqualTo(new[] { "No column named 'width'." }));
+        var renamed = SchemaRules.Rename(Walls, [new("nme", "label")], skipMissing: true);
+        Assert.That(renamed.Ok, Is.True);
+        Assert.That(renamed.Warnings, Has.Count.EqualTo(1));
+        Assert.That(SchemaRules.Select(Walls, [new Projection("zzz", null)], skipMissing: true).Warnings, Has.Count.EqualTo(1));
+    }
+    [Test] public void RightOutputNamesRepeatTheSuffixUntilFree()
+        => Assert.That(SchemaRules.RightOutputNames(["x", "x_b"], ["x", "y"], "_b"), Is.EqualTo(new[] { "x_b_b", "y" }));
     [Test] public void DropKeepsTheRest() => Assert.That(Names(SchemaRules.Drop(Walls, ["HEIGHT"])), Is.EqualTo("id:Integer,name:Text"));
     [Test] public void DropUnknown() => Assert.That(Names(SchemaRules.Drop(Walls, ["width"])), Is.EqualTo("No column named 'width'."));
     [Test] public void DropEverything() => Assert.That(SchemaRules.Drop(Walls, ["id", "height", "name"]).Ok, Is.False);

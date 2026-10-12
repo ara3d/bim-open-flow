@@ -32,10 +32,27 @@ public static partial class SchemaRules
         var rightKeys = options.DropRightKeys
             ? keys.Select(k => right.Find(k.Right)!.Value.Name).ToHashSet()
             : [];
-        var rightColumns = right.Columns
-            .Where(c => !rightKeys.Contains(c.Name))
-            .Select(c => left.Has(c.Name) ? c with { Name = c.Name + options.RightSuffix } : c);
-        return SchemaResult.Of(new Schema([.. left.Columns, .. rightColumns]));
+        var carried = right.Columns.Where(c => !rightKeys.Contains(c.Name)).ToList();
+        var names = RightOutputNames(left.Columns.Select(c => c.Name), carried.Select(c => c.Name).ToList(), options.RightSuffix);
+        return SchemaResult.Of(new Schema([.. left.Columns, .. carried.Select((c, i) => c with { Name = names[i] })]));
+    }
+
+    /// <summary>The names the right side's carried columns take in a join's output. A column the left does
+    /// not have keeps its name. A column whose name the left has (ignoring case) gets the suffix, and the
+    /// suffix again until the name is free of the left's names, the right's unrenamed names and the
+    /// names already given: a = [x, x_b] joined with b = [x] yields x_b_b, never a second x_b. The run
+    /// and the rule both call this, so they cannot disagree.</summary>
+    public static IReadOnlyList<string> RightOutputNames(IEnumerable<string> leftNames, IReadOnlyList<string> rightNames, string suffix)
+    {
+        var left = leftNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var taken = left.Concat(rightNames.Where(n => !left.Contains(n))).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return rightNames.Select(name =>
+        {
+            if (!left.Contains(name)) return name;
+            var renamed = name + suffix;
+            while (!taken.Add(renamed)) renamed += suffix;
+            return renamed;
+        }).ToList();
     }
 
     /// <summary>Union by position: the inputs must have the same column count and unifiable types.

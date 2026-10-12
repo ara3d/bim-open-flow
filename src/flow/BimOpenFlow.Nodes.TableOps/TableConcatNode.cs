@@ -43,7 +43,7 @@ public sealed class TableConcatNode : ISchemaNode
                 return SchemaRules.UnionByName(schemas[0], schemas[1]);
             RequireIdenticalSequences(schemas[0].Columns.Select(c => c.Name).ToList(), schemas[1].Columns.Select(c => c.Name).ToList());
             return SchemaRules.Union(schemas);
-        });
+        }, throughDuckDb: true);
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context,
         IReadOnlyList<FlowValue> inputs, ParamValues parameters)

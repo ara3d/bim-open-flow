@@ -25,7 +25,7 @@ public sealed class TableDeriveNode : ISchemaNode
     public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
         => SchemaInputs.Run(Spec, inputs, schemas => SchemaRules.Derive(schemas[0],
             parameters.RequiredText("name", Kind),
-            TableExpressions.Parse(Kind, "expr", parameters.RequiredText("expr", Kind)).Root!));
+            TableExpressions.Parse(Kind, "expr", parameters.RequiredText("expr", Kind)).Root!, nullIsError: true));
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {
@@ -37,7 +37,7 @@ public sealed class TableDeriveNode : ISchemaNode
         var bindings = table.Bindings();
         var expr = TableExpressions.Compile(Kind, "expr", parameters.RequiredText("expr", Kind), bindings);
         var type = expr.Type
-            ?? throw new ArgumentException($"{Kind}: 'expr' is always null; its column type cannot be inferred.");
+            ?? throw new ArgumentException($"{Kind}: {SchemaRules.AlwaysNullMessage}");
 
         var values = new object?[table.Rows.Count];
         for (var row = 0; row < values.Length; row++)

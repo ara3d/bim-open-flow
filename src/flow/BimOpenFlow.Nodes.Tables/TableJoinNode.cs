@@ -86,14 +86,10 @@ public sealed class TableJoinNode : ISchemaNode
                         values[i] = b[bKeyCol, bRows[i]];
             builder.AddColumn(values, c.Descriptor.Name, c.Descriptor.Type);
         }
-        var aNames = a.Columns.Select(c => c.Descriptor.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        foreach (var c in b.Columns)
-        {
-            if (c.ColumnIndex == bKeyCol)
-                continue;
-            var name = aNames.Contains(c.Descriptor.Name) ? c.Descriptor.Name + Options.RightSuffix : c.Descriptor.Name;
-            builder.AddColumn(Select(b, c.ColumnIndex, bRows), name, c.Descriptor.Type);
-        }
+        var carried = b.Columns.Where(c => c.ColumnIndex != bKeyCol).ToList();
+        var names = SchemaRules.RightOutputNames(a.Names(), carried.Select(c => c.Descriptor.Name).ToList(), Options.RightSuffix);
+        for (var i = 0; i < carried.Count; i++)
+            builder.AddColumn(Select(b, carried[i].ColumnIndex, bRows), names[i], carried[i].Descriptor.Type);
         return [new TableValue(builder.Build())];
     }
 

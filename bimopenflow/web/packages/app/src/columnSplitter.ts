@@ -26,7 +26,8 @@ export const SPLITTER_TOTAL = 12;
 export const columnWidth = (root: HTMLElement, cssVar: string, fallback: number): number =>
   parseFloat(getComputedStyle(root).getPropertyValue(cssVar)) || fallback;
 
-/** The left column of a three-column layout, under `--bof-app-left`. */
+/** The left column of a three-column layout, under `--bof-app-left`: about
+ *  200 px on a fresh browser, down to 160 by dragging (TKT-279). */
 export const LEFT_SPLIT: SplitterConfig = {
   cssVar: "--bof-app-left",
   storageKey: "bof-app-left-width",
@@ -36,7 +37,7 @@ export const LEFT_SPLIT: SplitterConfig = {
     520,
     window.innerWidth - columnWidth(root, "--bof-app-right", 420) - SPLITTER_TOTAL - MIN_CANVAS,
   )),
-  fallback: 240,
+  fallback: 200,
 };
 
 /** The right column, under `--bof-app-right`. */
@@ -46,7 +47,7 @@ export const RIGHT_SPLIT: SplitterConfig = {
   sign: -1,
   min: 240,
   max: (root) => Math.max(240,
-    window.innerWidth - columnWidth(root, "--bof-app-left", 240) - SPLITTER_TOTAL - MIN_CANVAS),
+    window.innerWidth - columnWidth(root, "--bof-app-left", LEFT_SPLIT.fallback) - SPLITTER_TOTAL - MIN_CANVAS),
   fallback: 420,
 };
 

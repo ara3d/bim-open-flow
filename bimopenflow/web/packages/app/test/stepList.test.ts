@@ -165,6 +165,20 @@ describe("createStepList", () => {
     expect(buttons[1]!.querySelector(".bof-app-steps-meta")!.textContent).toBe("from 1, 2");
   });
 
+  it("wraps the title, id, and description in a narrow sidebar instead of cutting them (TKT-279)", () => {
+    const { host, list } = mount();
+    document.body.append(host);
+    list.render([step({ description: "Runs SQL over DuckDB.", summary: "sql = select 1" })]);
+    const style = (cls: string) => getComputedStyle(host.querySelector(`.bof-app-steps-${cls}`)!);
+    for (const cls of ["title", "description"]) {
+      expect(style(cls).whiteSpace, cls).not.toBe("nowrap");
+      expect(style(cls).textOverflow, cls).not.toBe("ellipsis");
+      expect(style(cls).overflowWrap, cls).toBe("anywhere");
+    }
+    expect(style("summary").whiteSpace).toBe("nowrap");
+    host.remove();
+  });
+
   it("omits the row count when the step has none", () => {
     const { host, list } = mount();
     list.render([step({ status: "Ok", badge: "Ok" })]);

@@ -32,6 +32,16 @@ public sealed class DocumentToolTests : FlowToolFixture
     }
 
     [Test]
+    public void GetAnalysis_ListsTheColumnsOfEachTableOutputWithoutRunning()
+    {
+        AuthorInlineSort("shape");
+        FlowEditTools.SetParam(Services, "shape", "sort", "by", "nmae");
+        var schemas = Json(FlowDocumentTools.GetAnalysis(Services, "shape")).GetProperty("schemas").EnumerateArray().ToList();
+        var data = schemas.Single(s => s.GetProperty("node").GetString() == "data");
+        Assert.That(data.GetProperty("columns").EnumerateArray().Select(c => c.GetString()), Is.EqualTo(new[] { "name:Text" }));
+    }
+
+    [Test]
     public void SaveAnalysis_InvalidDocumentDoesNotLand()
     {
         var badDoc = """
@@ -80,11 +90,12 @@ public sealed class DocumentToolTests : FlowToolFixture
             => Json(FlowDocumentTools.GetNodeCatalog(Services)).EnumerateArray()
                 .Single(n => n.GetProperty("kind").GetString() == kind);
 
-        var range = Node("table.range").GetProperty("schemas").EnumerateArray().Single();
-        Assert.That(range.GetProperty("mode").GetString(), Is.EqualTo("Static"));
-        Assert.That(range.GetProperty("columns").EnumerateArray().Single().GetProperty("type").GetString(), Is.EqualTo("Number"));
+        var profile = Node("table.profile").GetProperty("schemas").EnumerateArray().Single();
+        Assert.That(profile.GetProperty("mode").GetString(), Is.EqualTo("Static"));
+        Assert.That(profile.GetProperty("columns").EnumerateArray().First().GetProperty("type").GetString(), Is.Not.Empty);
+        Assert.That(Node("table.range").GetProperty("schemas").EnumerateArray().Single().GetProperty("mode").GetString(), Is.EqualTo("Inferred"));
         Assert.That(Node("table.pivot").GetProperty("schemas").EnumerateArray().Single().GetProperty("mode").GetString(), Is.EqualTo("Dynamic"));
-        Assert.That(Node("table.sort").TryGetProperty("schemas", out _), Is.False, "omitted when undeclared");
+        Assert.That(Node("chart.bar").TryGetProperty("schemas", out _), Is.False, "omitted when undeclared");
     }
 
     [Test]

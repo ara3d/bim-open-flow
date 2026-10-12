@@ -59,7 +59,7 @@ public sealed class RelLimitNode(RelationRuntime runtime) : UnaryRelationNode(ru
 }
 
 public sealed class RelAggregateNode(RelationRuntime runtime) : UnaryRelationNode(runtime, Kind,
-    [Columns("groupBy"), new ParamSpec("aggregates", ParamKind.Text, List: true)],
+    [Columns("groupBy"), new ParamSpec("aggregates", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("input", ColumnUse.Aggregate), List: true)],
     "Groups by the comma-separated columns (may be empty) and computes 'func(column) as name' aggregates (count/sum/min/max/avg).")
 {
     public const string Kind = "rel.aggregate";
@@ -76,8 +76,8 @@ public sealed class RelJoinNode(RelationRuntime runtime) : IFlowNode
         Outputs: [new PortSpec("relation", PortType.Relation)],
         Params:
         [
-            new ParamSpec("leftKey", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("left")),
-            new ParamSpec("rightKey", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("right")),
+            new ParamSpec("leftKey", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("left", ColumnUse.JoinKey, "right")),
+            new ParamSpec("rightKey", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("right", ColumnUse.JoinKey, "left")),
             new ParamSpec("kind", ParamKind.Enum, "inner", ["inner", "left", "right", "full", "semi", "anti"]),
         ],
         "Joins left to right on one key each. Right columns that collide with left ones get a _right suffix.");

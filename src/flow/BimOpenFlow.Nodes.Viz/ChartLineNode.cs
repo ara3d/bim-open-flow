@@ -16,7 +16,7 @@ public sealed class ChartLineNode : IFlowNode
         Params:
         [
             new ParamSpec("xColumn", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table")),
-            new ParamSpec("yColumns", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table"), List: true),
+            new ParamSpec("yColumns", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table", ColumnUse.Value), List: true),
             new ParamSpec("title", ParamKind.Text),
         ],
         "Projects 'xColumn' plus the comma-separated numeric 'yColumns' for the "

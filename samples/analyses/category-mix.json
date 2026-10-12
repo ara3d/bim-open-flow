@@ -3,13 +3,13 @@
   "layout": {
     "about": { "x": 40, "y": 40, "w": 560, "h": 104 },
     "orders": { "x": 40, "y": 224 },
-    "products": { "x": 40, "y": 408 },
-    "priced": { "x": 370, "y": 224 },
-    "revenue": { "x": 700, "y": 224 },
-    "byCategory": { "x": 1030, "y": 224 },
-    "ranked": { "x": 1360, "y": 224 },
-    "answer": { "x": 1690, "y": 224 },
-    "chart": { "x": 1690, "y": 408 }
+    "products": { "x": 40, "y": 430 },
+    "priced": { "x": 650, "y": 224 },
+    "revenue": { "x": 960, "y": 224 },
+    "byCategory": { "x": 1270, "y": 224 },
+    "ranked": { "x": 1730, "y": 224 },
+    "answer": { "x": 2040, "y": 224 },
+    "chart": { "x": 2040, "y": 440 }
   },
   "structure": {
     "edges": [

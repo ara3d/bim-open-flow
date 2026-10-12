@@ -3,7 +3,7 @@
   "layout": {
     "about": { "x": 40, "y": 40, "w": 560, "h": 104 },
     "warehouse": { "x": 40, "y": 224 },
-    "answer": { "x": 370, "y": 224 }
+    "answer": { "x": 650, "y": 224 }
   },
   "structure": {
     "edges": [

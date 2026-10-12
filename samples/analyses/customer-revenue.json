@@ -3,12 +3,12 @@
   "layout": {
     "about": { "x": 40, "y": 40, "w": 560, "h": 104 },
     "orders": { "x": 40, "y": 224 },
-    "products": { "x": 40, "y": 408 },
-    "customers": { "x": 40, "y": 592 },
-    "joined": { "x": 370, "y": 224 },
-    "revenue": { "x": 700, "y": 224 },
-    "ranked": { "x": 1030, "y": 224 },
-    "answer": { "x": 1360, "y": 224 }
+    "products": { "x": 40, "y": 430 },
+    "customers": { "x": 40, "y": 630 },
+    "joined": { "x": 650, "y": 224 },
+    "revenue": { "x": 1220, "y": 224 },
+    "ranked": { "x": 1730, "y": 224 },
+    "answer": { "x": 2040, "y": 224 }
   },
   "structure": {
     "edges": [

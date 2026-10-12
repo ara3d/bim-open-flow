@@ -3,9 +3,9 @@
   "layout": {
     "about": { "x": 40, "y": 40, "w": 560, "h": 104 },
     "csvOrders": { "x": 40, "y": 224 },
-    "dbOrders": { "x": 40, "y": 408 },
-    "common": { "x": 370, "y": 224 },
-    "answer": { "x": 700, "y": 224 }
+    "dbOrders": { "x": 40, "y": 430 },
+    "common": { "x": 650, "y": 224 },
+    "answer": { "x": 960, "y": 224 }
   },
   "structure": {
     "edges": [

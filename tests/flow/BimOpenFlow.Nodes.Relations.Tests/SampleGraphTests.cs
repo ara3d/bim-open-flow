@@ -1,5 +1,6 @@
 using Ara3D.DataFlowEngine;
 using Ara3D.NodeGraph;
+using BimOpenFlow.Nodes.Viz;
 using BimOpenFlow.TestSupport;
 
 namespace BimOpenFlow.Nodes.Relations.Tests;
@@ -15,8 +16,9 @@ public sealed class SampleGraphTests
             .Order(StringComparer.Ordinal)
             .Select(f => new TestCaseData(f).SetArgDisplayNames(Path.GetFileNameWithoutExtension(f)));
 
+    /// <summary>The relation pack plus the viz pack, so a sample's view.note validates.</summary>
     private static NodeRegistry Registry
-        => new(RelationNodes.All(RelationRuntime.FromRoots([RepoPaths.Samples("tables")])));
+        => new([.. RelationNodes.All(RelationRuntime.FromRoots([RepoPaths.Samples("tables")])), .. VizNodes.All]);
 
     [Test]
     public void ThereAreSamples()

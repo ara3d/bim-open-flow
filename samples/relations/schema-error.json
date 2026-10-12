@@ -1,13 +1,19 @@
 {
   "formatVersion": "0.1.0",
   "layout": {
-    "answer": {
-      "x": 370,
-      "y": 40
+    "about": {
+      "x": 40,
+      "y": 40,
+      "w": 560,
+      "h": 104
     },
     "orders": {
       "x": 40,
-      "y": 40
+      "y": 224
+    },
+    "answer": {
+      "x": 370,
+      "y": 224
     }
   },
   "structure": {
@@ -18,6 +24,11 @@
       }
     ],
     "nodes": [
+      {
+        "id": "about",
+        "kind": "view.note",
+        "version": 1
+      },
       {
         "id": "answer",
         "kind": "rel.filter",
@@ -31,6 +42,9 @@
     ]
   },
   "values": {
+    "about": {
+      "text": "Quantiy is misspelled on purpose: the error is reported before any rows are read. Click answer to see the message naming the unknown column; fix the spelling to Quantity and the filter keeps the 2 orders of 100 units or more."
+    },
     "answer": {
       "expr": "[Quantiy] >= 100"
     },

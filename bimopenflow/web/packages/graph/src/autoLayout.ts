@@ -1,4 +1,5 @@
 import { v, wireAt } from 'gratify';
+import { layoutIssues, paintedBox } from './layoutCheck.js';
 import { nodeFootprint, type CardBox } from './nodeRender.js';
 import { NOTE_KIND } from './nodeSize.js';
 import { socketOffset } from './portGeometry.js';
@@ -73,6 +74,24 @@ function crossings(segments: readonly Segment[], rank: ReadonlyMap<string, numbe
   return count;
 }
 
+/** `layer` with each run of items that tie on `centre` (all fed from one
+ *  socket, say) rearranged so its lanes sit in the middle, half the cards
+ *  above and half below: a wire that passes the layer then leaves the socket
+ *  straight instead of cutting across the cards beside it. */
+function lanesInTheMiddle(layer: readonly Item[], centre: ReadonlyMap<string, number>): Item[] {
+  const out: Item[] = [];
+  for (let i = 0; i < layer.length;) {
+    let j = i;
+    while (j < layer.length && centre.get(layer[j]!.id) === centre.get(layer[i]!.id)) j++;
+    const run = layer.slice(i, j);
+    const cards = run.filter(item => !item.lane);
+    const half = Math.floor(cards.length / 2);
+    out.push(...cards.slice(0, half), ...run.filter(item => item.lane), ...cards.slice(half));
+    i = j;
+  }
+  return out;
+}
+
 /** The heights minimising the weighted squared distance to `want`, keeping
  *  each item at least `space[i]` below the one before it: isotonic
  *  regression, by pooling adjacent violators, over height minus the space
@@ -92,18 +111,64 @@ function packToward(want: readonly number[], weight: readonly number[], space: r
   return blocks.flatMap(b => Array<number>(b.count).fill(b.value)).map((z, i) => z + offset[i]!);
 }
 
+/** Settings one layout attempt runs with. */
+interface Tuning {
+  /** How strongly a wire that skips layers pulls its two ends level, against 1 for a wire between neighbours. */
+  readonly laneWeight: number;
+  /** Furthest the clearing pass moves a card in one step; 0 skips the pass. */
+  readonly maxPush: number;
+  /** Whether lanesInTheMiddle rearranges ties. */
+  readonly middleLanes: boolean;
+  /** Whether cards nothing reads from (tables, charts) go to the top of their layer, out of the way of wires passing on. */
+  readonly sinksFirst: boolean;
+}
+
+/** The attempts autoLayout makes. No one setting suits every graph: a strong
+ *  lane pull keeps long wires straight but can bend the short ones round a
+ *  card; an unbounded push clears a wire but can pile a layer up. */
+const TUNINGS: readonly Tuning[] = [false, true].flatMap(sinksFirst => [true, false].flatMap(middleLanes => [
+  { laneWeight: 30, maxPush: 160, middleLanes, sinksFirst },
+  { laneWeight: 30, maxPush: Infinity, middleLanes, sinksFirst },
+  { laneWeight: 30, maxPush: 0, middleLanes, sinksFirst },
+  { laneWeight: 4, maxPush: Infinity, middleLanes, sinksFirst },
+  { laneWeight: 4, maxPush: 160, middleLanes, sinksFirst },
+]));
+
+/** What growing a layout to twice the area of the smallest attempt costs,
+ *  in wires behind cards: a tall, sparse layout that clears one more wire
+ *  is not worth reading. */
+const AREA_COST = 4;
+
 /** Layered layout, left to right (Sugiyama's method, kept small): layers by
- *  longest path, a lane for each wire that skips a layer so no wire is drawn
- *  behind a card, barycentre sweeps that keep the order with fewest
- *  crossings, and cards slid up or down so each wire runs as straight as it
- *  can between its two sockets. Notes go in a row above the flow. Cards are
- *  spaced by their painted footprints, so nothing overlaps.
+ *  longest path, a lane for each wire that skips a layer, barycentre sweeps
+ *  that keep the order with fewest crossings, cards slid up or down so each
+ *  wire runs as straight as it can between its two sockets, and a pass that
+ *  moves cards out of the curves the wires are drawn as. Notes go in a row
+ *  above the flow. Cards are spaced by their painted footprints, so nothing
+ *  overlaps. Each of TUNINGS is tried and layoutCheck picks the result with
+ *  no overlap and the best trade (AREA_COST) of wires behind cards against area.
  *
  *  Flow is always left to right, the way the sockets face (inputs on the
  *  left edge, outputs on the right): stacking layers top to bottom bent every
  *  wire back on itself. `_viewport` is unused since that choice went. */
 export function autoLayout(canvas: CanvasModel, _viewport?: { width: number; height: number }): Positions {
   const model = mainFlow(canvas);
+  const scored = TUNINGS.map(tuning => {
+    const at = layoutWith(model, tuning);
+    const placed = { ...model, nodes: model.nodes.map(n => ({ ...n, ...at[n.id] })) };
+    const issues = layoutIssues(placed);
+    const boxes = placed.nodes.map(paintedBox);
+    const area = (Math.max(0, ...boxes.map(b => b.x + b.w)) * Math.max(0, ...boxes.map(b => b.y + b.h)));
+    return { at, overlaps: issues.filter(i => i.kind === 'overlap').length, faults: issues.length, area };
+  });
+  const least = Math.min(...scored.map(c => c.area));
+  const cost = (c: (typeof scored)[number]) => c.faults + AREA_COST * (c.area / least - 1);
+  scored.sort((a, b) => a.overlaps - b.overlaps || cost(a) - cost(b));
+  return scored[0]!.at;
+}
+
+/** One layout attempt of the flow in `model` (no rail) with `tuning`. */
+function layoutWith(model: CanvasModel, tuning: Tuning): Positions {
   const boxes = footprints(model);
   const byId = new Map(model.nodes.map(n => [n.id, n]));
   const notes = model.nodes.filter(n => n.kind === NOTE_KIND);
@@ -132,8 +197,8 @@ export function autoLayout(canvas: CanvasModel, _viewport?: { width: number; hei
     for (let l = from + 1; l < to; l++) {
       const lane = `~${index}~${l}`;
       items[l]!.push({ id: lane, h: LANE, lane: true });
-      leaving[l - 1]!.push({ a, b: lane, ay, by: LANE / 2, weight: 30 });
-      a = lane; ay = LANE / 2; weight = 30;
+      leaving[l - 1]!.push({ a, b: lane, ay, by: LANE / 2, weight: tuning.laneWeight });
+      a = lane; ay = LANE / 2; weight = tuning.laneWeight;
     }
     leaving[to - 1]!.push({ a, b: w.to, ay, by: socketY(w.to, w.in, 'in'), weight });
   });
@@ -154,6 +219,7 @@ export function autoLayout(canvas: CanvasModel, _viewport?: { width: number; hei
       return [item.id, ends.length ? ends.reduce((x, y) => x + y, 0) / ends.length : rank.get(item.id)!];
     }));
     items[l]!.sort((a, b) => centre.get(a.id)! - centre.get(b.id)! || firstPlace(a.id) - firstPlace(b.id));
+    if (tuning.middleLanes) items[l] = lanesInTheMiddle(items[l]!, centre);
     items[l]!.forEach((item, i) => rank.set(item.id, i));
   };
   const totalCrossings = () => leaving.reduce((sum, segments) => sum + crossings(segments, rank), 0);
@@ -165,6 +231,8 @@ export function autoLayout(canvas: CanvasModel, _viewport?: { width: number; hei
     if (count < bestCount) { best = items.map(layer => [...layer]); bestCount = count; }
   }
   best.forEach((layer, l) => { items[l] = layer; });
+  if (tuning.sinksFirst) for (const [l, layer] of items.entries())
+    items[l] = [...layer.filter(item => !item.lane && !children.get(item.id)!.length), ...layer.filter(item => item.lane || children.get(item.id)!.length)];
 
   // Heights: stack each layer, then slide items so wires run straight.
   const y = new Map<string, number>();
@@ -209,7 +277,7 @@ export function autoLayout(canvas: CanvasModel, _viewport?: { width: number; hei
       bx: layerX[to]! - boxes.get(w.to)!.x, by: socketY(w.to, w.in, 'in'),
     }];
   });
-  clearWires(items.map(layer => layer.filter(item => !item.lane)), layerX, boxes, spans, y);
+  if (tuning.maxPush > 0) clearWires(items.map(layer => layer.filter(item => !item.lane)), layerX, boxes, spans, y, tuning.maxPush);
 
   // Place: notes in a row at the top, the flow below them.
   const result: Positions = {};
@@ -246,10 +314,11 @@ const WIRE_SAMPLES = 48;
  *  one curve between its sockets (gratify's wireAt), not through the lanes
  *  the alignment kept for it, so the lanes alone do not keep it clear where
  *  its two ends sit at different heights or one socket feeds several wires.
- *  Updates `y` (footprint tops) in place. */
+ *  A card is moved at most `maxPush` at a time. Updates `y` (footprint
+ *  tops) in place. */
 function clearWires(
   layers: readonly Item[][], layerX: readonly number[], boxes: ReadonlyMap<string, CardBox>,
-  spans: readonly WireSpan[], y: Map<string, number>,
+  spans: readonly WireSpan[], y: Map<string, number>, maxPush: number,
 ): void {
   for (let round = 0; round < CLEAR_ROUNDS; round++) {
     let moved = false;
@@ -278,6 +347,8 @@ function clearWires(
           if (!wentUp && up >= floor && start - up < hit.bottom - start) { at = up; wentUp = true; }
           else at = hit.bottom;
         }
+        // A push this far would wreck the layout around it; the check reports the wire instead.
+        if (at - start > maxPush) at = Math.max(start, floor);
         if (Math.abs(at - start) > 0.5) moved = true;
         y.set(item.id, at);
         floor = at + box.h + GAP_CARD;

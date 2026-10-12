@@ -39,7 +39,7 @@ describe('layoutIssues', () => {
 describe('connectionIssues', () => {
   const kind = (name: string, inputs: NodeDescriptor['inputs']): NodeDescriptor =>
     ({ kind: name, version: 1, capability: 'Pure', params: [], description: '', inputs, outputs: [{ name: 'table', type: 'Table', optional: false }] });
-  const catalog = new Map([
+  const catalog = new Map<string, NodeDescriptor>([
     ['k.source', kind('k.source', [])],
     ['k.step', kind('k.step', [{ name: 'table', type: 'Table', optional: false }, { name: 'extra', type: 'Table', optional: true }])],
   ]);
@@ -66,7 +66,7 @@ describe('autoLayout passes its own check', () => {
     ['k.read', { kind: 'k.read', version: 1, capability: 'Pure', params: [], description: 'Reads.', inputs: [{ name: 'path', type: 'Table', optional: false }], outputs: [{ name: 'table', type: 'Table', optional: false }] }],
     ['k.pair', { kind: 'k.pair', version: 1, capability: 'Pure', params: [], description: 'Pairs.', inputs: [{ name: 'a', type: 'Table', optional: false }, { name: 'b', type: 'Table', optional: false }], outputs: [{ name: 'table', type: 'Table', optional: false }] }],
     ['k.source', { kind: 'k.source', version: 1, capability: 'Pure', params: [], description: 'Holds.', inputs: [], outputs: [{ name: 'table', type: 'Table', optional: false }] }],
-    ['view.note', { kind: 'view.note', version: 1, capability: 'Pure', params: [{ name: 'text', kind: 'String', default: '' }], description: '', inputs: [], outputs: [] }],
+    ['view.note', { kind: 'view.note', version: 1, capability: 'Pure', params: [{ name: 'text', kind: 'Text', default: '' }], description: '', inputs: [], outputs: [] }],
   ]);
   const add = (id: string, kind: string): Action => ({ type: 'addNode', id, kind, version: 1 });
   const wire = (from: string, to: string): Action => ({ type: 'connect', from, to });

@@ -1,12 +1,14 @@
 using Ara3D.BimOpenSchema.DuckDb;
 using Ara3D.DataFlowEngine.Abstractions;
+using SchemaRules = BimOpenFlow.Relations.SchemaRules;
+using SchemaInputs = BimOpenFlow.Relations.SchemaInputs;
 using Ara3D.DataTable;
 
 namespace BimOpenFlow.Nodes.TableOps;
 
 /// <summary>Stacks b's rows under a's. Strict mode requires identical column
 /// sequences; byName matches columns by name and null-fills the missing ones.</summary>
-public sealed class TableConcatNode : IFlowNode
+public sealed class TableConcatNode : ISchemaNode
 {
     public const string Kind = "table.concat";
 
@@ -19,21 +21,41 @@ public sealed class TableConcatNode : IFlowNode
         ],
         Outputs: [new PortSpec("table", PortType.Table)],
         Params: [new ParamSpec("columns", ParamKind.Enum, "strict", ["strict", "byName"])],
-        "Appends b's rows after a's, matching columns strictly by position or loosely by name.");
+        "Appends b's rows after a's, matching columns strictly by position or loosely by name.",
+        Schemas: [SchemaSpec.Inferred("table")]);
+
+    private static string ReadMode(ParamValues parameters)
+        => parameters.RequiredEnum("columns", Kind, "strict", "strict", "byName");
+
+    /// <summary>Strict concat needs the same column names in the same order; throws naming both lists.</summary>
+    private static void RequireIdenticalSequences(IReadOnlyList<string> aNames, IReadOnlyList<string> bNames)
+    {
+        if (!aNames.SequenceEqual(bNames, StringComparer.OrdinalIgnoreCase))
+            throw new ArgumentException(
+                $"{Kind}: strict concat requires identical column sequences; " +
+                $"a: [{string.Join(", ", aNames)}], b: [{string.Join(", ", bNames)}].");
+    }
+
+    public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
+        => SchemaInputs.Run(Spec, inputs, schemas =>
+        {
+            if (ReadMode(parameters) == "byName")
+                return SchemaRules.UnionByName(schemas[0], schemas[1]);
+            RequireIdenticalSequences(schemas[0].Columns.Select(c => c.Name).ToList(), schemas[1].Columns.Select(c => c.Name).ToList());
+            return SchemaRules.Union(schemas);
+        });
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context,
         IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {
         var a = inputs.TableInput(0, Kind);
         var b = inputs.TableInput(1, Kind);
-        var mode = parameters.RequiredEnum("columns", Kind, "strict", "strict", "byName");
+        var mode = ReadMode(parameters);
         var aNames = a.Names();
         var bNames = b.Names();
 
-        if (mode == "strict" && !aNames.SequenceEqual(bNames, StringComparer.OrdinalIgnoreCase))
-            throw new ArgumentException(
-                $"{Kind}: strict concat requires identical column sequences; " +
-                $"a: [{string.Join(", ", aNames)}], b: [{string.Join(", ", bNames)}].");
+        if (mode == "strict")
+            RequireIdenticalSequences(aNames, bNames);
 
         var ord = TableColumns.FreeName("__row__", a, b);
         var src = TableColumns.FreeName("__src__", a, b);

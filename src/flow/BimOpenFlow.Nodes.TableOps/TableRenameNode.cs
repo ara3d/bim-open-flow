@@ -1,11 +1,14 @@
 using Ara3D.BimOpenSchema.DuckDb;
 using Ara3D.DataFlowEngine.Abstractions;
+using SchemaRules = BimOpenFlow.Relations.SchemaRules;
+using SchemaInputs = BimOpenFlow.Relations.SchemaInputs;
+using Renaming = BimOpenFlow.Relations.Renaming;
 
 namespace BimOpenFlow.Nodes.TableOps;
 
 /// <summary>Renames columns via comma-separated old=new pairs. Unknown old names
 /// warn and are skipped; a new name colliding with a remaining column errors.</summary>
-public sealed class TableRenameNode : IFlowNode
+public sealed class TableRenameNode : ISchemaNode
 {
     public const string Kind = "table.rename";
 
@@ -14,25 +17,35 @@ public sealed class TableRenameNode : IFlowNode
         Inputs: [new PortSpec("table", PortType.Table)],
         Outputs: [new PortSpec("table", PortType.Table)],
         Params: [new ParamSpec("renames", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table"), List: true)],
-        "Renames columns using comma-separated 'old=new' pairs.");
+        "Renames columns using comma-separated 'old=new' pairs.",
+        Schemas: [SchemaSpec.Inferred("table")]);
+
+    private static IReadOnlyList<Renaming> ReadRenamings(ParamValues parameters)
+        => parameters.RequiredText("renames", Kind).SplitNames().Select(entry =>
+        {
+            var parts = entry.Split('=', 2, StringSplitOptions.TrimEntries);
+            return parts.Length != 2 || parts[0].Length == 0 || parts[1].Length == 0
+                ? throw new ArgumentException($"{Kind}: cannot parse rename '{entry}' (expected old=new).")
+                : new Renaming(parts[0], parts[1]);
+        }).ToList();
+
+    public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
+        => SchemaInputs.Run(Spec, inputs, schemas => SchemaRules.Rename(schemas[0], ReadRenamings(parameters)));
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context,
         IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {
         var table = inputs.TableInput(0, Kind);
         var renames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var entry in parameters.RequiredText("renames", Kind).SplitNames())
+        foreach (var (source, target) in ReadRenamings(parameters))
         {
-            var parts = entry.Split('=', 2, StringSplitOptions.TrimEntries);
-            if (parts.Length != 2 || parts[0].Length == 0 || parts[1].Length == 0)
-                throw new ArgumentException($"{Kind}: cannot parse rename '{entry}' (expected old=new).");
-            if (table.ColumnIndex(parts[0]) < 0)
+            if (table.ColumnIndex(source) < 0)
             {
-                context.Warn($"{Kind}: no column named '{parts[0]}'; rename skipped.");
+                context.Warn($"{Kind}: no column named '{source}'; rename skipped.");
                 continue;
             }
-            if (!renames.TryAdd(table.CanonicalName(parts[0], Kind), parts[1]))
-                throw new ArgumentException($"{Kind}: column '{parts[0]}' is renamed more than once.");
+            if (!renames.TryAdd(table.CanonicalName(source, Kind), target))
+                throw new ArgumentException($"{Kind}: column '{source}' is renamed more than once.");
         }
 
         var finalNames = table.Names()

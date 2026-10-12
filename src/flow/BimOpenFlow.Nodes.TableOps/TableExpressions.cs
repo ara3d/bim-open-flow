@@ -39,17 +39,25 @@ public static class TableExpressions
         return r;
     }
 
+    /// <summary>Parses, throwing ArgumentException listing every error with its offset. The one parse
+    /// both evaluation (<see cref="Compile"/>) and the shape rules use.</summary>
+    public static ParsedExpression Parse(string kind, string paramName, string text)
+    {
+        var parsed = Expression.Parse(text);
+        return parsed.Success ? parsed : throw InvalidExpression(kind, paramName, parsed.Errors);
+    }
+
     /// <summary>Parses and type-checks, throwing ArgumentException listing every error with its offset.</summary>
     public static CheckedExpression Compile(string kind, string paramName, string text,
         IReadOnlyDictionary<string, ColumnBinding> bindings)
     {
         var env = bindings.ToDictionary(kv => kv.Key, kv => kv.Value.Type);
-        var result = Expression.Parse(text).Check(env);
-        return result.Success
-            ? result
-            : throw new ArgumentException(
-                $"{kind}: invalid expression in '{paramName}': {string.Join("; ", result.Errors)}");
+        var result = Parse(kind, paramName, text).Check(env);
+        return result.Success ? result : throw InvalidExpression(kind, paramName, result.Errors);
     }
+
+    private static ArgumentException InvalidExpression(string kind, string paramName, IReadOnlyList<ExprError> errors)
+        => new($"{kind}: invalid expression in '{paramName}': {string.Join("; ", errors)}");
 
     public static Scalar? CellToScalar(object? value, ScalarType type)
         => value is null or DBNull ? null : type switch

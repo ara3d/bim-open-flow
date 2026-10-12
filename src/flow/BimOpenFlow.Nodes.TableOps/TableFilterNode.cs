@@ -1,11 +1,12 @@
 using Ara3D.DataFlowEngine.Abstractions;
 using Ara3D.DataFlowEngine.Expressions;
+using BimOpenFlow.Relations;
 
 namespace BimOpenFlow.Nodes.TableOps;
 
 /// <summary>Keeps the rows where the Boolean expression evaluates to true.
 /// A null result excludes the row (SQL WHERE semantics).</summary>
-public sealed class TableFilterNode : IFlowNode
+public sealed class TableFilterNode : ISchemaNode
 {
     public const string Kind = "table.filter";
 
@@ -14,7 +15,12 @@ public sealed class TableFilterNode : IFlowNode
         Inputs: [new PortSpec("table", PortType.Table)],
         Outputs: [new PortSpec("table", PortType.Table)],
         Params: [new ParamSpec("expr", ParamKind.Expression)],
-        "Keeps rows where the Boolean expression is true; null results exclude the row.");
+        "Keeps rows where the Boolean expression is true; null results exclude the row.",
+        Schemas: [SchemaSpec.Inferred("table")]);
+
+    public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
+        => SchemaInputs.Run(Spec, inputs, schemas => SchemaRules.Filter(schemas[0],
+            TableExpressions.Parse(Kind, "expr", parameters.RequiredText("expr", Kind)).Root!));
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {

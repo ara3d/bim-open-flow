@@ -1,11 +1,12 @@
 using Ara3D.BimOpenSchema.DuckDb;
 using Ara3D.DataFlowEngine.Abstractions;
+using BimOpenFlow.Relations;
 
 namespace BimOpenFlow.Nodes.TableOps;
 
 /// <summary>Drops the named columns, keeping everything else — the complement of
 /// table.project. Unknown names warn; dropping every column is an error.</summary>
-public sealed class TableDropNode : IFlowNode
+public sealed class TableDropNode : ISchemaNode
 {
     public const string Kind = "table.drop";
 
@@ -14,7 +15,11 @@ public sealed class TableDropNode : IFlowNode
         Inputs: [new PortSpec("table", PortType.Table)],
         Outputs: [new PortSpec("table", PortType.Table)],
         Params: [new ParamSpec("columns", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table"), List: true)],
-        "Removes the named columns and keeps all others.");
+        "Removes the named columns and keeps all others.",
+        Schemas: [SchemaSpec.Inferred("table")]);
+
+    public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
+        => SchemaInputs.Run(Spec, inputs, schemas => SchemaRules.Drop(schemas[0], parameters.RequiredText("columns", Kind).SplitNames()));
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context,
         IReadOnlyList<FlowValue> inputs, ParamValues parameters)

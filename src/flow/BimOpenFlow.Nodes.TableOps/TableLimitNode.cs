@@ -1,11 +1,12 @@
 using Ara3D.BimOpenSchema.DuckDb;
 using Ara3D.DataFlowEngine.Abstractions;
+using BimOpenFlow.Relations;
 
 namespace BimOpenFlow.Nodes.TableOps;
 
 /// <summary>LIMIT/OFFSET over the table's deterministic order: top-N after
 /// table.sort, paging through inspection.</summary>
-public sealed class TableLimitNode : IFlowNode
+public sealed class TableLimitNode : ISchemaNode
 {
     public const string Kind = "table.limit";
 
@@ -18,18 +19,33 @@ public sealed class TableLimitNode : IFlowNode
             new ParamSpec("count", ParamKind.Integer),
             new ParamSpec("offset", ParamKind.Integer, "0"),
         ],
-        "Keeps 'count' rows starting at 'offset' in the table's order.");
+        "Keeps 'count' rows starting at 'offset' in the table's order.",
+        Schemas: [SchemaSpec.Inferred("table")]);
 
-    public IReadOnlyList<FlowValue> Eval(IEvalContext context,
-        IReadOnlyList<FlowValue> inputs, ParamValues parameters)
+    private static (long Count, long Offset) ReadRange(ParamValues parameters)
     {
-        var table = inputs.TableInput(0, Kind);
         var count = parameters.GetInteger("count", -1);
         var offset = parameters.GetInteger("offset");
         if (count < 0)
             throw new ArgumentException($"{Kind}: parameter 'count' must be a non-negative integer.");
         if (offset < 0)
             throw new ArgumentException($"{Kind}: parameter 'offset' must be a non-negative integer.");
+        return (count, offset);
+    }
+
+    /// <summary>Limit keeps the input's shape; the parameters are still checked so a bad count shows before Run.</summary>
+    public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
+        => SchemaInputs.Run(Spec, inputs, schemas =>
+        {
+            ReadRange(parameters);
+            return SchemaResult.Of(schemas[0]);
+        });
+
+    public IReadOnlyList<FlowValue> Eval(IEvalContext context,
+        IReadOnlyList<FlowValue> inputs, ParamValues parameters)
+    {
+        var table = inputs.TableInput(0, Kind);
+        var (count, offset) = ReadRange(parameters);
         return [new TableValue(DuckTableSql.Run(Kind, table, $"SELECT * FROM t LIMIT {count} OFFSET {offset}"))];
     }
 }

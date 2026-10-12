@@ -1,11 +1,12 @@
 using Ara3D.DataFlowEngine.Abstractions;
 using Ara3D.DataTable;
+using BimOpenFlow.Relations;
 
 namespace BimOpenFlow.Nodes.TableOps;
 
 /// <summary>Appends one computed column to the input table. The column's .NET type comes
 /// from the expression's static type; rows where the expression is null get a null cell.</summary>
-public sealed class TableDeriveNode : IFlowNode
+public sealed class TableDeriveNode : ISchemaNode
 {
     public const string Kind = "table.derive";
 
@@ -18,13 +19,19 @@ public sealed class TableDeriveNode : IFlowNode
             new ParamSpec("name", ParamKind.Text),
             new ParamSpec("expr", ParamKind.Expression),
         ],
-        "Outputs the input table plus one computed column.");
+        "Outputs the input table plus one computed column.",
+        Schemas: [SchemaSpec.Inferred("table")]);
+
+    public SchemaResult Infer(string output, IReadOnlyList<SchemaInput> inputs, ParamValues parameters, ISchemaCatalog catalog)
+        => SchemaInputs.Run(Spec, inputs, schemas => SchemaRules.Derive(schemas[0],
+            parameters.RequiredText("name", Kind),
+            TableExpressions.Parse(Kind, "expr", parameters.RequiredText("expr", Kind)).Root!));
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {
         var table = inputs.TableInput(0, Kind);
         var name = parameters.RequiredText("name", Kind);
-        if (table.Columns.Any(c => c.Descriptor.Name == name))
+        if (table.ColumnIndex(name) >= 0)
             throw new ArgumentException($"{Kind}: column '{name}' already exists.");
 
         var bindings = table.Bindings();

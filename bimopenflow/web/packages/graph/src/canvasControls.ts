@@ -365,8 +365,9 @@ function islandFor(props: IslandSlotProps): IslandEntry {
         instance.suggestionProvider
           ? instance.suggestionProvider(props.nodeId, props.name)
           : Promise.reject(new Error("No suggestion provider")),
-        props.suggest.kind === "ColumnsOfInput"
-          ? { picker: { multi: isMultiColumn(props.name, props.value, props.list) } } : {});
+        props.suggest.kind !== "ColumnsOfInput" ? {}
+          : props.suggest.use === "Aggregate" ? { aggregates: true }
+          : { picker: { multi: isMultiColumn(props.value, props.list) } });
     el.addEventListener("keydown", (e) => {
       if (e.key === "Enter") el.blur();
       if (e.key === "Escape") {

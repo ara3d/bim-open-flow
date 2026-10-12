@@ -22,20 +22,18 @@ describe("completionOptions", () => {
 
 describe("column list helpers", () => {
   it("toggles a column in and out", async () => {
-    const { toggleColumn, isMultiColumn } = await import("../src/suggestText.js");
+    const { toggleColumn } = await import("../src/suggestText.js");
     expect(toggleColumn("", "a")).toBe("a");
     expect(toggleColumn("a, b", "a")).toBe("b");
     expect(toggleColumn("a", "b")).toBe("a,b");
-    expect(isMultiColumn("groupBy", "")).toBe(true);
-    expect(isMultiColumn("leftKey", "a,b")).toBe(true);
-    expect(isMultiColumn("leftKey", "a")).toBe(false);
   });
 
-  it("reads the descriptor's list flag and guesses from the name only without it", async () => {
+  it("decides from the descriptor's list flag, never from the parameter name", async () => {
     const { isMultiColumn } = await import("../src/suggestText.js");
-    expect(isMultiColumn("leftKey", "", true)).toBe(true);
-    expect(isMultiColumn("groupBy", "", false)).toBe(false);
-    expect(isMultiColumn("groupBy", "a,b", false)).toBe(true);
-    expect(isMultiColumn("groupBy", "", undefined)).toBe(true);
+    expect(isMultiColumn("", true)).toBe(true);
+    expect(isMultiColumn("", false)).toBe(false);
+    expect(isMultiColumn("", undefined)).toBe(false);
+    expect(isMultiColumn("a,b", false)).toBe(true);
+    expect(isMultiColumn("a", undefined)).toBe(false);
   });
 });

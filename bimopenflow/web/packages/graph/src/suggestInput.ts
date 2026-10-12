@@ -2,7 +2,8 @@
 // a SuggestionList fetch on focus. Free text always stays allowed — the list
 // is advisory. Unready/Unavailable put the reason in the input's tooltip.
 
-import type { SuggestionList } from "@bimopenflow/contracts";
+import type { Suggestion, SuggestionList } from "@bimopenflow/contracts";
+import { attachAggregateBuilder } from "./aggregateEditor.js";
 import { columnList, completionOptions, toggleColumn } from "./suggestText.js";
 
 export type SuggestFetch = () => Promise<SuggestionList>;
@@ -13,6 +14,9 @@ export interface SuggestOptions {
    *  "Category" would list one column). `multi`: a pick toggles the column in
    *  or out of the comma-separated value; otherwise it replaces the value. */
   readonly picker?: { readonly multi: boolean };
+  /** Edit a comma-separated `func(column) as name` list with a function, a column and a name
+   *  per aggregate (aggregateEditor.ts), offering the functions each column's suggestion allows. */
+  readonly aggregates?: boolean;
 }
 
 /**
@@ -26,6 +30,7 @@ export function attachSuggestions(
   fetch: SuggestFetch,
   options: SuggestOptions = {},
 ): () => void {
+  if (options.aggregates) return attachAggregateBuilder(input, fetch);
   if (options.picker) return attachPicker(input, fetch, options.picker.multi);
   const doc = input.ownerDocument;
   const list = doc.createElement("datalist");
@@ -71,8 +76,8 @@ export function attachSuggestions(
 }
 
 /** The popup list: one row per suggestion with its detail (the column type)
- *  beside it. Rows take mousedown so the input keeps focus; a pick sets the
- *  value and fires "change", the event the parameter row commits on. */
+ *  beside it and, under the name, the column kind's meaning when it has one.
+ *  Rows take mousedown so the input keeps focus; a pick sets the value and fires "change", the event the parameter row commits on. */
 function attachPicker(input: HTMLInputElement, fetch: SuggestFetch, multi: boolean): () => void {
   const doc = input.ownerDocument;
   const popup = doc.createElement("div");
@@ -83,7 +88,7 @@ function attachPicker(input: HTMLInputElement, fetch: SuggestFetch, multi: boole
   popup.hidden = true;
   doc.body.appendChild(popup);
 
-  let items: { value: string; detail?: string | undefined }[] = [];
+  let items: Suggestion[] = [];
   let fetchToken = 0;
 
   const hide = () => { fetchToken++; popup.hidden = true; };
@@ -103,6 +108,14 @@ function attachPicker(input: HTMLInputElement, fetch: SuggestFetch, multi: boole
       type.textContent = item.detail ?? "";
       type.style.opacity = "0.6";
       row.append(name, type);
+      if (item.meaning) {
+        row.title = item.meaning;
+        row.style.flexWrap = "wrap";
+        const meaning = doc.createElement("span");
+        meaning.textContent = item.meaning;
+        meaning.style.cssText = "flex-basis:100%;font-size:11px;opacity:0.6;max-width:320px";
+        row.appendChild(meaning);
+      }
       row.addEventListener("mousedown", (e) => {
         e.preventDefault();
         input.value = multi ? toggleColumn(input.value, item.value) : item.value;

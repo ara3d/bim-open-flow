@@ -121,4 +121,20 @@ describe("attachSuggestions column picker", () => {
     expect((document.querySelector('[role="listbox"]') as HTMLElement).hidden).toBe(true);
     detach();
   });
+
+  it("keeps the host's order and shows each column's meaning under its name", async () => {
+    const input = makeInput();
+    const detach = attachSuggestions(input, "pick4", async () => ({
+      status: "Ok",
+      values: [
+        { value: "EntityIndex", detail: "Integer", kind: "EntityIndex", role: "Key", meaning: "Row number of the entity." },
+        { value: "Volume", detail: "Number" },
+      ],
+    }), { picker: { multi: false } });
+    input.dispatchEvent(new Event("focus"));
+    await flush();
+    expect(rows().map((r) => r.textContent)).toEqual(["EntityIndexIntegerRow number of the entity.", "VolumeNumber"]);
+    expect(rows()[0]!.title).toBe("Row number of the entity.");
+    detach();
+  });
 });

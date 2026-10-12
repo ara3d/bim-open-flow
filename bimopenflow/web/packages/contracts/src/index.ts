@@ -40,6 +40,12 @@ export type SchemaMode =
   | "Inferred"
   | "Dynamic";
 
+export type SchemaStatus =
+  | "Ok"
+  | "Unknown"
+  | "Error"
+  | "Dynamic";
+
 export type NodeCapability =
   | "Pure"
   | "Effect";
@@ -157,6 +163,22 @@ export interface OutputSchema {
   columns?: SchemaColumn[] | undefined;
 }
 
+export interface PortSchema {
+  node: string;
+  output: string;
+  status: SchemaStatus;
+  columns?: SchemaColumn[] | undefined;
+  reason?: string | undefined;
+  errors: string[];
+  warnings: string[];
+}
+
+export interface AnalysisSchemas {
+  analysisId: string;
+  graphHash: string;
+  ports: PortSchema[];
+}
+
 export interface NodeDescriptor {
   kind: string;
   version: number;
@@ -226,6 +248,7 @@ export interface EvalUpdate {
   nodes: NodeState[];
   graphHash?: string | undefined;
   graphInputs?: GraphInputInfo[] | undefined;
+  schemas?: PortSchema[] | undefined;
 }
 
 export interface EditorSession {

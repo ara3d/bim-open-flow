@@ -37,13 +37,14 @@ public static class ApiMapping
     public static EntityParameter ToParameter(this ModelEntityParameter parameter)
         => new(parameter.Group ?? "", parameter.Name ?? "", parameter.Value ?? "", parameter.Units);
 
-    public static EvalUpdate ToEvalUpdate(this EvalSnapshot snapshot, string analysisId)
+    public static EvalUpdate ToEvalUpdate(this EvalSnapshot snapshot, string analysisId, IReadOnlyList<PortSchema>? schemas = null)
         => new(analysisId, snapshot.Results.Values
             .OrderBy(r => r.NodeId, StringComparer.Ordinal)
             .Select(ToNodeState)
             .ToList(),
             snapshot.Document.ComputeGraphHash(),
-            snapshot.Document.Inputs.Count == 0 ? null : snapshot.ToGraphInputInfos());
+            snapshot.Document.Inputs.Count == 0 ? null : snapshot.ToGraphInputInfos(),
+            schemas);
 
     /// <summary>Each declared graph input with its default and the value this evaluation used.</summary>
     public static IReadOnlyList<GraphInputInfo> ToGraphInputInfos(this EvalSnapshot snapshot)

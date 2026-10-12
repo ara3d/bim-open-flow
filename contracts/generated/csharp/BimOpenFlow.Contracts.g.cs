@@ -54,6 +54,14 @@ public enum SchemaMode
     Dynamic,
 }
 
+public enum SchemaStatus
+{
+    Ok,
+    Unknown,
+    Error,
+    Dynamic,
+}
+
 public enum NodeCapability
 {
     Pure,
@@ -170,6 +178,20 @@ public sealed record OutputSchema(
     SchemaMode Mode,
     IReadOnlyList<SchemaColumn>? Columns);
 
+public sealed record PortSchema(
+    string Node,
+    string Output,
+    SchemaStatus Status,
+    IReadOnlyList<SchemaColumn>? Columns,
+    string? Reason,
+    IReadOnlyList<string> Errors,
+    IReadOnlyList<string> Warnings);
+
+public sealed record AnalysisSchemas(
+    string AnalysisId,
+    string GraphHash,
+    IReadOnlyList<PortSchema> Ports);
+
 public sealed record NodeDescriptor(
     string Kind,
     int Version,
@@ -229,7 +251,8 @@ public sealed record EvalUpdate(
     string AnalysisId,
     IReadOnlyList<NodeState> Nodes,
     string? GraphHash,
-    IReadOnlyList<GraphInputInfo>? GraphInputs);
+    IReadOnlyList<GraphInputInfo>? GraphInputs,
+    IReadOnlyList<PortSchema>? Schemas);
 
 public sealed record EditorSession(
     string? AnalysisId,
@@ -267,6 +290,7 @@ public static class ApiRoutes
     public const string BrowseFolder = "/api/files";
     public const string StatPath = "/api/files/stat";
     public const string GetAnalysisState = "/api/analyses/{id}/state";
+    public const string GetAnalysisSchemas = "/api/analyses/{id}/schemas";
     public const string GetAnalysisText = "/api/analyses/{id}/text";
     public const string GetResult = "/api/analyses/{id}/results/{nodeId}/{port}";
     public const string GetGraphInputs = "/api/analyses/{id}/inputs";

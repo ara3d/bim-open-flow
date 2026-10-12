@@ -6,6 +6,7 @@
     "PortType": ["Boolean", "Integer", "Number", "Text", "Table", "Relation", "Database", "Any"],
     "ColumnType": ["Boolean", "Integer", "Number", "Text", "Date", "Timestamp", "Binary", "Unknown"],
     "SchemaMode": ["Static", "Inferred", "Dynamic"],
+    "SchemaStatus": ["Ok", "Unknown", "Error", "Dynamic"],
     "NodeCapability": ["Pure", "Effect"],
     "Verdict": ["Pass", "Fail", "NeedsReview", "InfoNotAvailable"],
     "ModelKind": ["Ifc", "Bos"],
@@ -87,6 +88,20 @@
       "mode": "SchemaMode",
       "columns": "SchemaColumn[]?"
     },
+    "PortSchema": {
+      "node": "string",
+      "output": "string",
+      "status": "SchemaStatus",
+      "columns": "SchemaColumn[]?",
+      "reason": "string?",
+      "errors": "string[]",
+      "warnings": "string[]"
+    },
+    "AnalysisSchemas": {
+      "analysisId": "string",
+      "graphHash": "string",
+      "ports": "PortSchema[]"
+    },
     "NodeDescriptor": {
       "kind": "string",
       "version": "int",
@@ -146,7 +161,8 @@
       "analysisId": "string",
       "nodes": "NodeState[]",
       "graphHash": "string?",
-      "graphInputs": "GraphInputInfo[]?"
+      "graphInputs": "GraphInputInfo[]?",
+      "schemas": "PortSchema[]?"
     },
     "EditorSession": {
       "analysisId": "string?",
@@ -184,6 +200,7 @@
     { "name": "browseFolder", "method": "GET", "path": "/api/files", "query": { "dir": "string?", "ext": "string?" }, "response": "FolderListing" },
     { "name": "statPath", "method": "GET", "path": "/api/files/stat", "query": { "path": "string" }, "response": "PathStatus" },
     { "name": "getAnalysisState", "method": "GET", "path": "/api/analyses/{id}/state", "response": "EvalUpdate" },
+    { "name": "getAnalysisSchemas", "method": "GET", "path": "/api/analyses/{id}/schemas", "response": "AnalysisSchemas" },
     { "name": "getAnalysisText", "method": "GET", "path": "/api/analyses/{id}/text", "query": { "mode": "string?" }, "response": "text" },
     { "name": "getResult", "method": "GET", "path": "/api/analyses/{id}/results/{nodeId}/{port}", "query": { "skip": "int?", "take": "int?" }, "response": "TableSlice" },
     { "name": "getGraphInputs", "method": "GET", "path": "/api/analyses/{id}/inputs", "response": "GraphInputInfo[]" },

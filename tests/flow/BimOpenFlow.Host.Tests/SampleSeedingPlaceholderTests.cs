@@ -71,4 +71,32 @@ public sealed class SampleSeedingPlaceholderTests
         Assert.That(seeded, Is.EqualTo(new[] { "ok-graph" }));
         Assert.That(log.ToString(), Is.Empty);
     }
+
+    /// <summary>A writer target under {ARTIFACTS} and its read path under {SAMPLES}.</summary>
+    private static GraphDocument WritesAnArtifact()
+        => GraphDocument.Empty
+            .AddNode("read", "csv.read", 1)
+            .SetParam("read", "path", "{SAMPLES}/walls.csv")
+            .AddNode("write", "csv.write", 1)
+            .SetParam("write", "path", "{ARTIFACTS}/out/walls.csv");
+
+    /// <summary>TKT-265: {ARTIFACTS} becomes the artifacts folder of the checkout holding the
+    /// sample folder, whatever placeholder the source names.</summary>
+    [Test]
+    public void ArtifactsPlaceholder_BecomesTheCheckoutsArtifactsFolder()
+    {
+        File.WriteAllText(Path.Combine(_root, "Fake.sln"), "");
+        var analysesDir = Path.Combine(_root, "samples", "analyses");
+        Directory.CreateDirectory(analysesDir);
+        File.WriteAllText(Path.Combine(analysesDir, "writer.json"), WritesAnArtifact().ToCanonicalJson());
+        var store = new AnalysisStore(Path.Combine(_root, "store"));
+
+        var seeded = SampleSeeding.Seed(store,
+            [(analysesDir, SampleSeeding.PathPlaceholder, Path.Combine(_root, "tables"))], registry: null);
+
+        var artifacts = Path.Combine(_root, SampleSeeding.ArtifactsFolderName).Replace('\\', '/');
+        Assert.That(seeded, Is.EqualTo(new[] { "writer" }));
+        Assert.That(store.Load("writer").Values["write"]["path"], Is.EqualTo(artifacts + "/out/walls.csv"));
+        Assert.That(SampleSeeding.ArtifactsDir(Path.Combine(_root, "samples")), Is.EqualTo(Path.Combine(_root, "artifacts")));
+    }
 }

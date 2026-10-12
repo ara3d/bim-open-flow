@@ -8,7 +8,8 @@ namespace BimOpenFlow.Host;
 
 /// <summary>
 /// Seeds an analysis store with committed sample analyses, rewriting a path placeholder
-/// such as {SAMPLES} in each graph to an absolute directory, and keeps the store's untouched
+/// such as {SAMPLES} in each graph to an absolute directory, and {ARTIFACTS} to the checkout's
+/// artifacts folder, and keeps the store's untouched
 /// copies current when a sample changes (see Seed). The tables profile's samples are
 /// samples/analyses/*.json and samples/relations/*.json over samples/tables; a host that
 /// composes other profiles passes its own sources. Given the profile's registry, a graph whose
@@ -18,6 +19,14 @@ namespace BimOpenFlow.Host;
 public static class SampleSeeding
 {
     public const string PathPlaceholder = "{SAMPLES}";
+
+    /// <summary>Stands for the artifacts folder of the checkout holding the graph (see
+    /// ArtifactsDir), in every seeding source: where a writer's Run puts its file, e.g.
+    /// "{ARTIFACTS}/nrc/report.html".</summary>
+    public const string ArtifactsPlaceholder = "{ARTIFACTS}";
+
+    /// <summary>The git-ignored folder, at a checkout's root, that sample writers target.</summary>
+    public const string ArtifactsFolderName = "artifacts";
 
     /// <summary>The checkout root is the nearest folder holding a solution file.</summary>
     public const string SolutionPattern = "*.sln";
@@ -95,7 +104,8 @@ public static class SampleSeeding
     /// document (every store save after the first archives one) is taken as the seed; an
     /// analysis in .trash stays deleted. A record written before 2026-10-11 hashed the whole
     /// document; its copies are compared through the archived seed (see IsUntouched).
-    /// Each source's placeholder becomes its target directory; a graph with a placeholder
+    /// Each source's placeholder becomes its target directory, and {ARTIFACTS} the artifacts
+    /// folder of the checkout holding the source (ArtifactsDir); a graph with a placeholder
     /// left over, or (given a registry) one the profile cannot run, is skipped and logged.
     /// Returns the ids seeded for the first time; refreshed and kept copies are logged.
     /// </summary>
@@ -119,7 +129,7 @@ public static class SampleSeeding
                 || files.Select(f => Path.GetFileNameWithoutExtension(f)).Any(id => store.Exists(id) || IsInTrash(store, id));
             if (!follows)
                 continue;
-            foreach (var (id, doc) in Samples(files, placeholder, targetDir, registry, log))
+            foreach (var (id, doc) in Samples(files, placeholder, targetDir, ArtifactsDir(analysesDir), registry, log))
                 if (SeedOne(store, record, source, id, doc, log))
                     seeded.Add(id);
         }
@@ -202,15 +212,18 @@ public static class SampleSeeding
     /// that parameter fails with "file not found" against the placeholder text itself.</summary>
     private static readonly Regex UnresolvedPlaceholder = new("\\{[A-Z_]+\\}", RegexOptions.Compiled);
 
-    /// <summary>The sample files as (id, document with the placeholder rewritten), leaving out
-    /// and logging each one that still holds a placeholder or that the registry cannot run.</summary>
+    /// <summary>The sample files as (id, document with the placeholder and, given an artifacts
+    /// folder, {ARTIFACTS} rewritten), leaving out and logging each one that still holds a
+    /// placeholder or that the registry cannot run.</summary>
     private static IEnumerable<(string Id, GraphDocument Doc)> Samples(IEnumerable<string> files, string placeholder,
-        string targetDir, INodeRegistry? registry, TextWriter log)
+        string targetDir, string? artifactsDir, INodeRegistry? registry, TextWriter log)
     {
         foreach (var file in files)
         {
             var id = Path.GetFileNameWithoutExtension(file);
             var doc = RewritePaths(GraphDocumentIO.Load(file), placeholder, targetDir);
+            if (artifactsDir is not null)
+                doc = RewritePaths(doc, ArtifactsPlaceholder, artifactsDir);
             if (FirstUnresolvedPlaceholder(doc) is { } unresolved)
             {
                 log.WriteLine($"  skipped sample analysis {id}: parameter still holds unresolved placeholder {unresolved}");
@@ -257,6 +270,12 @@ public static class SampleSeeding
             Inputs = doc.Inputs.Select(i => i with { Default = i.Default.Replace(placeholder, target) }).ToList(),
         };
     }
+
+    /// <summary>The artifacts folder of the checkout containing dir, which {ARTIFACTS} stands
+    /// for in the graphs seeded from dir; null outside a checkout, so such a graph is skipped
+    /// as unresolved.</summary>
+    public static string? ArtifactsDir(string dir)
+        => FindRepoRoot(dir) is { } root ? Path.Combine(root, ArtifactsFolderName) : null;
 
     /// <summary>The nearest ancestor of startDir containing a solution file, or null.</summary>
     public static string? FindRepoRoot(string startDir)

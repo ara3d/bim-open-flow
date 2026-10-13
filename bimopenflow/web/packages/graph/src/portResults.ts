@@ -14,8 +14,9 @@ export const PEEK_ROWS = 5;
 /** Count requests in flight at once; peek requests bypass this queue. */
 export const COUNT_CONCURRENCY = 2;
 
-/** A wire's row count; `current` is false while a newer evaluation's count is in flight. */
-export interface WireRows { readonly rows: number; readonly current: boolean }
+/** A wire's row count and, when the count's slice carried a schema, its column
+ *  count; `current` is false while a newer evaluation's count is in flight. */
+export interface WireRows { readonly rows: number; readonly current: boolean; readonly columns?: number }
 
 export type PortPeek =
   | { readonly kind: "loading" }
@@ -129,7 +130,7 @@ export function createPortResults(read: ReadPort, onChange: () => void): PortRes
         .then((slice) => {
           if (gen !== generation || disposed) return;
           counts = new Map(counts);
-          counts.set(endpoint, { rows: slice.totalRows, current: true });
+          counts.set(endpoint, { rows: slice.totalRows, current: true, ...(slice.columns.length > 0 ? { columns: slice.columns.length } : {}) });
           notify();
         })
         .catch(() => {
@@ -194,7 +195,7 @@ export function createPortResults(read: ReadPort, onChange: () => void): PortRes
       const targetSet = new Set(targets);
       const nextCounts = new Map<string, WireRows>();
       for (const [endpoint, wireRows] of counts)
-        if (targetSet.has(endpoint)) nextCounts.set(endpoint, { rows: wireRows.rows, current: false });
+        if (targetSet.has(endpoint)) nextCounts.set(endpoint, { ...wireRows, current: false });
       counts = nextCounts;
       for (const endpoint of targets) enqueueCount(endpoint, gen);
       notify();

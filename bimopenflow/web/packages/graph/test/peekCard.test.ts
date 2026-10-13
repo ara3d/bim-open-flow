@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 import { part, Runtime, v, withExt, type Element } from "gratify";
 import type { PortSchema, TableSlice } from "@bimopenflow/contracts";
-import { noteLines, peekAdorn, peekGrid, rowCountText } from "../src/peekCard.js";
+import { noteLines, peekAdorn, peekGrid, rowCountText, wireLabelText } from "../src/peekCard.js";
 import type { PortPeekView } from "../src/portResults.js";
 
 const readySlice: TableSlice = {
@@ -25,6 +25,14 @@ const readyView: PortPeekView = {
   pinned: false,
   peek: { kind: "ready", slice: readySlice },
 };
+
+describe("wireLabelText", () => {
+  it("adds the column count after the rows when it is known", () => {
+    expect(wireLabelText({ rows: 1204, columns: 9 })).toBe("1,204 rows · 9 cols");
+    expect(wireLabelText({ rows: 1, columns: 1 })).toBe("1 row · 1 col");
+    expect(wireLabelText({ rows: 0 })).toBe("0 rows");
+  });
+});
 
 describe("peekGrid", () => {
   it("matches the worked example for a ready peek", () => {

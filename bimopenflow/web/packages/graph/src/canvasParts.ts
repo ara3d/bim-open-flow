@@ -42,7 +42,7 @@ import { upstreamEdges } from "./upstreamEdges.js";
 const selectedBorder = selectionBorder(() => canvasColors().wireSelected, animateSelection);
 import { anchorId, canConnect, parseAnchorId, type CanvasIntent } from "./canvasIntents.js";
 import { grabRadius, paramSockets, portY, SOCKET_GRAB_RADIUS, WIRE_HIT_DISTANCE } from "./portGeometry.js";
-import { peekAdorn, rowCountText } from "./peekCard.js";
+import { peekAdorn, wireLabelText } from "./peekCard.js";
 import { wrapParagraphs } from "./canvasLongSlot.js";
 import { createLongValueEditor, type LongValueEditor } from "./longValueEditor.js";
 import { styleIsland } from "./slotShared.js";
@@ -416,7 +416,7 @@ const Wire = part<WireProps, { color: Color; selected: number; label: Color; lab
     if (node.props.rows) {
       const mid = v((a.x + b.x) / 2, (a.y + b.y) / 2);
       const color = node.props.rows.current ? style.label : style.labelDim;
-      painter.label(rowCountText(node.props.rows.rows), mid, color, { size: 10 });
+      painter.label(wireLabelText(node.props.rows), mid, color, { size: 10 });
     }
   },
 

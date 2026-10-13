@@ -6,7 +6,7 @@
 
 import { addAdorn, at, part, v, type Color, type GNode, type PartExt } from "gratify";
 import type { PortSchema, SchemaColumn } from "@bimopenflow/contracts";
-import { PEEK_ROWS, type PortPeekView } from "./portResults.js";
+import { PEEK_ROWS, type PortPeekView, type WireRows } from "./portResults.js";
 import { portY } from "./portGeometry.js";
 
 /** Column names a card shows before folding the rest into the note. */
@@ -23,6 +23,13 @@ export interface PeekGrid {
 export function rowCountText(rows: number): string {
   const noun = rows === 1 ? "row" : "rows";
   return `${rows.toLocaleString("en-US")} ${noun}`;
+}
+
+/** The wire's label: the row count, then the column count when known, so the
+ *  shape of the table shows on the wire: `"1,204 rows · 9 cols"`. */
+export function wireLabelText(rows: Pick<WireRows, "rows" | "columns">): string {
+  const cols = rows.columns === undefined ? "" : ` · ${rows.columns} ${rows.columns === 1 ? "col" : "cols"}`;
+  return rowCountText(rows.rows) + cols;
 }
 
 /** "Text", or "Text?" for a column that can be missing. */

@@ -177,10 +177,10 @@ describe("createPortResults counts", () => {
     const first = calls.find((c) => c.nodeId === "src" && c.port === "relation")!;
     first.resolve(slice(2));
     await flush();
-    expect(results.view().counts.get("src.relation")).toEqual({ rows: 2, current: true });
+    expect(results.view().counts.get("src.relation")).toEqual({ rows: 2, current: true, columns: 1 });
 
     results.evaluated(store2State(state), catalog);
-    expect(results.view().counts.get("src.relation")).toEqual({ rows: 2, current: false });
+    expect(results.view().counts.get("src.relation")).toEqual({ rows: 2, current: false, columns: 1 });
   });
 
   function store2State(state: State): State {

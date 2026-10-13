@@ -38,7 +38,7 @@ const typeText = (c: SchemaColumn): string => (c.nullable ? `${c.type}?` : c.typ
 /** The card for an endpoint with no result yet: the columns the static schema
  *  pass inferred (names, then types, then kinds when any column has one), or
  *  what is known instead when the status is not Ok. */
-function inferredGrid(endpoint: string, schema: PortSchema, reason: string): PeekGrid {
+function inferredGrid(endpoint: string, schema: PortSchema, reason: string, feeding: PortSchema | undefined): PeekGrid {
   switch (schema.status) {
     case "Ok": {
       const all = schema.columns ?? [];
@@ -46,11 +46,12 @@ function inferredGrid(endpoint: string, schema: PortSchema, reason: string): Pee
       const rows = [shown.map(typeText)];
       if (shown.some((c) => c.kind)) rows.push(shown.map((c) => c.kind ?? ""));
       const hidden = all.length - shown.length;
+      const change = columnChangeNote(all.map((c) => c.name), feeding);
       return {
         title: `${endpoint} · inferred · ${all.length} columns`,
         columns: shown.map((c) => c.name),
         rows: shown.length > 0 ? rows : [],
-        note: hidden > 0 ? `+${hidden} more columns · ${reason}` : reason,
+        note: [hidden > 0 ? `+${hidden} more columns` : null, change, reason].filter((n) => n !== null).join(" · "),
       };
     }
     case "Dynamic":
@@ -60,6 +61,27 @@ function inferredGrid(endpoint: string, schema: PortSchema, reason: string): Pee
     case "Error":
       return { title: endpoint, columns: [], rows: [], note: `Columns unavailable: ${schema.errors[0] ?? schema.reason ?? reason}` };
   }
+}
+
+/** Names a change note lists before folding the rest into "+k more". */
+const CHANGE_NAMES = 4;
+
+const nameList = (names: readonly string[]): string =>
+  names.length <= CHANGE_NAMES ? names.join(", ") : `${names.slice(0, CHANGE_NAMES).join(", ")} +${names.length - CHANGE_NAMES} more`;
+
+/** What the step did to its input's columns: the ones it added, the ones it
+ *  dropped, or that it kept them all. Null when the input's columns are not
+ *  known (no wire, or a schema the pass could not infer). */
+export function columnChangeNote(output: readonly string[], feeding: PortSchema | undefined): string | null {
+  if (feeding?.status !== "Ok" || !feeding.columns) return null;
+  const input = feeding.columns.map((c) => c.name);
+  const added = output.filter((n) => !input.includes(n));
+  const dropped = input.filter((n) => !output.includes(n));
+  if (added.length === 0 && dropped.length === 0) return "same columns as input";
+  return [
+    ...(added.length > 0 ? [`adds ${nameList(added)}`] : []),
+    ...(dropped.length > 0 ? [`drops ${nameList(dropped)}`] : []),
+  ].join(" · ");
 }
 
 /** A note when the recorded columns are not the ones the pass inferred. */
@@ -81,7 +103,7 @@ export function peekGrid(view: PortPeekView): PeekGrid {
   const { peek } = view;
   if (peek.kind === "loading") return { title: view.endpoint, columns: [], rows: [], note: "loading…" };
   if (peek.kind === "absent") return { title: view.endpoint, columns: [], rows: [], note: peek.reason };
-  if (peek.kind === "inferred") return inferredGrid(view.endpoint, peek.schema, peek.reason);
+  if (peek.kind === "inferred") return inferredGrid(view.endpoint, peek.schema, peek.reason, view.feeding);
 
   const { slice } = peek;
   const columnCount = slice.columns.length;
@@ -90,8 +112,9 @@ export function peekGrid(view: PortPeekView): PeekGrid {
     row.slice(0, PEEK_COLUMNS).map((cell) => (cell === null || cell === undefined ? "null" : String(cell))),
   );
   const hiddenColumns = columnCount - columns.length;
-  const differs = differenceNote(slice.columns.map((c) => c.name), peek.inferred);
-  const notes = [hiddenColumns > 0 ? `+${hiddenColumns} more columns` : null, differs].filter((n) => n !== null);
+  const names = slice.columns.map((c) => c.name);
+  const differs = differenceNote(names, peek.inferred);
+  const notes = [hiddenColumns > 0 ? `+${hiddenColumns} more columns` : null, columnChangeNote(names, view.feeding), differs].filter((n) => n !== null);
   return {
     title: `${view.endpoint} · ${rowCountText(slice.totalRows)} · ${columnCount} columns`,
     columns,

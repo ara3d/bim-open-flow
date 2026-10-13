@@ -1,8 +1,8 @@
 // Pure canvas view-model: store State + node catalog -> what the gratify
 // canvas draws. Gratify-free so it is testable headless.
 
-import type { NodeDescriptor, NodeStatus, PortType } from "@bimopenflow/contracts";
-import { schemaMessages, type NodeLayout, type State } from "@bimopenflow/state";
+import type { NodeDescriptor, NodeStatus, PortSchema, PortType } from "@bimopenflow/contracts";
+import { schemaFeeding, schemaMessages, type NodeLayout, type State } from "@bimopenflow/state";
 import { inlineParams, type CanvasParam } from "./canvasSlots.js";
 import { nodeSize, NOTE_KIND, type Size } from "./nodeSize.js";
 import { currentDescriptionLevel, descriptionText, type DescriptionLevel } from "./descriptionLevel.js";
@@ -129,6 +129,15 @@ export function freePosition(
 
 export function edgeId(from: string, to: string): string {
   return `${from}->${to}`;
+}
+
+/** The schema wired into the first Table or Relation input of the node that
+ *  owns the output `endpoint`, when the static pass knows it. */
+export function feedingSchema(state: State, catalog: ReadonlyMap<string, NodeDescriptor>, endpoint: string): PortSchema | undefined {
+  const nodeId = endpoint.slice(0, endpoint.indexOf("."));
+  const node = state.document.structure.nodes.find((n) => n.id === nodeId);
+  const input = node && catalog.get(node.kind)?.inputs.find((p) => p.type === "Table" || p.type === "Relation");
+  return input && schemaFeeding(state, `${nodeId}.${input.name}`);
 }
 
 /** The catalog type of the output `endpoint` ("nodeId.port") names, if known. */
@@ -300,8 +309,14 @@ export function buildCanvasModel(
     edges,
     selectedEdgeId: null,
     openEditor: null,
-    ...(results.peek ? { peek: results.peek } : {}),
+    ...(results.peek ? { peek: withFeeding(results.peek, state, catalog) } : {}),
   };
+}
+
+/** `peek` with the schema feeding its node attached, when there is one. */
+function withFeeding(peek: PortPeekView, state: State, catalog: ReadonlyMap<string, NodeDescriptor>): PortPeekView {
+  const feeding = feedingSchema(state, catalog, peek.endpoint);
+  return feeding ? { ...peek, feeding } : peek;
 }
 
 /** True for an edge a chip stands for. */

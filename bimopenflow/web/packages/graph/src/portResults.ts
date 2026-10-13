@@ -32,6 +32,10 @@ export interface PortPeekView {
   readonly endpoint: string; // "nodeId.port"
   readonly pinned: boolean;
   readonly peek: PortPeek;
+  /** The schema entering the node on its first table input, when the static
+   *  pass knows it (set by buildCanvasModel): the card names the columns the
+   *  step added or dropped against it, which is what a step did to the table. */
+  readonly feeding?: PortSchema;
 }
 
 /** Immutable snapshot for buildCanvasModel; a new object after every change. */

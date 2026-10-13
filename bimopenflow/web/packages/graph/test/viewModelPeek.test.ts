@@ -57,6 +57,18 @@ describe("buildCanvasModel peek and row counts", () => {
     expect(model.peek).toEqual({ endpoint: "a.out", pinned: false, peek: { kind: "loading" } });
   });
 
+  it("attaches the schema feeding the peeked node's first table input, when the pass knows it", () => {
+    const store = wiredStore();
+    const schema = { node: "a", output: "out", status: "Ok" as const, errors: [], warnings: [], columns: [{ name: "id", type: "Integer" as const, nullable: false }] };
+    store.dispatch({ type: "applyServerState", update: { analysisId: "x", nodes: [], schemas: [schema] } });
+    const peek = { endpoint: "b.out", pinned: false, peek: { kind: "loading" as const } };
+    const model = buildCanvasModel(store.getState(), catalog, null, { counts: new Map(), peek });
+    expect(model.peek).toEqual({ ...peek, feeding: schema });
+    // The source node has no table input, so its peek carries no feeding schema.
+    const source = buildCanvasModel(store.getState(), catalog, null, { counts: new Map(), peek: { ...peek, endpoint: "a.out" } });
+    expect(source.peek?.feeding).toBeUndefined();
+  });
+
   it("gives no rows or peek when results has nothing to offer", () => {
     const store = wiredStore();
     const model = buildCanvasModel(store.getState(), catalog, null, NO_PORT_RESULTS);

@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 import { part, Runtime, v, withExt, type Element } from "gratify";
 import type { PortSchema, TableSlice } from "@bimopenflow/contracts";
-import { noteLines, peekAdorn, peekGrid, rowCountText, wireLabelText } from "../src/peekCard.js";
+import { columnChangeNote, noteLines, peekAdorn, peekGrid, rowCountText, wireLabelText } from "../src/peekCard.js";
 import type { PortPeekView } from "../src/portResults.js";
 
 const readySlice: TableSlice = {
@@ -195,6 +195,34 @@ describe("peekGrid for an inferred schema", () => {
   it("Error: shows the first error", () => {
     const grid = peekGrid(inferred(schema({ status: "Error", errors: ["no column Foo"] })));
     expect(grid.note).toBe("Columns unavailable: no column Foo");
+  });
+});
+
+describe("columnChangeNote: what a step did to the columns it was given", () => {
+  const feeding = (names: string[]): PortSchema => ({
+    node: "src", output: "out", status: "Ok", errors: [], warnings: [],
+    columns: names.map((name) => ({ name, type: "Text" as const, nullable: false })),
+  });
+
+  it("names added and dropped columns, folding a long list", () => {
+    expect(columnChangeNote(["id", "height", "Storey"], feeding(["id", "height", "Name"]))).toBe("adds Storey · drops Name");
+    expect(columnChangeNote(["a", "b", "c", "d", "e", "f"], feeding([]))).toBe("adds a, b, c, d +2 more");
+  });
+
+  it("says when the columns are unchanged, and nothing when the input is unknown", () => {
+    expect(columnChangeNote(["id"], feeding(["id"]))).toBe("same columns as input");
+    expect(columnChangeNote(["id"], undefined)).toBeNull();
+    expect(columnChangeNote(["id"], { ...feeding([]), status: "Dynamic", columns: undefined })).toBeNull();
+  });
+
+  it("joins the ready card's note and comes before the inferred card's reason", () => {
+    const ready: PortPeekView = { ...readyView, feeding: feeding(["id"]) };
+    expect(peekGrid(ready).note).toBe("adds height");
+    const inferred: PortPeekView = {
+      endpoint: "n.out", pinned: false, feeding: feeding(["id", "Name"]),
+      peek: { kind: "inferred", reason: "Not evaluated yet", schema: feeding(["id"]) },
+    };
+    expect(peekGrid(inferred).note).toBe("drops Name · Not evaluated yet");
   });
 });
 

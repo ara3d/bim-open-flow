@@ -195,6 +195,7 @@ html, body { margin: 0; height: 100%; }
 }
 .bof-studio-canvas-tools .bof-studio-btn { height: 28px; padding: 0 10px; border-color: transparent; background: transparent; font-weight: 500; }
 .bof-studio-canvas-tools .bof-studio-btn:hover { background: #eceff3; }
+.bof-studio-canvas-tools .bof-studio-btn[aria-pressed="true"] { background: var(--s-accent-soft); color: var(--s-accent); }
 .bof-studio-help { position: absolute; right: 14px; bottom: 14px; z-index: 6; }
 .bof-studio-help > summary { list-style: none; box-shadow: var(--s-shadow); color: var(--s-dim); }
 .bof-studio-help > summary::-webkit-details-marker { display: none; }

@@ -55,6 +55,20 @@ describe("studioChrome", () => {
     expect(acts.newAnalysis).toHaveBeenCalledTimes(1);
   });
 
+  it("toggles compact cards from the canvas toolbar, pressed while compact (TKT-296)", () => {
+    const { root, acts, chrome } = setup();
+    const compact = byLabel(root, "Compact");
+    expect(compact.closest(".bof-studio-canvas-tools")).not.toBeNull();
+    expect(compact.getAttribute("aria-pressed")).toBe("false");
+    compact.click();
+    expect(acts.setCardDensity).toHaveBeenLastCalledWith("compact");
+    chrome.setCardDensity("compact");
+    expect(compact.getAttribute("aria-pressed")).toBe("true");
+    compact.click();
+    expect(acts.setCardDensity).toHaveBeenLastCalledWith("full");
+    expect(root.querySelector(".bof-app-card-density")).toBeNull();
+  });
+
   it("lists flows by title, keeps the id as the value, and opens on change", () => {
     const { root, acts, chrome } = setup();
     chrome.setAnalyses([

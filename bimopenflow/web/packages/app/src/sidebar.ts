@@ -3,7 +3,8 @@
 // bar's picker (topbar.ts), so the sidebar lists no flows (TKT-116). Above
 // the steps sit the description control (TKT-278), a button that cycles
 // hidden, brief, full for the step list and the canvas cards together, and
-// the card density control (TKT-296), which toggles full and compact cards.
+// the card density control (TKT-296), which toggles full and compact cards
+// (the classic look; the studio look keeps it in the canvas toolbar).
 
 import type { NodeDescriptor } from "@bimopenflow/contracts";
 import {

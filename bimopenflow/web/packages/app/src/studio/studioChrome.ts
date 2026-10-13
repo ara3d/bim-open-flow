@@ -5,7 +5,7 @@
 //   primary Run button, Save with an unsaved dot, a View menu holding the
 //   canvas theme picker, and a connection dot.
 // - A left column with the shared sidebar (Steps / Nodes).
-// - The canvas with a floating toolbar (Fit, Tidy, Add node), an empty-state
+// - The canvas with a floating toolbar (Fit, Tidy, Compact, Add node), an empty-state
 //   card when the flow has no nodes, and a "?" popover for the gestures and
 //   the key (packKey.ts: border hues, the hollow wire, the writer glyph).
 // - A right column with the Ask host over the pane area.
@@ -15,10 +15,10 @@
 // canvas theme choice (studio by default), so a look never leaks its theme
 // into the other.
 
-import { canvasThemeNames, isCanvasThemeName } from "@bimopenflow/graph";
+import { canvasThemeNames, defaultCardDensity, isCanvasThemeName, nextCardDensity, type CardDensity } from "@bimopenflow/graph";
 import type { AppChrome, ChromeActions, ChromeFactory } from "../chrome.js";
 import { installSplitter, LEFT_SPLIT, restoreWidth, RIGHT_SPLIT } from "../columnSplitter.js";
-import { createSidebar } from "../sidebar.js";
+import { cardDensityControlTitle, createSidebar } from "../sidebar.js";
 import type { FlowTemplate } from "../templates.js";
 import { fillFlowPicker, namePicker } from "../topbar.js";
 import type { ThemePrefs } from "../themeChoice.js";
@@ -51,6 +51,7 @@ const ICON = {
   fit: "M3 9V3h6v2H5v4Zm12-6h6v6h-2V5h-4ZM3 15h2v4h4v2H3Zm16 0h2v6h-6v-2h4Z",
   tidy: "M3 5h6v4H3Zm0 10h6v4H3Zm12-5h6v4h-6ZM9 7h3v4l3-1V9h0M9 17h3v-4l3 1v1",
   plus: "M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6Z",
+  compact: "M4 5h16v2H4Zm0 6h16v2H4Zm0 6h16v2H4Z",
   play: "M8 5v14l11-7Z",
   save: "M5 3h11l3 3v15H5Zm2 2v5h8V5Zm1 9v5h8v-5Z",
   gear: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm8.9 4-.1-1.4 2-1.5-2-3.5-2.4 1a8 8 0 0 0-2.4-1.4L15.5 2h-4l-.5 2.6a8 8 0 0 0-2.4 1.4l-2.4-1-2 3.5 2 1.5L6.1 12l.1 1.4-2 1.5 2 3.5 2.4-1a8 8 0 0 0 2.4 1.4l.5 2.6h4l.5-2.6a8 8 0 0 0 2.4-1.4l2.4 1 2-3.5-2-1.5Z",
@@ -132,7 +133,7 @@ export const studioChrome = (options: StudioChromeOptions = {}): ChromeFactory =
     const left = el("aside", "bof-studio-left");
     const sidebarEl = el("div", "");
     left.append(sidebarEl);
-    const sidebar = createSidebar(sidebarEl, actions.addNode, { onDescriptionLevel: actions.setDescriptionLevel, onCardDensity: actions.setCardDensity });
+    const sidebar = createSidebar(sidebarEl, actions.addNode, { onDescriptionLevel: actions.setDescriptionLevel });
 
     const leftSplit = el("div", "bof-app-splitter bof-studio-splitter");
     const leftCfg = { ...LEFT_SPLIT, storageKey: "bof-studio-left-width", fallback: 300 };
@@ -140,12 +141,22 @@ export const studioChrome = (options: StudioChromeOptions = {}): ChromeFactory =
 
     const canvasHost = el("div", "bof-studio-canvas-host");
     const canvas = doc.createElement("canvas");
+    // Compact cards (TKT-296): pressed while the cards show only their header, ports, and a summary line.
+    let density: CardDensity = defaultCardDensity;
+    const compactBtn = button("bof-studio-compact", "Compact", ICON.compact, () => actions.setCardDensity(nextCardDensity(density)));
+    const showDensity = (shown: CardDensity) => {
+      density = shown;
+      compactBtn.setAttribute("aria-pressed", String(shown === "compact"));
+      compactBtn.title = cardDensityControlTitle(shown);
+    };
+    showDensity(density);
     const tools = el("div", "bof-studio-canvas-tools");
     tools.setAttribute("role", "toolbar");
     tools.setAttribute("aria-label", "Canvas");
     tools.append(
       button("", "Fit", ICON.fit, actions.fit, "Fit the whole flow in view"),
       button("", "Tidy", ICON.tidy, actions.tidy, "Lay the steps out left to right"),
+      compactBtn,
       button("", "Add node", ICON.plus, () => sidebar.showTab("nodes"), "Open the node catalog (or press Space over the canvas)"),
     );
 
@@ -234,7 +245,7 @@ export const studioChrome = (options: StudioChromeOptions = {}): ChromeFactory =
       },
       setTheme: (name) => { themePicker.value = name; refreshHues(); },
       setDescriptionLevel: sidebar.setDescriptionLevel,
-      setCardDensity: sidebar.setCardDensity,
+      setCardDensity: showDensity,
       setCatalog: (nodes) => sidebar.setCatalog([...nodes]),
       flowOpened: sidebar.flowOpened,
       setNodes(nodes) {

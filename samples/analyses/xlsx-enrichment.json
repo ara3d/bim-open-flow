@@ -2,12 +2,12 @@
   "formatVersion": "0.1.0",
   "layout": {
     "about": { "x": 40, "y": 40, "w": 560, "h": 104 },
-    "orders": { "x": 40, "y": 224 },
-    "products": { "x": 40, "y": 408 },
-    "enriched": { "x": 370, "y": 224 },
-    "revenue": { "x": 700, "y": 224 },
-    "big": { "x": 1030, "y": 224 },
-    "answer": { "x": 1360, "y": 224 }
+    "orders": { "x": 40, "y": 184 },
+    "products": { "x": 40, "y": 436 },
+    "enriched": { "x": 389, "y": 298 },
+    "revenue": { "x": 738, "y": 298 },
+    "big": { "x": 1087, "y": 298 },
+    "answer": { "x": 1436, "y": 298 }
   },
   "structure": {
     "edges": [

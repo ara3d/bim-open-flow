@@ -16,12 +16,15 @@ import { DEFAULT_SOURCE_VIEW, NO_SOURCE_VIEW, type SourceView } from "../src/sou
 import { buildCanvasModel, type CanvasModel } from "../src/viewModel.js";
 import type { SampleGraph } from "./sampleGraphs.js";
 
-/** The canvas model of `sample` drawn with `sources`, laid out as its page shows it. */
+/** The canvas model of `sample` drawn with `sources`, laid out as its page
+ *  shows it: a workflow-list entry is laid out as the app's layoutAll does
+ *  (autoLayout over the plain model, saved into the layout), then drawn. */
 export function drawnModel(sample: SampleGraph, catalog: ReadonlyMap<string, NodeDescriptor>, sources: SourceView): CanvasModel {
-  const model = buildCanvasModel({ ...initialState, document: sample.document }, catalog, null, NO_PORT_RESULTS, { sources });
-  if (!sample.autoLaidOut) return model;
-  const at = autoLayout(model);
-  return { ...model, nodes: model.nodes.map((n) => ({ ...n, ...at[n.id] })) };
+  const build = (document: SampleGraph["document"]) =>
+    buildCanvasModel({ ...initialState, document }, catalog, null, NO_PORT_RESULTS, { sources });
+  if (!sample.autoLaidOut) return build(sample.document);
+  const at = autoLayout(buildCanvasModel({ ...initialState, document: sample.document }, catalog, null));
+  return build({ ...sample.document, layout: { ...sample.document.layout, ...at } });
 }
 
 /** Every fault of `sample`, each named once, as "kind: text". */

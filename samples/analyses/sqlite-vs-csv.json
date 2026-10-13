@@ -2,10 +2,10 @@
   "formatVersion": "0.1.0",
   "layout": {
     "about": { "x": 40, "y": 40, "w": 560, "h": 104 },
-    "csvOrders": { "x": 40, "y": 224 },
-    "dbOrders": { "x": 40, "y": 430 },
-    "common": { "x": 650, "y": 224 },
-    "answer": { "x": 960, "y": 224 }
+    "csvOrders": { "x": 40, "y": 184 },
+    "dbOrders": { "x": 40, "y": 436 },
+    "common": { "x": 620, "y": 298 },
+    "answer": { "x": 969, "y": 298 }
   },
   "structure": {
     "edges": [

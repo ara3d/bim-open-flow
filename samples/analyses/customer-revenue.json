@@ -2,13 +2,13 @@
   "formatVersion": "0.1.0",
   "layout": {
     "about": { "x": 40, "y": 40, "w": 560, "h": 104 },
-    "orders": { "x": 40, "y": 224 },
-    "products": { "x": 40, "y": 430 },
-    "customers": { "x": 40, "y": 630 },
-    "joined": { "x": 650, "y": 224 },
-    "revenue": { "x": 1220, "y": 224 },
-    "ranked": { "x": 1730, "y": 224 },
-    "answer": { "x": 2040, "y": 224 }
+    "orders": { "x": 40, "y": 184 },
+    "products": { "x": 40, "y": 436 },
+    "customers": { "x": 40, "y": 688 },
+    "joined": { "x": 389, "y": 412 },
+    "revenue": { "x": 998, "y": 412 },
+    "ranked": { "x": 1539, "y": 412 },
+    "answer": { "x": 1888, "y": 412 }
   },
   "structure": {
     "edges": [

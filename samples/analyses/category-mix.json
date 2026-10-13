@@ -2,14 +2,14 @@
   "formatVersion": "0.1.0",
   "layout": {
     "about": { "x": 40, "y": 40, "w": 560, "h": 104 },
-    "orders": { "x": 40, "y": 224 },
-    "products": { "x": 40, "y": 430 },
-    "priced": { "x": 650, "y": 224 },
-    "revenue": { "x": 960, "y": 224 },
-    "byCategory": { "x": 1270, "y": 224 },
-    "ranked": { "x": 1730, "y": 224 },
-    "answer": { "x": 2040, "y": 224 },
-    "chart": { "x": 2040, "y": 440 }
+    "orders": { "x": 40, "y": 219 },
+    "products": { "x": 40, "y": 471 },
+    "priced": { "x": 389, "y": 333 },
+    "revenue": { "x": 738, "y": 333 },
+    "byCategory": { "x": 1087, "y": 333 },
+    "ranked": { "x": 1582, "y": 333 },
+    "answer": { "x": 1931, "y": 184 },
+    "chart": { "x": 1931, "y": 482 }
   },
   "structure": {
     "edges": [

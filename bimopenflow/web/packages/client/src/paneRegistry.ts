@@ -95,7 +95,7 @@ const feedInspector = async (pane: Pane, shown: ShownNode): Promise<void> => {
 /** The panes every editor has: table, chart, verdict list, and inspector. */
 export const genericPanes: readonly PaneRegistration[] = [
   { kind: "table", label: "Table", offer: PANE_OFFERS.table, create: () => createTablePane(), feed: feedTable },
-  { kind: "chart", label: "Chart", offer: PANE_OFFERS.chart, create: (chart) => createChartPane(chart), feed: feedTable },
+  { kind: "chart", label: "Chart", offer: PANE_OFFERS.chart, create: (chart) => createChartPane(chart), feed: feedTable, fillHeight: true },
   { kind: "verdict", label: "Verdicts", offer: PANE_OFFERS.verdict, create: () => createVerdictPane(), feed: feedTable },
   { kind: "inspector", label: "Inspector", offer: PANE_OFFERS.inspector, create: () => createInspectorPane(), feed: feedInspector },
 ];

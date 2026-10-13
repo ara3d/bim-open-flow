@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { drawnEncoding, drawnSpec, fakeChartRenderer, type FakeChart } from "@bimopenflow/panes/testing";
 import type {
   NodeDescriptor,
   NodeState,
@@ -144,23 +145,26 @@ describe("createPaneArea with registered panes", () => {
 });
 
 describe("createPaneArea chart wiring", () => {
+  let fake: FakeChart;
+  beforeEach(() => { fake = fakeChartRenderer(); });
+  afterEach(() => fake.restore());
+
   it("defaults chart.bar nodes to a bar chart built from its params", async () => {
     const { root, area } = makeArea();
     area.showNode({
       nodeId: "n1",
       desc: desc("chart.bar"),
-      values: { labelColumn: "name", valueColumns: "area, count", title: "Areas" },
+      values: { labelColumn: "name", valueColumns: "area, count", title: "Areas", layout: "stacked" },
       state: okState,
     });
     await settle();
     const active = root.querySelector(".bof-app-tab-active") as HTMLElement;
     expect(active.dataset.kind).toBe("chart");
-    expect(root.querySelector("svg.bof-viz-bar-chart")).not.toBeNull();
-    expect(root.querySelector("text.bof-viz-title")?.textContent).toBe("Areas");
-    const bars = [...root.querySelectorAll("rect.bof-viz-bar")];
-    expect(bars.map((b) => b.getAttribute("data-series"))).toEqual([
-      "area", "count", "area", "count",
-    ]);
+    const spec = drawnSpec(root)!;
+    expect(root.querySelector<HTMLElement>(".bof-panes-chart")!.dataset.mark).toBe("bar");
+    expect(spec.title).toEqual({ text: "Areas" });
+    expect(spec.transform).toEqual([{ fold: ["area", "count"], as: ["series", "value"] }]);
+    expect(drawnEncoding(spec).xOffset).toBeUndefined();
     area.dispose();
   });
 
@@ -173,10 +177,11 @@ describe("createPaneArea chart wiring", () => {
       state: okState,
     });
     await settle();
-    expect(root.querySelector("svg.bof-viz-line-chart")).not.toBeNull();
-    expect(root.querySelector("text.bof-viz-title")?.textContent).toBe("Trend");
-    const paths = [...root.querySelectorAll("path.bof-viz-line")];
-    expect(paths.map((p) => p.getAttribute("data-series"))).toEqual(["count"]);
+    const spec = drawnSpec(root)!;
+    expect(root.querySelector<HTMLElement>(".bof-panes-chart")!.dataset.mark).toBe("line");
+    expect(spec.title).toEqual({ text: "Trend" });
+    expect(drawnEncoding(spec).x).toMatchObject({ field: "area" });
+    expect(drawnEncoding(spec).y).toMatchObject({ field: "count" });
     area.dispose();
   });
 
@@ -186,23 +191,24 @@ describe("createPaneArea chart wiring", () => {
       area.showNode({ nodeId: "n1", desc: desc("chart.bar"), values, state: okState });
     show({ labelColumn: "name", valueColumns: "area", title: "Before" });
     await settle();
-    expect(root.querySelector("text.bof-viz-title")?.textContent).toBe("Before");
+    expect(drawnSpec(root)!.title).toEqual({ text: "Before" });
 
     // title edit re-renders in place
     show({ labelColumn: "name", valueColumns: "area", title: "After" });
     await settle();
-    expect(root.querySelector("text.bof-viz-title")?.textContent).toBe("After");
+    expect(drawnSpec(root)!.title).toEqual({ text: "After" });
 
     // column edit swaps the plotted series instead of throwing on stale options
     show({ labelColumn: "name", valueColumns: "count", title: "After" });
     await settle();
-    const bars = [...root.querySelectorAll("rect.bof-viz-bar")];
-    expect(bars.map((b) => b.getAttribute("data-value"))).toEqual(["2", "4"]);
+    expect(drawnEncoding(drawnSpec(root)!).y).toMatchObject({ field: "count" });
 
-    // an unchanged re-show keeps the pane (still one chart svg, data refreshed)
+    // an unchanged re-show keeps the pane (still one chart, data refreshed)
+    const drawn = fake.specs.length;
     show({ labelColumn: "name", valueColumns: "count", title: "After" });
     await settle();
-    expect(root.querySelectorAll("svg.bof-viz-bar-chart")).toHaveLength(1);
+    expect(root.querySelectorAll(".bof-panes-chart")).toHaveLength(1);
+    expect(fake.specs).toHaveLength(drawn);
     area.dispose();
   });
 
@@ -222,11 +228,12 @@ describe("createPaneArea chart wiring", () => {
     ) as HTMLElement;
     chartTab.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await settle();
-    expect(root.querySelector("svg.bof-viz-bar-chart")).not.toBeNull();
-    expect(root.querySelector("text.bof-viz-title")).toBeNull();
+    const spec = drawnSpec(root)!;
+    expect(root.querySelector<HTMLElement>(".bof-panes-chart")!.dataset.mark).toBe("bar");
+    expect(spec.title).toBeUndefined();
     // default series = all numeric columns, so both render grouped
-    const bars = [...root.querySelectorAll("rect.bof-viz-bar")];
-    expect(bars).toHaveLength(4);
+    expect(spec.transform).toEqual([{ fold: ["area", "count"], as: ["series", "value"] }]);
+    expect(drawnEncoding(spec).xOffset).toMatchObject({ field: "series" });
     area.dispose();
   });
 });

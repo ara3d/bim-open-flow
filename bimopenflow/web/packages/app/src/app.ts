@@ -50,6 +50,7 @@ import { nodeTitle, upstreamIds } from "@bimopenflow/graph";
 import { primaryNodeId, reopenKeepingSelection, selectedNodeIds } from "./selection.js";
 import { createSessionReporter } from "./editorSession.js";
 import { classicChrome } from "./classicChrome.js";
+import { ensureAppStyles } from "./styles.js";
 import type { ChromeActions, ChromeFactory } from "./chrome.js";
 import {
   backToAnswer,
@@ -185,6 +186,9 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     fit: () => canvasEditor.fit(),
     tidy: () => { layoutAll(); canvasEditor.fit(); },
   };
+  // The shared content's base rules (tab strips, pane area, step list) serve
+  // both looks; the classic shell injects them too, the studio restyles them.
+  ensureAppStyles(root.ownerDocument);
   const chrome = (options.chrome ?? classicChrome({ graphDemo: options.graphDemo, heading: options.heading }))(root, actions);
   const themePrefs = chrome.themePrefs;
 

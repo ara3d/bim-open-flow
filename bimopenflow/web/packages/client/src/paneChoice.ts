@@ -3,7 +3,7 @@
 // default tab).
 
 import type { NodeDescriptor, NodeState, PortDescriptor } from "@bimopenflow/contracts";
-import type { ChartPaneOptions } from "@bimopenflow/panes";
+import type { BarColorBy, BarLayout, ChartPaneOptions } from "@bimopenflow/panes";
 
 export type PaneKind =
   | "verdict"
@@ -94,6 +94,11 @@ export function studioPanes(desc: NodeDescriptor | undefined): PaneKind[] {
     : ["table"];
 }
 
+const BAR_LAYOUTS: readonly BarLayout[] = ["vertical", "horizontal", "stacked"];
+const BAR_COLOR_BY: readonly BarColorBy[] = ["auto", "category", "series", "none"];
+const isBarLayout = (value: string | undefined): value is BarLayout => (BAR_LAYOUTS as readonly string[]).includes(value ?? "");
+const isBarColorBy = (value: string | undefined): value is BarColorBy => (BAR_COLOR_BY as readonly string[]).includes(value ?? "");
+
 /** Comma list -> trimmed non-empty names; undefined when nothing remains. */
 function splitColumns(list: string | undefined): string[] | undefined {
   const parts = (list ?? "")
@@ -124,6 +129,8 @@ export function chartPaneOptions(
       categoryColumn: values.labelColumn || undefined,
       seriesColumns: splitColumns(values.valueColumns),
       title: values.title || undefined,
+      layout: isBarLayout(values.layout) ? values.layout : undefined,
+      colorBy: isBarColorBy(values.colorBy) ? values.colorBy : undefined,
     };
   return { chart: "bar" };
 }

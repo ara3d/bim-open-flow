@@ -31,6 +31,12 @@ export const panesCss = `
 .bof-panes-props { max-height: 320px; overflow: auto; padding: 4px 8px; border-top: 1px solid var(--bof-panes-border); font-size: 12px; }
 .bof-panes-props[hidden] { display: none; }
 .bof-panes-props .bof-panes-value { overflow-wrap: anywhere; }
+.bof-panes-chartpane { display: flex; flex-direction: column; height: 100%; }
+/* 240px tall in a host with no height of its own (a notebook cell); shrinks to a shorter pane. */
+.bof-panes-chart { flex: 1 1 240px; min-height: 0; }
+.bof-panes-chart > .vega-embed { width: 100%; height: 100%; }
+.bof-panes-chart svg { display: block; }
+.bof-panes-chartpane > .bof-panes-legend { flex: none; }
 .bof-panes-legend { display: flex; flex-wrap: wrap; gap: 5px 12px; max-height: 76px; overflow: auto; padding: 8px; font-size: 11px; }
 .bof-panes-legend[hidden] { display: none; }
 .bof-panes-legend i { display: inline-block; width: 9px; height: 9px; margin-right: 5px; border-radius: 2px; }

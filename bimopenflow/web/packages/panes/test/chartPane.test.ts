@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
-import { createChartPane, fitToPane, splitRowColors } from "../src/chartPane";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { createChartPane, splitRowColors } from "../src/chartPane";
 import { renderLegendView, scaleLegendView, parseScaleLegend } from "../src/scaleLegend";
 import { conformance, tableInput } from "./conformance";
-import { fakeCtx, makeSlice } from "./helpers";
+import { drawnEncoding, drawnSpec, fakeChartRenderer, type FakeChart } from "./chartFake";
+import { fakeCtx, makeSlice, settle } from "./helpers";
 
 const LEGEND_COLUMNS: Array<[string, "Text" | "Number" | "Integer"]> = [
   ["column", "Text"],
@@ -36,75 +37,53 @@ conformance({
 });
 
 describe("ChartPane", () => {
-  it("renders a bar chart with column options passed through", () => {
+  let fake: FakeChart;
+  beforeEach(() => { fake = fakeChartRenderer(); });
+  afterEach(() => fake.restore());
+
+  it("draws the bar spec of its options into the chart element", async () => {
     const host = document.createElement("div");
-    const pane = createChartPane({
-      chart: "bar",
-      categoryColumn: "name",
-      valueColumn: "area",
-    });
+    const pane = createChartPane({ chart: "bar", categoryColumn: "name", valueColumn: "area", title: "Areas" });
     pane.mount(host, fakeCtx());
     pane.update(tableInput);
-    expect(host.querySelector("svg.bof-viz-bar-chart")).not.toBeNull();
-    expect(host.querySelectorAll("rect.bof-viz-bar").length).toBe(2);
+    await settle();
+    const spec = drawnSpec(host)!;
+    expect(host.querySelector<HTMLElement>(".bof-panes-chart")!.dataset.mark).toBe("bar");
+    expect(spec.title).toEqual({ text: "Areas" });
+    expect(drawnEncoding(spec).x).toMatchObject({ field: "name" });
+    expect(drawnEncoding(spec).y).toMatchObject({ field: "area" });
     pane.destroy();
   });
 
-  it("passes title and seriesColumns through to the bar chart", () => {
-    const host = document.createElement("div");
-    const pane = createChartPane({
-      chart: "bar",
-      title: "Areas",
-      categoryColumn: "name",
-      seriesColumns: ["area", "count"],
-    });
-    pane.mount(host, fakeCtx());
-    pane.update({
-      kind: "table",
-      data: makeSlice(
-        [["name", "Text"], ["area", "Number"], ["count", "Integer"]],
-        [["a", 1, 2], ["b", 3, 4]],
-      ),
-    });
-    expect(host.querySelector("text.bof-viz-title")?.textContent).toBe("Areas");
-    const bars = [...host.querySelectorAll("rect.bof-viz-bar")];
-    expect(bars.map((b) => b.getAttribute("data-series"))).toEqual([
-      "area", "count", "area", "count",
-    ]);
-    pane.destroy();
-  });
-
-  it("passes title through to the line chart", () => {
+  it("draws the line spec for a line chart and redraws on new data, finalizing the old chart", async () => {
     const host = document.createElement("div");
     const pane = createChartPane({ chart: "line", title: "Trend" });
     pane.mount(host, fakeCtx());
-    pane.update({
-      kind: "table",
-      data: makeSlice([["y", "Number"]], [[1], [2]]),
-    });
-    expect(host.querySelector("text.bof-viz-title")?.textContent).toBe("Trend");
+    pane.update({ kind: "table", data: makeSlice([["x", "Number"], ["y", "Number"]], [[0, 1], [1, 2]]) });
+    await settle();
+    expect(host.querySelector<HTMLElement>(".bof-panes-chart")!.dataset.mark).toBe("line");
+    expect(drawnSpec(host)!.title).toEqual({ text: "Trend" });
+    pane.update({ kind: "table", data: makeSlice([["x", "Number"], ["y", "Number"]], [[0, 5], [1, 6], [2, 7]]) });
+    await settle();
+    expect(fake.specs).toHaveLength(2);
+    expect(fake.finalized).toBe(1);
+    expect((drawnSpec(host)!.data as { values: unknown[] }).values).toHaveLength(3);
     pane.destroy();
+    expect(fake.finalized).toBe(2);
   });
 
-  it("renders a line chart and updates in place", () => {
+  it("does not redraw for the same table twice", async () => {
     const host = document.createElement("div");
-    const pane = createChartPane({ chart: "line" });
+    const pane = createChartPane({ chart: "bar" });
     pane.mount(host, fakeCtx());
-    const data = makeSlice(
-      [["x", "Number"], ["y", "Number"]],
-      [[0, 1], [1, 2]],
-    );
-    pane.update({ kind: "table", data });
-    expect(host.querySelectorAll("path.bof-viz-line").length).toBeGreaterThan(0);
-    pane.update({
-      kind: "table",
-      data: makeSlice([["x", "Number"], ["y", "Number"]], [[0, 5], [1, 6], [2, 7]]),
-    });
-    expect(host.querySelectorAll("svg.bof-viz-line-chart").length).toBe(1);
+    pane.update(tableInput);
+    pane.update(tableInput);
+    await settle();
+    expect(fake.specs).toHaveLength(1);
     pane.destroy();
   });
 
-  it("passes a table's r/g/b columns to the bar chart as fills and drops them from the plotted table", () => {
+  it("colours the bars from a table's r/g/b columns and drops them from the plotted data", async () => {
     const host = document.createElement("div");
     const pane = createChartPane({ chart: "bar", categoryColumn: "name" });
     pane.mount(host, fakeCtx());
@@ -115,10 +94,12 @@ describe("ChartPane", () => {
         [["a", 1, 1, 0, 0], ["b", 2, 0, 1, 0]],
       ),
     });
-    const bars = [...host.querySelectorAll("rect.bof-viz-bar")];
-    expect(bars).toHaveLength(2);
-    expect(bars[0]!.getAttribute("style")).toContain("fill: rgb(255,0,0)");
-    expect(bars[1]!.getAttribute("style")).toContain("fill: rgb(0,255,0)");
+    await settle();
+    const spec = drawnSpec(host)!;
+    const rows = (spec.data as { values: Record<string, unknown>[] }).values;
+    expect(rows.map((r) => r.__color)).toEqual(["rgb(255,0,0)", "rgb(0,255,0)"]);
+    expect(Object.keys(rows[0]!)).not.toContain("r");
+    expect(drawnEncoding(spec).color).toMatchObject({ field: "__color", scale: null });
     pane.destroy();
   });
 
@@ -168,32 +149,5 @@ describe("splitRowColors", () => {
     const { data: split, colors } = splitRowColors(data);
     expect(split).toEqual(data);
     expect(colors).toBeNull();
-  });
-});
-
-describe("fitToPane", () => {
-  it("fills the pane's width, never narrower than the viz default", () => {
-    expect(fitToPane(812.6)).toEqual({ width: 812, height: 360 });
-    expect(fitToPane(300)).toEqual({ width: 480, height: 360 });
-  });
-
-  it("leaves the viz defaults when the pane has no layout yet", () => {
-    expect(fitToPane(0)).toEqual({});
-  });
-
-  it("sizes a mounted chart to its pane unless the options set a size", () => {
-    const sized = (options: Parameters<typeof createChartPane>[0]) => {
-      const host = document.createElement("div");
-      const pane = createChartPane(options);
-      pane.mount(host, fakeCtx());
-      // jsdom has no layout: give the pane's root (.bof-panes-root) a width.
-      Object.defineProperty(host.firstElementChild, "clientWidth", { value: 900 });
-      pane.update(tableInput);
-      const width = host.querySelector("svg")!.getAttribute("width");
-      pane.destroy();
-      return width;
-    };
-    expect(sized({ chart: "bar" })).toBe("900");
-    expect(sized({ chart: "bar", width: 640 })).toBe("640");
   });
 });

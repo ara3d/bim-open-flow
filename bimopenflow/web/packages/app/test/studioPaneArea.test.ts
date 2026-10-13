@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { NodeDescriptor, NodeState, TableSlice } from "@bimopenflow/contracts";
 import { createPaneArea } from "../src/paneArea.js";
 import { studioPanes } from "@bimopenflow/client";
+import { drawnSpec, fakeChartRenderer } from "@bimopenflow/panes/testing";
 
 const desc = (kind: string): NodeDescriptor => ({
   kind,
@@ -76,11 +77,12 @@ describe("createPaneArea in the DuckDB studio", () => {
     await settle();
     expect(tabKinds(root)).toEqual([]);
     expect(root.querySelector<HTMLElement>(".bof-app-tabs")!.style.display).toBe("none");
-    expect(root.querySelector("svg.bof-viz-bar-chart")).toBeNull();
+    expect(root.querySelector(".bof-panes-chart")).toBeNull();
     area.dispose();
   });
 
   it("opens a chart.bar node on its Chart tab, next to the Table tab", async () => {
+    const fake = fakeChartRenderer();
     const { root, area, requested } = makeStudioArea();
     area.showNode({
       nodeId: "chart",
@@ -92,15 +94,17 @@ describe("createPaneArea in the DuckDB studio", () => {
     expect(tabKinds(root)).toEqual(["chart", "table"]);
     expect(root.querySelector<HTMLElement>(".bof-app-tabs")!.style.display).toBe("");
     expect(root.querySelector<HTMLElement>(".bof-app-tab-active")!.dataset.kind).toBe("chart");
-    expect(root.querySelectorAll("rect.bof-viz-bar")).toHaveLength(3);
-    expect(root.querySelector(".bof-viz-title")!.textContent).toBe("Rooms per storey");
+    const spec = drawnSpec(root)!;
+    expect((spec.data as { values: unknown[] }).values).toHaveLength(3);
+    expect(spec.title).toEqual({ text: "Rooms per storey" });
     expect(requested).toEqual(["chart.table"]);
 
     root.querySelector<HTMLElement>('.bof-app-tab[data-kind="table"]')!.click();
     await settle();
-    expect(root.querySelector("svg.bof-viz-bar-chart")).toBeNull();
+    expect(root.querySelector(".bof-panes-chart")).toBeNull();
     expect(root.querySelectorAll("tbody tr")).toHaveLength(3);
     area.dispose();
+    fake.restore();
   });
 
   it("hides the strip again when the next node has no chart", async () => {

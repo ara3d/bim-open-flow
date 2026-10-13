@@ -2,3 +2,4 @@
 // test helpers, for packages that implement a pane outside this one (pane-3d).
 export * from "./conformance";
 export * from "./helpers";
+export * from "./chartFake";

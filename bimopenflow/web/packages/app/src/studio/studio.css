@@ -152,6 +152,7 @@ html, body { margin: 0; height: 100%; }
 }
 .bof-studio .bof-app-catalog-group:hover { background: #eceff3; }
 .bof-studio .bof-app-catalog-group-triangle { display: inline-block; width: 12px; margin-right: 4px; font-size: 12px; text-align: center; }
+.bof-studio .bof-app-catalog-group-dot { display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 2px; flex: none; }
 .bof-studio .bof-app-catalog-group-name { flex: 1; }
 .bof-studio .bof-app-catalog-group-count { font-weight: normal; opacity: 0.7; }
 .bof-studio .bof-app-item { padding: 5px 8px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; }

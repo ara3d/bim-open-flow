@@ -65,6 +65,10 @@ export interface CanvasEdge {
   /** What travels on the wire, from the catalog: a Relation is drawn hollow so
    *  it reads apart from a Table. Absent for an unknown kind or port. */
   readonly type?: PortType;
+  /** The wire ends on a parameter socket, not an input port: it carries a
+   *  resource or a value a source holds (a model path, a database), not rows,
+   *  and is drawn thinner and quieter than a table wire. */
+  readonly param?: true;
 }
 
 /** The parameter whose long-value editor is open; at most one. */
@@ -136,6 +140,15 @@ export function feedingSchema(state: State, catalog: ReadonlyMap<string, NodeDes
   const node = state.document.structure.nodes.find((n) => n.id === nodeId);
   const input = node && catalog.get(node.kind)?.inputs.find((p) => p.type === "Table" || p.type === "Relation");
   return input && schemaFeeding(state, `${nodeId}.${input.name}`);
+}
+
+/** True when `endpoint` ("nodeId.name") names a parameter socket of a known
+ *  kind rather than one of its input ports. */
+export function isParamSocket(state: State, catalog: ReadonlyMap<string, NodeDescriptor>, endpoint: string): boolean {
+  const dot = endpoint.indexOf(".");
+  const node = state.document.structure.nodes.find((n) => n.id === endpoint.slice(0, dot));
+  const desc = node && catalog.get(node.kind);
+  return !!desc && !desc.inputs.some((p) => p.name === endpoint.slice(dot + 1));
 }
 
 /** The catalog type of the output `endpoint` ("nodeId.port") names, if known. */
@@ -293,6 +306,7 @@ export function buildCanvasModel(
       contributing: contributing.has(e.from.split(".")[0]!) && contributing.has(e.to.split(".")[0]!),
       ...(rows ? { rows: state.dirty ? { ...rows, current: false } : rows } : {}),
       ...(type ? { type } : {}),
+      ...(isParamSocket(state, catalog, e.to) ? { param: true as const } : {}),
     };
   });
   return {

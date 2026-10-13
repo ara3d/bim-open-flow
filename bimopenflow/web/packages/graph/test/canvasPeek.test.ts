@@ -7,7 +7,7 @@ import { Runtime, type Color, type Painter, type Vec } from "gratify";
 import type { NodeDescriptor } from "@bimopenflow/contracts";
 import { createStore } from "@bimopenflow/state";
 import { makeCanvasUpdate, type CanvasIntent } from "../src/canvasIntents.js";
-import { canvasView, RELATION_STROKE } from "../src/canvasParts.js";
+import { canvasView, PARAM_WIRE, RELATION_STROKE } from "../src/canvasParts.js";
 import { createCanvasInstance } from "../src/instance.js";
 import { buildCanvasModel, type CanvasModel } from "../src/viewModel.js";
 import { NO_PORT_RESULTS, type PortResultsView } from "../src/portResults.js";
@@ -68,6 +68,27 @@ function mountDiamond(results: PortResultsView, outType: "Table" | "Relation" = 
   runtime.painter = spy;
   return { runtime, spy };
 }
+
+describe("canvas parts draw a parameter wire thinner", () => {
+  it("strokes a wire into a parameter socket narrower than a wire into a port", () => {
+    const port = mountDiamond(NO_PORT_RESULTS);
+    port.runtime.step(3, 1 / 60);
+    const store = createStore();
+    store.dispatch({ type: "addNode", id: "a", kind: "k.a", version: 1 });
+    store.dispatch({ type: "addNode", id: "b", kind: "k.p", version: 1 });
+    store.dispatch({ type: "connect", from: "a.out", to: "b.path" });
+    const withParam: NodeDescriptor = { ...desc, kind: "k.p", inputs: [], params: [{ name: "path", kind: "FilePath", default: "", bindable: "Table" }] };
+    const model = buildCanvasModel(store.getState(), new Map([["k.a", desc], ["k.p", withParam]]), null, NO_PORT_RESULTS);
+    expect(model.edges[0]!.param).toBe(true);
+    const runtime = new Runtime<CanvasModel, CanvasIntent>(null,
+      { init: model, update: makeCanvasUpdate(store, () => {}), view: (doc) => canvasView(doc, instance) },
+      { headless: true, width: 800, height: 600 });
+    const spy = new SpyPainter();
+    runtime.painter = spy;
+    runtime.step(3, 1 / 60);
+    expect(spy.wires[1]!).toBeCloseTo(port.spy.wires[1]! * PARAM_WIRE.width);
+  });
+});
 
 describe("canvas parts draw a Relation wire hollow", () => {
   it("strokes a Table wire twice (shadow, line) and a Relation wire three times, the last in the background colour", () => {

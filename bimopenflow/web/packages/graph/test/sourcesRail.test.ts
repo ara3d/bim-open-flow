@@ -154,6 +154,9 @@ describe("which sources stand in the rail (TKT-286)", () => {
     const rail = (id: string) => model.nodes.find((n) => n.id === id)!.inRail ?? false;
     expect([rail("db"), rail("ifc"), rail("spare")]).toEqual([false, false, true]);
     expect(model.edges.map((e) => e.from).sort()).toEqual(["db.source", "ifc.path"]);
+    // db.source feeds q1's path parameter (a thin wire); ifc.path feeds r's input port (a table wire).
+    expect(model.edges.find((e) => e.from === "db.source")!.param).toBe(true);
+    expect(model.edges.find((e) => e.from === "ifc.path")!.param).toBeUndefined();
     expect([...railSources(s.getState().document, new Set(["db", "ifc", "spare"]))]).toEqual(["spare"]);
   });
 });

@@ -366,7 +366,12 @@ interface WireProps {
   rows?: WireRows;
   /** The port type at the wire's source; a Relation is drawn hollow. */
   type?: PortType;
+  /** Ends on a parameter socket: drawn thinner and fainter than a table wire. */
+  param?: boolean;
 }
+
+/** A parameter wire's share of a table wire's width and opacity. */
+export const PARAM_WIRE = { width: 0.7, alpha: 0.65 } as const;
 
 /** A Relation wire's stroke: `outer` wide in the wire colour with the canvas
  *  background `inner` wide over it, so two parallel lines read as "pairs of
@@ -401,8 +406,10 @@ const Wire = part<WireProps, { color: Color; selected: number; label: Color; lab
     const b = node.anchor?.(node.props.to);
     if (!a || !b) return;
     painter.wire(a, b, canvasColors().wireShadow, 4);
-    const color = node.props.contributing ? canvasColors().wireSelected : calpha(style.color, 0.9);
-    const width = node.props.contributing ? 3 : 2 + 1.4 * style.selected + 0.8 * node.ch.hover;
+    const base = node.props.contributing ? canvasColors().wireSelected : calpha(style.color, 0.9);
+    const color = node.props.param ? calpha(base, PARAM_WIRE.alpha) : base;
+    const full = node.props.contributing ? 3 : 2 + 1.4 * style.selected + 0.8 * node.ch.hover;
+    const width = node.props.param ? full * PARAM_WIRE.width : full;
     if (node.props.type === "Relation") {
       painter.wire(a, b, color, width + RELATION_STROKE.outer);
       painter.wire(a, b, style.bg, RELATION_STROKE.inner);
@@ -474,6 +481,7 @@ export function canvasView(model: CanvasModel, instance: CanvasInstance): Elemen
           flowing: flowing.has(edge.id),
           rows: edge.rows,
           type: edge.type,
+          param: edge.param,
           states: { sel: model.selectedEdgeId === edge.id },
         });
       }),

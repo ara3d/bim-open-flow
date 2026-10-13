@@ -22,7 +22,7 @@ const desc = (kind: string): NodeDescriptor => ({
   description: "",
 });
 
-const catalog = new Map([["k.a", desc("k.a")], ["k.b", desc("k.b")]]);
+const catalog = new Map([["k.a", desc("k.a")], ["k.b", desc("k.b")], ["k.w", { ...desc("k.w"), capability: "Effect" as const }]]);
 
 describe("nodeHeight", () => {
   it("is header plus one port row per densest side, min one row", () => {
@@ -95,8 +95,11 @@ describe("buildCanvasModel", () => {
         nodes: [{ nodeId: "a", status: "Error", error: "boom", warnings: [] }],
       },
     });
+    store.dispatch({ type: "addNode", id: "w", kind: "k.w", version: 1 });
     const model = buildCanvasModel(store.getState(), catalog);
     expect(model.edges).toEqual([{ id: edgeId("a.out", "b.in"), from: "a.out", to: "b.in", contributing: true }]);
+    expect(model.nodes.find((n) => n.id === "w")!.effect).toBe(true);
+    expect(model.nodes.find((n) => n.id === "a")!.effect).toBeUndefined();
     expect(model.nodes.find((n) => n.id === "a")!.status).toBe("Error");
     expect(model.nodes.find((n) => n.id === "b")!.selected).toBe(true);
     expect(model.nodes.find((n) => n.id === "a")!.selected).toBe(false);

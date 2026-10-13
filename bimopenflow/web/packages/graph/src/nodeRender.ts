@@ -41,6 +41,10 @@ export interface NodeCardLayout {
   readonly status?: { x: number; y: number; w: number; h: number; text: string };
   /** The chip's text, centred in it. */
   readonly badge?: { text: string; x: number; y: number; size: number };
+  /** The writer glyph (an arrow into a tray) at the right end of header line
+   *  2, on a card whose kind writes on Run: `x` is its left edge, `y` the
+   *  line's baseline centre. */
+  readonly effect?: { x: number; y: number; size: number };
 }
 
 const SOCKET_RADIUS = 4.5;
@@ -51,6 +55,8 @@ const COMPACT_ID_SIZE = 11;
 const COMPACT_LINE2_Y = 33;
 /** Share of the card width the status text may take. */
 const BADGE_SHARE = 0.45;
+/** The writer glyph's box, square, on header line 2. */
+const EFFECT_SIZE = 11;
 
 /** Bottom of the port rows, relative to the card top. */
 export const portsBottom = (p: { inputs: readonly unknown[]; outputs: readonly unknown[] }): number =>
@@ -63,8 +69,9 @@ type Subtitle = NonNullable<NodeCardLayout["subtitle"]>;
 const fitTitle = (m: Measure, text: string, room: number, size: number): string =>
   fitText(m, text, room / BOLD_WIDEN, size);
 
-/** Title on line 1 ending before `right`; the id on line 2. */
-function compactHeader(p: CanvasNode, m: Measure, right: number): Pick<NodeCardLayout, "title" | "subtitle"> {
+/** Title on line 1 ending before `right`; the id on line 2, ending before
+ *  the writer glyph when the card has one. */
+function compactHeader(p: CanvasNode, m: Measure, right: number): Pick<NodeCardLayout, "title" | "subtitle" | "effect"> {
   const title: Title = {
     text: fitTitle(m, nodeTitle(p.kind), right - PAD, COMPACT_TITLE.size),
     x: PAD,
@@ -72,8 +79,10 @@ function compactHeader(p: CanvasNode, m: Measure, right: number): Pick<NodeCardL
     size: COMPACT_TITLE.size,
     weight: 600,
   };
-  const subtitle: Subtitle = { text: fitText(m, p.id, p.w - 2 * PAD, COMPACT_ID_SIZE), x: PAD, y: COMPACT_LINE2_Y, size: COMPACT_ID_SIZE };
-  return { title, subtitle };
+  const effect = p.effect ? { x: p.w - PAD - EFFECT_SIZE, y: COMPACT_LINE2_Y, size: EFFECT_SIZE } : undefined;
+  const idRoom = (effect ? effect.x - GAP : p.w - PAD) - PAD;
+  const subtitle: Subtitle = { text: fitText(m, p.id, idRoom, COMPACT_ID_SIZE), x: PAD, y: COMPACT_LINE2_Y, size: COMPACT_ID_SIZE };
+  return { title, subtitle, ...(effect ? { effect } : {}) };
 }
 
 /** The description wrapped to the card below its param rows, in as many
@@ -185,6 +194,21 @@ export const LIT_EDGE_WIDTH = 3;
 export const cardEdgeWidth = (p: Pick<CanvasNode, "lit" | "contributing">): number =>
   p.lit ? LIT_EDGE_WIDTH : p.contributing ? 2 : 1.2;
 
+/** The writer glyph: an arrow pointing down into a tray, in the amber of the
+ *  EffectPending status, so "writes on Run" reads the same on the card and in
+ *  the chip once the graph has a pending writer. `x` is the left edge, `y` the
+ *  vertical centre, `s` the square's side. */
+export function writerGlyph(painter: Painter, x: number, y: number, s: number, color: Color): void {
+  const cx = x + s / 2;
+  const top = y - s / 2;
+  const lw = 1.4;
+  painter.line(v(cx, top), v(cx, top + s * 0.55), color, lw);
+  painter.poly([v(cx - s * 0.28, top + s * 0.38), v(cx + s * 0.28, top + s * 0.38), v(cx, top + s * 0.68)], color);
+  painter.line(v(x, top + s * 0.72), v(x, top + s), color, lw);
+  painter.line(v(x, top + s), v(x + s, top + s), color, lw);
+  painter.line(v(x + s, top + s), v(x + s, top + s * 0.72), color, lw);
+}
+
 /** Draws the card body (box, texts, status chip, ports, separator) for `node`. */
 export function renderNodeCard(
   node: { readonly rect: Rect; readonly props: CanvasNode },
@@ -216,6 +240,7 @@ export function renderNodeCard(
     const b = layout.badge;
     painter.label(b.text, v(r.x + b.x, r.y + b.y), statusColor, { align: "center", size: b.size });
   }
+  if (layout.effect) writerGlyph(painter, r.x + layout.effect.x, r.y + layout.effect.y, layout.effect.size, palette.status.EffectPending);
 
   const labels = portLabels(p, painter.measure);
   p.inputs.forEach((_port, i) => {

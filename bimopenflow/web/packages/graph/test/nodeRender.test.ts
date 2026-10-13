@@ -50,6 +50,17 @@ function textSpans(layout: NodeCardLayout): { text: string; left: number; right:
 describe("nodeCardLayout", () => {
   const layout = nodeCardLayout(described, measure);
 
+  it("puts the writer glyph at the right end of header line 2 only on an Effect card, and keeps the id clear of it", () => {
+    expect(layout.effect).toBeUndefined();
+    const writer = nodeCardLayout({ ...base, id: "a-rather-long-writer-node-id-here", effect: true }, measure);
+    const g = writer.effect!;
+    expect(g.y).toBe(writer.subtitle!.y);
+    expect(g.x + g.size).toBeLessThanOrEqual(base.w);
+    const id = writer.subtitle!;
+    expect(id.x + measure.text(id.text, id.size).x).toBeLessThanOrEqual(g.x);
+    expect(id.text.endsWith("…")).toBe(true);
+  });
+
   it("wraps the whole description below the port rows, inside the card's height (TKT-278)", () => {
     const d = layout.description!;
     expect(d.lines.length).toBeGreaterThan(1);

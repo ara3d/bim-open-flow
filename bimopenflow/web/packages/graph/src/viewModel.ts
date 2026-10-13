@@ -38,6 +38,10 @@ export interface CanvasNode {
    *  learns what the node does without the sidebar. Absent at the hidden
    *  level, and for a note or an unknown kind. */
   readonly description?: string;
+  /** The kind writes a file on Run (catalog capability Effect): the card
+   *  carries the writer glyph, so the one gesture that touches disk is
+   *  visible before anyone presses Run. */
+  readonly effect?: true;
   readonly selected: boolean;
   readonly contributing?: boolean;
   /** The `text` param's value, only for a `view.note` node (TKT-82): drawn as
@@ -125,7 +129,7 @@ export function edgeId(from: string, to: string): string {
 }
 
 /** The fields of a card its size is computed from. */
-type CardContent = Pick<CanvasNode, "id" | "kind" | "inputs" | "outputs" | "params" | "noteText" | "description">;
+type CardContent = Pick<CanvasNode, "id" | "kind" | "inputs" | "outputs" | "params" | "noteText" | "description" | "effect">;
 
 /** `text` cut to `level` as a card field: absent when nothing is shown. */
 const describedAs = (text: string | undefined, level: DescriptionLevel): Pick<CanvasNode, "description"> => {
@@ -157,6 +161,7 @@ export function cardContent(
     outputs: (desc?.outputs ?? []).map((p) => ({ name: p.name, type: p.type })),
     params: inlineParams(desc?.params ?? [], values, wired),
     ...describedAs(desc?.description, level),
+    ...(desc?.capability === "Effect" ? { effect: true as const } : {}),
   };
 }
 

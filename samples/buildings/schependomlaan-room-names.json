@@ -32,7 +32,7 @@
   },
   "values": {
     "about": { "text": "Which room names occur in Schependomlaan, and how often. The names are the spaces' own Name values, in Dutch: entree is the entrance, instal. ruimte the plant space, mk the meter cupboard (meterkast), woonkamer the living room. The counts sort largest first, then by name, so the rooms every apartment has once (bathroom, kitchen, meter cupboard, toilet, living room) show as a run of 10s." },
-    "answer": { "labelColumn": "Name", "title": "Spaces by name", "valueColumns": "Spaces" },
+    "answer": { "colorBy": "category", "labelColumn": "Name", "layout": "horizontal", "sort": "desc", "title": "Spaces by name", "valueColumns": "Spaces" },
     "byName": { "aggregates": "count(EntityIndex) as Spaces", "groupBy": "Name" },
     "db": { "path": "$model" },
     "entities": { "table": "EntityText" },

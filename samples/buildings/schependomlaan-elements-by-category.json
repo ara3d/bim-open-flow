@@ -33,7 +33,7 @@
   },
   "values": {
     "about": { "text": "What is on Schependomlaan's storeys, by IFC class. The inner join keeps only entities placed on a storey, which leaves out geometry, property, and type entities. StoreyOfElement places each element once: Depth 1 when the storey contains it directly, Depth 2 when it sits there through a parent, as a building element part does through its wall. Both depths count here; 289 of the 3,721 elements are at Depth 2 (277 building element parts, 7 members, 4 windows, 1 proxy)." },
-    "answer": { "labelColumn": "Category", "sort": "desc", "title": "Elements on a storey, by IFC class", "valueColumns": "Elements" },
+    "answer": { "colorBy": "category", "labelColumn": "Category", "layout": "horizontal", "sort": "desc", "title": "Elements on a storey, by IFC class", "valueColumns": "Elements" },
     "byCategory": { "aggregates": "count(EntityIndex) as Elements", "groupBy": "Category" },
     "db": { "path": "$model" },
     "entities": { "table": "EntityText" },

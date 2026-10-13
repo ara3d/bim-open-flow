@@ -42,7 +42,7 @@
   },
   "values": {
     "about": { "text": "How many doors, windows, and spaces are on each storey of DigitalHub's architecture model. The pivot makes one column per IFC class and counts rows, so the basement, which has no windows, shows 0 rather than an empty cell; labels renames the class columns to words. Storey codes: B01 is the basement, E00 the ground floor, E01 the first floor. Two of the 64 doors sit on their storey through a parent (Depth 2 in StoreyOfElement) and count like the rest." },
-    "answer": { "labelColumn": "Storey", "title": "Doors, windows, and spaces per storey", "valueColumns": "Doors, Windows, Spaces" },
+    "answer": { "colorBy": "series", "labelColumn": "Storey", "layout": "vertical", "title": "Doors, windows, and spaces per storey", "valueColumns": "Doors, Windows, Spaces" },
     "db": { "path": "$model" },
     "entities": { "table": "EntityText" },
     "labels": { "renames": "StoreyName=Storey, IFCDOOR=Doors, IFCWINDOW=Windows, IFCSPACE=Spaces" },

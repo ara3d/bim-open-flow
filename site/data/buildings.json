@@ -119,7 +119,9 @@
             "text": "What is on Schependomlaan\u0027s storeys, by IFC class. The inner join keeps only entities placed on a storey, which leaves out geometry, property, and type entities. StoreyOfElement places each element once: Depth 1 when the storey contains it directly, Depth 2 when it sits there through a parent, as a building element part does through its wall. Both depths count here; 289 of the 3,721 elements are at Depth 2 (277 building element parts, 7 members, 4 windows, 1 proxy)."
           },
           "answer": {
+            "colorBy": "category",
             "labelColumn": "Category",
+            "layout": "horizontal",
             "sort": "desc",
             "title": "Elements on a storey, by IFC class",
             "valueColumns": "Elements"
@@ -1055,7 +1057,9 @@
             "text": "How many spaces each storey of Schependomlaan has. One duck.source, db, opens the file the model input names, and both readers share it; set model to another building\u0027s .duckdb (digitalhub-arc.duckdb gives 12, 26, and 26 spaces) and every reader follows. Every space is placed on its storey directly (Depth 1 in StoreyOfElement), so each counts once."
           },
           "answer": {
+            "colorBy": "category",
             "labelColumn": "StoreyName",
+            "layout": "vertical",
             "title": "Spaces per storey",
             "valueColumns": "Spaces"
           },
@@ -2094,7 +2098,10 @@
             "text": "Which room names occur in Schependomlaan, and how often. The names are the spaces\u0027 own Name values, in Dutch: entree is the entrance, instal. ruimte the plant space, mk the meter cupboard (meterkast), woonkamer the living room. The counts sort largest first, then by name, so the rooms every apartment has once (bathroom, kitchen, meter cupboard, toilet, living room) show as a run of 10s."
           },
           "answer": {
+            "colorBy": "category",
             "labelColumn": "Name",
+            "layout": "horizontal",
+            "sort": "desc",
             "title": "Spaces by name",
             "valueColumns": "Spaces"
           },
@@ -2895,7 +2902,9 @@
             "text": "How many doors, windows, and spaces are on each storey of DigitalHub\u0027s architecture model. The pivot makes one column per IFC class and counts rows, so the basement, which has no windows, shows 0 rather than an empty cell; labels renames the class columns to words. Storey codes: B01 is the basement, E00 the ground floor, E01 the first floor. Two of the 64 doors sit on their storey through a parent (Depth 2 in StoreyOfElement) and count like the rest."
           },
           "answer": {
+            "colorBy": "series",
             "labelColumn": "Storey",
+            "layout": "vertical",
             "title": "Doors, windows, and spaces per storey",
             "valueColumns": "Doors, Windows, Spaces"
           },
@@ -4054,7 +4063,9 @@
             "text": "How DigitalHub\u0027s heating pipes, fittings, radiators, and valves spread over its storeys, from the heating model alone. The steps are those of digitalhub-openings-per-storey: keep four IFC classes, place them on storeys, pivot to one column per class counting rows, and rename the columns to words. The basement has no radiators, so its count is 0. Storey codes: B01 is the basement, E00 the ground floor, E01 the first floor."
           },
           "answer": {
+            "colorBy": "series",
             "labelColumn": "Storey",
+            "layout": "stacked",
             "title": "Heating parts per storey",
             "valueColumns": "Pipes, Fittings, Radiators, Valves"
           },
@@ -5185,7 +5196,9 @@
             "text": "How many placed elements each of DigitalHub\u0027s four discipline models contributes to the federated file. models counts the elements on a storey per source document and takes the discipline code from the document\u0027s title (DigitalHub_FM-ARC_v2 gives ARC); disciplines spells each German code out: ARC architecture, HZG heating (Heizung), LFT ventilation (L\u00FCftung), SAN plumbing (Sanit\u00E4r)."
           },
           "answer": {
+            "colorBy": "category",
             "labelColumn": "Discipline",
+            "layout": "horizontal",
             "title": "Elements on a storey, per discipline model",
             "valueColumns": "Elements"
           },

@@ -42,7 +42,7 @@
   },
   "values": {
     "about": { "text": "How DigitalHub's heating pipes, fittings, radiators, and valves spread over its storeys, from the heating model alone. The steps are those of digitalhub-openings-per-storey: keep four IFC classes, place them on storeys, pivot to one column per class counting rows, and rename the columns to words. The basement has no radiators, so its count is 0. Storey codes: B01 is the basement, E00 the ground floor, E01 the first floor." },
-    "answer": { "labelColumn": "Storey", "title": "Heating parts per storey", "valueColumns": "Pipes, Fittings, Radiators, Valves" },
+    "answer": { "colorBy": "series", "labelColumn": "Storey", "layout": "stacked", "title": "Heating parts per storey", "valueColumns": "Pipes, Fittings, Radiators, Valves" },
     "db": { "path": "$model" },
     "entities": { "table": "EntityText" },
     "heating": { "expr": "Category in ('IFCPIPESEGMENT', 'IFCPIPEFITTING', 'IFCSPACEHEATER', 'IFCVALVE')" },

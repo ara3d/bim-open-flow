@@ -39,7 +39,7 @@
   },
   "values": {
     "about": { "text": "How many spaces each storey of Schependomlaan has. One duck.source, db, opens the file the model input names, and both readers share it; set model to another building's .duckdb (digitalhub-arc.duckdb gives 12, 26, and 26 spaces) and every reader follows. Every space is placed on its storey directly (Depth 1 in StoreyOfElement), so each counts once." },
-    "answer": { "labelColumn": "StoreyName", "title": "Spaces per storey", "valueColumns": "Spaces" },
+    "answer": { "colorBy": "category", "labelColumn": "StoreyName", "layout": "vertical", "title": "Spaces per storey", "valueColumns": "Spaces" },
     "db": { "path": "$model" },
     "entities": { "table": "EntityText" },
     "perStorey": { "aggregates": "count(EntityIndex) as Spaces", "groupBy": "StoreyName" },

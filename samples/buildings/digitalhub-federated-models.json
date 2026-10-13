@@ -29,7 +29,7 @@
   },
   "values": {
     "about": { "text": "How many placed elements each of DigitalHub's four discipline models contributes to the federated file. models counts the elements on a storey per source document and takes the discipline code from the document's title (DigitalHub_FM-ARC_v2 gives ARC); disciplines spells each German code out: ARC architecture, HZG heating (Heizung), LFT ventilation (Lüftung), SAN plumbing (Sanitär)." },
-    "answer": { "labelColumn": "Discipline", "title": "Elements on a storey, per discipline model", "valueColumns": "Elements" },
+    "answer": { "colorBy": "category", "labelColumn": "Discipline", "layout": "horizontal", "title": "Elements on a storey, per discipline model", "valueColumns": "Elements" },
     "db": { "path": "$model" },
     "disciplines": { "rows": "[{\"Code\":\"ARC\",\"Discipline\":\"Architecture\"},{\"Code\":\"HZG\",\"Discipline\":\"Heating\"},{\"Code\":\"LFT\",\"Discipline\":\"Ventilation\"},{\"Code\":\"SAN\",\"Discipline\":\"Plumbing\"}]" },
     "models": { "sql": "SELECT regexp_extract(d.Strings, 'FM-([A-Z]+)', 1) AS Code, d.Strings AS Model, count(*) AS Elements, count(DISTINCT s.StoreyIndex) AS Storeys FROM StoreyOfElement s JOIN Entities e ON e.rowid = s.EntityIndex JOIN Documents doc ON doc.rowid = e.Document JOIN Strings d ON d.rowid = doc.Title GROUP BY d.Strings ORDER BY d.Strings" },

@@ -97,7 +97,7 @@ describe("buildCanvasModel", () => {
     });
     store.dispatch({ type: "addNode", id: "w", kind: "k.w", version: 1 });
     const model = buildCanvasModel(store.getState(), catalog);
-    expect(model.edges).toEqual([{ id: edgeId("a.out", "b.in"), from: "a.out", to: "b.in", contributing: true }]);
+    expect(model.edges).toEqual([{ id: edgeId("a.out", "b.in"), from: "a.out", to: "b.in", contributing: true, type: "Table" }]);
     expect(model.nodes.find((n) => n.id === "w")!.effect).toBe(true);
     expect(model.nodes.find((n) => n.id === "a")!.effect).toBeUndefined();
     expect(model.nodes.find((n) => n.id === "a")!.status).toBe("Error");

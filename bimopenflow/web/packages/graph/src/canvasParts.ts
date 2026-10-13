@@ -360,13 +360,20 @@ interface WireProps {
    *  absent draws no label. `current: false` dims the label while a new
    *  count is in flight or the document is dirty (TKT-11). */
   rows?: WireRows;
+  /** The port type at the wire's source; a Relation is drawn hollow. */
+  type?: PortType;
 }
+
+/** A Relation wire's stroke: `outer` wide in the wire colour with the canvas
+ *  background `inner` wide over it, so two parallel lines read as "pairs of
+ *  rows", not one table. */
+export const RELATION_STROKE = { outer: 2.4, inner: 1.2 } as const;
 
 /** How far along the wire (0..1) the travelling highlight sits at `time`,
  *  looping every second so the eye reads it as flowing a -> b. */
 const flowT = (time: number): number => time - Math.floor(time);
 
-const Wire = part<WireProps, { color: Color; selected: number; label: Color; labelDim: Color }>("bof-wire", {
+const Wire = part<WireProps, { color: Color; selected: number; label: Color; labelDim: Color; bg: Color }>("bof-wire", {
   style: (t, channels) => {
     const selected = channels.sel || 0;
     const c = canvasColors();
@@ -375,6 +382,7 @@ const Wire = part<WireProps, { color: Color; selected: number; label: Color; lab
       selected,
       label: t.textDim,
       labelDim: calpha(t.textDim, 0.5),
+      bg: t.bg,
     };
   },
 
@@ -389,7 +397,12 @@ const Wire = part<WireProps, { color: Color; selected: number; label: Color; lab
     const b = node.anchor?.(node.props.to);
     if (!a || !b) return;
     painter.wire(a, b, canvasColors().wireShadow, 4);
-    painter.wire(a, b, node.props.contributing ? canvasColors().wireSelected : calpha(style.color, 0.9), node.props.contributing ? 3 : 2 + 1.4 * style.selected + 0.8 * node.ch.hover);
+    const color = node.props.contributing ? canvasColors().wireSelected : calpha(style.color, 0.9);
+    const width = node.props.contributing ? 3 : 2 + 1.4 * style.selected + 0.8 * node.ch.hover;
+    if (node.props.type === "Relation") {
+      painter.wire(a, b, color, width + RELATION_STROKE.outer);
+      painter.wire(a, b, style.bg, RELATION_STROKE.inner);
+    } else painter.wire(a, b, color, width);
     if (node.props.flowing) {
       const flow = canvasColors().wireFlow;
       if (animateSelection()) {
@@ -456,6 +469,7 @@ export function canvasView(model: CanvasModel, instance: CanvasInstance): Elemen
           contributing: edge.contributing,
           flowing: flowing.has(edge.id),
           rows: edge.rows,
+          type: edge.type,
           states: { sel: model.selectedEdgeId === edge.id },
         });
       }),

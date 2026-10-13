@@ -64,6 +64,9 @@ export interface CanvasEdge {
   readonly contributing?: boolean;
   /** Row count of the table or relation leaving `from`; absent when uncounted. */
   readonly rows?: WireRows;
+  /** What travels on the wire, from the catalog: a Relation is drawn hollow so
+   *  it reads apart from a Table. Absent for an unknown kind or port. */
+  readonly type?: PortType;
 }
 
 /** The parameter whose long-value editor is open; at most one. */
@@ -126,6 +129,13 @@ export function freePosition(
 
 export function edgeId(from: string, to: string): string {
   return `${from}->${to}`;
+}
+
+/** The catalog type of the output `endpoint` ("nodeId.port") names, if known. */
+export function outputType(state: State, catalog: ReadonlyMap<string, NodeDescriptor>, endpoint: string): PortType | undefined {
+  const dot = endpoint.indexOf(".");
+  const node = state.document.structure.nodes.find((n) => n.id === endpoint.slice(0, dot));
+  return node && catalog.get(node.kind)?.outputs.find((p) => p.name === endpoint.slice(dot + 1))?.type;
 }
 
 /** The fields of a card its size is computed from. */
@@ -275,12 +285,14 @@ export function buildCanvasModel(
   });
   const edges = state.document.structure.edges.filter((e) => !isChipEdge(chips, e)).map((e) => {
     const rows = results.counts.get(e.from);
+    const type = outputType(state, catalog, e.from);
     return {
       id: edgeId(e.from, e.to),
       from: e.from,
       to: e.to,
       contributing: contributing.has(e.from.split(".")[0]!) && contributing.has(e.to.split(".")[0]!),
-      ...(rows ? { rows: state.dirty ? { rows: rows.rows, current: false } : rows } : {}),
+      ...(rows ? { rows: state.dirty ? { ...rows, current: false } : rows } : {}),
+      ...(type ? { type } : {}),
     };
   });
   return {

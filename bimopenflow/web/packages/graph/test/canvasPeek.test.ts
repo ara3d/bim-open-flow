@@ -7,10 +7,10 @@ import { Runtime, type Color, type Painter, type Vec } from "gratify";
 import type { NodeDescriptor } from "@bimopenflow/contracts";
 import { createStore } from "@bimopenflow/state";
 import { makeCanvasUpdate, type CanvasIntent } from "../src/canvasIntents.js";
-import { canvasView } from "../src/canvasParts.js";
+import { canvasView, RELATION_STROKE } from "../src/canvasParts.js";
 import { createCanvasInstance } from "../src/instance.js";
 import { buildCanvasModel, type CanvasModel } from "../src/viewModel.js";
-import type { PortResultsView } from "../src/portResults.js";
+import { NO_PORT_RESULTS, type PortResultsView } from "../src/portResults.js";
 
 const instance = createCanvasInstance({ document });
 
@@ -28,6 +28,8 @@ const desc: NodeDescriptor = {
  *  label or the peek card drew anything, without a real canvas. */
 class SpyPainter implements Painter {
   labels: string[] = [];
+  /** Stroke widths of every wire() call, in draw order. */
+  wires: number[] = [];
   measure = { text: () => ({ x: 0, y: 0 }) };
   clear() {}
   box() {}
@@ -45,16 +47,16 @@ class SpyPainter implements Painter {
   scaleAt() {}
   screen() {}
   view() {}
-  wire(_a: Vec, _b: Vec) {}
+  wire(_a: Vec, _b: Vec, _c: Color, lw: number) { this.wires.push(lw); }
   clip() {}
 }
 
-function mountDiamond(results: PortResultsView): { runtime: Runtime<CanvasModel, CanvasIntent>; spy: SpyPainter } {
+function mountDiamond(results: PortResultsView, outType: "Table" | "Relation" = "Table"): { runtime: Runtime<CanvasModel, CanvasIntent>; spy: SpyPainter } {
   const store = createStore();
   store.dispatch({ type: "addNode", id: "a", kind: "k.a", version: 1 });
   store.dispatch({ type: "addNode", id: "b", kind: "k.a", version: 1 });
   store.dispatch({ type: "connect", from: "a.out", to: "b.in" });
-  const catalog = new Map([["k.a", desc]]);
+  const catalog = new Map([["k.a", { ...desc, outputs: [{ name: "out", type: outType, optional: false }], inputs: [{ name: "in", type: outType, optional: false }] }]]);
   const model = buildCanvasModel(store.getState(), catalog, null, results);
 
   const runtime = new Runtime<CanvasModel, CanvasIntent>(
@@ -66,6 +68,22 @@ function mountDiamond(results: PortResultsView): { runtime: Runtime<CanvasModel,
   runtime.painter = spy;
   return { runtime, spy };
 }
+
+describe("canvas parts draw a Relation wire hollow", () => {
+  it("strokes a Table wire twice (shadow, line) and a Relation wire three times, the last in the background colour", () => {
+    const table = mountDiamond(NO_PORT_RESULTS);
+    table.runtime.step(3, 1 / 60);
+    const relation = mountDiamond(NO_PORT_RESULTS, "Relation");
+    relation.runtime.step(3, 1 / 60);
+    // Three frames each; every frame strokes the one wire the same way.
+    expect(table.spy.wires).toHaveLength(3 * 2);
+    expect(relation.spy.wires).toHaveLength(3 * 3);
+    const [, tableLine] = table.spy.wires;
+    const [, relationOuter, relationInner] = relation.spy.wires;
+    expect(relationOuter!).toBeGreaterThan(tableLine!);
+    expect(relationInner).toBe(RELATION_STROKE.inner);
+  });
+});
 
 describe("canvas parts draw wire row counts and the peek card (TKT-11 C7)", () => {
   it("steps without errors and paints the row-count label when rows and peek are set", () => {

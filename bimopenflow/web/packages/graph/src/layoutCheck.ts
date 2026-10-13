@@ -49,7 +49,12 @@ export function layoutIssues(model: CanvasModel): LayoutIssue[] {
   for (const [i, a] of boxes.entries())
     for (const b of boxes.slice(i + 1))
       if (intersects(a.box, b.box)) issues.push({ kind: "overlap", text: `${a.id} / ${b.id}` });
+  const railed = new Set(model.nodes.filter((n) => n.inRail).map((n) => n.id));
   for (const edge of model.edges) {
+    // A rail card (a graph input, an unwired source) is placed by the editor,
+    // not the stored layout, so where its wire runs is not the layout's fault
+    // to fix; routing it clear is TKT-287's.
+    if (railed.has(nodeOf(edge.from))) continue;
     const from = endpointPos(model.nodes, edge.from, "out");
     const to = endpointPos(model.nodes, edge.to, "in");
     if (!from || !to) continue;

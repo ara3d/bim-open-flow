@@ -25,6 +25,11 @@ describe('layoutIssues', () => {
       .toEqual(['wireBehindCard: a.table -> b.table behind mid']);
   });
 
+  it('does not blame the layout for a wire from a rail card, which the editor places', () => {
+    const m = model([{ ...card('$model', 0, 0), inRail: true }, card('mid', 300, 0), card('b', 600, 0)], [['$model', 'b']]);
+    expect(kinds(m)).toEqual([]);
+  });
+
   it('finds a wire running right to left', () => {
     expect(kinds(model([card('a', 400, 0), card('b', 0, 0)], [['a', 'b']]))).toContain('backwardWire: a.table -> b.table');
   });

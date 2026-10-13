@@ -32,7 +32,7 @@ export const classicChrome = (options: ClassicChromeOptions = {}): ChromeFactory
     const sidebar = createSidebar(shell.sidebarEl, (desc) => {
       actions.addNode(desc);
       closeCatalog();
-    }, { onDescriptionLevel: actions.setDescriptionLevel });
+    }, { onDescriptionLevel: actions.setDescriptionLevel, onCardDensity: actions.setCardDensity });
 
     const nodesBtn = doc.createElement("button");
     const closeCatalog = () => {
@@ -75,6 +75,7 @@ export const classicChrome = (options: ClassicChromeOptions = {}): ChromeFactory
       setConnection: topbar.setConnection,
       setTheme: topbar.setTheme,
       setDescriptionLevel: sidebar.setDescriptionLevel,
+      setCardDensity: sidebar.setCardDensity,
       setCatalog: (nodes) => sidebar.setCatalog([...nodes]),
       flowOpened: sidebar.flowOpened,
       setNodes(nodes) {

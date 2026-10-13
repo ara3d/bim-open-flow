@@ -2,10 +2,11 @@
 // canvas draws. Gratify-free so it is testable headless.
 
 import type { NodeDescriptor, NodeStatus, PortSchema, PortType } from "@bimopenflow/contracts";
-import { schemaFeeding, schemaMessages, type NodeLayout, type State } from "@bimopenflow/state";
+import { referencedInput, schemaFeeding, schemaMessages, type NodeLayout, type State } from "@bimopenflow/state";
 import { inlineParams, type CanvasParam } from "./canvasSlots.js";
 import { nodeSize, NOTE_KIND, type Size } from "./nodeSize.js";
 import { currentDescriptionLevel, descriptionText, type DescriptionLevel } from "./descriptionLevel.js";
+import { currentCardDensity, summaryLine, type CardDensity } from "./cardDensity.js";
 import { upstreamIds } from "./graphPreview";
 import { wiredPreviews } from "./wiredParams.js";
 import { nodeBadge, type NodeBadge } from "./nodeBadge.js";
@@ -174,7 +175,9 @@ const describedAs = (text: string | undefined, level: DescriptionLevel): Pick<Ca
  *  ports and inline params from `desc` with `values` applied (and the
  *  previews in `wired` for the parameters an edge feeds), the description
  *  `level` shows, or a note's text. An unknown kind (no `desc`) gets a
- *  portless card. */
+ *  portless card. A `compact` card (TKT-296) keeps only the params a wire
+ *  or a graph input feeds, so every wire still lands, and shows one summary
+ *  line in place of the description. */
 export function cardContent(
   id: string,
   kind: string,
@@ -182,18 +185,22 @@ export function cardContent(
   values: Readonly<Record<string, string>>,
   wired: Readonly<Record<string, string>> = {},
   level: DescriptionLevel = currentDescriptionLevel(),
+  density: CardDensity = currentCardDensity(),
 ): CardContent {
   if (kind === NOTE_KIND) {
     const noteText = values["text"] ?? desc?.params.find((p) => p.name === "text")?.default ?? "";
     return { id, kind, inputs: [], outputs: [], params: [], noteText };
   }
+  const params = inlineParams(desc?.params ?? [], values, wired);
+  const compact = density === "compact";
+  const summary = compact ? summaryLine(params.filter((p) => p.wired === undefined).map((p) => p.name), values) : "";
   return {
     id,
     kind,
     inputs: (desc?.inputs ?? []).map((p) => ({ name: p.name, type: p.type })),
     outputs: (desc?.outputs ?? []).map((p) => ({ name: p.name, type: p.type })),
-    params: inlineParams(desc?.params ?? [], values, wired),
-    ...describedAs(desc?.description, level),
+    params: compact ? params.filter((p) => p.wired !== undefined || referencedInput(p.value) !== null) : params,
+    ...(compact ? (summary ? { description: summary } : {}) : describedAs(desc?.description, level)),
     ...(desc?.capability === "Effect" ? { effect: true as const } : {}),
   };
 }
@@ -217,6 +224,8 @@ export interface ModelOptions {
   readonly sources?: SourceView;
   /** How much of each description the cards show; default the page's (currentDescriptionLevel). */
   readonly descriptions?: DescriptionLevel;
+  /** Full or compact cards (TKT-296); default the page's (currentCardDensity). */
+  readonly density?: CardDensity;
 }
 
 /** Rail positions for cards of the given sizes, stacked in one column left of `others`, from their top. */
@@ -254,17 +263,20 @@ export function buildCanvasModel(
 ): CanvasModel {
   const view = options.sources ?? NO_SOURCE_VIEW;
   const level = options.descriptions ?? currentDescriptionLevel();
+  const density = options.density ?? currentCardDensity();
   const selected = new Set(state.selection);
   const contributing = upstreamIds(state.document,preview);
   const sources = sourceNodeIds(state.document, catalog);
   const railed = view.rail ? railSources(state.document, sources) : new Set<string>();
   const cards: Card[] = state.document.structure.nodes.map((n) => {
     const desc = catalog.get(n.kind);
-    const content = cardContent(n.id, n.kind, desc, state.document.values[n.id] ?? {}, wiredPreviews(state.document, catalog, n.id, desc), level);
+    const content = cardContent(n.id, n.kind, desc, state.document.values[n.id] ?? {}, wiredPreviews(state.document, catalog, n.id, desc), level, density);
     const params = markInputRefs(state, content.params);
     const layout = state.document.layout[n.id];
     const marked = { ...content, params };
-    return { content: marked, layout, size: nodeSize(marked, layout ?? {}), inRail: railed.has(n.id) };
+    // A compact card is as wide as its header: a width saved for the full card would leave it mostly empty.
+    const want = density === "compact" ? {} : layout ?? {};
+    return { content: marked, layout, size: nodeSize(marked, want), inRail: railed.has(n.id) };
   });
   const inputCards = (state.document.structure.inputs ?? []).map((decl): Card => {
     const content = {

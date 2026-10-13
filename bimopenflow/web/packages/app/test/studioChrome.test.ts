@@ -15,7 +15,7 @@ const templates: FlowTemplate[] = [
 
 const actions = (): ChromeActions => ({
   openAnalysis: vi.fn(), newAnalysis: vi.fn(), save: vi.fn(), run: vi.fn(),
-  setTheme: vi.fn(), setDescriptionLevel: vi.fn(), addNode: vi.fn(), selectAndFocus: vi.fn(),
+  setTheme: vi.fn(), setDescriptionLevel: vi.fn(), setCardDensity: vi.fn(), addNode: vi.fn(), selectAndFocus: vi.fn(),
   showInPane: vi.fn(), fit: vi.fn(), tidy: vi.fn(),
 });
 

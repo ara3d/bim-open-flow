@@ -35,6 +35,8 @@ import { askFlowName } from "./namePrompt.js";
 import { loadThemeChoice, saveThemeChoice } from "./themeChoice.js";
 import { setDescriptionLevel as applyDescriptionLevel } from "@bimopenflow/graph";
 import { loadDescriptionLevel, saveDescriptionLevel } from "./descriptionChoice.js";
+import { setCardDensity as applyCardDensity } from "@bimopenflow/graph";
+import { loadCardDensity, saveCardDensity } from "./cardDensityChoice.js";
 import { installCanvasPalette, paletteClientPoint, paletteKeyOpens } from "./canvasPalette.js";
 import { addNodeActions, freeSpot } from "./addNodePlan.js";
 import { createStepList, stepListModel } from "./stepList.js";
@@ -177,6 +179,12 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
       chrome.setDescriptionLevel(level);
       renderGraphViews(store.getState());
     },
+    // The canvas follows the graph package's density seam on its own.
+    setCardDensity: (density) => {
+      saveCardDensity(density);
+      applyCardDensity(density);
+      chrome.setCardDensity(density);
+    },
     addNode: (desc) => addNode(desc),
     selectAndFocus: (nodeId) => selectAndFocus(nodeId),
     showInPane: (nodeId) => {
@@ -298,6 +306,9 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   const descriptionLevel = loadDescriptionLevel();
   applyDescriptionLevel(descriptionLevel);
   chrome.setDescriptionLevel(descriptionLevel);
+  const cardDensity = loadCardDensity();
+  applyCardDensity(cardDensity);
+  chrome.setCardDensity(cardDensity);
   const stepList = createStepList(chrome.stepsEl, { onSelect: selectAndFocus });
 
   // The start page (TKT-14): one card per sample flow, over the canvas. Shown

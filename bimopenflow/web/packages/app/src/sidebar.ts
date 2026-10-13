@@ -1,11 +1,14 @@
 // Left sidebar: two tabs, the open flow's steps and the searchable node
 // catalog, each with the sidebar's full height. Switching flows is the top
 // bar's picker (topbar.ts), so the sidebar lists no flows (TKT-116). Above
-// the steps sits the one description control (TKT-278): a button that cycles
-// hidden, brief, full for the step list and the canvas cards together.
+// the steps sit the description control (TKT-278), a button that cycles
+// hidden, brief, full for the step list and the canvas cards together, and
+// the card density control (TKT-296), which toggles full and compact cards.
 
 import type { NodeDescriptor } from "@bimopenflow/contracts";
-import { defaultDescriptionLevel, nextDescriptionLevel, type DescriptionLevel } from "@bimopenflow/graph";
+import {
+  defaultCardDensity, defaultDescriptionLevel, nextCardDensity, nextDescriptionLevel, type CardDensity, type DescriptionLevel,
+} from "@bimopenflow/graph";
 import { groupCatalog, loadExpandedPacks, saveExpandedPacks } from "./catalogFilter.js";
 import { packDot } from "./packKey.js";
 import { readPref, writePref } from "./prefs.js";
@@ -23,6 +26,8 @@ export interface Sidebar {
   readonly stepsEl: HTMLElement;
   /** Shows `level` on the description control without calling its handler. */
   setDescriptionLevel(level: DescriptionLevel): void;
+  /** Shows `density` on the card density control without calling its handler. */
+  setCardDensity(density: CardDensity): void;
   /** Redraws the node list, after a canvas theme change moved the pack hues. */
   refreshCatalog(): void;
 }
@@ -31,6 +36,9 @@ export interface SidebarOptions {
   /** Called with the level after the shown one when the description control
    *  is pressed. The control is drawn only when a page passes this. */
   readonly onDescriptionLevel?: (level: DescriptionLevel) => void;
+  /** Called with the other density when the card density control is
+   *  pressed. The control is drawn only when a page passes this. */
+  readonly onCardDensity?: (density: CardDensity) => void;
 }
 
 /** What the description control says at each level, and what its tooltip adds. */
@@ -45,6 +53,13 @@ const LEVEL_HINTS: Record<DescriptionLevel, string> = {
 export const descriptionControlTitle = (level: DescriptionLevel): string =>
   `Node descriptions in the steps and on the cards: ${LEVEL_HINTS[level]}. ` +
   `Click for ${nextDescriptionLevel(level)}.`;
+
+/** What the card density control says, and its tooltip, at each density. */
+const DENSITY_LABELS: Record<CardDensity, string> = { full: "Full", compact: "Compact" };
+export const cardDensityControlTitle = (density: CardDensity): string =>
+  density === "full"
+    ? "Canvas cards show every parameter. Click for compact cards: header, ports, and one summary line."
+    : "Canvas cards are compact: header, ports, and one summary line. Click to show every parameter.";
 
 const TAB_PREF_KEY = "bof-app-sidebar-tab";
 const TAB_LABELS: Record<SidebarTab, string> = { steps: "Steps", nodes: "Nodes" };
@@ -118,12 +133,31 @@ export function createSidebar(
     levelBtn.title = descriptionControlTitle(shown);
   };
   showLevel(level);
-  const onDescriptionLevel = options.onDescriptionLevel;
-  if (onDescriptionLevel) {
-    levelBtn.addEventListener("click", () => onDescriptionLevel(nextDescriptionLevel(level)));
+
+  let density = defaultCardDensity;
+  const densityBtn = doc.createElement("button");
+  densityBtn.type = "button";
+  densityBtn.className = "bof-app-card-density";
+  const showDensity = (shown: CardDensity) => {
+    density = shown;
+    densityBtn.dataset.density = shown;
+    densityBtn.textContent = `Cards: ${DENSITY_LABELS[shown]}`;
+    densityBtn.title = cardDensityControlTitle(shown);
+  };
+  showDensity(density);
+
+  const { onDescriptionLevel, onCardDensity } = options;
+  if (onDescriptionLevel || onCardDensity) {
     const header = doc.createElement("div");
     header.className = "bof-app-steps-header";
-    header.appendChild(levelBtn);
+    if (onCardDensity) {
+      densityBtn.addEventListener("click", () => onCardDensity(nextCardDensity(density)));
+      header.appendChild(densityBtn);
+    }
+    if (onDescriptionLevel) {
+      levelBtn.addEventListener("click", () => onDescriptionLevel(nextDescriptionLevel(level)));
+      header.appendChild(levelBtn);
+    }
     panels.steps.appendChild(header);
   }
 
@@ -199,6 +233,7 @@ export function createSidebar(
     },
     showTab,
     setDescriptionLevel: showLevel,
+    setCardDensity: showDensity,
     refreshCatalog: renderCatalog,
   };
 }

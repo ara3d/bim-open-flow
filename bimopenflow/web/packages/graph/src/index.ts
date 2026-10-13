@@ -30,6 +30,11 @@ export {
   isDescriptionLevel, leadSentences, nextDescriptionLevel, onDescriptionLevelChange, setDescriptionLevel,
 } from "./descriptionLevel.js";
 export type { DescriptionLevel } from "./descriptionLevel.js";
+export {
+  cardDensities, currentCardDensity, defaultCardDensity, isCardDensity, nextCardDensity, onCardDensityChange,
+  setCardDensity, summaryLine,
+} from "./cardDensity.js";
+export type { CardDensity } from "./cardDensity.js";
 export { applyCanvasTheme, canvasColors, canvasThemeNames, currentCanvasTheme, defaultCanvasTheme, isCanvasThemeName, PACK_ROLE_LABEL, packRole, packRoles } from "./canvasTheme.js";
 export type { CanvasThemeName, PackRole } from "./canvasTheme.js";
 /** gratify Color to a CSS rgba() string, for DOM that shows the canvas theme's colours (the key, the node lists). */

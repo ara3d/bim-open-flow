@@ -9,7 +9,7 @@
 
 import type { NodeDescriptor } from "@bimopenflow/contracts";
 import type { FlowGroup } from "./flowList.js";
-import type { CanvasThemeName, DescriptionLevel } from "@bimopenflow/graph";
+import type { CanvasThemeName, CardDensity, DescriptionLevel } from "@bimopenflow/graph";
 import type { HostStatus } from "@bimopenflow/client/host";
 import type { ThemePrefs } from "./themeChoice.js";
 
@@ -25,6 +25,8 @@ export interface ChromeActions {
   /** How much of each node's description the step list and the cards show
    *  (TKT-278): saved for this browser and applied to both at once. */
   setDescriptionLevel(level: DescriptionLevel): void;
+  /** Full or compact canvas cards (TKT-296): saved for this browser and applied to every canvas. */
+  setCardDensity(density: CardDensity): void;
   /** Adds the node at the first free spot, selected, as one undo step. */
   addNode(desc: NodeDescriptor): void;
   /** Selects the node and brings it into view (the step list's gesture). */
@@ -73,6 +75,8 @@ export interface AppChrome extends ChromeSlots {
   setTheme(name: CanvasThemeName): void;
   /** Shows the description level without calling the action. */
   setDescriptionLevel(level: DescriptionLevel): void;
+  /** Shows the card density without calling the action. */
+  setCardDensity(density: CardDensity): void;
   setCatalog(nodes: readonly NodeDescriptor[]): void;
   /** A flow opened; `hasNodes` lets an empty flow lead with the catalog. */
   flowOpened(hasNodes: boolean): void;

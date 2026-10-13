@@ -66,12 +66,12 @@ html, body { margin: 0; height: 100%; }
 .bof-app-sidebar-panel[hidden] { display: none; }
 .bof-app-list { display: flex; flex-direction: column; gap: 2px; }
 .bof-app-steps, .bof-app-catalog { flex: 1 1 0; min-height: 0; overflow-y: auto; }
-.bof-app-steps-header { display: flex; justify-content: flex-end; flex: none; }
-.bof-app-description-level {
+.bof-app-steps-header { display: flex; justify-content: flex-end; gap: 4px; flex: none; }
+.bof-app-description-level, .bof-app-card-density {
   font: inherit; font-size: 11px; color: var(--bof-app-dim); background: none; cursor: pointer;
   border: 1px solid var(--bof-app-border); border-radius: 4px; padding: 2px 6px;
 }
-.bof-app-description-level:hover { background: var(--bof-app-hover); color: var(--bof-app-text); }
+.bof-app-description-level:hover, .bof-app-card-density:hover { background: var(--bof-app-hover); color: var(--bof-app-text); }
 .bof-app-item {
   padding: 4px 6px; border-radius: 4px; cursor: pointer; border: 1px solid transparent;
 }

@@ -32,6 +32,8 @@ export {
 export type { DescriptionLevel } from "./descriptionLevel.js";
 export { applyCanvasTheme, canvasColors, canvasThemeNames, currentCanvasTheme, defaultCanvasTheme, isCanvasThemeName, PACK_ROLE_LABEL, packRole, packRoles } from "./canvasTheme.js";
 export type { CanvasThemeName, PackRole } from "./canvasTheme.js";
+/** gratify Color to a CSS rgba() string, for DOM that shows the canvas theme's colours (the key, the node lists). */
+export { css } from "gratify";
 export type { PortResultsView, ReadPort, WireRows } from "./portResults.js";
 export { NO_PORT_RESULTS } from "./portResults.js";
 export { DEFAULT_SOURCE_VIEW, isSourceDescriptor, NO_SOURCE_VIEW } from "./sources.js";

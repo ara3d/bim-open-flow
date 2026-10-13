@@ -6,6 +6,7 @@
 import type { NodeDescriptor, PortType } from "@bimopenflow/contracts";
 import type { AnchorRef } from "@bimopenflow/graph";
 import { filterPalette, type PaletteEntry } from "./paletteFilter.js";
+import { packDot, packOf } from "./packKey.js";
 
 type Point = { x: number; y: number };
 
@@ -65,6 +66,7 @@ function ensurePaletteStyles(doc: Document): void {
     .bof-app-palette-entry { padding: 5px 8px; border-radius: 4px; cursor: pointer; }
     .bof-app-palette-entry[aria-selected="true"] { background: var(--bof-app-hover, #ecebe4); }
     .bof-app-palette-kind { font-weight: 600; }
+    .bof-app-palette-dot { display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 2px; vertical-align: 1px; }
     .bof-app-palette-port { margin-left: 6px; color: var(--bof-app-accent, #3b82c4); font-size: 12px; }
     .bof-app-palette-desc { display: block; color: var(--bof-app-dim, #8a8880); font-size: 12px;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -133,6 +135,8 @@ export function installCanvasPalette(canvas: HTMLCanvasElement, deps: CanvasPale
       el.append(s);
       return s;
     };
+    const dot = packDot(document, "bof-app-palette-dot", packOf(entry.desc.kind));
+    if (dot) el.append(dot);
     span("bof-app-palette-kind", entry.desc.kind);
     if (entry.port !== undefined && wire)
       span("bof-app-palette-port", `${wire.from.dir === "out" ? "input" : "output"} ${entry.port}`);

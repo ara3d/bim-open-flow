@@ -7,6 +7,7 @@
 import type { NodeDescriptor } from "@bimopenflow/contracts";
 import { defaultDescriptionLevel, nextDescriptionLevel, type DescriptionLevel } from "@bimopenflow/graph";
 import { groupCatalog, loadExpandedPacks, saveExpandedPacks } from "./catalogFilter.js";
+import { packDot } from "./packKey.js";
 import { readPref, writePref } from "./prefs.js";
 
 export type SidebarTab = "steps" | "nodes";
@@ -22,6 +23,8 @@ export interface Sidebar {
   readonly stepsEl: HTMLElement;
   /** Shows `level` on the description control without calling its handler. */
   setDescriptionLevel(level: DescriptionLevel): void;
+  /** Redraws the node list, after a canvas theme change moved the pack hues. */
+  refreshCatalog(): void;
 }
 
 export interface SidebarOptions {
@@ -159,7 +162,9 @@ export function createSidebar(
       const count = doc.createElement("span");
       count.className = "bof-app-catalog-group-count";
       count.textContent = String(group.count);
-      header.append(triangle, name, count);
+      // The pack's stripe hue, so the list teaches the same colours the cards wear.
+      const dot = packDot(doc, "bof-app-catalog-group-dot", group.pack);
+      header.append(triangle, ...(dot ? [dot] : []), name, count);
       header.addEventListener("click", () => {
         if (expanded.has(group.pack)) expanded.delete(group.pack);
         else expanded.add(group.pack);
@@ -194,5 +199,6 @@ export function createSidebar(
     },
     showTab,
     setDescriptionLevel: showLevel,
+    refreshCatalog: renderCatalog,
   };
 }

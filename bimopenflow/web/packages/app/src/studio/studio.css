@@ -198,12 +198,22 @@ html, body { margin: 0; height: 100%; }
 .bof-studio-help > summary { list-style: none; box-shadow: var(--s-shadow); color: var(--s-dim); }
 .bof-studio-help > summary::-webkit-details-marker { display: none; }
 .bof-studio-help-body {
-  position: absolute; right: 0; bottom: 40px; width: 300px; margin: 0; padding: 12px 14px;
-  display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; font-size: 12px;
+  position: absolute; right: 0; bottom: 40px; width: 320px; margin: 0; padding: 12px 14px; font-size: 12px;
   background: var(--s-surface); border: 1px solid var(--s-border); border-radius: 8px; box-shadow: var(--s-shadow);
 }
-.bof-studio-help-body dt { color: var(--s-text); font-weight: 600; }
-.bof-studio-help-body dd { margin: 0; color: var(--s-dim); }
+.bof-studio-help-title { margin: 0 0 6px; font: 600 11px/1.2 var(--s-font); text-transform: uppercase; letter-spacing: 0.06em; color: var(--s-dim); }
+.bof-studio-help-title + .bof-studio-help-title, .bof-studio-help-gestures + .bof-studio-help-title { margin-top: 12px; }
+.bof-studio-help-gestures { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; }
+.bof-studio-help-gestures dt { color: var(--s-text); font-weight: 600; }
+.bof-studio-help-gestures dd { margin: 0; color: var(--s-dim); }
+/* The key (packKey.ts): a swatch column of stripes, the hollow wire, and the writer glyph. */
+.bof-studio-key { margin: 0; display: grid; grid-template-columns: 22px 1fr; gap: 6px 10px; align-items: center; }
+.bof-studio-key dd { margin: 0; color: var(--s-dim); }
+.bof-key-swatch { height: 12px; border-radius: 2px; }
+.bof-key-stripe { width: 4px; margin-left: 9px; }
+.bof-key-relation { width: 22px; height: 6px; border-top: 2px solid #949eac; border-bottom: 2px solid #949eac; border-radius: 0; }
+.bof-key-writer { width: 12px; height: 12px; margin-left: 5px; color: var(--s-amber); }
+.bof-key-writer svg { display: block; width: 12px; height: 12px; }
 .bof-studio-empty { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; padding: 24px; pointer-events: none; }
 .bof-studio-empty[hidden] { display: none; }
 .bof-studio-empty-card {

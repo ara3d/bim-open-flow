@@ -46,7 +46,7 @@ describe("createPeekWiring", () => {
     const { store, wiring, onChange } = setup();
     evaluate(store);
     await vi.advanceTimersByTimeAsync(0);
-    expect(wiring.view().counts.get("a.out")).toEqual({ rows: 142, current: true });
+    expect(wiring.view().counts.get("a.out")).toEqual({ rows: 142, current: true, columns: 1 });
     expect(onChange).toHaveBeenCalled();
   });
 

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { NodeDescriptor } from "@bimopenflow/contracts";
 import { createSidebar, tabForFlow } from "../src/sidebar.js";
+import { applyCanvasTheme, canvasColors, css } from "@bimopenflow/graph";
 
 const desc = (kind: string): NodeDescriptor => ({
   kind,
@@ -34,6 +35,22 @@ const itemKinds = (root: HTMLElement) =>
 describe("sidebar catalog", () => {
   beforeEach(() => {
     localStorage.clear();
+  });
+
+  it("colours each pack header with its role's stripe hue under the studio theme, and none under light", () => {
+    applyCanvasTheme("studio", true);
+    const { root, sidebar } = setup();
+    sidebar.setCatalog([desc("table.select"), desc("sink.csv"), desc("mystery.thing")]);
+    const dot = (pack: string) => groupHeader(root, pack).querySelector<HTMLElement>(".bof-app-catalog-group-dot");
+    // jsdom normalises a colour it stores; read the expected one back the same way.
+    const asStyle = (c: string) => { const e = document.createElement("i"); e.style.background = c; return e.style.background; };
+    expect(dot("table")!.style.background).toBe(asStyle(css(canvasColors().roleAccents.transform!)));
+    expect(dot("sink")!.style.background).toBe(asStyle(css(canvasColors().roleAccents.writer!)));
+    expect(dot("mystery")).toBeNull();
+    applyCanvasTheme("light", true);
+    sidebar.refreshCatalog();
+    expect(dot("table")).toBeNull();
+    applyCanvasTheme("studio", true);
   });
 
   it("opens every pack collapsed with a count, and shows no nodes", () => {

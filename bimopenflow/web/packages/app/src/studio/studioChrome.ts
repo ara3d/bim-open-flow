@@ -6,7 +6,8 @@
 //   canvas theme picker, and a connection dot.
 // - A left column with the shared sidebar (Steps / Nodes).
 // - The canvas with a floating toolbar (Fit, Tidy, Add node), an empty-state
-//   card when the flow has no nodes, and a "?" popover for the gestures.
+//   card when the flow has no nodes, and a "?" popover for the gestures and
+//   the key (packKey.ts: stripe hues, the hollow wire, the writer glyph).
 // - A right column with the Ask host over the pane area.
 //
 // Layout is studio.css; the shared content keeps its bof-app- classes and
@@ -23,6 +24,7 @@ import { fillFlowPicker, namePicker } from "../topbar.js";
 import type { ThemePrefs } from "../themeChoice.js";
 import { brandMark, svgIcon } from "../brand.js";
 import { flowTitle } from "./flowTitle.js";
+import { renderPackKey } from "../packKey.js";
 import "./studio.css";
 
 export const STUDIO_THEME_PREFS: ThemePrefs = { key: "bof-studio-canvas-theme", fallback: "studio" };
@@ -106,7 +108,10 @@ export const studioChrome = (options: StudioChromeOptions = {}): ChromeFactory =
     menuSummary.setAttribute("aria-label", "View settings");
     menuSummary.append(icon(doc, ICON.gear), el("span", "bof-studio-btn-label", "View"));
     const menuBody = el("div", "bof-studio-menu-body");
-    const themePicker = namePicker(doc, "Canvas theme", canvasThemeNames, isCanvasThemeName, actions.setTheme);
+    const themePicker = namePicker(doc, "Canvas theme", canvasThemeNames, isCanvasThemeName, (name) => {
+      actions.setTheme(name);
+      refreshHues();
+    });
     const field = (label: string, control: HTMLElement) => {
       const l = el("label", "bof-studio-field");
       l.append(el("span", "bof-studio-field-label", label), control);
@@ -169,9 +174,10 @@ export const studioChrome = (options: StudioChromeOptions = {}): ChromeFactory =
 
     const help = el("details", "bof-studio-help");
     const helpSummary = el("summary", "bof-studio-btn bof-studio-btn-round");
-    helpSummary.setAttribute("aria-label", "Canvas gestures");
+    helpSummary.setAttribute("aria-label", "Canvas gestures and key");
     helpSummary.append(icon(doc, ICON.help));
-    const helpBody = el("dl", "bof-studio-help-body");
+    const helpPanel = el("div", "bof-studio-help-body");
+    const helpBody = el("dl", "bof-studio-help-gestures");
     for (const [gesture, effect] of [
       ["Drag a node", "move it"], ["Drag from a socket", "wire it"], ["Drop a wire on empty canvas", "add a matching node"],
       ["Click a wire, Delete", "cut it"], ["Right-click or Space", "node palette"], ["Hover a wire", "peek at its rows"],
@@ -179,7 +185,15 @@ export const studioChrome = (options: StudioChromeOptions = {}): ChromeFactory =
     ]) {
       helpBody.append(el("dt", "", gesture!), el("dd", "", effect!));
     }
-    help.append(helpSummary, helpBody);
+    const keyList = el("dl", "bof-studio-key");
+    keyList.setAttribute("aria-label", "Key");
+    const refreshHues = () => {
+      renderPackKey(doc, keyList);
+      sidebar.refreshCatalog();
+    };
+    renderPackKey(doc, keyList);
+    helpPanel.append(el("h3", "bof-studio-help-title", "Gestures"), helpBody, el("h3", "bof-studio-help-title", "Key"), keyList);
+    help.append(helpSummary, helpPanel);
     canvasHost.append(canvas, tools, empty, help);
 
     const rightSplit = el("div", "bof-app-splitter bof-studio-splitter");
@@ -218,7 +232,7 @@ export const studioChrome = (options: StudioChromeOptions = {}): ChromeFactory =
         root.dataset.connection = status;
         statusDot.title = CONNECTION_LABEL[status];
       },
-      setTheme: (name) => { themePicker.value = name; },
+      setTheme: (name) => { themePicker.value = name; refreshHues(); },
       setDescriptionLevel: sidebar.setDescriptionLevel,
       setCatalog: (nodes) => sidebar.setCatalog([...nodes]),
       flowOpened: sidebar.flowOpened,

@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChromeActions } from "../src/chrome.js";
 import { flowTitle } from "../src/studio/flowTitle.js";
 import { STUDIO_THEME_PREFS, studioChrome } from "../src/studio/studioChrome.js";
+import { applyCanvasTheme, packRoles } from "@bimopenflow/graph";
 import type { FlowTemplate } from "../src/templates.js";
 
 const templates: FlowTemplate[] = [
@@ -106,6 +107,19 @@ describe("studioChrome", () => {
     expect(acts.setTheme).toHaveBeenCalledWith("studio");
     expect(chrome.themePrefs).toEqual(STUDIO_THEME_PREFS);
     expect(STUDIO_THEME_PREFS.fallback).toBe("studio");
+  });
+
+  it("shows a key beside the gestures: a stripe per role under the studio theme, the hollow wire, and the writer glyph", () => {
+    applyCanvasTheme("studio", true);
+    const { root, chrome } = setup();
+    const swatches = () => [...root.querySelectorAll<HTMLElement>(".bof-studio-key dt")].map((dt) => dt.className.replace("bof-key-swatch ", ""));
+    expect(swatches()).toEqual([...packRoles.map(() => "bof-key-stripe"), "bof-key-relation", "bof-key-writer"]);
+    expect(root.querySelector(".bof-studio-key")!.textContent).toContain("Writes a file, but only on Run");
+    // A theme without stripes keeps only the two marks.
+    applyCanvasTheme("light", true);
+    chrome.setTheme("light");
+    expect(swatches()).toEqual(["bof-key-relation", "bof-key-writer"]);
+    applyCanvasTheme("studio", true);
   });
 
   it("provides every slot the controller mounts into", () => {

@@ -2,7 +2,7 @@
 import type { NodeDescriptor, PortDescriptor, PortType } from "@bimopenflow/contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { installCanvasPalette, paletteClientPoint, paletteKeyOpens } from "../src/canvasPalette.js";
-import { parseAnchorId } from "@bimopenflow/graph";
+import { applyCanvasTheme, parseAnchorId } from "@bimopenflow/graph";
 
 const port = (name: string, type: PortType): PortDescriptor => ({ name, type, optional: false });
 const desc = (kind: string, description: string, inputs: PortDescriptor[] = [], outputs: PortDescriptor[] = []): NodeDescriptor => ({
@@ -56,6 +56,17 @@ describe("canvas palette", () => {
     const root = document.querySelector<HTMLElement>(".bof-app-palette")!;
     expect([root.style.left, root.style.top]).toEqual(["120px", "90px"]);
     expect(document.getElementById("bof-app-palette-styles")).not.toBeNull();
+  });
+
+  it("marks each kind with its pack's hue under the studio theme", () => {
+    applyCanvasTheme("studio", true);
+    const { canvas, palette, options } = setup();
+    palette.open({ x: 10, y: 10 }, { x: 0, y: 0 });
+    const dots = options().map((o) => o.querySelector<HTMLElement>(".bof-app-palette-dot")?.style.background);
+    expect(dots).toHaveLength(3);
+    expect(dots.every((d) => d && d.startsWith("rgb"))).toBe(true);
+    expect(new Set(dots).size).toBe(2); // table and text share the transform hue; chart is a view
+    canvas.remove();
   });
 
   it("filters as you type and picks with the arrow keys and Enter", () => {

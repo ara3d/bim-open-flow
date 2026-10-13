@@ -27,7 +27,7 @@ import {
 } from "@bimopenflow/client";
 import { createHostStatus, type HostStatusSource } from "@bimopenflow/client/host";
 import { createGraphEditor } from "@bimopenflow/graph";
-import { autoLayout } from "@bimopenflow/graph";
+import { autoLayout, isBrokenLayout } from "@bimopenflow/graph";
 import { buildCanvasModel } from "@bimopenflow/graph";
 import { freshCopyId, freshUntitledId, isUntitledId } from "./ids.js";
 import { emptyUntitledFinder, flowGroups } from "./flowList.js";
@@ -286,7 +286,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
   const problems = createProblemsPanel(chrome.canvasHost, { onSelect: selectAndFocus });
   /** Every node placed by autoLayout, as one undo step. */
   const layoutAll = () => {
-    const positions = autoLayout(buildCanvasModel(store.getState(), catalog), { width: chrome.canvas.clientWidth, height: chrome.canvas.clientHeight });
+    const positions = autoLayout(buildCanvasModel(store.getState(), catalog));
     dispatch({ type: "batch", actions: Object.entries(positions).map(([nodeId, layout]) => ({ type: "setLayout", nodeId, layout })) });
   };
 
@@ -496,6 +496,10 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
         const loc = root.ownerDocument.defaultView?.location;
         if (loc) root.ownerDocument.defaultView!.history.replaceState(null, "", loc.pathname + searchWithAnalysis(loc.search, id) + loc.hash);
       }
+      // TKT-286: a stored layout whose cards overlap at today's card sizes (a
+      // sample laid out before a card grew, say) is laid out afresh, as one
+      // undo step; the autosave then keeps it.
+      if (!options.autoLayout && isBrokenLayout(buildCanvasModel(store.getState(), catalog))) layoutAll();
       if (options.graphDemo) {
         if (options.autoLayout) layoutAll();
         const nodes = store.getState().document.structure.nodes;

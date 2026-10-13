@@ -3,7 +3,7 @@
 // the declarations; the current values come from the host's last evaluation
 // update (State.graphInputs). Pure and gratify-free.
 
-import type { NodeDescriptor, ParamKind, SuggestDescriptor } from "@bimopenflow/contracts";
+import type { NodeDescriptor, ParamKind, PortType, SuggestDescriptor } from "@bimopenflow/contracts";
 import { referencedInput, type GraphInputDecl, type State } from "@bimopenflow/state";
 import type { CanvasParam } from "./canvasSlots.js";
 
@@ -14,6 +14,17 @@ type Catalog = ReadonlyMap<string, NodeDescriptor>;
 export const INPUT_KIND = "graph.input";
 
 const PREFIX = "$";
+
+/** The one output port of an input's card: the wire from it to a parameter
+ *  holding `$name` is the reference, drawn (2026-10-12: a `$name` in a text
+ *  box with no wire read as an unconnected card, as chips had). */
+export const INPUT_PORT = "value";
+
+/** The port type an input's output socket shows: its kind where that is a
+ *  port type, else Text (a file path travels as text). The type is for the
+ *  label; canConnect matches a graph input by kind, not type. */
+export const inputPortType = (kind: ParamKind): PortType =>
+  kind === "Boolean" || kind === "Integer" || kind === "Number" ? kind : "Text";
 
 /** The card id of input `name`. Node ids of the document may not collide with
  *  it in practice, and the model marks the card (`CanvasNode.input`) anyway. */

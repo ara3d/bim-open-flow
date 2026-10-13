@@ -6,7 +6,7 @@
 import { wireDist } from "gratify";
 import type { CanvasModel, CanvasNode } from "./viewModel.js";
 import { NODE_HEADER, PORT_SPACING } from "./viewModel.js";
-import type { PortType } from "@bimopenflow/contracts";
+import type { ParamKind, PortType } from "@bimopenflow/contracts";
 import { PARAM_SOCKET_DY, placeSlots } from "./canvasSlots.js";
 import { portRowsBottom } from "./nodeSize.js";
 
@@ -32,23 +32,29 @@ export function portY(top: number, index: number): number {
   return top + NODE_HEADER + (index + 0.5) * PORT_SPACING;
 }
 
-/** The input socket of a bindable parameter: its name (the edge targets
- *  `node.<name>`), its type, and its y offset below the card's top. */
+/** The input socket of a parameter: its name (the edge targets
+ *  `node.<name>`), the wire type it takes when the parameter is bindable,
+ *  the parameter's kind (a graph input of that kind may feed it), and its y
+ *  offset below the card's top. */
 export interface ParamSocket {
   readonly name: string;
-  readonly type: PortType;
+  readonly type?: PortType;
+  readonly kind: ParamKind;
   readonly dy: number;
 }
 
-/** The sockets of `node`'s bindable parameters, one per row, on the left
- *  edge beside the row. Only a parameter that declares `bindable` has one,
- *  so a wire is never offered to any other parameter. */
+/** The sockets of `node`'s parameters, one per row, on the left edge beside
+ *  the row: a bindable parameter's, which a wire of its type may feed, and a
+ *  FilePath parameter's, which a graph input may feed (its `$name` reference
+ *  is drawn as a wire). Any other parameter has none. */
 export function paramSockets(
   node: Pick<CanvasNode, "inputs" | "outputs" | "params">,
 ): ParamSocket[] {
   const { slots } = placeSlots(node.params, portRowsBottom(node.inputs.length, node.outputs.length));
   return slots.flatMap(({ param, y }) =>
-    param.bindable ? [{ name: param.name, type: param.bindable, dy: y + PARAM_SOCKET_DY }] : []);
+    param.bindable || param.kind === "FilePath"
+      ? [{ name: param.name, ...(param.bindable ? { type: param.bindable } : {}), kind: param.kind, dy: y + PARAM_SOCKET_DY }]
+      : []);
 }
 
 /** Where `node`'s socket for `port` sits relative to the card's top-left

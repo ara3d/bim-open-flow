@@ -69,8 +69,12 @@ describe("canConnect", () => {
   const out = { dir: "out" as const, nodeId: "a", type: "Table" as const };
   it("connects out to in across nodes with matching types", () => {
     expect(canConnect(out, { dir: "in", nodeId: "b", type: "Table" })).toBe(true);
-  });
-  it("rejects same direction, same node, and mismatched types", () => {
+    // A graph input feeds a parameter of its kind, bindable or not, and nothing else; a plain output needs a typed socket.
+    const input = { dir: "out" as const, nodeId: "$model", type: "Text" as const, inputKind: "FilePath" as const };
+    expect(canConnect(input, { dir: "in", nodeId: "b", kind: "FilePath" })).toBe(true);
+    expect(canConnect(input, { dir: "in", nodeId: "b", type: "Database", kind: "FilePath" })).toBe(true);
+    expect(canConnect(input, { dir: "in", nodeId: "b", type: "Text", kind: "Text" })).toBe(false);
+    expect(canConnect({ dir: "out", nodeId: "a", type: "Text" }, { dir: "in", nodeId: "b", kind: "FilePath" })).toBe(false);
     expect(canConnect(out, { dir: "out", nodeId: "b", type: "Table" })).toBe(false);
     expect(canConnect(out, { dir: "in", nodeId: "a", type: "Table" })).toBe(false);
     expect(canConnect(out, { dir: "in", nodeId: "b", type: "Number" })).toBe(false);

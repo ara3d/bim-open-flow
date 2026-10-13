@@ -9,7 +9,7 @@ import { currentDescriptionLevel, descriptionText, type DescriptionLevel } from 
 import { upstreamIds } from "./graphPreview";
 import { wiredPreviews } from "./wiredParams.js";
 import { nodeBadge, type NodeBadge } from "./nodeBadge.js";
-import { inputCardId, INPUT_KIND, inputParam, markInputRefs, type InputMark } from "./graphInputs.js";
+import { inputCardId, INPUT_KIND, INPUT_PORT, inputParam, inputPortType, inputUses, markInputRefs, type InputMark } from "./graphInputs.js";
 import { NO_SOURCE_VIEW, railSources, sourceNodeIds, type SourceView } from "./sources.js";
 import { NO_PORT_RESULTS, type PortPeekView, type PortResultsView, type WireRows } from "./portResults.js";
 
@@ -69,6 +69,9 @@ export interface CanvasEdge {
    *  resource or a value a source holds (a model path, a database), not rows,
    *  and is drawn thinner and quieter than a table wire. */
   readonly param?: true;
+  /** The wire is a graph input's `$name` reference held in the parameter at
+   *  `to`, not an edge of the document (TKT-204): cutting it inlines the value. */
+  readonly ref?: true;
 }
 
 /** The parameter whose long-value editor is open; at most one. */
@@ -265,7 +268,8 @@ export function buildCanvasModel(
   });
   const inputCards = (state.document.structure.inputs ?? []).map((decl): Card => {
     const content = {
-      id: inputCardId(decl.name), kind: INPUT_KIND, inputs: [], outputs: [], params: [inputParam(state, catalog, decl)],
+      id: inputCardId(decl.name), kind: INPUT_KIND, inputs: [],
+      outputs: [{ name: INPUT_PORT, type: inputPortType(decl.kind) }], params: [inputParam(state, catalog, decl)],
       ...describedAs(INPUT_DESCRIPTION, level),
     };
     return { content, layout: undefined, size: nodeSize(content), inRail: true, input: { name: decl.name, kind: decl.kind } };
@@ -309,9 +313,16 @@ export function buildCanvasModel(
       ...(isParamSocket(state, catalog, e.to) ? { param: true as const } : {}),
     };
   });
+  // A parameter holding `$name` is wired from the input's card, unless an edge already feeds it.
+  const fed = new Set(edges.map((e) => e.to));
+  const refs = inputUses(state).flatMap((u): CanvasEdge[] => {
+    const from = `${inputCardId(u.input)}.${INPUT_PORT}`;
+    const to = `${u.nodeId}.${u.param}`;
+    return fed.has(to) ? [] : [{ id: edgeId(from, to), from, to, param: true, ref: true }];
+  });
   return {
     nodes,
-    edges,
+    edges: [...edges, ...refs],
     selectedEdgeId: null,
     openEditor: null,
     ...(results.peek ? { peek: withFeeding(results.peek, state, catalog) } : {}),

@@ -40,7 +40,7 @@ import { portsBottom, renderNodeCard, type NodeCardColors } from "./nodeRender.j
 import { animateSelection, selectionBorder } from "./selectionBorder";
 import { upstreamEdges } from "./upstreamEdges.js";
 const selectedBorder = selectionBorder(() => canvasColors().wireSelected, animateSelection);
-import { anchorId, canConnect, parseAnchorId, type CanvasIntent } from "./canvasIntents.js";
+import { anchorId, canConnect, type CanvasIntent, type WireEnd } from "./canvasIntents.js";
 import { grabRadius, paramSockets, portY, SOCKET_GRAB_RADIUS, WIRE_HIT_DISTANCE } from "./portGeometry.js";
 import { peekAdorn, wireLabelText } from "./peekCard.js";
 import { wrapParagraphs } from "./canvasLongSlot.js";
@@ -137,10 +137,9 @@ function pruneNoteEditors(instance: CanvasInstance, liveIds: ReadonlySet<string>
 
 type NodeProps = CanvasNode & { pos: Vec; instance: CanvasInstance; states?: Record<string, boolean>; noteOpen?: boolean };
 
-interface AnchorMeta {
+interface AnchorMeta extends WireEnd {
   dir: "in" | "out";
   nodeId: string;
-  type: PortType;
 }
 
 const metaOf = (a: Anchor): AnchorMeta => a.meta as AnchorMeta;
@@ -163,12 +162,12 @@ const portAnchors = (node: GNode<NodeProps>): PortAnchor[] => {
     ...paramSockets(p).map((socket) => ({
       id: anchorId("in", p.id, socket.name),
       pos: v(r.x, r.y + socket.dy),
-      meta: { dir: "in" as const, nodeId: p.id, type: socket.type },
+      meta: { dir: "in" as const, nodeId: p.id, type: socket.type, kind: socket.kind },
     })),
     ...p.outputs.map((port, i) => ({
       id: anchorId("out", p.id, port.name),
       pos: v(r.right, portY(r.y, i)),
-      meta: { dir: "out" as const, nodeId: p.id, type: port.type },
+      meta: { dir: "out" as const, nodeId: p.id, type: port.type, ...(p.input ? { inputKind: p.input.kind } : {}) },
     })),
   ];
 };
@@ -288,10 +287,7 @@ const GraphNodePart = part<NodeProps, NodeCardColors>("bof-node", {
         cursor: pointer,
         snap: query.nearestAnchor(pointer, 26, (candidate) =>
           candidate.meta !== undefined &&
-          canConnect(
-            { ...parseAnchorId(state.fromId), type: metaOf(query.anchor(state.fromId)!).type },
-            anchorEnd(candidate),
-          )),
+          canConnect(metaOf(query.anchor(state.fromId)!), anchorEnd(candidate))),
       }),
       view(state, query) {
         const from = query.anchor(state.fromId);

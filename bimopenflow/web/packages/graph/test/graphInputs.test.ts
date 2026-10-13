@@ -2,7 +2,7 @@
 // Graph inputs on the canvas (TKT-204): a card per declared input at the top of
 // the sources rail with a control for its current value, an edit that goes to
 // the host and not to the document, and a parameter holding `$name` shown as a
-// chip-styled box titled with the input's value.
+// framed box titled with the input's value, wired from the input's card.
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { rect, type Element, type GNode } from "gratify";
@@ -51,6 +51,34 @@ describe("the graph input card", () => {
     // db is wired to q1, so it sits in the flow (TKT-286); the rail, holding the input, stands left of it.
     expect(db.inRail).toBeUndefined();
     expect(input.x + input.w).toBeLessThan(db.x);
+  });
+
+  it("has one output, and a thin reference wire from it to every parameter holding $name (none to one an edge feeds)", () => {
+    const store = graph();
+    store.dispatch({ type: "setParam", nodeId: "q1", name: "path", value: "$model" }); // but db.source feeds q1.path
+    const model = build(store);
+    expect(card(store).outputs).toEqual([{ name: "value", type: "Text" }]);
+    const refs = model.edges.filter((e) => e.ref);
+    expect(refs).toEqual([{ id: "$model.value->db.path", from: "$model.value", to: "db.path", param: true, ref: true }]);
+    expect(model.edges.filter((e) => !e.ref).map((e) => e.to)).toEqual(["q1.path"]);
+  });
+
+  it("takes a wire dragged from its output to a path parameter as writing $name there, and cutting it inlines the value", () => {
+    const store = graph();
+    store.dispatch({ type: "addNode", id: "db2", kind: "duck.source", version: 1 });
+    store.dispatch({ type: "setParam", nodeId: "db2", name: "path", value: "C:/m/else.duckdb" });
+    const errors: string[] = [];
+    const update = makeCanvasUpdate(store, (m) => errors.push(m));
+    update(build(store), { kind: "connect", a: "out:$model.value", b: "in:db2.path" });
+    expect(store.getState().document.values["db2"]?.["path"]).toBe("$model");
+    expect(store.getState().document.structure.edges.map((e) => e.to)).toEqual(["q1.path"]);
+    const withWire = build(store);
+    const ref = withWire.edges.find((e) => e.ref && e.to === "db2.path")!;
+    const selected = update(withWire, { kind: "selectEdge", id: ref.id });
+    update(selected, { kind: "deleteSelected" });
+    expect(store.getState().document.values["db2"]?.["path"]).toBe(MODEL);
+    expect(store.getState().document.structure.inputs?.map((i) => i.name)).toEqual(["model"]); // db still refers to it
+    expect(errors).toEqual([]);
   });
 
   it("holds one row named after the input: the declared default, then the host's current value", () => {

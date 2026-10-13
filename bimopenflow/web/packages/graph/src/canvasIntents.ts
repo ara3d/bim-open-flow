@@ -3,7 +3,8 @@
 // transient presentation (a node mid-drag, the selected wire) lives in the
 // canvas doc. Gratify-free so it is testable headless.
 
-import type { PortType } from "@bimopenflow/contracts";
+import type { ParamKind, PortType } from "@bimopenflow/contracts";
+import { inlineInputPlan } from "./inputPlans.js";
 import type { Store } from "@bimopenflow/state";
 import { NOTE_KIND, type CanvasModel } from "./viewModel.js";
 import { previewAfterEdit } from "./graphPreview";
@@ -36,16 +37,25 @@ export function portTypesCompatible(a: PortType, b: PortType): boolean {
   return a === "Any" || b === "Any" || a === b;
 }
 
-/** A wire may connect an output to an input of a compatible type on another node. */
-export function canConnect(
-  from: { dir: AnchorDir; nodeId: string; type: PortType },
-  to: { dir: AnchorDir; nodeId: string; type: PortType },
-): boolean {
-  return (
-    from.dir !== to.dir &&
-    from.nodeId !== to.nodeId &&
-    portTypesCompatible(from.type, to.type)
-  );
+/** One end of a wire being drawn: a port or parameter socket. `type` is the
+ *  wire type a port or bindable parameter takes; `kind` the parameter's kind;
+ *  `inputKind` marks the output of a graph input's card, which feeds a
+ *  parameter of that kind by writing `$name` into it (TKT-204). */
+export interface WireEnd {
+  readonly dir: AnchorDir;
+  readonly nodeId: string;
+  readonly type?: PortType | undefined;
+  readonly kind?: ParamKind | undefined;
+  readonly inputKind?: ParamKind | undefined;
+}
+
+/** A wire may connect an output to an input of a compatible type on another
+ *  node, or a graph input to a parameter of its kind. */
+export function canConnect(from: WireEnd, to: WireEnd): boolean {
+  if (from.dir === to.dir || from.nodeId === to.nodeId) return false;
+  const [out, into] = from.dir === "out" ? [from, to] : [to, from];
+  if (out.inputKind !== undefined) return into.kind === out.inputKind;
+  return out.type !== undefined && into.type !== undefined && portTypesCompatible(out.type, into.type);
 }
 
 export type CanvasIntent =
@@ -179,7 +189,10 @@ export function makeCanvasUpdate(
         const a = parseAnchorId(intent.a);
         const b = parseAnchorId(intent.b);
         const [from, to] = a.dir === "out" ? [a, b] : [b, a];
-        dispatch({ type: "connect", from: from.endpoint, to: to.endpoint });
+        const input = doc.nodes.find((n) => n.id === from.nodeId)?.input;
+        // A wire from a graph input's card is a `$name` reference in the parameter, not a document edge.
+        if (input) dispatch({ type: "setParam", nodeId: to.nodeId, name: to.port, value: `$${input.name}` });
+        else dispatch({ type: "connect", from: from.endpoint, to: to.endpoint });
         dispatch({ type: "select", ids: [previewAfterEdit(store.getState().document,to.nodeId,getPreview())] });
         return doc;
       }
@@ -225,7 +238,13 @@ export function makeCanvasUpdate(
       case "deleteSelected": {
         if (doc.selectedEdgeId) {
           const edge = doc.edges.find((e) => e.id === doc.selectedEdgeId);
-          if (edge) dispatch({ type: "disconnect", from: edge.from, to: edge.to });
+          if (edge?.ref) {
+            // Cutting a reference wire puts the input's value in the parameter as a literal (inlineInputPlan).
+            const { nodeId, port } = parseAnchorId(`in:${edge.to}`);
+            const plan = inlineInputPlan(store.getState(), nodeId, port);
+            if ("error" in plan) onError(plan.error);
+            else dispatch({ type: "batch", actions: plan.actions });
+          } else if (edge) dispatch({ type: "disconnect", from: edge.from, to: edge.to });
           return { ...doc, selectedEdgeId: null };
         }
         for (const id of store.getState().selection)

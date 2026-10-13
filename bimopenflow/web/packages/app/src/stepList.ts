@@ -5,7 +5,7 @@
 
 import type { NodeDescriptor, NodeStatus } from "@bimopenflow/contracts";
 import type { State } from "@bimopenflow/state";
-import { previewText } from "@bimopenflow/graph";
+import { currentDescriptionLevel, descriptionText, previewText, type DescriptionLevel } from "@bimopenflow/graph";
 import { dataflowOrder, feeders } from "./graphOrder.js";
 import { nodeTitle } from "@bimopenflow/graph";
 import { nodeBadge } from "@bimopenflow/graph";
@@ -18,9 +18,9 @@ export interface Step {
   readonly nodeId: string;
   readonly title: string;          // nodeTitle(kind) from graphPreview.ts
   readonly kind: string;
-  /** What the step does: the first two sentences of the catalog's
-   *  description (TKT-278), so the list reads as a story; "" for a kind the
-   *  catalog lacks. */
+  /** What the step does: the part of the catalog's description the page's
+   *  level shows (TKT-278; two sentences by default), so the list reads as a
+   *  story; "" at the hidden level or for a kind the catalog lacks. */
   readonly description: string;
   readonly summary: string;        // "table = doors · limit = 10"; "" when no params set
   readonly status?: NodeStatus;
@@ -49,22 +49,12 @@ function paramSummary(desc: NodeDescriptor | undefined, values: Readonly<Record<
     .join(" · ");
 }
 
-/** Sentences a step shows of its catalog description by default (TKT-278). */
-export const BRIEF_SENTENCES = 2;
-
-/** The first `count` sentences of a catalog description, joined by spaces.
- *  A sentence ends at ".", "!", or "?" before a space, or at a line end. */
-export const leadSentences = (text: string, count: number): string =>
-  text.split("\n")
-    .flatMap((line) => line.trim().split(/(?<=[.!?])\s+/))
-    .filter((s) => s !== "")
-    .slice(0, count)
-    .join(" ");
-
+/** The steps of the open flow, each description cut to `level`. */
 export function stepListModel(
   state: State,
   catalog: ReadonlyMap<string, NodeDescriptor>,
   results: PortResultsView,
+  level: DescriptionLevel = currentDescriptionLevel(),
 ): Step[] {
   const document = state.document;
   const order = dataflowOrder(document);
@@ -86,7 +76,7 @@ export function stepListModel(
       nodeId,
       title: nodeTitle(kind),
       kind,
-      description: leadSentences(desc?.description ?? "", BRIEF_SENTENCES),
+      description: descriptionText(desc?.description ?? "", level),
       summary: paramSummary(desc, document.values[nodeId] ?? {}),
       ...(badge ? { status: badge.status, badge: badge.text } : {}),
       ...(rows !== undefined ? { rows } : {}),

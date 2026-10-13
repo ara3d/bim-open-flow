@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { NodeDescriptor, NodeState, ParamKind } from "@bimopenflow/contracts";
 import { initialState, type State } from "@bimopenflow/state";
-import { NO_PORT_RESULTS, type PortResultsView } from "@bimopenflow/graph";
-import { BRIEF_SENTENCES, createStepList, leadSentences, stepListModel, type Step } from "../src/stepList.js";
+import { NO_PORT_RESULTS, type DescriptionLevel, type PortResultsView } from "@bimopenflow/graph";
+import { createStepList, stepListModel, type Step } from "../src/stepList.js";
 
 const desc = (kind: string, params: [string, ParamKind][] = []): NodeDescriptor => ({
   kind,
@@ -119,22 +119,19 @@ describe("stepListModel", () => {
   });
 });
 
-describe("leadSentences", () => {
-  const text = "Emits one row per pair. Boxes come from the model. Pairs are unordered.";
-  it("keeps the first sentences, each line ending one, or the whole short text", () => {
-    expect(leadSentences(text, 1)).toBe("Emits one row per pair.");
-    expect(leadSentences(text, 2)).toBe("Emits one row per pair. Boxes come from the model.");
-    expect(leadSentences("Sorts rows\nby a column", 1)).toBe("Sorts rows");
-    expect(leadSentences("Groups by the given columns", 2)).toBe("Groups by the given columns");
-    expect(leadSentences("", 2)).toBe("");
+describe("step descriptions (TKT-278)", () => {
+  const long = new Map(catalog);
+  long.set("table.sort", { ...catalog.get("table.sort")!, description: "Sorts the rows. Ties keep their order. Nulls sort last." });
+  const answer = (level?: DescriptionLevel) =>
+    stepListModel(exampleState(), long, NO_PORT_RESULTS, level).find((s) => s.nodeId === "answer")!.description;
+
+  it("gives a step the first two sentences of its catalog description by default", () => {
+    expect(answer()).toBe("Sorts the rows. Ties keep their order.");
   });
 
-  it("gives a step the first two sentences of its catalog description (TKT-278)", () => {
-    expect(BRIEF_SENTENCES).toBe(2);
-    const long = new Map(catalog);
-    long.set("table.sort", { ...catalog.get("table.sort")!, description: "Sorts the rows. Ties keep their order. Nulls sort last." });
-    const answer = stepListModel(exampleState(), long, NO_PORT_RESULTS).find((s) => s.nodeId === "answer")!;
-    expect(answer.description).toBe("Sorts the rows. Ties keep their order.");
+  it("gives it no text when hidden and the whole text when full", () => {
+    expect(answer("hidden")).toBe("");
+    expect(answer("full")).toBe("Sorts the rows. Ties keep their order. Nulls sort last.");
   });
 });
 

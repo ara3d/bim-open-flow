@@ -1,8 +1,11 @@
 // Left sidebar: two tabs, the open flow's steps and the searchable node
 // catalog, each with the sidebar's full height. Switching flows is the top
-// bar's picker (topbar.ts), so the sidebar lists no flows (TKT-116).
+// bar's picker (topbar.ts), so the sidebar lists no flows (TKT-116). Above
+// the steps sits the one description control (TKT-278): a button that cycles
+// hidden, brief, full for the step list and the canvas cards together.
 
 import type { NodeDescriptor } from "@bimopenflow/contracts";
+import { defaultDescriptionLevel, nextDescriptionLevel, type DescriptionLevel } from "@bimopenflow/graph";
 import { groupCatalog, loadExpandedPacks, saveExpandedPacks } from "./catalogFilter.js";
 import { readPref, writePref } from "./prefs.js";
 
@@ -17,7 +20,28 @@ export interface Sidebar {
   showTab(tab: SidebarTab): void;
   /** Empty host for the open flow's step list (stepList.ts's createStepList). */
   readonly stepsEl: HTMLElement;
+  /** Shows `level` on the description control without calling its handler. */
+  setDescriptionLevel(level: DescriptionLevel): void;
 }
+
+export interface SidebarOptions {
+  /** Called with the level after the shown one when the description control
+   *  is pressed. The control is drawn only when a page passes this. */
+  readonly onDescriptionLevel?: (level: DescriptionLevel) => void;
+}
+
+/** What the description control says at each level, and what its tooltip adds. */
+const LEVEL_LABELS: Record<DescriptionLevel, string> = { hidden: "Hidden", brief: "Brief", full: "Full" };
+const LEVEL_HINTS: Record<DescriptionLevel, string> = {
+  hidden: "no description text",
+  brief: "the first two sentences",
+  full: "the whole description",
+};
+
+/** The control's tooltip at `level`: what it shows now and what a click shows. */
+export const descriptionControlTitle = (level: DescriptionLevel): string =>
+  `Node descriptions in the steps and on the cards: ${LEVEL_HINTS[level]}. ` +
+  `Click for ${nextDescriptionLevel(level)}.`;
 
 const TAB_PREF_KEY = "bof-app-sidebar-tab";
 const TAB_LABELS: Record<SidebarTab, string> = { steps: "Steps", nodes: "Nodes" };
@@ -34,6 +58,7 @@ export function tabForFlow(remembered: string | null, hasNodes: boolean): Sideba
 export function createSidebar(
   root: HTMLElement,
   onAddNode: (desc: NodeDescriptor) => void,
+  options: SidebarOptions = {},
 ): Sidebar {
   const doc = root.ownerDocument;
   root.classList.add("bof-app-sidebar");
@@ -78,6 +103,26 @@ export function createSidebar(
     for (const [name, el] of Object.entries(panels)) el.hidden = name !== tab;
   }
   showTab(tabForFlow(readPref(TAB_PREF_KEY), true));
+
+  let level = defaultDescriptionLevel;
+  const levelBtn = doc.createElement("button");
+  levelBtn.type = "button";
+  levelBtn.className = "bof-app-description-level";
+  const showLevel = (shown: DescriptionLevel) => {
+    level = shown;
+    levelBtn.dataset.level = shown;
+    levelBtn.textContent = `Descriptions: ${LEVEL_LABELS[shown]}`;
+    levelBtn.title = descriptionControlTitle(shown);
+  };
+  showLevel(level);
+  const onDescriptionLevel = options.onDescriptionLevel;
+  if (onDescriptionLevel) {
+    levelBtn.addEventListener("click", () => onDescriptionLevel(nextDescriptionLevel(level)));
+    const header = doc.createElement("div");
+    header.className = "bof-app-steps-header";
+    header.appendChild(levelBtn);
+    panels.steps.appendChild(header);
+  }
 
   // Each list scrolls on its own, so the tabs and the filter box stay visible.
   const stepsEl = doc.createElement("div");
@@ -148,5 +193,6 @@ export function createSidebar(
       showTab(tabForFlow(readPref(TAB_PREF_KEY), hasNodes));
     },
     showTab,
+    setDescriptionLevel: showLevel,
   };
 }

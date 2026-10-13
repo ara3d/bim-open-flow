@@ -127,7 +127,7 @@ export const studioChrome = (options: StudioChromeOptions = {}): ChromeFactory =
     const left = el("aside", "bof-studio-left");
     const sidebarEl = el("div", "");
     left.append(sidebarEl);
-    const sidebar = createSidebar(sidebarEl, actions.addNode);
+    const sidebar = createSidebar(sidebarEl, actions.addNode, { onDescriptionLevel: actions.setDescriptionLevel });
 
     const leftSplit = el("div", "bof-app-splitter bof-studio-splitter");
     const leftCfg = { ...LEFT_SPLIT, storageKey: "bof-studio-left-width", fallback: 300 };
@@ -219,6 +219,7 @@ export const studioChrome = (options: StudioChromeOptions = {}): ChromeFactory =
         statusDot.title = CONNECTION_LABEL[status];
       },
       setTheme: (name) => { themePicker.value = name; },
+      setDescriptionLevel: sidebar.setDescriptionLevel,
       setCatalog: (nodes) => sidebar.setCatalog([...nodes]),
       flowOpened: sidebar.flowOpened,
       setNodes(nodes) {

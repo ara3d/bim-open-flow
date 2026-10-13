@@ -141,6 +141,11 @@ html, body { margin: 0; height: 100%; }
 .bof-studio .bof-app-sidebar-panel[hidden] { display: none; }
 .bof-studio .bof-app-list { display: flex; flex-direction: column; gap: 2px; }
 .bof-studio .bof-app-steps, .bof-studio .bof-app-catalog { flex: 1 1 0; min-height: 0; overflow-y: auto; }
+.bof-studio .bof-app-description-level {
+  font: 600 11px var(--s-font); color: var(--s-dim); background: transparent; cursor: pointer;
+  border: 1px solid transparent; border-radius: 6px; padding: 3px 8px;
+}
+.bof-studio .bof-app-description-level:hover { background: var(--s-accent-soft); color: var(--s-text); }
 .bof-studio .bof-app-catalog-group {
   margin: 8px 0 2px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--s-dim);
   cursor: pointer; display: flex; align-items: center; user-select: none; padding: 2px 4px; border-radius: 4px;

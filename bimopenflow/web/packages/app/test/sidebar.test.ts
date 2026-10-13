@@ -37,7 +37,7 @@ describe("sidebar catalog", () => {
     localStorage.clear();
   });
 
-  it("colours each pack header with its role's stripe hue under the studio theme, and none under light", () => {
+  it("colours each pack header with its role's border hue under the studio theme, and none under light", () => {
     applyCanvasTheme("studio", true);
     const { root, sidebar } = setup();
     sidebar.setCatalog([desc("table.select"), desc("sink.csv"), desc("mystery.thing")]);

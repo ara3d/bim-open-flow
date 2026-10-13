@@ -45,12 +45,12 @@ export interface CanvasExtraColors {
   readonly noteFill: Color;
   readonly noteEdge: Color;
   readonly noteText: Color;
-  /** A stripe colour per node pack (the kind's prefix, nodePack): a card
-   *  whose pack is listed gets a stripe on its left edge, so packs read at
-   *  a glance. Empty for themes that draw none. */
+  /** A border colour per node pack (the kind's prefix, nodePack): a card
+   *  whose pack is listed wears its role's hue on its border and sockets, so
+   *  roles read at a glance. Empty for themes that draw none. */
   readonly packAccents: Readonly<Record<string, Color>>;
   /** The hue of each pack role, for the key and the node lists; the source of
-   *  packAccents. Empty for themes that draw no stripe. */
+   *  packAccents. Empty for themes that colour no border. */
   readonly roleAccents: Readonly<Partial<Record<PackRole, Color>>>;
 }
 
@@ -88,7 +88,7 @@ const lightPalette: Palette = {
 };
 
 // "studio" = a cooler light palette for the studio look (studio/), with a
-// blue accent for selection and a stripe per pack role (packRoles).
+// blue accent for selection and a border hue per pack role (packRoles).
 const studioPalette: Palette = {
   bg: rgb(244, 245, 247),
   surface: rgb(255, 255, 255),
@@ -103,8 +103,8 @@ const studioPalette: Palette = {
 };
 
 /** The roles node packs play in a flow, in the order a key lists them. A
- *  theme that stripes cards gives each role one hue, so related packs share
- *  it and a reader learns six colours, not twenty-three packs. */
+ *  theme that colours card borders gives each role one hue, so related packs
+ *  share it and a reader learns six colours, not twenty-three packs. */
 export const packRoles = ["source", "transform", "geometry", "view", "writer", "check"] as const;
 
 export type PackRole = (typeof packRoles)[number];
@@ -120,7 +120,7 @@ export const PACK_ROLE_LABEL: Readonly<Record<PackRole, string>> = {
 };
 
 /** The role of each pack (the kind's dotted prefix). A pack missing here
- *  gets no stripe and no key entry, so add new packs as they land. */
+ *  gets no hue and no key entry, so add new packs as they land. */
 const PACK_ROLE: Readonly<Record<string, PackRole>> = {
   bos: "source", bfast: "source", csv: "source", duck: "source", json: "source", parquet: "source",
   sqlite: "source", xlsx: "source", bim: "source", bcf: "source", value: "source",
@@ -139,7 +139,7 @@ const studioRoleAccents: Readonly<Record<PackRole, Color>> = {
   view: rgb(234, 121, 24), writer: rgb(220, 38, 38), check: rgb(22, 163, 74),
 };
 
-/** One stripe colour per pack, from a role-to-colour map. */
+/** One border colour per pack, from a role-to-colour map. */
 const accentsByPack = (roles: Readonly<Partial<Record<PackRole, Color>>>): Readonly<Record<string, Color>> =>
   Object.fromEntries(
     Object.entries(PACK_ROLE).flatMap(([pack, role]) => (roles[role] ? [[pack, roles[role]]] : [])),

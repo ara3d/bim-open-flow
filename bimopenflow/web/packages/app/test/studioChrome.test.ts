@@ -109,11 +109,11 @@ describe("studioChrome", () => {
     expect(STUDIO_THEME_PREFS.fallback).toBe("studio");
   });
 
-  it("shows a key beside the gestures: a stripe per role under the studio theme, the hollow wire, and the writer glyph", () => {
+  it("shows a key beside the gestures: a border swatch per role under the studio theme, the hollow wire, and the writer glyph", () => {
     applyCanvasTheme("studio", true);
     const { root, chrome } = setup();
     const swatches = () => [...root.querySelectorAll<HTMLElement>(".bof-studio-key dt")].map((dt) => dt.className.replace("bof-key-swatch ", ""));
-    expect(swatches()).toEqual([...packRoles.map(() => "bof-key-stripe"), "bof-key-relation", "bof-key-writer"]);
+    expect(swatches()).toEqual([...packRoles.map(() => "bof-key-border"), "bof-key-relation", "bof-key-writer"]);
     expect(root.querySelector(".bof-studio-key")!.textContent).toContain("Writes a file, but only on Run");
     // A theme without stripes keeps only the two marks.
     applyCanvasTheme("light", true);

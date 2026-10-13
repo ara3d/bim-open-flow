@@ -58,7 +58,7 @@ describe("canvas theme table", () => {
     }
   });
 
-  it("studio stripes the table pack; light and dark stripe none", () => {
+  it("studio colours the table pack; light and dark colour none", () => {
     expect(isColor(canvasThemes.studio.extras.packAccents["table"])).toBe(true);
     expect(canvasThemes.studio.extras.packAccents["nosuchpack"]).toBeUndefined();
     expect(Object.keys(canvasThemes.light.extras.roleAccents)).toEqual([]);
@@ -66,7 +66,7 @@ describe("canvas theme table", () => {
     expect(Object.keys(canvasThemes.dark.extras.packAccents)).toEqual([]);
   });
 
-  it("every pack of the catalog has a role, and a stripe of its role's hue in studio", () => {
+  it("every pack of the catalog has a role, and its role's hue in studio", () => {
     const packs = new Set(catalog.nodes.map((n) => n.kind.split(".")[0]!));
     for (const pack of packs) expect(packRole(pack), pack).toBeDefined();
     for (const pack of packs)

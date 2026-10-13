@@ -7,7 +7,7 @@
 // - A left column with the shared sidebar (Steps / Nodes).
 // - The canvas with a floating toolbar (Fit, Tidy, Add node), an empty-state
 //   card when the flow has no nodes, and a "?" popover for the gestures and
-//   the key (packKey.ts: stripe hues, the hollow wire, the writer glyph).
+//   the key (packKey.ts: border hues, the hollow wire, the writer glyph).
 // - A right column with the Ask host over the pane area.
 //
 // Layout is studio.css; the shared content keeps its bof-app- classes and

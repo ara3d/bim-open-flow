@@ -201,12 +201,16 @@ const GraphNodePart = part<NodeProps, NodeCardColors>("bof-node", {
         socket: c.noteText,
       };
     }
+    // The card's border carries its pack role's hue where the theme has one
+    // (the owner asked for the border over a stripe, 2026-10-12); selection,
+    // hover, and a lit chip pull it toward the accent as before.
+    const role = canvasColors().packAccents[nodePack(props.kind)];
     return {
       fill: t.mix(t.mix(t.surface, t.surfaceHi, 0.4 * channels.hover + 0.6 * channels.drag), t.accent, props.lit ? LIT_FILL_MIX : 0),
-      edge: t.mix(t.muted, t.accent, Math.min(1, (channels.sel || 0) + 0.5 * channels.hover + (props.lit ? 1 : 0))),
+      edge: t.mix(role ?? t.muted, t.accent, Math.min(1, (channels.sel || 0) + 0.5 * channels.hover + (props.lit ? 1 : 0))),
       text: t.mix(t.text, t.textBright, 0.4 + 0.6 * channels.hover),
       dim: t.textDim,
-      socket: t.accent,
+      socket: role ?? t.accent,
     };
   },
 

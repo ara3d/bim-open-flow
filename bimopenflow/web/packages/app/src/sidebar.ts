@@ -162,7 +162,7 @@ export function createSidebar(
       const count = doc.createElement("span");
       count.className = "bof-app-catalog-group-count";
       count.textContent = String(group.count);
-      // The pack's stripe hue, so the list teaches the same colours the cards wear.
+      // The pack's border hue, so the list teaches the same colours the cards wear.
       const dot = packDot(doc, "bof-app-catalog-group-dot", group.pack);
       header.append(triangle, ...(dot ? [dot] : []), name, count);
       header.addEventListener("click", () => {

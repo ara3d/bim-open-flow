@@ -207,11 +207,11 @@ html, body { margin: 0; height: 100%; }
 .bof-studio-help-gestures { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; }
 .bof-studio-help-gestures dt { color: var(--s-text); font-weight: 600; }
 .bof-studio-help-gestures dd { margin: 0; color: var(--s-dim); }
-/* The key (packKey.ts): a swatch column of stripes, the hollow wire, and the writer glyph. */
+/* The key (packKey.ts): a swatch column of card borders, the hollow wire, and the writer glyph. */
 .bof-studio-key { margin: 0; display: grid; grid-template-columns: 22px 1fr; gap: 6px 10px; align-items: center; }
 .bof-studio-key dd { margin: 0; color: var(--s-dim); }
 .bof-key-swatch { height: 12px; border-radius: 2px; }
-.bof-key-stripe { width: 4px; margin-left: 9px; }
+.bof-key-border { width: 14px; height: 12px; margin-left: 4px; border: 2px solid; border-radius: 3px; box-sizing: border-box; }
 .bof-key-relation { width: 22px; height: 6px; border-top: 2px solid #949eac; border-bottom: 2px solid #949eac; border-radius: 0; }
 .bof-key-writer { width: 12px; height: 12px; margin-left: 5px; color: var(--s-amber); }
 .bof-key-writer svg { display: block; width: 12px; height: 12px; }

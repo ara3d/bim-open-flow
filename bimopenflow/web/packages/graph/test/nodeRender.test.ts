@@ -47,6 +47,38 @@ function textSpans(layout: NodeCardLayout): { text: string; left: number; right:
   return spans;
 }
 
+/** A NullPainter whose box() records its stroke and width: the card, the status chip, nothing else. */
+function boxSpy(): { painter: Painter; boxes: { stroke: unknown; lw: number | undefined }[] } {
+  const boxes: { stroke: unknown; lw: number | undefined }[] = [];
+  const painter = new NullPainter() as Painter;
+  painter.box = (_r, _c, _f, stroke, lw) => { boxes.push({ stroke, lw }); };
+  return { painter, boxes };
+}
+
+describe("renderNodeCard borders", () => {
+  const colors = { fill: rgb(1, 1, 1), edge: rgb(2, 2, 2), text: rgb(3, 3, 3), dim: rgb(4, 4, 4), socket: rgb(5, 5, 5) };
+  const status = { Ok: rgb(0, 9, 0), Unready: rgb(9, 9, 9), EffectPending: rgb(9, 0, 0), Unavailable: rgb(0, 0, 9), Error: rgb(9, 0, 9) };
+  const contributing = rgb(7, 7, 7);
+  const draw = (props: CanvasNode, packAccent?: ReturnType<typeof rgb>) => {
+    const spy = boxSpy();
+    renderNodeCard({ rect: rect(0, 0, props.w, props.h), props }, spy.painter, colors, { status, contributing, packAccent });
+    return spy.boxes;
+  };
+
+  it("draws no stripe: one box for the card (and one for the chip when there is a status)", () => {
+    expect(draw(base, rgb(8, 8, 8))).toHaveLength(1);
+    expect(draw({ ...base, status: "Ok" }, rgb(8, 8, 8))).toHaveLength(2);
+  });
+
+  it("keeps the role hue on a contributing card and shows the path by width; without a role hue the contributing blue takes over", () => {
+    const withRole = draw({ ...base, contributing: true }, rgb(8, 8, 8))[0]!;
+    expect(withRole.stroke).toBe(colors.edge);
+    expect(withRole.lw).toBe(2);
+    expect(draw({ ...base, contributing: true })[0]!.stroke).toBe(contributing);
+    expect(draw(base)[0]!.lw).toBe(1.2);
+  });
+});
+
 describe("nodeCardLayout", () => {
   const layout = nodeCardLayout(described, measure);
 

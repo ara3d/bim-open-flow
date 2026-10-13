@@ -176,12 +176,12 @@ export interface NodeCardColors {
 export interface NodeCardPalette {
   readonly status: Readonly<Record<NonNullable<CanvasNode["status"]>, Color>>;
   readonly contributing: Color;
-  /** The theme's stripe for this card's pack, when it draws one. */
+  /** The theme's hue for this card's pack role, when it has one. The part's
+   *  style already mixed it into `colors.edge`; here it means the upstream
+   *  path shows by border width alone, keeping the role hue, instead of
+   *  turning every card on the path the contributing blue. */
   readonly packAccent?: Color;
 }
-
-/** The pack stripe: inset from the card's rounded corner, header-high. */
-const STRIPE = { x: 1.5, y: 8, w: 3, h: NODE_HEADER - 16 };
 
 /** A lit card (the chip under the pointer, TKT-138; TKT-217 found the first
  *  highlight too faint to see): its fill leans this far toward the accent, and
@@ -221,8 +221,7 @@ export function renderNodeCard(
   const layout = nodeCardLayout(p, painter.measure);
   const statusColor = p.status ? palette.status[p.status] : colors.dim;
 
-  painter.box(r, 8, colors.fill, p.contributing && !p.lit ? palette.contributing : colors.edge, cardEdgeWidth(p));
-  if (palette.packAccent) painter.box(rect(r.x + STRIPE.x, r.y + STRIPE.y, STRIPE.w, STRIPE.h), 1.5, palette.packAccent);
+  painter.box(r, 8, colors.fill, p.contributing && !p.lit && !palette.packAccent ? palette.contributing : colors.edge, cardEdgeWidth(p));
   if (layout.status) {
     const s = layout.status;
     painter.box(rect(r.x + s.x, r.y + s.y, s.w, s.h), s.h / 2, calpha(statusColor, 0.16), statusColor, 1);

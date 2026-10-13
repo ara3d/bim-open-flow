@@ -2,8 +2,8 @@
   "formatVersion": "0.1.0",
   "layout": {
     "about": { "x": 40, "y": 40, "w": 560, "h": 104 },
-    "warehouse": { "x": 40, "y": 224 },
-    "answer": { "x": 650, "y": 224 }
+    "warehouse": { "x": 40, "y": 184 },
+    "answer": { "x": 649, "y": 184 }
   },
   "structure": {
     "edges": [

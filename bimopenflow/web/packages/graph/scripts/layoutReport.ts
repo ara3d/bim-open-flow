@@ -27,12 +27,30 @@ export function drawnModel(sample: SampleGraph, catalog: ReadonlyMap<string, Nod
   return build({ ...sample.document, layout: { ...sample.document.layout, ...at } });
 }
 
+/** Furthest a stored position may sit from autoLayout's: the relayout script rounds to whole pixels. */
+const PLACED_SLACK = 1;
+
+/** The nodes of `sample` whose stored position is not where autoLayout puts them. Sample positions come from
+ *  the layout tool (relayout-samples), never from a hand: a hand grid drifts from the card sizes the editor
+ *  draws (TKT-259 placed rows 184 px apart for cards up to 500 px tall). A workflow-list entry is laid out
+ *  when it opens, so its stored positions do not count. */
+export function handPlaced(sample: SampleGraph, catalog: ReadonlyMap<string, NodeDescriptor>): LayoutIssue[] {
+  if (sample.autoLaidOut) return [];
+  const at = autoLayout(buildCanvasModel({ ...initialState, document: sample.document }, catalog, null));
+  return Object.entries(at).flatMap(([id, want]) => {
+    const stored = sample.document.layout[id];
+    const off = !stored || Math.abs(stored.x - want.x) > PLACED_SLACK || Math.abs(stored.y - want.y) > PLACED_SLACK;
+    return off ? [{ kind: "handPlaced" as const, text: `${id} at ${stored ? `${stored.x}, ${stored.y}` : "no position"}, layout puts it at ${Math.round(want.x)}, ${Math.round(want.y)}` }] : [];
+  });
+}
+
 /** Every fault of `sample`, each named once, as "kind: text". */
 export function sampleIssues(sample: SampleGraph, catalog: ReadonlyMap<string, NodeDescriptor>): string[] {
   const issues: LayoutIssue[] = [
     ...layoutIssues(drawnModel(sample, catalog, DEFAULT_SOURCE_VIEW)),
     ...layoutIssues(drawnModel(sample, catalog, NO_SOURCE_VIEW)),
     ...connectionIssues(sample.document, catalog),
+    ...handPlaced(sample, catalog),
   ];
   return [...new Set(issues.map((i) => `${i.kind}: ${i.text}`))];
 }

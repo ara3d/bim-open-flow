@@ -12,7 +12,8 @@ import { NOTE_KIND } from "./nodeSize.js";
 import { endpointPos } from "./portGeometry.js";
 import type { CanvasModel, CanvasNode } from "./viewModel.js";
 
-export type LayoutIssueKind = "overlap" | "wireBehindCard" | "backwardWire" | "unwiredInput" | "isolated";
+/** `handPlaced` is reported by scripts/layoutReport.ts for a committed sample, not by the checks here. */
+export type LayoutIssueKind = "overlap" | "wireBehindCard" | "backwardWire" | "unwiredInput" | "isolated" | "handPlaced";
 
 export interface LayoutIssue {
   readonly kind: LayoutIssueKind;

@@ -1,6 +1,7 @@
-// Relays out the committed sample graphs that layoutReport.ts finds a layout
-// fault in (overlapping cards, a wire behind a card, a wire running
-// backwards), with autoLayout. A graph with no fault keeps its positions.
+// Relays out, with autoLayout, the committed sample graphs that layoutReport.ts
+// finds a fault in: overlapping cards, a wire behind a card, a wire running
+// backwards, or a position autoLayout would not give (sample positions come
+// from this script, never from a hand). Run it after any change to card sizes.
 //
 //   npm run relayout-samples -- [--host http://127.0.0.1:5214] [--catalog file] [--samples dir,dir]
 //                                [--root dir] [--dry] [path-substring ...]

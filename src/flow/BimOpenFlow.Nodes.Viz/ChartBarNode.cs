@@ -14,6 +14,11 @@ public sealed class ChartBarNode : IFlowNode
     public const string Kind = "chart.bar";
 
     private static readonly string[] Sorts = ["none", "asc", "desc"];
+    /// <summary>How the chart pane lays the bars out; the node only declares it.</summary>
+    public static readonly string[] Layouts = ["vertical", "horizontal", "stacked"];
+    /// <summary>What the bar colours encode: 'auto' is one hue per category for a single
+    /// value column and one per series for several.</summary>
+    public static readonly string[] ColorModes = ["auto", "category", "series", "none"];
 
     public NodeSpec Spec { get; } = new(
         Kind, 1, NodeCapability.Pure,
@@ -33,9 +38,14 @@ public sealed class ChartBarNode : IFlowNode
             new ParamSpec("valueColumns", ParamKind.Text, Suggest: SuggestSource.ColumnsOf("table", ColumnUse.Value), List: true),
             new ParamSpec("title", ParamKind.Text),
             new ParamSpec("sort", ParamKind.Enum, "none", Sorts),
+            new ParamSpec("layout", ParamKind.Enum, "vertical", Layouts),
+            new ParamSpec("colorBy", ParamKind.Enum, "auto", ColorModes),
         ],
         "Projects 'labelColumn' plus the comma-separated numeric 'valueColumns' "
         + "for the bar-chart pane; 'sort' orders rows by the first value column. "
+        + "'layout' draws the bars vertical, horizontal, or stacked, and 'colorBy' "
+        + "says what their colours encode: one hue per category or per series, none "
+        + "for the single accent, or auto (category for one value column, series for several). "
         + "With a 'scale' input, appends 'r g b' colour columns computed from the "
         + "scale's column (or the first value column) and passes the scale through "
         + "on 'legend'; without one, 'legend' is the empty legend table.");
@@ -45,6 +55,8 @@ public sealed class ChartBarNode : IFlowNode
     {
         var table = inputs.TableInput(0, Kind);
         var sort = parameters.RequiredEnum("sort", Kind, "none", Sorts);
+        parameters.RequiredEnum("layout", Kind, "vertical", Layouts);
+        parameters.RequiredEnum("colorBy", Kind, "auto", ColorModes);
         var label = VizProjection.OptionalColumn(context, table,
             parameters.GetText("labelColumn"), Kind);
         if (label < 0)

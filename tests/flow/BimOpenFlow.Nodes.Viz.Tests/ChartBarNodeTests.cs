@@ -16,6 +16,25 @@ public class ChartBarNodeTests
     }
 
     [Test]
+    public void Declares_Layout_And_ColorBy_For_The_Pane_With_Their_Defaults()
+    {
+        var spec = new ChartBarNode().Spec;
+        var layout = spec.Params.Single(p => p.Name == "layout");
+        var colorBy = spec.Params.Single(p => p.Name == "colorBy");
+        Assert.That(layout.Default, Is.EqualTo("vertical"));
+        Assert.That(layout.EnumValues, Is.EqualTo(new[] { "vertical", "horizontal", "stacked" }));
+        Assert.That(colorBy.Default, Is.EqualTo("auto"));
+        Assert.That(colorBy.EnumValues, Is.EqualTo(new[] { "auto", "category", "series", "none" }));
+    }
+
+    [Test]
+    public void Rejects_An_Unknown_Layout()
+    {
+        Assert.That(() => new ChartBarNode().EvalTable([VizTestTables.Sample()],
+            ("labelColumn", "name"), ("layout", "radial")), Throws.ArgumentException);
+    }
+
+    [Test]
     public void Trims_Comma_Separated_Value_Columns()
     {
         var table = new ChartBarNode().EvalTable([VizTestTables.Sample()],

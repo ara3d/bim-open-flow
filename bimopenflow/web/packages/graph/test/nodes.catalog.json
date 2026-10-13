@@ -163,9 +163,30 @@
             "asc",
             "desc"
           ]
+        },
+        {
+          "name": "layout",
+          "kind": "Enum",
+          "default": "vertical",
+          "enumValues": [
+            "vertical",
+            "horizontal",
+            "stacked"
+          ]
+        },
+        {
+          "name": "colorBy",
+          "kind": "Enum",
+          "default": "auto",
+          "enumValues": [
+            "auto",
+            "category",
+            "series",
+            "none"
+          ]
         }
       ],
-      "description": "Projects \u0027labelColumn\u0027 plus the comma-separated numeric \u0027valueColumns\u0027 for the bar-chart pane; \u0027sort\u0027 orders rows by the first value column. With a \u0027scale\u0027 input, appends \u0027r g b\u0027 colour columns computed from the scale\u0027s column (or the first value column) and passes the scale through on \u0027legend\u0027; without one, \u0027legend\u0027 is the empty legend table."
+      "description": "Projects \u0027labelColumn\u0027 plus the comma-separated numeric \u0027valueColumns\u0027 for the bar-chart pane; \u0027sort\u0027 orders rows by the first value column. \u0027layout\u0027 draws the bars vertical, horizontal, or stacked, and \u0027colorBy\u0027 says what their colours encode: one hue per category or per series, none for the single accent, or auto (category for one value column, series for several). With a \u0027scale\u0027 input, appends \u0027r g b\u0027 colour columns computed from the scale\u0027s column (or the first value column) and passes the scale through on \u0027legend\u0027; without one, \u0027legend\u0027 is the empty legend table."
     },
     {
       "kind": "chart.line",

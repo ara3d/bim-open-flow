@@ -213,7 +213,7 @@ A BIM professional with a model and a question should start with the [toolkit](h
 
 ## The family
 
-BIM Open Flow is one of the BIM Open repositories, with [BIM Open Data](https://github.com/ara3d/bim-open-data) (the .NET implementation of BIM Open Schema and IFC), [BIM Open Viewer](https://github.com/ara3d/bim-open-viewer), [BIM Open Notebook](https://github.com/ara3d/bim-open-notebook) (agent sessions as documents), and [BIM Open Toolkit](https://github.com/ara3d/bim-open-toolkit), which joins them. The mark and colours follow the toolkit's `docs/BRANDING.md`.
+BIM Open Flow is one of the BIM Open repositories, with [BIM Open Data](https://github.com/ara3d/bim-open-data) (the .NET implementation of BIM Open Schema and IFC), [BIM Open Viewer](https://github.com/ara3d/bim-open-viewer), [BIM Open Notebook](https://github.com/ara3d/bim-open-notebook) (agent sessions as documents), [BIM Open Plot](https://github.com/ara3d/bim-open-plot) (the figure layer to come: charts, drawings, and composed figures from result tables; as of 2026-10-13 a brand, a brief, and a demo page, no library, and its brief names this repository's `viz` package and the `chart.bar` and `chart.line` nodes as what it will replace, with the toolkit's TKT-220 asking whether the `tables` profile keeps a 2D chart node), and [BIM Open Toolkit](https://github.com/ara3d/bim-open-toolkit), which joins them. The mark and colours follow the toolkit's `docs/BRANDING.md`.
 
 ## License and help
 

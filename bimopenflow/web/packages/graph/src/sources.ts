@@ -66,6 +66,23 @@ export function sourceChips(
   return out;
 }
 
+/** The sources of `sources` that stand in the rail: those whose every wire
+ *  is drawn as a chip in `chips` (a source with no wire too). A source wired
+ *  into a node's input port stays in the flow, where the layout places it
+ *  beside its users (TKT-286): in the rail its wire crossed the graph. */
+export function railSources(
+  document: Document,
+  sources: ReadonlySet<string>,
+  chips: ReadonlyMap<string, Readonly<Record<string, SourceChip>>>,
+): Set<string> {
+  const drawn = document.structure.edges.filter((e) => {
+    const from = splitEndpoint(e.from), to = splitEndpoint(e.to);
+    return sources.has(from.nodeId) && chips.get(to.nodeId)?.[to.port]?.sourceId !== from.nodeId;
+  });
+  const wired = new Set(drawn.map((e) => splitEndpoint(e.from).nodeId));
+  return new Set([...sources].filter((id) => !wired.has(id)));
+}
+
 /** The nodes that use source `sourceId`: the targets of its edges. */
 export function sourceUsers(document: Document, sourceId: string): string[] {
   const users = document.structure.edges

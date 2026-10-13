@@ -7,7 +7,7 @@ import { createStore } from "@bimopenflow/state";
 import { autoLayout, tidyLayout } from "../src/autoLayout.js";
 import { makeCanvasUpdate } from "../src/canvasIntents.js";
 import { sourceMenuItems } from "../src/sourceMenu.js";
-import { DEFAULT_SOURCE_VIEW, isSourceDescriptor, NO_SOURCE_VIEW, type SourceView } from "../src/sources.js";
+import { DEFAULT_SOURCE_VIEW, isSourceDescriptor, NO_SOURCE_VIEW, railSources, sourceChips, type SourceView } from "../src/sources.js";
 import { buildCanvasModel } from "../src/viewModel.js";
 
 const duckSource: NodeDescriptor = {
@@ -127,5 +127,36 @@ describe("the rail toggle", () => {
     expect(items("db").map((i) => i.label)).toEqual(["Move sources to the rail"]);
     items("db")[0]!.run();
     expect(calls).toEqual([{ rail: true, chips: true }]);
+  });
+});
+
+describe("which sources stand in the rail (TKT-286)", () => {
+  const reader: NodeDescriptor = {
+    kind: "r.read", version: 1, capability: "Pure", description: "",
+    inputs: [{ name: "rel", type: "Database", optional: false }],
+    outputs: [{ name: "table", type: "Table", optional: false }],
+    params: [{ name: "path", kind: "FilePath", default: "", bindable: "Database" }],
+  };
+  const withReader = new Map([...catalog, [reader.kind, reader]]);
+  const store = () => {
+    const s = graph();
+    s.dispatch({ type: "addNode", id: "r", kind: "r.read", version: 1 });
+    s.dispatch({ type: "connect", from: "db.source", to: "q1.path" });
+    s.dispatch({ type: "connect", from: "ifc.path", to: "r.rel" });
+    return s;
+  };
+
+  it("holds a source whose wires are all chips, and leaves one wired into an input port in the flow", () => {
+    const model = buildCanvasModel(store().getState(), withReader, null, undefined, { sources: DEFAULT_SOURCE_VIEW });
+    const rail = (id: string) => model.nodes.find((n) => n.id === id)!.inRail ?? false;
+    expect([rail("db"), rail("ifc")]).toEqual([true, false]);
+    expect(model.edges.map((e) => e.from)).toEqual(["ifc.path"]);
+  });
+
+  it("is computed from the drawn wires: with chips off, every wired source stays in the flow", () => {
+    const s = store().getState();
+    const sources = new Set(["db", "ifc"]);
+    expect([...railSources(s.document, sources, new Map())]).toEqual([]);
+    expect([...railSources(s.document, sources, sourceChips(s.document, withReader, sources))]).toEqual(["db"]);
   });
 });

@@ -10,7 +10,7 @@ import { upstreamIds } from "./graphPreview";
 import { wiredPreviews } from "./wiredParams.js";
 import { nodeBadge, type NodeBadge } from "./nodeBadge.js";
 import { inputCardId, INPUT_KIND, inputParam, markInputRefs, type InputMark } from "./graphInputs.js";
-import { NO_SOURCE_VIEW, sourceChips, sourceNodeIds, sourceUsers, type SourceView } from "./sources.js";
+import { NO_SOURCE_VIEW, railSources, sourceChips, sourceNodeIds, sourceUsers, type SourceView } from "./sources.js";
 import { NO_PORT_RESULTS, type PortPeekView, type PortResultsView, type WireRows } from "./portResults.js";
 
 export interface CanvasPort {
@@ -223,6 +223,7 @@ export function buildCanvasModel(
   const contributing = upstreamIds(state.document,preview);
   const sources = sourceNodeIds(state.document, catalog);
   const chips = view.chips ? sourceChips(state.document, catalog, sources) : new Map();
+  const railed = view.rail ? railSources(state.document, sources, chips) : new Set<string>();
   const lit = options.lit ? new Set([options.lit, ...sourceUsers(state.document, options.lit)]) : new Set<string>();
   const cards: Card[] = state.document.structure.nodes.map((n) => {
     const desc = catalog.get(n.kind);
@@ -232,7 +233,7 @@ export function buildCanvasModel(
     const params = markInputRefs(state, chipped);
     const layout = state.document.layout[n.id];
     const marked = { ...content, params };
-    return { content: marked, layout, size: nodeSize(marked, layout ?? {}), inRail: view.rail && sources.has(n.id) };
+    return { content: marked, layout, size: nodeSize(marked, layout ?? {}), inRail: railed.has(n.id) };
   });
   const inputCards = (state.document.structure.inputs ?? []).map((decl): Card => {
     const content = {

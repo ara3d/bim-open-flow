@@ -86,7 +86,7 @@ public static class SqlCompiler
             _ => throw new ArgumentOutOfRangeException(nameof(j)),
         };
         var leftColumns = left.Columns.Select(c => $"l.{c.Name.Ident()}");
-        var rightColumns = j.Kind is JoinKind.Semi or JoinKind.Anti
+        var rightColumns = (j.Kind is JoinKind.Semi or JoinKind.Anti)
             ? []
             : right.Columns.Select(c => left.Has(c.Name)
                 ? $"r.{c.Name.Ident()} AS {(c.Name + SchemaInference.RightSuffix).Ident()}"

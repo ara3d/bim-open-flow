@@ -82,7 +82,7 @@ describe("a file dropped on the canvas", () => {
       store, getCatalog: () => catalog, onError: (m) => errors.push(m), readOnly,
       getDoc: () => buildCanvasModel(store.getState(), catalog),
       canvasToWorld: (x, y) => ({ x, y }), clientToWorld: (x, y) => ({ x: x * 2, y: y * 2 }),
-      getView: () => ({ rail: true, chips: true }), setView: () => {}, onLit: () => {},
+      getView: () => ({ rail: true }), setView: () => {},
     });
     const drop = (file: object) => {
       const event = new Event("drop", { bubbles: true, cancelable: true });

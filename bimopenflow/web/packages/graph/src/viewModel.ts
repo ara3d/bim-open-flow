@@ -10,7 +10,7 @@ import { upstreamIds } from "./graphPreview";
 import { wiredPreviews } from "./wiredParams.js";
 import { nodeBadge, type NodeBadge } from "./nodeBadge.js";
 import { inputCardId, INPUT_KIND, inputParam, markInputRefs, type InputMark } from "./graphInputs.js";
-import { NO_SOURCE_VIEW, railSources, sourceChips, sourceNodeIds, sourceUsers, type SourceView } from "./sources.js";
+import { NO_SOURCE_VIEW, railSources, sourceNodeIds, type SourceView } from "./sources.js";
 import { NO_PORT_RESULTS, type PortPeekView, type PortResultsView, type WireRows } from "./portResults.js";
 
 export interface CanvasPort {
@@ -53,8 +53,6 @@ export interface CanvasNode {
   /** Set on the card of a graph input (TKT-204), which is not a node of the document:
    *  its one parameter is the input's current value, and editing it goes to the host. */
   readonly input?: InputMark;
-  /** The hovered chip's source, or a node that uses it: drawn highlighted. */
-  readonly lit?: boolean;
 }
 
 export interface CanvasEdge {
@@ -201,8 +199,6 @@ const RAIL_TOP = 24;
 export interface ModelOptions {
   /** How source nodes are drawn; default none of it (every node a plain card). */
   readonly sources?: SourceView;
-  /** The source whose chip is hovered: it and the nodes that use it are `lit`. */
-  readonly lit?: string | null;
   /** How much of each description the cards show; default the page's (currentDescriptionLevel). */
   readonly descriptions?: DescriptionLevel;
 }
@@ -231,9 +227,8 @@ interface Card {
 /** Builds the drawable model; catalog gaps degrade to portless nodes. A node
  *  with no saved position goes to the first free spot (freePosition) among
  *  the nodes before it, at its real size, in document order. With
- *  `options.sources.rail` the source nodes leave that flow and stack in a
- *  rail; with `.chips` the edges out of a source become chips on the
- *  parameters they feed. */
+ *  `options.sources.rail` the unwired source nodes leave that flow and stack
+ *  in a rail. */
 export function buildCanvasModel(
   state: State,
   catalog: ReadonlyMap<string, NodeDescriptor>,
@@ -246,15 +241,11 @@ export function buildCanvasModel(
   const selected = new Set(state.selection);
   const contributing = upstreamIds(state.document,preview);
   const sources = sourceNodeIds(state.document, catalog);
-  const chips = view.chips ? sourceChips(state.document, catalog, sources) : new Map();
-  const railed = view.rail ? railSources(state.document, sources, chips) : new Set<string>();
-  const lit = options.lit ? new Set([options.lit, ...sourceUsers(state.document, options.lit)]) : new Set<string>();
+  const railed = view.rail ? railSources(state.document, sources) : new Set<string>();
   const cards: Card[] = state.document.structure.nodes.map((n) => {
     const desc = catalog.get(n.kind);
     const content = cardContent(n.id, n.kind, desc, state.document.values[n.id] ?? {}, wiredPreviews(state.document, catalog, n.id, desc), level);
-    const nodeChips = chips.get(n.id);
-    const chipped = nodeChips ? content.params.map((p) => nodeChips[p.name] ? { ...p, chip: nodeChips[p.name] } : p) : content.params;
-    const params = markInputRefs(state, chipped);
+    const params = markInputRefs(state, content.params);
     const layout = state.document.layout[n.id];
     const marked = { ...content, params };
     return { content: marked, layout, size: nodeSize(marked, layout ?? {}), inRail: railed.has(n.id) };
@@ -282,7 +273,7 @@ export function buildCanvasModel(
     const common = {
       x: pos.x, y: pos.y, ...size, ...content,
       selected: selected.has(content.id), contributing: contributing.has(content.id),
-      ...(inRail ? { inRail } : {}), ...(lit.has(content.id) ? { lit: true } : {}),
+      ...(inRail ? { inRail } : {}),
     };
     if (content.kind === NOTE_KIND) return common;
     if (input) return { ...common, input, selected: false, contributing: false };
@@ -292,7 +283,7 @@ export function buildCanvasModel(
       badge: nodeBadge({ edges: state.document.structure.edges, evalState: state.evalState }, content.id, schemaMessages(state, content.id).length),
     };
   });
-  const edges = state.document.structure.edges.filter((e) => !isChipEdge(chips, e)).map((e) => {
+  const edges = state.document.structure.edges.map((e) => {
     const rows = results.counts.get(e.from);
     const type = outputType(state, catalog, e.from);
     return {
@@ -317,13 +308,4 @@ export function buildCanvasModel(
 function withFeeding(peek: PortPeekView, state: State, catalog: ReadonlyMap<string, NodeDescriptor>): PortPeekView {
   const feeding = feedingSchema(state, catalog, peek.endpoint);
   return feeding ? { ...peek, feeding } : peek;
-}
-
-/** True for an edge a chip stands for. */
-function isChipEdge(
-  chips: ReadonlyMap<string, Readonly<Record<string, { sourceId: string }>>>,
-  edge: { from: string; to: string },
-): boolean {
-  const dot = edge.to.indexOf(".");
-  return chips.get(edge.to.slice(0, dot))?.[edge.to.slice(dot + 1)]?.sourceId === edge.from.slice(0, edge.from.indexOf("."));
 }

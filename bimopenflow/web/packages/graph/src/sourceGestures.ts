@@ -1,13 +1,12 @@
-// The editor's source gestures (TKT-138), kept out of canvasEditor.ts: the chip
-// hover, a file dropped on the canvas, and the context-menu commands (rail and
-// chip toggles, unlink, Share as source with its relink offer). Each gesture
+// The editor's source gestures (TKT-138), kept out of canvasEditor.ts: a file
+// dropped on the canvas, and the context-menu commands (the rail toggle, Share
+// as source with its relink offer, the graph-input commands). Each gesture
 // builds a plan (sourcePlans.ts) and dispatches it as one `batch`, so one undo
 // step takes it back.
 
 import type { NodeDescriptor } from "@bimopenflow/contracts";
 import type { Action, Store } from "@bimopenflow/state";
-import { chipAt, rowAt } from "./chipGeometry.js";
-import { installChipHover } from "./chipHover.js";
+import { rowAt } from "./paramRow.js";
 import { installFileDrop } from "./fileDrop.js";
 import type { MenuItem } from "./nodeContextMenu.js";
 import { showRelinkOffer } from "./relinkOffer.js";
@@ -31,8 +30,6 @@ export interface SourceGestureDeps {
   readonly clientToWorld: (x: number, y: number) => Point;
   readonly getView: () => SourceView;
   readonly setView: (view: SourceView) => void;
-  /** The hovered chip's source changed (null: none). */
-  readonly onLit: (sourceId: string | null) => void;
   /** A viewer drops files and shares nothing. */
   readonly readOnly: boolean;
 }
@@ -57,13 +54,6 @@ export function installSourceGestures(canvas: HTMLCanvasElement, deps: SourceGes
     return plan;
   };
 
-  const disposeHover = installChipHover(canvas, {
-    sourceAt(x, y) {
-      const world = deps.canvasToWorld(x, y);
-      return chipAt(deps.getDoc(), world.x, world.y)?.sourceId ?? null;
-    },
-    onHover: deps.onLit,
-  });
   const disposeDrop = deps.readOnly ? () => {} : installFileDrop(canvas, {
     onFile(path, clientX, clientY) {
       run(dropSourcePlan(store.getState(), deps.getCatalog(), path, deps.clientToWorld(clientX, clientY)));
@@ -93,13 +83,8 @@ export function installSourceGestures(canvas: HTMLCanvasElement, deps: SourceGes
         setView: deps.setView,
         isSource: (id) => isSourceDescriptor(deps.getCatalog().get(
           store.getState().document.structure.nodes.find((n) => n.id === id)?.kind ?? "")),
-        chipAt: (x, y) => chipAt(deps.getDoc(), x, y),
         rowAt: (x, y) => rowAt(deps.getDoc(), x, y),
         promote: (id, param) => promote(id, param, { x: clientX, y: clientY }),
-        unlink(hit) {
-          const edge = store.getState().document.structure.edges.find((e) => e.to === `${hit.nodeId}.${hit.param}`);
-          if (edge) store.dispatch({ type: "disconnect", from: edge.from, to: edge.to });
-        },
         inputs: {
           canMake: (id) => canMakeInput(store.getState(), deps.getCatalog(), id),
           make: (id) => runInput(makeInputPlan(store.getState(), deps.getCatalog(), id)),
@@ -112,9 +97,6 @@ export function installSourceGestures(canvas: HTMLCanvasElement, deps: SourceGes
         },
       }, nodeId, world.x, world.y);
     },
-    dispose() {
-      disposeHover();
-      disposeDrop();
-    },
+    dispose: disposeDrop,
   };
 }

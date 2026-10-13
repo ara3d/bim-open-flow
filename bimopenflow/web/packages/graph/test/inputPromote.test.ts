@@ -5,7 +5,7 @@
 
 import { afterEach, describe, expect, it } from "vitest";
 import { createStore, type Store } from "@bimopenflow/state";
-import { rowAt } from "../src/chipGeometry.js";
+import { rowAt } from "../src/paramRow.js";
 import { inlineInputPlan, inputNameFor, makeInputPlan } from "../src/inputPlans.js";
 import { installSourceGestures } from "../src/sourceGestures.js";
 import { buildCanvasModel } from "../src/viewModel.js";
@@ -122,7 +122,7 @@ describe("the context menu", () => {
     const gestures = installSourceGestures(canvas, {
       store, getCatalog: () => catalog, onError: (m) => errors.push(m), readOnly: false,
       getDoc: model, canvasToWorld: (x, y) => ({ x, y }), clientToWorld: (x, y) => ({ x, y }),
-      getView: () => ({ rail: true, chips: true }), setView: () => {}, onLit: () => {},
+      getView: () => ({ rail: true }), setView: () => {},
     });
     const node = model().nodes.find((n) => n.id === nodeId)!;
     const labels = (at = { x: node.x + 5, y: node.y + 5 }) => gestures.menuItems(nodeId, at.x, at.y, 0, 0);

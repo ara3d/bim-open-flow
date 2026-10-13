@@ -4,7 +4,7 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createStore } from "@bimopenflow/state";
-import { rowAt } from "../src/chipGeometry.js";
+import { rowAt } from "../src/paramRow.js";
 import { showRelinkOffer } from "../src/relinkOffer.js";
 import { sourceMenuItems } from "../src/sourceMenu.js";
 import { installSourceGestures } from "../src/sourceGestures.js";
@@ -107,8 +107,8 @@ describe("the Share as source menu item", () => {
   const items = (m: ReturnType<typeof model>, id: string, at: { x: number; y: number }) => {
     const promoted: unknown[] = [];
     const list = sourceMenuItems({
-      view: () => ({ rail: true, chips: true }), setView: () => {}, isSource: () => false,
-      chipAt: () => null, rowAt: (x, y) => rowAt(m, x, y), unlink: () => {}, promote: (n, p) => promoted.push([n, p]),
+      view: () => ({ rail: true }), setView: () => {}, isSource: () => false,
+      rowAt: (x, y) => rowAt(m, x, y), promote: (n, p) => promoted.push([n, p]),
     }, id, at.x, at.y);
     return { list, promoted };
   };
@@ -178,7 +178,7 @@ describe("Share as source through the editor's gestures", () => {
       store, getCatalog: () => catalog, onError: (m) => errors.push(m), readOnly: false,
       getDoc: () => buildCanvasModel(store.getState(), catalog),
       canvasToWorld: (x, y) => ({ x, y }), clientToWorld: (x, y) => ({ x, y }),
-      getView: () => ({ rail: true, chips: true }), setView: () => {}, onLit: () => {},
+      getView: () => ({ rail: true }), setView: () => {},
     });
     const m = buildCanvasModel(store.getState(), catalog);
     const q1 = m.nodes.find((n) => n.id === "q1")!;
@@ -203,7 +203,7 @@ describe("Share as source through the editor's gestures", () => {
       store, getCatalog: () => catalog, onError: () => {}, readOnly: false,
       getDoc: () => buildCanvasModel(store.getState(), catalog),
       canvasToWorld: (x, y) => ({ x, y }), clientToWorld: (x, y) => ({ x, y }),
-      getView: () => ({ rail: true, chips: true }), setView: () => {}, onLit: () => {},
+      getView: () => ({ rail: true }), setView: () => {},
     });
     const m = buildCanvasModel(store.getState(), catalog);
     const q3 = m.nodes.find((n) => n.id === "q3")!;

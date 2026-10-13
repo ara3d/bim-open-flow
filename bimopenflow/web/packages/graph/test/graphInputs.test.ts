@@ -42,15 +42,15 @@ const card = (store: Store, id = "$model", sources?: SourceView): CanvasNode =>
   build(store, sources).nodes.find((n) => n.id === id)!;
 
 describe("the graph input card", () => {
-  it("is the first card of the rail, above the source nodes, marked as an input", () => {
+  it("is the first card of the rail, left of the flow, marked as an input", () => {
     const model = build(graph());
     const input = model.nodes.find((n) => n.id === "$model")!;
     const db = model.nodes.find((n) => n.id === "db")!;
     expect(model.nodes[0]).toBe(input);
     expect(input).toMatchObject({ kind: INPUT_KIND, inRail: true, input: { name: "model", kind: "FilePath" }, description: "Graph input", selected: false });
-    expect(db.inRail).toBe(true);
-    expect(input.x).toBe(db.x);
-    expect(input.y + input.h).toBeLessThanOrEqual(db.y);
+    // db is wired to q1, so it sits in the flow (TKT-286); the rail, holding the input, stands left of it.
+    expect(db.inRail).toBeUndefined();
+    expect(input.x + input.w).toBeLessThan(db.x);
   });
 
   it("holds one row named after the input: the declared default, then the host's current value", () => {

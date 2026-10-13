@@ -183,16 +183,8 @@ export interface NodeCardPalette {
   readonly packAccent?: Color;
 }
 
-/** A lit card (the chip under the pointer, TKT-138; TKT-217 found the first
- *  highlight too faint to see): its fill leans this far toward the accent, and
- *  its border is this wide, against 1.2 for a plain card and 2 for one on the
- *  selected path. The edge itself is the accent at full strength. */
-export const LIT_FILL_MIX = 0.22;
-export const LIT_EDGE_WIDTH = 3;
-
-/** Width of a card's border. */
-export const cardEdgeWidth = (p: Pick<CanvasNode, "lit" | "contributing">): number =>
-  p.lit ? LIT_EDGE_WIDTH : p.contributing ? 2 : 1.2;
+/** Width of a card's border: 2 on the path that feeds the previewed node, else 1.2. */
+export const cardEdgeWidth = (p: Pick<CanvasNode, "contributing">): number => (p.contributing ? 2 : 1.2);
 
 /** The writer glyph: an arrow pointing down into a tray, in the amber of the
  *  EffectPending status, so "writes on Run" reads the same on the card and in
@@ -221,7 +213,7 @@ export function renderNodeCard(
   const layout = nodeCardLayout(p, painter.measure);
   const statusColor = p.status ? palette.status[p.status] : colors.dim;
 
-  painter.box(r, 8, colors.fill, p.contributing && !p.lit && !palette.packAccent ? palette.contributing : colors.edge, cardEdgeWidth(p));
+  painter.box(r, 8, colors.fill, p.contributing && !palette.packAccent ? palette.contributing : colors.edge, cardEdgeWidth(p));
   if (layout.status) {
     const s = layout.status;
     painter.box(rect(r.x + s.x, r.y + s.y, s.w, s.h), s.h / 2, calpha(statusColor, 0.16), statusColor, 1);

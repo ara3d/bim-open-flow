@@ -1,17 +1,13 @@
 // @vitest-environment jsdom
 // TKT-217: the path box's "use <source>" offer never names the node the box
-// sits on, and a lit card (a hovered chip's source and users) is drawn so it
-// shows at a glance.
+// sits on.
 
 import { afterEach, describe, expect, it } from "vitest";
-import { NullPainter, rgb, type Painter } from "gratify";
 import type { NodeDescriptor } from "@bimopenflow/contracts";
 import { createStore } from "@bimopenflow/state";
 import { FilePathControls } from "../src/filePathControl.js";
-import { cardEdgeWidth, LIT_EDGE_WIDTH, LIT_FILL_MIX, renderNodeCard } from "../src/nodeRender.js";
 import { promotePlan } from "../src/sourcePlans.js";
 import { findSourceByPath, sourceOffer } from "../src/sources.js";
-import type { CanvasNode } from "../src/viewModel.js";
 import { catalog as fixtureCatalog } from "./sourceFixtures.js";
 
 afterEach(() => { document.body.replaceChildren(); });
@@ -75,37 +71,5 @@ describe("the use-source offer", () => {
     if ("error" in plan) throw new Error(plan.error);
     expect(plan.source.id).not.toBe("db");
     expect(plan.actions.at(-1)).toMatchObject({ type: "connect", to: "db.path" });
-  });
-});
-
-describe("the lit highlight", () => {
-  const card: CanvasNode = {
-    id: "db", kind: "duck.source", x: 0, y: 0, w: 184, h: 70, inputs: [], outputs: [], params: [], selected: false,
-  };
-  const colors = { fill: rgb(1, 1, 1), edge: rgb(0.2, 0.4, 0.8), text: rgb(0, 0, 0), dim: rgb(0.4, 0.4, 0.4), socket: rgb(0, 0, 1) };
-  const palette = { status: {} as never, contributing: rgb(1, 0, 0) };
-
-  /** The border colour and width of the card's outline, the first box drawn. */
-  function outline(props: CanvasNode) {
-    const boxes: { stroke: unknown; width: unknown }[] = [];
-    const painter = Object.create(new NullPainter()) as Painter;
-    painter.box = ((_r: unknown, _radius: unknown, _fill: unknown, stroke?: unknown, width?: unknown) => { boxes.push({ stroke, width }); }) as Painter["box"];
-    renderNodeCard({ rect: { x: 0, y: 0, w: props.w, h: props.h, right: props.w, bottom: props.h } as never, props }, painter, colors, palette);
-    return boxes[0]!;
-  }
-
-  it("draws a lit card with a border over twice as wide as a plain one, in the accent edge", () => {
-    expect(cardEdgeWidth(card)).toBe(1.2);
-    expect(cardEdgeWidth({ ...card, contributing: true })).toBe(2);
-    expect(cardEdgeWidth({ ...card, lit: true })).toBe(LIT_EDGE_WIDTH);
-    expect(LIT_EDGE_WIDTH).toBeGreaterThanOrEqual(2.5 * 1.2);
-    const lit = outline({ ...card, lit: true, contributing: true });
-    expect(lit).toEqual({ stroke: colors.edge, width: LIT_EDGE_WIDTH });
-    expect(outline({ ...card, contributing: true }).stroke).toBe(palette.contributing);
-  });
-
-  it("tints the fill toward the accent by a share a reader can see", () => {
-    expect(LIT_FILL_MIX).toBeGreaterThanOrEqual(0.15);
-    expect(LIT_FILL_MIX).toBeLessThanOrEqual(0.4);
   });
 });

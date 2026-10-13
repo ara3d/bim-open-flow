@@ -127,7 +127,7 @@ export interface GraphEditor {
   focus(nodeId?: string): void;
   /** Re-reads the column options of every column selector (after an evaluation update). */
   refreshSuggestions(): void;
-  /** How source nodes are drawn: in a rail, wires as chips (TKT-138). Both on by default. */
+  /** How source nodes are drawn: unwired ones in a rail (TKT-138), on by default. */
   sourceView(): SourceView;
   setSourceView(view: SourceView): void;
   /** Switches the canvas theme (see canvasTheme.ts for the names). Page-wide. */
@@ -159,9 +159,8 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
   };
   let wiring: PeekWiring | null = null; // created once the runtime exists
   let sourceView: SourceView = DEFAULT_SOURCE_VIEW;
-  let litSource: string | null = null; // the source whose chip the pointer rests on
   const model = (): CanvasModel =>
-    buildCanvasModel(store.getState(), getCatalog(), getPreview(), wiring?.view(), { sources: sourceView, lit: litSource });
+    buildCanvasModel(store.getState(), getCatalog(), getPreview(), wiring?.view(), { sources: sourceView });
   // The runtime's rest detector can doze off mid entrance-animation right
   // after a doc swap (boot, flow open), freezing the canvas on ghost-faint
   // nodes until the next interaction. `ambient` holds the loop awake briefly
@@ -220,10 +219,6 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
     clientToWorld: (x, y) => clientToWorld(x, y),
     getView: () => sourceView,
     setView: setSourceView,
-    onLit(sourceId) {
-      litSource = sourceId;
-      sync();
-    },
   });
 
   // A viewer has no delete and no palette: the context menu is not installed at all.

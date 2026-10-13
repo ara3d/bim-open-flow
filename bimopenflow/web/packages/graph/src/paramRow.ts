@@ -1,6 +1,6 @@
-// Where a parameter row sits on a card (TKT-138): the chip a source feeds, and
-// the path row "Share as source" starts from. Gratify-free, shared by the hover
-// listener and the context menu.
+// Where a parameter row sits on a card: the path row "Share as source" starts
+// from (TKT-138) and the row a graph-input command acts on (TKT-204).
+// Gratify-free, used by the context menu.
 
 import { placeSlots, SLOT_X_PAD, type CanvasParam } from "./canvasSlots.js";
 import { portRowsBottom } from "./nodeSize.js";
@@ -9,12 +9,6 @@ import type { CanvasModel } from "./viewModel.js";
 export interface RowHit {
   readonly nodeId: string;
   readonly param: CanvasParam;
-}
-
-export interface ChipHit {
-  readonly nodeId: string;
-  readonly param: string;
-  readonly sourceId: string;
 }
 
 /** The parameter row under world point (x, y), or null. */
@@ -26,10 +20,4 @@ export function rowAt(model: Pick<CanvasModel, "nodes">, x: number, y: number): 
     if (slot) return { nodeId: node.id, param: slot.param };
   }
   return null;
-}
-
-/** The chip row under world point (x, y), or null. */
-export function chipAt(model: Pick<CanvasModel, "nodes">, x: number, y: number): ChipHit | null {
-  const hit = rowAt(model, x, y);
-  return hit?.param.chip ? { nodeId: hit.nodeId, param: hit.param.name, sourceId: hit.param.chip.sourceId } : null;
 }

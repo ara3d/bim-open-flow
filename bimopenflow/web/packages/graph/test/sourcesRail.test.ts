@@ -1,5 +1,6 @@
-// The sources rail (TKT-138): source nodes stack left of the other nodes, their
-// saved layout is ignored, autolayout leaves them out, and a toggle returns them.
+// The sources rail (TKT-138): unwired source nodes stack left of the other
+// nodes, their saved layout is ignored, autolayout leaves them out, and a
+// toggle returns them. A wired source sits in the flow (TKT-286).
 
 import { describe, expect, it } from "vitest";
 import type { NodeDescriptor } from "@bimopenflow/contracts";
@@ -7,7 +8,7 @@ import { createStore } from "@bimopenflow/state";
 import { autoLayout, tidyLayout } from "../src/autoLayout.js";
 import { makeCanvasUpdate } from "../src/canvasIntents.js";
 import { sourceMenuItems } from "../src/sourceMenu.js";
-import { DEFAULT_SOURCE_VIEW, isSourceDescriptor, NO_SOURCE_VIEW, railSources, sourceChips, type SourceView } from "../src/sources.js";
+import { DEFAULT_SOURCE_VIEW, isSourceDescriptor, NO_SOURCE_VIEW, railSources, type SourceView } from "../src/sources.js";
 import { buildCanvasModel } from "../src/viewModel.js";
 
 const duckSource: NodeDescriptor = {
@@ -68,7 +69,7 @@ describe("the sources rail", () => {
   });
 
   it("draws every node where it was saved with the rail off, and by default", () => {
-    for (const view of [NO_SOURCE_VIEW, { rail: false, chips: true }]) {
+    for (const view of [NO_SOURCE_VIEW]) {
       const model = build(graph(), view);
       expect(model.nodes.some((n) => n.inRail)).toBe(false);
       expect(model.nodes.find((n) => n.id === "db")).toMatchObject({ x: 500, y: 500 });
@@ -109,8 +110,8 @@ describe("the rail toggle", () => {
   const menu = (view: SourceView) => {
     const calls: SourceView[] = [];
     const items = (id: string) => sourceMenuItems({
-      view: () => view, setView: (v) => calls.push(v), isSource: (n) => n === "db", chipAt: () => null, rowAt: () => null, promote: () => {}, unlink: () => {},
-    }, id, 0, 0).filter((i) => !i.label.includes("chips"));
+      view: () => view, setView: (v) => calls.push(v), isSource: (n) => n === "db", rowAt: () => null, promote: () => {},
+    }, id, 0, 0);
     return { calls, items };
   };
 
@@ -119,14 +120,14 @@ describe("the rail toggle", () => {
     expect(items("q1")).toEqual([]);
     expect(items("db").map((i) => i.label)).toEqual(["Show sources on the canvas"]);
     items("db")[0]!.run();
-    expect(calls).toEqual([{ rail: false, chips: true }]);
+    expect(calls).toEqual([{ rail: false }]);
   });
 
   it("offers the way back when the rail is off", () => {
-    const { calls, items } = menu({ rail: false, chips: true });
+    const { calls, items } = menu({ rail: false });
     expect(items("db").map((i) => i.label)).toEqual(["Move sources to the rail"]);
     items("db")[0]!.run();
-    expect(calls).toEqual([{ rail: true, chips: true }]);
+    expect(calls).toEqual([{ rail: true }]);
   });
 });
 
@@ -146,17 +147,13 @@ describe("which sources stand in the rail (TKT-286)", () => {
     return s;
   };
 
-  it("holds a source whose wires are all chips, and leaves one wired into an input port in the flow", () => {
-    const model = buildCanvasModel(store().getState(), withReader, null, undefined, { sources: DEFAULT_SOURCE_VIEW });
+  it("leaves every wired source in the flow, with its wires drawn, and keeps an unwired one in the rail", () => {
+    const s = store();
+    s.dispatch({ type: "addNode", id: "spare", kind: "duck.source", version: 1 });
+    const model = buildCanvasModel(s.getState(), withReader, null, undefined, { sources: DEFAULT_SOURCE_VIEW });
     const rail = (id: string) => model.nodes.find((n) => n.id === id)!.inRail ?? false;
-    expect([rail("db"), rail("ifc")]).toEqual([true, false]);
-    expect(model.edges.map((e) => e.from)).toEqual(["ifc.path"]);
-  });
-
-  it("is computed from the drawn wires: with chips off, every wired source stays in the flow", () => {
-    const s = store().getState();
-    const sources = new Set(["db", "ifc"]);
-    expect([...railSources(s.document, sources, new Map())]).toEqual([]);
-    expect([...railSources(s.document, sources, sourceChips(s.document, withReader, sources))]).toEqual(["db"]);
+    expect([rail("db"), rail("ifc"), rail("spare")]).toEqual([false, false, true]);
+    expect(model.edges.map((e) => e.from).sort()).toEqual(["db.source", "ifc.path"]);
+    expect([...railSources(s.getState().document, new Set(["db", "ifc", "spare"]))]).toEqual(["spare"]);
   });
 });

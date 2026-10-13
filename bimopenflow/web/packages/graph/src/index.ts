@@ -37,7 +37,7 @@ export { css } from "gratify";
 export type { PortResultsView, ReadPort, WireRows } from "./portResults.js";
 export { NO_PORT_RESULTS } from "./portResults.js";
 export { DEFAULT_SOURCE_VIEW, isSourceDescriptor, NO_SOURCE_VIEW } from "./sources.js";
-export type { SourceChip, SourceView } from "./sources.js";
+export type { SourceView } from "./sources.js";
 export { firstFree, freshNodeId } from "./ids.js";
 export { dropSourcePlan, dropSourceType, promotePlan, relinkActions, relinkTargets } from "./sourcePlans.js";
 export type { RelinkTarget, SourcePlan } from "./sourcePlans.js";

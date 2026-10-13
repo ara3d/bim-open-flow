@@ -6,6 +6,11 @@ import { describe, expect, it } from "vitest";
 import type { CanvasParam } from "../src/canvasSlots.js";
 import {
   contentWidth,
+  DESC_GAP,
+  DESC_LINE_H,
+  DESC_PAD,
+  descriptionHeight,
+  descriptionLines,
   MAX_CONTENT_WIDTH,
   NODE_WIDTH,
   nodeSize,
@@ -57,6 +62,29 @@ describe("nodeSize width from content", () => {
     const wide = card({ params: [text("file", "x".repeat(80))] });
     expect(nodeSize(wide, { w: 300 }).w).toBe(300);
     expect(nodeSize(wide, { w: 700 }).w).toBe(700);
+  });
+});
+
+describe("description height (TKT-278)", () => {
+  const description = "Keeps the rows whose value in one column matches a condition, dropping the others. ".repeat(3).trim();
+
+  it("adds the wrapped lines below the ports and params, and nothing without a description", () => {
+    const bare = nodeSize(card());
+    const lines = descriptionLines(description, bare.w).length;
+    expect(lines).toBeGreaterThan(3);
+    expect(nodeSize(card({ description })).h).toBe(bare.h + DESC_GAP + lines * DESC_LINE_H + DESC_PAD);
+    expect(nodeSize(card({ description: "" })).h).toBe(bare.h);
+    expect(descriptionHeight(undefined, 300)).toBe(0);
+  });
+
+  it("grows as a resize narrows the card, so the text still fits", () => {
+    const wide = nodeSize(card({ description }), { w: 520 }).h;
+    const narrow = nodeSize(card({ description }), { w: NODE_WIDTH }).h;
+    expect(narrow).toBeGreaterThan(wide);
+  });
+
+  it("keeps the width from the other texts: a description wraps, it does not widen the card", () => {
+    expect(nodeSize(card({ description })).w).toBe(NODE_WIDTH);
   });
 });
 

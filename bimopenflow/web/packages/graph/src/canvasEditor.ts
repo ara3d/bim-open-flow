@@ -22,6 +22,7 @@ import { DEFAULT_SOURCE_VIEW, sourceOffer, type SourceView } from "./sources.js"
 import { installCanvasFocus } from "./canvasFocus.js";
 import { createPeekWiring, type PeekWiring } from "./peekWiring.js";
 import { NO_PORT_RESULTS, type PortResultsView, type ReadPort } from "./portResults.js";
+import { onDescriptionLevelChange } from "./descriptionLevel.js";
 
 /** A point in CSS pixels relative to the page (client) or in canvas world units. */
 export interface Point { readonly x: number; readonly y: number }
@@ -270,6 +271,8 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
     });
   };
   const unsubscribe = store.subscribe(sync);
+  // The description level is page-wide, as the theme is: every mounted canvas re-sizes its cards.
+  const stopLevel = onDescriptionLevelChange(sync);
 
   if (options.readPort) {
     wiring = createPeekWiring(canvas, {
@@ -309,6 +312,7 @@ export function createGraphEditor(canvas: HTMLCanvasElement, options: GraphEdito
     },
     dispose: () => {
       unsubscribe();
+      stopLevel();
       wiring?.dispose();
       disposeContextMenu();
       sourceGestures.dispose();

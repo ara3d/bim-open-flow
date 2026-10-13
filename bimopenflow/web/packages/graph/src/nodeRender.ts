@@ -6,10 +6,12 @@
 //
 // Fixed frame, shared with portGeometry.ts, viewModel.ts, and canvasSlots.ts:
 // the header is NODE_HEADER (46) tall, port rows are PORT_SPACING apart below
-// it, and the card's height is viewModel.nodeHeight. The header holds two
-// lines: the title and the status chip on line 1, the id and then the
-// description on line 2. The id beside the title was tried first; a 184 px
-// card with a badge on line 1 left it one letter wide.
+// it, and the card's height is nodeSize.nodeSize. The header holds two
+// lines: the title and the status chip on line 1, the id on line 2. The id
+// beside the title was tried first; a 184 px card with a badge on line 1 left
+// it one letter wide. The description the page's level shows (TKT-278) is a
+// wrapped block at the bottom, below the param rows, in the height nodeSize
+// gave the card for it; TKT-277 had fitted it onto header line 2 after the id.
 //
 // Every text is fitted (gratify's fitText) to the room the card actually has
 // (TKT-125): the card's width comes from nodeSize.ts, which sizes it for its
@@ -21,7 +23,8 @@ import { calpha, fitText, rect, v, type Color, type Measure, type Painter, type 
 import { nodeTitle } from "./graphPreview";
 import { paramSockets, portY } from "./portGeometry.js";
 import {
-  BOLD_WIDEN, CARD_GAP as GAP, CARD_PAD as PAD, NODE_HEADER, PORT_LABEL_INSET, PORT_LABEL_SIZE as PORT_SIZE, portRowsBottom,
+  BOLD_WIDEN, CARD_GAP as GAP, CARD_PAD as PAD, DESC_GAP, DESC_LINE_H, DESC_PAD, DESC_SIZE, descriptionLines, NODE_HEADER,
+  nodeHeight, PORT_LABEL_INSET, PORT_LABEL_SIZE as PORT_SIZE, portRowsBottom,
 } from "./nodeSize.js";
 import type { CanvasNode } from "./viewModel.js";
 
@@ -31,7 +34,9 @@ export interface NodeCardLayout {
   readonly title: { text: string; x: number; y: number; size: number; weight: number };
   /** The node id. */
   readonly subtitle?: { text: string; x: number; y: number; size: number };
-  readonly description?: { text: string; x: number; y: number; size: number; maxWidth: number };
+  /** The description block: `lines` wrapped to the card, the first centred on `y`,
+   *  each next one `lineHeight` below it. */
+  readonly description?: { lines: readonly string[]; x: number; y: number; size: number; lineHeight: number };
   /** The status chip at the top right, holding `text`. */
   readonly status?: { x: number; y: number; w: number; h: number; text: string };
   /** The chip's text, centred in it. */
@@ -40,14 +45,10 @@ export interface NodeCardLayout {
 
 const SOCKET_RADIUS = 4.5;
 const BADGE_SIZE = 10;
-const DESC_SIZE = 11;
-/** The header: a 15 px title on line 1, the 11 px id and the description
- *  after it on line 2. */
+/** The header: a 15 px title on line 1, the 11 px id on line 2. */
 const COMPACT_TITLE = { size: 15, y: 14 };
 const COMPACT_ID_SIZE = 11;
 const COMPACT_LINE2_Y = 33;
-/** Least room worth drawing the compact description in, after the id. */
-const COMPACT_DESC_MIN = 40;
 /** Share of the card width the status text may take. */
 const BADGE_SHARE = 0.45;
 
@@ -57,16 +58,13 @@ export const portsBottom = (p: { inputs: readonly unknown[]; outputs: readonly u
 
 type Title = NodeCardLayout["title"];
 type Subtitle = NonNullable<NodeCardLayout["subtitle"]>;
-type Description = NonNullable<NodeCardLayout["description"]>;
 
 /** `text` in the 600-weight title font, fitted to `room`. */
 const fitTitle = (m: Measure, text: string, room: number, size: number): string =>
   fitText(m, text, room / BOLD_WIDEN, size);
 
-/** Title on line 1 ending before `right`; the id and then the description
- *  on line 2. The id comes first, since the card is sized to hold it; the
- *  description takes what is left, and is left out below COMPACT_DESC_MIN. */
-function compactHeader(p: CanvasNode, m: Measure, right: number): Pick<NodeCardLayout, "title" | "subtitle" | "description"> {
+/** Title on line 1 ending before `right`; the id on line 2. */
+function compactHeader(p: CanvasNode, m: Measure, right: number): Pick<NodeCardLayout, "title" | "subtitle"> {
   const title: Title = {
     text: fitTitle(m, nodeTitle(p.kind), right - PAD, COMPACT_TITLE.size),
     x: PAD,
@@ -74,19 +72,21 @@ function compactHeader(p: CanvasNode, m: Measure, right: number): Pick<NodeCardL
     size: COMPACT_TITLE.size,
     weight: 600,
   };
-  const id = fitText(m, p.id, p.w - 2 * PAD, COMPACT_ID_SIZE);
-  const subtitle: Subtitle = { text: id, x: PAD, y: COMPACT_LINE2_Y, size: COMPACT_ID_SIZE };
-  const x = PAD + m.text(id, COMPACT_ID_SIZE).x + 2 * GAP;
-  const maxWidth = p.w - PAD - x;
-  if (!p.description || maxWidth < COMPACT_DESC_MIN) return { title, subtitle };
-  const description: Description = {
-    text: fitText(m, p.description, maxWidth, DESC_SIZE),
-    x,
-    y: COMPACT_LINE2_Y,
-    size: DESC_SIZE,
-    maxWidth,
-  };
-  return { title, subtitle, description };
+  const subtitle: Subtitle = { text: fitText(m, p.id, p.w - 2 * PAD, COMPACT_ID_SIZE), x: PAD, y: COMPACT_LINE2_Y, size: COMPACT_ID_SIZE };
+  return { title, subtitle };
+}
+
+/** The description wrapped to the card below its param rows, in as many
+ *  lines as the card's height holds. nodeSize gave it the lines the size
+ *  estimate wraps to; a wider real font that needs more ends the last line
+ *  with an ellipsis rather than running past the bottom edge. */
+function descriptionBlock(p: CanvasNode, m: Measure): Pick<NodeCardLayout, "description"> {
+  if (!p.description) return {};
+  const top = nodeHeight(p.inputs.length, p.outputs.length, p.params) + DESC_GAP;
+  const room = Math.floor((p.h - top - DESC_PAD) / DESC_LINE_H);
+  if (room < 1) return {};
+  const lines = descriptionLines(p.description, p.w, m, room);
+  return { description: { lines, x: PAD, y: top + DESC_LINE_H / 2, size: DESC_SIZE, lineHeight: DESC_LINE_H } };
 }
 
 /** Where each text and the status chip go for `props`. Pure: `measure`
@@ -95,12 +95,13 @@ function compactHeader(p: CanvasNode, m: Measure, right: number): Pick<NodeCardL
 export function nodeCardLayout(props: CanvasNode, measure: Measure): NodeCardLayout {
   const p = props;
   const m = measure;
-  if (!p.status) return compactHeader(p, m, p.w - PAD);
+  if (!p.status) return { ...compactHeader(p, m, p.w - PAD), ...descriptionBlock(p, m) };
   const text = fitText(m, p.badge?.text ?? p.status, p.w * BADGE_SHARE - 2 * GAP, BADGE_SIZE);
   const w = m.text(text, BADGE_SIZE).x + 2 * GAP;
   const chip = { x: p.w - PAD - w, y: 6, w, h: 16, text };
   return {
     ...compactHeader(p, m, chip.x - GAP),
+    ...descriptionBlock(p, m),
     status: chip,
     badge: { text, x: chip.x + w / 2, y: chip.y + chip.h / 2, size: BADGE_SIZE },
   };
@@ -114,11 +115,10 @@ export interface CardBox {
   readonly h: number;
 }
 
-/** The box `props` paints: the card and the port sockets half outside its
- *  left and right edges. What a layout must keep clear between cards.
- *  `_measure` is unused since the description footer went (TKT-277); it is
- *  kept only because scripts/sampleGraphs.ts, outside that change, passes one. */
-export function nodeFootprint(props: CanvasNode, _measure?: Measure): CardBox {
+/** The box `props` paints: the card, its description block included, and the
+ *  port sockets half outside its left and right edges. What a layout must
+ *  keep clear between cards. */
+export function nodeFootprint(props: CanvasNode): CardBox {
   const left = props.inputs.length > 0 ? SOCKET_RADIUS : 0;
   const right = props.outputs.length > 0 ? SOCKET_RADIUS : 0;
   return { x: 0 - left, y: 0, w: props.w + left + right, h: props.h };
@@ -206,8 +206,11 @@ export function renderNodeCard(
 
   const t = layout.title;
   painter.label(t.text, v(r.x + t.x, r.y + t.y), colors.text, { align: "left", weight: t.weight, size: t.size });
-  for (const s of [layout.subtitle, layout.description])
-    if (s) painter.label(s.text, v(r.x + s.x, r.y + s.y), colors.dim, { align: "left", size: s.size });
+  const s = layout.subtitle;
+  if (s) painter.label(s.text, v(r.x + s.x, r.y + s.y), colors.dim, { align: "left", size: s.size });
+  const d = layout.description;
+  d?.lines.forEach((line, i) =>
+    painter.label(line, v(r.x + d.x, r.y + d.y + i * d.lineHeight), colors.dim, { align: "left", size: d.size }));
   if (layout.badge) {
     // Badge text (TKT-10): the state's own hint, or the upstream node responsible for it.
     const b = layout.badge;

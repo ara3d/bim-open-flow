@@ -5,6 +5,7 @@ import type { NodeDescriptor, NodeStatus, PortType } from "@bimopenflow/contract
 import { schemaMessages, type NodeLayout, type State } from "@bimopenflow/state";
 import { inlineParams, type CanvasParam } from "./canvasSlots.js";
 import { nodeSize, NOTE_KIND, type Size } from "./nodeSize.js";
+import { currentDescriptionLevel, descriptionText, type DescriptionLevel } from "./descriptionLevel.js";
 import { upstreamIds } from "./graphPreview";
 import { wiredPreviews } from "./wiredParams.js";
 import { nodeBadge, type NodeBadge } from "./nodeBadge.js";
@@ -32,9 +33,10 @@ export interface CanvasNode {
   /** Status badge text, and the upstream node responsible when one exists
    *  (TKT-10). Undefined alongside `status` before the first eval update. */
   readonly badge?: NodeBadge;
-  /** The kind's catalog description (TKT-98): the card draws it so a reader
-   *  learns what the node does without the sidebar. Absent for a note or an
-   *  unknown kind. */
+  /** The part of the kind's catalog description the page's DescriptionLevel
+   *  shows (TKT-98, TKT-278), wrapped at the bottom of the card so a reader
+   *  learns what the node does without the sidebar. Absent at the hidden
+   *  level, and for a note or an unknown kind. */
   readonly description?: string;
   readonly selected: boolean;
   readonly contributing?: boolean;
@@ -122,17 +124,28 @@ export function edgeId(from: string, to: string): string {
   return `${from}->${to}`;
 }
 
+/** The fields of a card its size is computed from. */
+type CardContent = Pick<CanvasNode, "id" | "kind" | "inputs" | "outputs" | "params" | "noteText" | "description">;
+
+/** `text` cut to `level` as a card field: absent when nothing is shown. */
+const describedAs = (text: string | undefined, level: DescriptionLevel): Pick<CanvasNode, "description"> => {
+  const shown = descriptionText(text ?? "", level);
+  return shown ? { description: shown } : {};
+};
+
 /** The fields of node `id` of `kind` that its card shows and is sized from:
  *  ports and inline params from `desc` with `values` applied (and the
- *  previews in `wired` for the parameters an edge feeds), or a note's
- *  text. An unknown kind (no `desc`) gets a portless card. */
+ *  previews in `wired` for the parameters an edge feeds), the description
+ *  `level` shows, or a note's text. An unknown kind (no `desc`) gets a
+ *  portless card. */
 export function cardContent(
   id: string,
   kind: string,
   desc: NodeDescriptor | undefined,
   values: Readonly<Record<string, string>>,
   wired: Readonly<Record<string, string>> = {},
-): Pick<CanvasNode, "id" | "kind" | "inputs" | "outputs" | "params" | "noteText"> {
+  level: DescriptionLevel = currentDescriptionLevel(),
+): CardContent {
   if (kind === NOTE_KIND) {
     const noteText = values["text"] ?? desc?.params.find((p) => p.name === "text")?.default ?? "";
     return { id, kind, inputs: [], outputs: [], params: [], noteText };
@@ -143,12 +156,17 @@ export function cardContent(
     inputs: (desc?.inputs ?? []).map((p) => ({ name: p.name, type: p.type })),
     outputs: (desc?.outputs ?? []).map((p) => ({ name: p.name, type: p.type })),
     params: inlineParams(desc?.params ?? [], values, wired),
+    ...describedAs(desc?.description, level),
   };
 }
 
 /** The size a node of `desc` gets when it is added as `id`, before any
- *  value is set: what the app places a new card by. */
+ *  value is set, at the page's description level: what the app places a new
+ *  card by. */
 export const newNodeSize = (desc: NodeDescriptor, id: string): Size => nodeSize(cardContent(id, desc.kind, desc, {}));
+
+/** What a graph input's card says it is, in place of a catalog description. */
+const INPUT_DESCRIPTION = "Graph input";
 
 /** Space between the rail and the nodes to its right, and between two rail cards. */
 const RAIL_GAP = 48;
@@ -161,6 +179,8 @@ export interface ModelOptions {
   readonly sources?: SourceView;
   /** The source whose chip is hovered: it and the nodes that use it are `lit`. */
   readonly lit?: string | null;
+  /** How much of each description the cards show; default the page's (currentDescriptionLevel). */
+  readonly descriptions?: DescriptionLevel;
 }
 
 /** Rail positions for cards of the given sizes, stacked in one column left of `others`, from their top. */
@@ -177,8 +197,7 @@ function railPositions(rail: readonly Size[], others: readonly NodeBounds[]): { 
 
 /** A node of the document or a graph input, before it is placed. */
 interface Card {
-  readonly desc: NodeDescriptor | undefined;
-  readonly content: Pick<CanvasNode, "id" | "kind" | "inputs" | "outputs" | "params" | "noteText">;
+  readonly content: CardContent;
   readonly layout: NodeLayout | undefined;
   readonly size: Size;
   readonly inRail: boolean;
@@ -199,6 +218,7 @@ export function buildCanvasModel(
   options: ModelOptions = {},
 ): CanvasModel {
   const view = options.sources ?? NO_SOURCE_VIEW;
+  const level = options.descriptions ?? currentDescriptionLevel();
   const selected = new Set(state.selection);
   const contributing = upstreamIds(state.document,preview);
   const sources = sourceNodeIds(state.document, catalog);
@@ -206,17 +226,20 @@ export function buildCanvasModel(
   const lit = options.lit ? new Set([options.lit, ...sourceUsers(state.document, options.lit)]) : new Set<string>();
   const cards: Card[] = state.document.structure.nodes.map((n) => {
     const desc = catalog.get(n.kind);
-    const content = cardContent(n.id, n.kind, desc, state.document.values[n.id] ?? {}, wiredPreviews(state.document, catalog, n.id, desc));
+    const content = cardContent(n.id, n.kind, desc, state.document.values[n.id] ?? {}, wiredPreviews(state.document, catalog, n.id, desc), level);
     const nodeChips = chips.get(n.id);
     const chipped = nodeChips ? content.params.map((p) => nodeChips[p.name] ? { ...p, chip: nodeChips[p.name] } : p) : content.params;
     const params = markInputRefs(state, chipped);
     const layout = state.document.layout[n.id];
     const marked = { ...content, params };
-    return { desc, content: marked, layout, size: nodeSize(marked, layout ?? {}), inRail: view.rail && sources.has(n.id) };
+    return { content: marked, layout, size: nodeSize(marked, layout ?? {}), inRail: view.rail && sources.has(n.id) };
   });
   const inputCards = (state.document.structure.inputs ?? []).map((decl): Card => {
-    const content = { id: inputCardId(decl.name), kind: INPUT_KIND, inputs: [], outputs: [], params: [inputParam(state, catalog, decl)] };
-    return { desc: undefined, content, layout: undefined, size: nodeSize(content), inRail: true, input: { name: decl.name, kind: decl.kind } };
+    const content = {
+      id: inputCardId(decl.name), kind: INPUT_KIND, inputs: [], outputs: [], params: [inputParam(state, catalog, decl)],
+      ...describedAs(INPUT_DESCRIPTION, level),
+    };
+    return { content, layout: undefined, size: nodeSize(content), inRail: true, input: { name: decl.name, kind: decl.kind } };
   });
   cards.unshift(...inputCards);
   const flowing = cards.filter((c) => !c.inRail);
@@ -229,7 +252,7 @@ export function buildCanvasModel(
   }
   const rail = cards.filter((c) => c.inRail);
   railPositions(rail.map((c) => c.size), placed).forEach((pos, i) => spots.set(rail[i]!.content.id, pos));
-  const nodes = cards.map(({ desc, content, size, inRail, input }): CanvasNode => {
+  const nodes = cards.map(({ content, size, inRail, input }): CanvasNode => {
     const pos = spots.get(content.id)!;
     const common = {
       x: pos.x, y: pos.y, ...size, ...content,
@@ -237,12 +260,11 @@ export function buildCanvasModel(
       ...(inRail ? { inRail } : {}), ...(lit.has(content.id) ? { lit: true } : {}),
     };
     if (content.kind === NOTE_KIND) return common;
-    if (input) return { ...common, input, description: "Graph input", selected: false, contributing: false };
+    if (input) return { ...common, input, selected: false, contributing: false };
     return {
       ...common,
       status: state.evalState[content.id]?.status,
       badge: nodeBadge({ edges: state.document.structure.edges, evalState: state.evalState }, content.id, schemaMessages(state, content.id).length),
-      ...(desc?.description ? { description: desc.description } : {}),
     };
   });
   const edges = state.document.structure.edges.filter((e) => !isChipEdge(chips, e)).map((e) => {

@@ -19,11 +19,17 @@ export { fileName } from "./paramText.js";
 export { portY } from "./portGeometry.js";
 export type { CanvasParam, SlotContext, SlotControl } from "./canvasSlots.js";
 export { autoLayout } from "./autoLayout.js";
+export { connectionIssues, isBrokenLayout, layoutIssues, type LayoutIssue, type LayoutIssueKind } from "./layoutCheck.js";
 export { nodePack, nodeTitle, previewAfterEdit, upstreamIds } from "./graphPreview.js";
 export { nodeBadge } from "./nodeBadge.js";
 export type { NodeBadge } from "./nodeBadge.js";
 export { nodeCardLayout } from "./nodeRender.js";
 export type { NodeCardLayout } from "./nodeRender.js";
+export {
+  BRIEF_SENTENCES, currentDescriptionLevel, defaultDescriptionLevel, descriptionLevels, descriptionText,
+  isDescriptionLevel, leadSentences, nextDescriptionLevel, onDescriptionLevelChange, setDescriptionLevel,
+} from "./descriptionLevel.js";
+export type { DescriptionLevel } from "./descriptionLevel.js";
 export { applyCanvasTheme, canvasThemeNames, currentCanvasTheme, defaultCanvasTheme, isCanvasThemeName } from "./canvasTheme.js";
 export type { CanvasThemeName } from "./canvasTheme.js";
 export type { PortResultsView, ReadPort, WireRows } from "./portResults.js";

@@ -20,16 +20,11 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { NodeDescriptor } from "@bimopenflow/contracts";
 import { initialState, parseDocument, type GraphDocument } from "@bimopenflow/state";
-import { NullPainter } from "gratify";
 import { autoLayout } from "../src/autoLayout.js";
 import { nodeFootprint } from "../src/nodeRender.js";
 import { buildCanvasModel, type CanvasModel, type CanvasNode } from "../src/viewModel.js";
 
 export const repoRoot = fileURLToPath(new URL("../../../../../", import.meta.url));
-
-/** NullPainter's measure (0.55 * size px per character); footprints do not
- *  depend on text width, only on which texts a card has. */
-export const layoutMeasure = new NullPainter().measure;
 
 export interface SampleGraph {
   /** Repository-relative path, with `#<id>` for an entry of a workflow list. */
@@ -105,9 +100,9 @@ export function shownModel(sample: SampleGraph, catalog: ReadonlyMap<string, Nod
 export const unknownKinds = (document: GraphDocument, catalog: ReadonlyMap<string, NodeDescriptor>): string[] =>
   [...new Set(document.structure.nodes.map((n) => n.kind).filter((k) => !catalog.has(k)))];
 
-/** Canvas-space box a card paints in its largest style. */
+/** Canvas-space box a card paints, its description block included. */
 export function paintedBox(node: CanvasNode): { x: number; y: number; w: number; h: number } {
-  const f = nodeFootprint(node, layoutMeasure);
+  const f = nodeFootprint(node);
   return { x: node.x + f.x, y: node.y + f.y, w: f.w, h: f.h };
 }
 

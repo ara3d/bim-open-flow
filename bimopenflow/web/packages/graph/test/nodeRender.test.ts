@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { NullPainter, rect, rgb, type Painter } from "gratify";
 import { nodeCardLayout, renderNodeCard, type NodeCardLayout } from "../src/nodeRender.js";
+import { nodeHeight, nodeSize } from "../src/nodeSize.js";
 import { NODE_HEADER, type CanvasNode } from "../src/viewModel.js";
 
 // NullPainter's measure: 0.55 * size px per character.
@@ -19,12 +20,14 @@ const base: CanvasNode = {
   selected: false,
 };
 
-const described: CanvasNode = {
+const withText = {
   ...base,
   status: "Unready",
   badge: { status: "Unready", text: "Needs setup" },
   description: "Keeps the rows whose value in one column matches a condition, dropping the others.",
-};
+} as const satisfies CanvasNode;
+/** At the height nodeSize gives it for its description. */
+const described: CanvasNode = { ...withText, h: nodeSize(withText, { w: withText.w }).h };
 
 /** Every text entry with its left and right edge, from its alignment. */
 function textSpans(layout: NodeCardLayout): { text: string; left: number; right: number }[] {
@@ -33,7 +36,8 @@ function textSpans(layout: NodeCardLayout): { text: string; left: number; right:
     spans.push({ text: e.text, left: e.x, right: e.x + measure.text(e.text, e.size).x });
   left(layout.title);
   if (layout.subtitle) left(layout.subtitle);
-  if (layout.description) left(layout.description);
+  const d = layout.description;
+  d?.lines.forEach((text) => left({ text, x: d.x, size: d.size }));
   if (layout.badge) {
     const b = layout.badge;
     const w = measure.text(b.text, b.size).x;
@@ -46,14 +50,22 @@ function textSpans(layout: NodeCardLayout): { text: string; left: number; right:
 describe("nodeCardLayout", () => {
   const layout = nodeCardLayout(described, measure);
 
-  it("draws the description on header line 2 after the id, truncated to the card", () => {
+  it("wraps the whole description below the port rows, inside the card's height (TKT-278)", () => {
     const d = layout.description!;
-    expect(d.text.endsWith("…")).toBe(true);
-    expect(measure.text(d.text, d.size).x).toBeLessThanOrEqual(d.maxWidth);
-    expect(d.y).toBeLessThan(NODE_HEADER);
-    const idRight = layout.subtitle!.x + measure.text("doors", layout.subtitle!.size).x;
-    expect(d.x).toBeGreaterThan(idRight);
-    expect(d.y).toBe(layout.subtitle!.y);
+    expect(d.lines.length).toBeGreaterThan(1);
+    expect(d.lines.join(" ")).toBe(described.description);
+    expect(d.y).toBeGreaterThan(nodeHeight(1, 1));
+    expect(d.y + (d.lines.length - 1) * d.lineHeight + d.size / 2).toBeLessThanOrEqual(described.h);
+  });
+
+  it("ends the last line that fits with an ellipsis when the card is shorter than the text", () => {
+    const short = nodeCardLayout({ ...described, h: described.h - 2 * layout.description!.lineHeight }, measure).description!;
+    expect(short.lines.length).toBe(layout.description!.lines.length - 2);
+    expect(short.lines.at(-1)!.endsWith("…")).toBe(true);
+  });
+
+  it("draws no description on a card with no room for one line", () => {
+    expect(nodeCardLayout({ ...described, h: nodeHeight(1, 1) }, measure).description).toBeUndefined();
   });
 
   it("puts the id on line 2", () => {
@@ -116,7 +128,7 @@ describe("renderNodeCard", () => {
     renderNodeCard({ rect: rect(100, 50, described.w, described.h), props: described }, spy.painter, colors, palette);
     const layout = nodeCardLayout(described, measure);
     expect(spy.labels).toEqual(
-      expect.arrayContaining([layout.title.text, "doors", layout.description!.text, "Needs setup", "in", "out"]),
+      expect.arrayContaining([layout.title.text, "doors", ...layout.description!.lines, "Needs setup", "in", "out"]),
     );
   });
 });

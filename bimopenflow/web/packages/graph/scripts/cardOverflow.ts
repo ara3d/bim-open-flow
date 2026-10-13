@@ -24,8 +24,9 @@ import { shownModel, type SampleGraph } from "./sampleGraphs.js";
 
 const REAL_FONT = 0.6;
 const BOLD = 1.08;
-/** How far below a card its footer description strip reaches (nodeRender). */
-const FOOTER_REACH = 22;
+/** How far below a card's bottom edge a label still counts as the card's, so
+ *  a label drawn past that edge (a description line, TKT-278) is reported. */
+const BELOW_REACH = 22;
 
 interface Painted {
   readonly text: string;
@@ -57,7 +58,8 @@ const dom = new JSDOM() as { window: Window & typeof globalThis };
 Object.assign(globalThis, { Option: dom.window.Option });
 const instance = createCanvasInstance({ document: dom.window.document });
 
-/** Every label of `model` that starts or ends outside the card it is drawn on. */
+/** Every label of `model` that starts or ends outside the card it is drawn
+ *  on, or is centred below its bottom edge. */
 export function overflows(model: CanvasModel): string[] {
   const { painter, labels } = recordingPainter();
   const runtime = new Runtime<CanvasModel, CanvasIntent>(
@@ -71,11 +73,17 @@ export function overflows(model: CanvasModel): string[] {
   runtime.step(1, 1 / 60);
   runtime.stop();
   return labels.flatMap((label) => {
-    const card = model.nodes.find((n) =>
-      label.at.x >= n.x - 1 && label.at.x <= n.x + n.w + 1 && label.at.y >= n.y && label.at.y <= n.y + n.h + FOOTER_REACH);
+    // A card the label is on, else one it hangs below.
+    const near = (reach: number) => model.nodes.find((n) =>
+      label.at.x >= n.x - 1 && label.at.x <= n.x + n.w + 1 && label.at.y >= n.y && label.at.y <= n.y + n.h + reach);
+    const card = near(0) ?? near(BELOW_REACH);
     if (!card) return [];
     const over = Math.max(card.x - label.left, label.right - (card.x + card.w));
-    return over > 0.5 ? [`${card.id} (${card.kind}, w ${card.w}): "${label.text}" over by ${over.toFixed(1)}`] : [];
+    const below = label.at.y - (card.y + card.h);
+    return [
+      ...(over > 0.5 ? [`${card.id} (${card.kind}, w ${card.w}): "${label.text}" over by ${over.toFixed(1)}`] : []),
+      ...(below > 0 ? [`${card.id} (${card.kind}, h ${card.h}): "${label.text}" below by ${below.toFixed(1)}`] : []),
+    ];
   });
 }
 

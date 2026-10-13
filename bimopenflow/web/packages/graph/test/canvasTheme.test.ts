@@ -9,7 +9,11 @@ import {
   currentCanvasTheme,
   defaultCanvasTheme,
   isCanvasThemeName,
+  PACK_ROLE_LABEL,
+  packRole,
+  packRoles,
 } from "../src/canvasTheme.js";
+import catalog from "./nodes.catalog.json";
 
 const tokenKeys = [
   "bg", "surface", "surfaceHi", "muted", "text", "textDim", "textBright",
@@ -20,7 +24,7 @@ const statusKeys: NodeStatus[] = ["Ok", "Unready", "EffectPending", "Unavailable
 
 const extraKeys = [
   "status", "wire", "wireSelected", "wireShadow", "rubberSnap", "wireFlow", "gridDot",
-  "noteFill", "noteEdge", "noteText", "packAccents",
+  "noteFill", "noteEdge", "noteText", "packAccents", "roleAccents",
 ] as const;
 
 const isColor = (c: unknown): c is Color =>
@@ -57,8 +61,17 @@ describe("canvas theme table", () => {
   it("studio stripes the table pack; light and dark stripe none", () => {
     expect(isColor(canvasThemes.studio.extras.packAccents["table"])).toBe(true);
     expect(canvasThemes.studio.extras.packAccents["nosuchpack"]).toBeUndefined();
+    expect(Object.keys(canvasThemes.light.extras.roleAccents)).toEqual([]);
     expect(Object.keys(canvasThemes.light.extras.packAccents)).toEqual([]);
     expect(Object.keys(canvasThemes.dark.extras.packAccents)).toEqual([]);
+  });
+
+  it("every pack of the catalog has a role, and a stripe of its role's hue in studio", () => {
+    const packs = new Set(catalog.nodes.map((n) => n.kind.split(".")[0]!));
+    for (const pack of packs) expect(packRole(pack), pack).toBeDefined();
+    for (const pack of packs)
+      expect(canvasThemes.studio.extras.packAccents[pack]).toBe(canvasThemes.studio.extras.roleAccents[packRole(pack)!]);
+    expect(packRoles.every((r) => PACK_ROLE_LABEL[r].length > 0)).toBe(true);
   });
 
   it("registers each theme with gratify under a bof- prefix", () => {

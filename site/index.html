@@ -47,21 +47,24 @@ main > ul { padding-left: 20px; max-width: 72ch; }
 .hint { font-size: 13px; }
 .tab-title { max-width: 34ch; }
 /* The editor needs a laid-out box before it mounts: Gratify's canvas sizes itself from it.
-   On this page the editor is stacked: the answer pane first at full width, the canvas below
-   it, and no step list, so a visitor reads the result and then the graph that made it. The
-   shell writes its column widths inline, so the grid override needs !important. */
-.live-editor.bof-app-root, .live-editor { height: 1000px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); position: relative; }
-.live-editor .bof-app-main { grid-template-columns: minmax(0, 1fr) !important; grid-template-rows: 480px minmax(0, 1fr); }
-.live-editor .bof-app-sidebar, .live-editor .bof-app-splitter { display: none; }
-.live-editor .bof-app-right-column { grid-row: 1; grid-column: 1; border-bottom: 1px solid var(--border); }
-.live-editor .bof-app-canvas-host { grid-row: 2; grid-column: 1; }
+   On this page the studio look is stacked: the answer pane first at full width, the canvas
+   below it, and no step list, so a visitor reads the result and then the graph that made it.
+   The studio writes its column widths as variables on its root, so the grid override needs !important. */
+.live-editor { height: 1000px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); position: relative; }
+.live-editor .bof-studio { height: 100%; }
+.live-editor .bof-studio-main { grid-template-columns: minmax(0, 1fr) !important; grid-template-rows: 480px minmax(0, 1fr); }
+.live-editor .bof-studio-left, .live-editor .bof-studio-splitter { display: none; }
+.live-editor .bof-studio-right { grid-row: 1; grid-column: 1; border-left: none; border-bottom: 1px solid var(--border); }
+.live-editor .bof-studio-canvas-host { grid-row: 2; grid-column: 1; }
 @media (max-width: 700px) {
   .live-editor { height: 800px; }
-  .live-editor .bof-app-main { grid-template-rows: 420px minmax(0, 1fr); }
+  .live-editor .bof-studio-main { grid-template-rows: 420px minmax(0, 1fr); }
 }
-/* The page's tabs pick the graph, and nothing here saves, creates, or runs one:
-   hide the editor's flow picker, its New, Save, and Run buttons, and the host status. */
-.live-editor .bof-app-topbar > select[aria-label="Open flow"], .live-editor .bof-app-topbar > button, .live-editor .bof-app-conn { display: none; }
+/* The page's tabs pick the graph, and nothing here saves, creates, or runs one: hide the
+   studio's flow picker, its New, Save, and Run buttons, the Tidy and Add node tools, and
+   the connection status (the static API is always "connected"). */
+.live-editor .bof-studio-picker, .live-editor .bof-studio-top > .bof-studio-btn, .live-editor .bof-studio-status,
+.live-editor .bof-studio-canvas-tools > .bof-studio-btn:not(:first-child) { display: none; }
 .notice pre { white-space: pre-wrap; max-height: 420px; overflow-y: auto; }
 .notice summary { cursor: pointer; }
 </style>

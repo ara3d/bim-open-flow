@@ -1,8 +1,9 @@
 // The live graphs of the GitHub Pages page (site/index.html): a picker with one
-// tab per graph in data/buildings.json, and the editor (@bimopenflow/app) over
-// the static API, so a visitor pans, zooms, selects a node for its table or
-// chart, and hovers a port for the rows on its wire. Nothing evaluates here.
-import { createApp, type App } from "@bimopenflow/app";
+// tab per graph in data/buildings.json, and the editor (@bimopenflow/app) in
+// the studio look over the static API, so a visitor pans, zooms, selects a
+// node for its table or chart, and hovers a port for the rows on its wire.
+// Nothing evaluates here.
+import { createApp, studioChrome, type App, type FlowTemplate } from "@bimopenflow/app";
 import { watchHost } from "@bimopenflow/client/host";
 import { nodeCatalog } from "./catalog";
 import { RESULTS_NOTE, StaticApiClient, staticFetch, type SiteData, type SiteGraph } from "./staticApi";
@@ -15,6 +16,15 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, t
   if (text !== undefined) node.textContent = text;
   return node;
 }
+
+/** The studio's catalog entry for a graph: its question as the title. */
+const flowTemplate = (graph: SiteGraph): FlowTemplate => {
+  const nodes = (graph.document as { structure?: { nodes?: { kind: string }[] } }).structure?.nodes ?? [];
+  return {
+    id: graph.id, folder: "buildings", title: graph.question, description: graph.buildingTitle,
+    nodeCount: nodes.length, kinds: [...new Set(nodes.map((n) => n.kind))].sort(),
+  };
+};
 
 function mount(data: SiteData): void {
   const tabs = el("div", "tabs");
@@ -53,10 +63,14 @@ function mount(data: SiteData): void {
 
   const first = data.graphs[0]!;
   select(first);
-  // The page stacks the editor (index.html's .live-editor rules): the answer pane
-  // above the canvas at full width, no step list. A single click shows a node,
-  // since nobody edits here.
-  app = createApp(editor, api, { host, initialAnalysis: first.id, heading: "BIM Open Flow", clickShows: true });
+  // The page stacks the studio look (index.html's .live-editor rules): the
+  // answer pane above the canvas at full width, no step list. A single click
+  // shows a node, since nobody edits here. The templates give the studio's
+  // heading each graph's question.
+  app = createApp(editor, api, {
+    host, initialAnalysis: first.id, clickShows: true,
+    chrome: studioChrome({ templates: data.graphs.map(flowTemplate) }),
+  });
 }
 
 try {

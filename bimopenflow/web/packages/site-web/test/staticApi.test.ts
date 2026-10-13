@@ -31,8 +31,13 @@ describe("staticApi over site/data/buildings.json", () => {
     expect(state.nodes.map((n) => n.nodeId).sort()).toEqual(doc.structure.nodes.map((n) => n.id).sort());
     expect(state.nodes.every((n) => n.status === "Ok")).toBe(true);
     for (const node of doc.structure.nodes) {
-      const slice = await client.getResult(id, node.id, RECORDED_PORT, 0, 5);
       const recorded = graph.nodes[node.id]!;
+      // A note or a database source has no table to record; the page refuses it.
+      if (!recorded.columns) {
+        await expect(client.getResult(id, node.id, RECORDED_PORT, 0, 5)).rejects.toThrow("No result");
+        continue;
+      }
+      const slice = await client.getResult(id, node.id, RECORDED_PORT, 0, 5);
       expect(slice.totalRows).toBe(recorded.rowCount);
       expect(slice.rows).toEqual(recorded.rows!.slice(0, 5));
       expect(slice.columns.map((c) => c.name)).toEqual(recorded.columns!.map((c) => c.name));

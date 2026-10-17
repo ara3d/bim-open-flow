@@ -40,7 +40,7 @@ describe("renderEntityProperties", () => {
     name: "Basic Wall",
     category: "IFCWALLSTANDARDCASE",
     parameters: [
-      param("Pset_NRCOperationalCarbon", "OperationalCarbon_kgCO2e_per_year", "412.5", "kgCO2e"),
+      param("NRC_OperationalCarbon", "OperationalCarbon_kgCO2e_per_year", "412.5", "kgCO2e"),
       param("Pset_WallCommon", "IsExternal", "true"),
     ],
   };
@@ -51,7 +51,7 @@ describe("renderEntityProperties", () => {
     expect(root.hidden).toBe(false);
     expect(root.querySelector(".bof-panes-title")?.textContent).toBe("Basic Wall");
     const sections = [...root.querySelectorAll(".bof-panes-section")].map((e) => e.textContent);
-    expect(sections).toEqual(["Pset_NRCOperationalCarbon", "Pset_WallCommon"]);
+    expect(sections).toEqual(["NRC_OperationalCarbon", "Pset_WallCommon"]);
     expect(root.textContent).toContain("IFCWALLSTANDARDCASE");
     expect(root.textContent).toContain("0Xs3");
     expect(root.textContent).toContain("412.5 kgCO2e");

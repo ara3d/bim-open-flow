@@ -17,7 +17,7 @@ Every node here:
 | Kind | Inputs | Params | Output (one-row summary) |
 |---|---|---|---|
 | `sink.exportCsv` v1 | in: Table | path (FilePath) | path, rowCount |
-| `sink.writePsets` v1 | in: Table with entityId (Integer, STEP express id), psetName, paramName, paramValue (Text), optional valueType (Text); optional zones: Table with zoneName (Text), spaceId (Integer), one IfcZone per name; optional zonePsets: Table with zoneName, psetName, paramName, paramValue, optional valueType, property sets attached to the zones by name | sourcePath, targetPath (FilePath) | targetPath, entitiesTouched, valuesWritten, zonesWritten |
+| `sink.writePsets` v1 | in: Table with entityId (Integer, STEP express id), psetName, paramName, paramValue (Text), optional valueType (Text); optional zones: Table with zoneName (Text), spaceId (Integer), one IfcZone per name; optional zonePsets: Table with zoneName, psetName, paramName, paramValue, optional valueType, property sets attached to the zones by name | sourcePath, targetPath (FilePath); optional documentPath (FilePath, a file recorded as an IfcDocumentReference on the first IfcProject with its name, format, SHA-256 and join key), documentKey (Text, default GlobalId), documentDescription (Text) | targetPath, entitiesTouched, valuesWritten, zonesWritten, documentsWritten |
 | `sink.report` v1 | in: Table | path (FilePath), title (Text) | path, rowCount |
 
 `sink.exportCsv` writes RFC-4180 CSV: CRLF rows, header row, invariant

@@ -233,4 +233,65 @@ public sealed class WritePsetsTests
             new WritePsetsNode().Eval(FakeContext.Run, WithZones(bad, null),
                 Params(("sourcePath", _sourcePath), ("targetPath", _targetPath))));
     }
+
+    // Document reference: the long table is recorded on the project with its checksum and join key.
+
+    private const string WithProject = """
+        #1=IFCPERSON($,$,'p',$,$,$,$,$);
+        #2=IFCORGANIZATION($,'o',$,$,$);
+        #3=IFCPERSONANDORGANIZATION(#1,#2,$);
+        #4=IFCAPPLICATION(#2,'1','app','app');
+        #5=IFCOWNERHISTORY(#3,#4,$,.ADDED.,$,$,$,0);
+        #6=IFCWALL('0000000000000000000000',#5,'W',$,$,$,$,$,$);
+        #7=IFCPROJECT('0000000000000000000007',#5,'P',$,$,$,$,$,$);
+        """;
+
+    private string WriteTable(string text)
+    {
+        var path = Path.Combine(_dir, "long.csv");
+        File.WriteAllBytes(path, System.Text.Encoding.ASCII.GetBytes(text));
+        return path;
+    }
+
+    [Test]
+    public void DocumentPath_AddsAReferenceOnTheProject_WithNameFormatChecksumAndJoinKey()
+    {
+        File.WriteAllText(_sourcePath, MiniIfc.Document(WithProject, MiniIfc.Ifc2x3));
+        var table = WriteTable("GlobalId,metric\n1,a\n");
+        var outputs = new WritePsetsNode().Eval(
+            FakeContext.Run, TableInput(PsetRows()),
+            Params(("sourcePath", _sourcePath), ("targetPath", _targetPath), ("documentPath", table),
+                ("documentDescription", "Long table.")));
+
+        using var source = IfcSourceFile.Load(_sourcePath);
+        using var target = IfcSourceFile.Load(_targetPath);
+        var diff = IfcDiff.Compare(source, target);
+        Assert.That(diff.Deleted, Is.Empty);
+        Assert.That(diff.Changed, Is.Empty);
+        var types = diff.Added.Select(id => target.GetSpan(id)!.Value.TypeName).ToList();
+        Assert.That(types.TakeLast(3), Is.EqualTo(new[] { "IFCDOCUMENTINFORMATION", "IFCDOCUMENTREFERENCE", "IFCRELASSOCIATESDOCUMENT" }));
+
+        var sha = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(table))).ToLowerInvariant();
+        var text = File.ReadAllText(_targetPath);
+        Assert.That(text, Does.Contain("'long.csv'"));
+        Assert.That(text, Does.Contain($"Long table. Format: text/csv. SHA-256: {sha}. Join key: GlobalId."));
+        Assert.That(text, Does.Contain("(#7),#"), "the reference is associated with the project");
+        Assert.That(Cell(OutputTable(outputs), "documentsWritten"), Is.EqualTo(1L));
+    }
+
+    [Test]
+    public void NoDocumentPath_WritesNoDocument()
+    {
+        var outputs = new WritePsetsNode().Eval(
+            FakeContext.Run, TableInput(PsetRows()),
+            Params(("sourcePath", _sourcePath), ("targetPath", _targetPath)));
+        Assert.That(File.ReadAllText(_targetPath), Does.Not.Contain("IFCDOCUMENT"));
+        Assert.That(Cell(OutputTable(outputs), "documentsWritten"), Is.EqualTo(0L));
+    }
+
+    [Test]
+    public void DocumentPath_WithoutAProject_Throws()
+        => Assert.Throws<ArgumentException>(() =>
+            new WritePsetsNode().Eval(FakeContext.Run, TableInput(PsetRows()),
+                Params(("sourcePath", _sourcePath), ("targetPath", _targetPath), ("documentPath", WriteTable("a\n")))));
 }

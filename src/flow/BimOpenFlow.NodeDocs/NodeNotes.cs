@@ -120,7 +120,10 @@ public static class NodeNotes
             + "The optional `zones` input (`zoneName`, `spaceId`) appends one IfcZone per name "
             + "grouping those spaces through IfcRelAssignsToGroup, and the optional `zonePsets` "
             + "input (`zoneName`, `psetName`, `paramName`, `paramValue`) attaches property sets "
-            + "to those zones by name, since a zone's id exists only once the Run allocates it.",
+            + "to those zones by name, since a zone's id exists only once the Run allocates it. "
+            + "The optional `documentPath` parameter records that file (the long analytics table) as "
+            + "an IfcDocumentReference on the first IfcProject, carrying its file name, format, SHA-256, "
+            + "and the join key named by `documentKey` (default GlobalId).",
 
         ["sink.report"] =
             "Effect: runs only inside a Run. The report is a minimal standalone HTML page: "

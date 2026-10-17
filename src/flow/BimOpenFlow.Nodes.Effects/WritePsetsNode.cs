@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Ara3D.DataFlowEngine.Abstractions;
 using Ara3D.DataTable;
 using Ara3D.Ifc.Tests;
@@ -16,6 +17,10 @@ namespace BimOpenFlow.Nodes.Effects;
 /// sets to those zones by name, because a zone's STEP id does not exist until the Run allocates it.
 /// Zones and their sets are appended after the entity sets, so the ids of the latter do not move
 /// when zones are added.</para>
+/// <para>The optional <c>documentPath</c> parameter names a file (the long analytics table) to record in the
+/// output as one IfcDocumentInformation, IfcDocumentReference and IfcRelAssociatesDocument on the first
+/// IfcProject. The reference carries the file name, its format, its SHA-256, and the <c>documentKey</c>
+/// column that joins the table to the model (default GlobalId). It is appended last, so no other id moves.</para>
 /// </summary>
 public sealed class WritePsetsNode : IFlowNode
 {
@@ -32,6 +37,9 @@ public sealed class WritePsetsNode : IFlowNode
         {
             new ParamSpec("sourcePath", ParamKind.FilePath, Suggest: SuggestSource.FilesWith(".ifc")),
             new ParamSpec("targetPath", ParamKind.FilePath),
+            new ParamSpec("documentPath", ParamKind.FilePath),
+            new ParamSpec("documentKey", ParamKind.Text, "GlobalId"),
+            new ParamSpec("documentDescription", ParamKind.Text),
         },
         "Byte-exact pset write-back: reads sourcePath, appends psets from the input table, writes targetPath. "
         + "An optional valueType column names the IFC value type of each row - Text, Label, Identifier, Integer, "
@@ -40,7 +48,10 @@ public sealed class WritePsetsNode : IFlowNode
         + "Optional input zones (zoneName, spaceId) appends one IfcZone per name grouping those spaces; optional "
         + "input zonePsets (zoneName, psetName, paramName, paramValue, optional valueType) attaches property "
         + "sets to the zones by name. "
-        + "Outputs a one-row summary (targetPath, entitiesTouched, valuesWritten, zonesWritten).");
+        + "Optional documentPath records that file (the long analytics table) as an IfcDocumentReference on the "
+        + "first IfcProject, with its file name, format, SHA-256, and the join key named by documentKey "
+        + "(default GlobalId); documentDescription adds a sentence about it. "
+        + "Outputs a one-row summary (targetPath, entitiesTouched, valuesWritten, zonesWritten, documentsWritten).");
 
     public IReadOnlyList<FlowValue> Eval(IEvalContext context, IReadOnlyList<FlowValue> inputs, ParamValues parameters)
     {
@@ -74,6 +85,7 @@ public sealed class WritePsetsNode : IFlowNode
 
         var lines = new List<string>(builder.Lines);
         var zonesWritten = 0L;
+        var nextId = builder.NextId;
         if (zoneSpaces.Count > 0)
         {
             var zoneBuilder = new IfcZoneBuilder(builder.NextId, ownerHistoryId, source.Schema);
@@ -99,9 +111,12 @@ public sealed class WritePsetsNode : IFlowNode
             }
             lines.AddRange(zoneBuilder.Lines);
             lines.AddRange(zonePsetBuilder.Lines);
+            nextId = zonePsetBuilder.NextId;
         }
         else if (zoneGroups.Count > 0)
             throw new ArgumentException("zonePsets has rows but the zones input defines no zone");
+
+        var documentsWritten = AddDocument(source, parameters, ownerHistoryId, nextId, lines);
 
         var bytes = IfcPatcher.Append(source, lines);
         var dir = Path.GetDirectoryName(Path.GetFullPath(targetPath));
@@ -115,9 +130,44 @@ public sealed class WritePsetsNode : IFlowNode
                 ("targetPath", targetPath),
                 ("entitiesTouched", (long)entities.Count),
                 ("valuesWritten", valuesWritten),
-                ("zonesWritten", zonesWritten))),
+                ("zonesWritten", zonesWritten),
+                ("documentsWritten", documentsWritten))),
         };
     }
+
+    /// <summary>Appends the document reference for <c>documentPath</c> to <paramref name="lines"/>;
+    /// returns 1 when one was written, 0 when the parameter is empty.</summary>
+    private static long AddDocument(IfcSourceFile source, ParamValues parameters, int ownerHistoryId, int nextId,
+        List<string> lines)
+    {
+        var path = parameters.GetText("documentPath");
+        if (path.Length == 0)
+            return 0;
+        var projectId = source.FirstIdOfType("IFCPROJECT");
+        if (projectId < 0)
+            throw new ArgumentException("documentPath needs an IFCPROJECT entity to attach the document to");
+        var name = Path.GetFileName(path);
+        var sha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant();
+        var format = DocumentFormat(Path.GetExtension(path));
+        var key = parameters.GetText("documentKey", "GlobalId");
+        var description = $"{parameters.GetText("documentDescription")} Format: {format}. SHA-256: {sha256}. Join key: {key}."
+            .TrimStart();
+        var builder = new IfcDocumentReferenceBuilder(nextId, ownerHistoryId, source.Schema);
+        builder.AddDocumentReference(projectId,
+            new IfcDocumentInfo(name, name, Identifier: name, Description: description, Format: format), $"document:{name}");
+        lines.AddRange(builder.Lines);
+        return 1;
+    }
+
+    /// <summary>The media type of a few known table formats; otherwise the extension without its dot.</summary>
+    private static string DocumentFormat(string extension)
+        => extension.ToLowerInvariant() switch
+        {
+            ".csv" => "text/csv",
+            ".json" => "application/json",
+            ".parquet" => "application/vnd.apache.parquet",
+            var other => other.TrimStart('.'),
+        };
 
     /// <summary>One property set to write: the target (a STEP id as long, or a zone name as string),
     /// the set's name, and its values.</summary>

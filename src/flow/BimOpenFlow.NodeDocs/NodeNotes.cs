@@ -116,7 +116,11 @@ public static class NodeNotes
             + "`paramValue`) are grouped by (entityId, psetName) in first-appearance order; each "
             + "group becomes one IfcPropertySet attached to the entity, appended to a byte-exact "
             + "copy of the source file. An entity id not present in the source file is an error. "
-            + "v1 limitation: every value is written as IFCTEXT; typed measures come later.",
+            + "v1 limitation: every value is written as IFCTEXT; typed measures come later. "
+            + "The optional `zones` input (`zoneName`, `spaceId`) appends one IfcZone per name "
+            + "grouping those spaces through IfcRelAssignsToGroup, and the optional `zonePsets` "
+            + "input (`zoneName`, `psetName`, `paramName`, `paramValue`) attaches property sets "
+            + "to those zones by name, since a zone's id exists only once the Run allocates it.",
 
         ["sink.report"] =
             "Effect: runs only inside a Run. The report is a minimal standalone HTML page: "

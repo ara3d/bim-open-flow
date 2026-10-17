@@ -18,6 +18,10 @@ internal static class Sinks
             ? t.Table
             : throw new ArgumentException($"Input {index} must be a Table");
 
+    /// <summary>The table at an optional input, or null when that input is not connected.</summary>
+    public static IDataTable? OptionalTableAt(this IReadOnlyList<FlowValue> inputs, int index)
+        => inputs.Count > index && inputs[index] is TableValue t ? t.Table : null;
+
     public static string RequiredPath(this ParamValues parameters, string name)
         => parameters.GetText(name) is { Length: > 0 } path
             ? path

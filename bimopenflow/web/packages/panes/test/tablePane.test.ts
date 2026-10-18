@@ -75,6 +75,20 @@ describe("TablePane selection", () => {
     host.remove();
   });
 
+  it("highlights rows for a selection that arrived before the table", () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const pane = createTablePane();
+    pane.mount(host, fakeCtx());
+    pane.update({ kind: "selection", ids: ["g1"] });
+    pane.update(tableInput);
+    const rows = host.querySelectorAll("tbody tr");
+    expect(rows[0].classList.contains("bof-panes-selected")).toBe(true);
+    expect(rows[1].classList.contains("bof-panes-selected")).toBe(false);
+    pane.destroy();
+    host.remove();
+  });
+
   it("keeps the highlight after the viz table re-sorts itself", async () => {
     const { host, pane } = mountWith();
     pane.update({ kind: "selection", ids: ["g1"] });

@@ -98,6 +98,9 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
   let activePane: Pane | null = null;
   let activeChartOptions: ChartPaneOptions | null = null;
   let fetchToken = 0;
+  // The element selection last given to updateSelection or emitted by a pane;
+  // a pane mounted later (a tab switch) starts with it.
+  let lastSelection: string[] | null = null;
 
   const currentChartOptions = (): ChartPaneOptions =>
     chartPaneOptions(shown?.desc?.kind, shown?.values ?? {});
@@ -123,7 +126,10 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
   };
 
   const onPaneEvent = (e: PaneEvent) => {
-    if (e.kind === "selection") deps.onSelect(e.event.ids);
+    if (e.kind === "selection") {
+      lastSelection = e.event.ids;
+      deps.onSelect(e.event.ids);
+    }
     else if (e.action === "loadError")
       deps.onError(`${active?.label ?? "Pane"} model load failed: ${e.payload?.message ?? "unknown error"}`);
   };
@@ -159,6 +165,7 @@ ${text}`)),
     body.appendChild(host);
     pane.mount(host, deps.ctx);
     activePane = pane;
+    if (lastSelection) pane.update({ kind: "selection", ids: lastSelection });
     void feedData();
   };
 
@@ -244,6 +251,7 @@ ${text}`)),
       void feedData();
     },
     updateSelection(ids) {
+      lastSelection = ids;
       activePane?.update({ kind: "selection", ids });
     },
     dispose() {

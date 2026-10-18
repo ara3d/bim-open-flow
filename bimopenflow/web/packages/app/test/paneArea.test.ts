@@ -125,6 +125,22 @@ describe("createPaneArea with registered panes", () => {
     area.dispose();
   });
 
+  it("pushes the remembered selection into a pane mounted by a tab switch", async () => {
+    const rec = recorder();
+    const { root, area } = makeRegisteredArea(rec.registration);
+    show(area, "n1", "snowdon");
+    await settle();
+    rec.emit({ kind: "selection", event: { ids: ["g1", "g2"] } as never });
+    const tab = root.querySelector<HTMLElement>('.bof-app-tab[data-kind="table"]')!;
+    tab.click();
+    await settle();
+    tab.parentElement!.querySelector<HTMLElement>('[data-kind="rec"]')!.click();
+    await settle();
+    expect(rec.created).toHaveLength(2);
+    expect(rec.created[1]![0]).toEqual({ kind: "selection", ids: ["g1", "g2"] });
+    area.dispose();
+  });
+
   it("reports a pane's loadError with the pane's label", async () => {
     const rec = recorder();
     const { area, errors } = makeRegisteredArea(rec.registration);

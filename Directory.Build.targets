@@ -22,6 +22,34 @@
     <Ara3DSdkRoot Condition="'$(Ara3DSdkRoot)' == ''">$(DepsRoot)ara3d-sdk</Ara3DSdkRoot>
   </PropertyGroup>
 
+  <!--
+    Prebuilt pin (TKT-321, docs/plans/build-times.md): scripts/pack-ara3d-sdk.ps1 packs the
+    SDK at the commit deps.json pins into $(DepsRoot)ara3d-sdk-packages/<commit>/ as
+    version $(Ara3DSdkVersion)-pin<commit8>. When that feed exists, the matching
+    PackageReferences keep their package form at the pinned version and restore from the
+    feed, so a cold build no longer compiles the SDK. Ara3DSdkFromSource=true (a property
+    or an environment variable) compiles from source again, for a fence that edits the SDK.
+    Ids missing from the feed (projects that do not pack) still become project references.
+  -->
+  <PropertyGroup>
+    <Ara3DSdkDepsJson>$(DepsRoot)../deps.json</Ara3DSdkDepsJson>
+    <Ara3DSdkPinnedCommit Condition="Exists('$(Ara3DSdkDepsJson)')">$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('$(Ara3DSdkDepsJson)')), '(?&lt;="ara3d-sdk":\s*\{[^}]*"commit":\s*")[0-9a-f]+').Value)</Ara3DSdkPinnedCommit>
+    <Ara3DSdkPackageFeed Condition="'$(Ara3DSdkPinnedCommit)' != ''">$(DepsRoot)ara3d-sdk-packages/$(Ara3DSdkPinnedCommit)/</Ara3DSdkPackageFeed>
+    <Ara3DSdkPackageVersion Condition="'$(Ara3DSdkPinnedCommit)' != ''">$(Ara3DSdkVersion)-pin$(Ara3DSdkPinnedCommit.Substring(0, 8))</Ara3DSdkPackageVersion>
+    <Ara3DSdkFromSource Condition="'$(Ara3DSdkFromSource)' == '' And '$(ARA3D_SDK_FROM_SOURCE)' != ''">$(ARA3D_SDK_FROM_SOURCE)</Ara3DSdkFromSource>
+    <Ara3DSdkFromSource Condition="'$(Ara3DSdkFromSource)' == '' And '$(Ara3DSdkPackageFeed)' != '' And Exists('$(Ara3DSdkPackageFeed)')">false</Ara3DSdkFromSource>
+    <Ara3DSdkFromSource Condition="'$(Ara3DSdkFromSource)' == ''">true</Ara3DSdkFromSource>
+    <RestoreAdditionalProjectSources Condition="'$(Ara3DSdkFromSource)' != 'true'">$(RestoreAdditionalProjectSources);$(Ara3DSdkPackageFeed)</RestoreAdditionalProjectSources>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(Ara3DSdkFromSource)' != 'true'">
+    <_Ara3DFeedPackage Include="$(Ara3DSdkPackageFeed)*.$(Ara3DSdkPackageVersion).nupkg" />
+    <_Ara3DFeedId Include="@(_Ara3DFeedPackage->'%(Filename)'->Replace('.$(Ara3DSdkPackageVersion)', ''))" />
+    <_Ara3DNotFeedPackage Include="@(PackageReference)" Exclude="@(_Ara3DFeedId)" />
+    <_Ara3DPinnedPackage Include="@(PackageReference)" Exclude="@(_Ara3DNotFeedPackage)" />
+    <PackageReference Update="@(_Ara3DPinnedPackage)" Version="$(Ara3DSdkPackageVersion)" />
+  </ItemGroup>
+
   <ItemGroup Condition="Exists('$(Ara3DSdkRoot)/src')">
     <_Ara3DSdkSrcProject Include="$(Ara3DSdkRoot)/src/*/*.csproj" />
     <_Ara3DSdkExtProject Include="$(Ara3DSdkRoot)/ext/*/*.csproj" />
@@ -33,6 +61,9 @@
     <_Ara3DNotSrcPackage Include="@(PackageReference)" Exclude="@(_Ara3DSdkSrcId)" />
     <_Ara3DNotExtPackage Include="@(PackageReference)" Exclude="@(_Ara3DSdkExtId)" />
     <_Ara3DNotWipPackage Include="@(PackageReference)" Exclude="@(_Ara3DSdkWipId)" />
+    <_Ara3DNotSrcPackage Include="@(_Ara3DPinnedPackage)" />
+    <_Ara3DNotExtPackage Include="@(_Ara3DPinnedPackage)" />
+    <_Ara3DNotWipPackage Include="@(_Ara3DPinnedPackage)" />
     <_Ara3DSrcPackage Include="@(PackageReference)" Exclude="@(_Ara3DNotSrcPackage)" />
     <_Ara3DExtPackage Include="@(PackageReference)" Exclude="@(_Ara3DNotExtPackage)" />
     <_Ara3DWipPackage Include="@(PackageReference)" Exclude="@(_Ara3DNotWipPackage)" />

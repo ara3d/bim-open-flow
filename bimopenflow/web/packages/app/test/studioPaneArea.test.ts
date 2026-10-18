@@ -51,6 +51,7 @@ const makeStudioArea = () => {
       resolveAsset: (url) => url,
     },
     onSelect: () => {},
+    selection: () => [],
     onError: (m) => {
       throw new Error(m);
     },

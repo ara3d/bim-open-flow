@@ -31,6 +31,8 @@ export interface PaneAreaDeps {
   tableOnly?: boolean;
   ctx: PaneContext;
   onSelect(ids: string[]): void;
+  /** The element selection now held by the app (its result selection), read when a pane is mounted. */
+  selection(): readonly string[];
   onError(message: string): void;
   /** Catalog model id for a node's model file path; null when unknown. */
   resolveModelId?(path: string): Promise<string | null>;
@@ -98,10 +100,6 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
   let activePane: Pane | null = null;
   let activeChartOptions: ChartPaneOptions | null = null;
   let fetchToken = 0;
-  // The element selection last given to updateSelection or emitted by a pane;
-  // a pane mounted later (a tab switch) starts with it.
-  let lastSelection: string[] | null = null;
-
   const currentChartOptions = (): ChartPaneOptions =>
     chartPaneOptions(shown?.desc?.kind, shown?.values ?? {});
 
@@ -127,7 +125,6 @@ export function createPaneArea(root: HTMLElement, deps: PaneAreaDeps): PaneArea 
 
   const onPaneEvent = (e: PaneEvent) => {
     if (e.kind === "selection") {
-      lastSelection = e.event.ids;
       deps.onSelect(e.event.ids);
     }
     else if (e.action === "loadError")
@@ -165,7 +162,9 @@ ${text}`)),
     body.appendChild(host);
     pane.mount(host, deps.ctx);
     activePane = pane;
-    if (lastSelection) pane.update({ kind: "selection", ids: lastSelection });
+    // A pane mounted later (a tab switch) starts with the app's selection, before its table lands.
+    const selected = deps.selection();
+    if (selected.length > 0) pane.update({ kind: "selection", ids: [...selected] });
     void feedData();
   };
 
@@ -251,7 +250,6 @@ ${text}`)),
       void feedData();
     },
     updateSelection(ids) {
-      lastSelection = ids;
       activePane?.update({ kind: "selection", ids });
     },
     dispose() {

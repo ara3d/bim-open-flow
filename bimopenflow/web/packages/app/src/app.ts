@@ -243,6 +243,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     ctx: boundCtx,
     // Result object IDs are a different identity space from graph node IDs.
     onSelect: (ids) => { resultSelection = ids; paneArea.updateSelection(ids); },
+    selection: () => resultSelection,
     onError: fail,
     resolveModelId,
     panes,

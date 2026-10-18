@@ -47,6 +47,7 @@ const makeArea = () => {
       resolveAsset: (url) => url,
     },
     onSelect: () => {},
+    selection: () => [],
     onError: (m) => {
       throw new Error(m);
     },
@@ -85,13 +86,16 @@ describe("createPaneArea with registered panes", () => {
     const root = document.createElement("div");
     document.body.appendChild(root);
     const errors: string[] = [];
+    // The app's result selection, which the area reads when it mounts a pane.
+    const held = { ids: [] as string[] };
     const area = createPaneArea(root, {
       ctx: { requestTable: async () => slice, resolveAsset: (url) => url },
-      onSelect: () => {},
+      onSelect: (ids) => { held.ids = ids; },
+      selection: () => held.ids,
       onError: (m) => { errors.push(m); },
       panes: paneRegistry(...genericPanes, registration),
     });
-    return { root, area, errors };
+    return { root, area, errors, held };
   };
 
   const show = (area: PaneArea, nodeId: string, modelPath: string) =>
@@ -138,6 +142,21 @@ describe("createPaneArea with registered panes", () => {
     await settle();
     expect(rec.created).toHaveLength(2);
     expect(rec.created[1]![0]).toEqual({ kind: "selection", ids: ["g1", "g2"] });
+    area.dispose();
+  });
+
+  it("gives the first pane of the next flow no selection once the app has cleared it", async () => {
+    const rec = recorder();
+    const { area, held } = makeRegisteredArea(rec.registration);
+    show(area, "n1", "snowdon");
+    await settle();
+    rec.emit({ kind: "selection", event: { ids: ["g1"] } as never });
+    area.showNode(null);
+    held.ids = []; // the app's leaveFlow clears its result selection
+    show(area, "m1", "duplex");
+    await settle();
+    expect(rec.created).toHaveLength(2);
+    expect(rec.created[1]!.some((i) => (i as { kind: string }).kind === "selection")).toBe(false);
     area.dispose();
   });
 
@@ -307,6 +326,7 @@ describe("createPaneArea result reads", () => {
         resolveAsset: (url) => url,
       },
       onSelect: () => {},
+      selection: () => [],
       onError: (m) => { errors.push(m); },
     });
     area.showNode({ nodeId: "n1", desc: desc("table.filter"), values: {}, state: okState });
@@ -329,6 +349,7 @@ describe("createPaneArea result reads", () => {
         resolveAsset: (url) => url,
       },
       onSelect: () => {},
+      selection: () => [],
       onError: (m) => { throw new Error(m); },
     });
     area.showNode({ nodeId: "n1", desc: desc("table.filter"), values: {}, state: okState });

@@ -230,7 +230,7 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     },
     setParams: async (nodeId: string, params: Record<string, string>): Promise<void> => {
       if (!currentId) throw new Error("Open a flow first");
-      store.dispatch(planSetParams(store.getState(), nodeId, params));
+      store.dispatch(planSetParams(store.getState(), catalog, nodeId, params));
     },
   };
 

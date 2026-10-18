@@ -7,7 +7,7 @@ export type { CanvasEditorSurfaces, FitOptions, GraphEditor, GraphEditorOptions,
 export { createCanvasInstance, pruneInstance } from "./instance.js";
 export type { CanvasInstance, SuggestionProvider } from "./instance.js";
 export type { FileProvider } from "./filePathControl.js";
-export { anchorId, canConnect, MUTATING_INTENTS, parseAnchorId } from "./canvasIntents.js";
+export { anchorId, canConnect, MUTATING_INTENTS, parseAnchorId, portTypesCompatible } from "./canvasIntents.js";
 export type { AnchorDir, AnchorRef, CanvasHooks, CanvasIntent } from "./canvasIntents.js";
 export {
   buildCanvasModel, edgeId, freePosition, newNodeSize,

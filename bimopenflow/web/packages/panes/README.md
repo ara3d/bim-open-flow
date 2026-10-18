@@ -16,6 +16,21 @@ interface PaneContext {
   resolveAsset(url: string): string;
   requestSuggestions?(nodeId: string, param: string): Promise<SuggestionList>;
   requestEntityProperties?(modelUrl: string, localId: number): Promise<EntityProperties>;
+  // Graph editing (optional; a pane without them offers no editing control).
+  // addNodes places the nodes free of overlap, wires them as planned, selects the
+  // last, and is one undo step; it resolves to their ids in order.
+  addNodes?(nodes: readonly PlannedNode[]): Promise<string[]>;
+  // setParams is one undo step; it rejects when the node is not in the open graph.
+  setParams?(nodeId: string, params: Record<string, string>): Promise<void>;
+}
+
+// inputs wires a port to { node: index, port } (a node planned in the same call)
+// or { nodeId, port } (an existing node). Params are canonical text; a List
+// param is comma-separated.
+interface PlannedNode {
+  kind: string;
+  params?: Record<string, string>;
+  inputs?: Record<string, { node: number; port: string } | { nodeId: string; port: string }>;
 }
 
 interface Pane {
@@ -37,7 +52,7 @@ type PaneInput =
   | { kind: "nodeState"; state: NodeState }
   | { kind: "selection"; ids: string[] }
   | { kind: "inspect"; node: NodeDescriptor; values: Record<string, string>; state?: NodeState }
-  | { kind: "model"; url: string; format?: "bos" | "glb" }
+  | { kind: "model"; url: string; format?: "bos" | "glb"; path?: string } // path: the graph's own path for the model
   | { kind: "instances"; data: TableSlice };
 
 type PaneEvent =

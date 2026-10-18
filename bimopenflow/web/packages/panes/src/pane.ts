@@ -11,6 +11,18 @@ import type {
 export type ModelFormat = "bos" | "bfast" | "glb";
 
 /**
+ * A node a pane asks the editor to add. `inputs` wires one of its input ports
+ * to an output of a node planned in the same call ({ node: index, port }) or of
+ * an existing node ({ nodeId, port }). Params are canonical text; a List param
+ * is comma-separated.
+ */
+export interface PlannedNode {
+  kind: string;
+  params?: Record<string, string>;
+  inputs?: Record<string, { node: number; port: string } | { nodeId: string; port: string }>;
+}
+
+/**
  * Host services a pane may call. Provided once at mount; panes hold no other
  * reference to the application.
  */
@@ -35,6 +47,17 @@ export interface PaneContext {
     modelUrl: string,
     localId: number,
   ): Promise<EntityProperties>;
+  /**
+   * Adds the nodes, placed free of overlap, wired as planned, the last one
+   * selected, as one undo step. Resolves to their ids in order. Optional: a
+   * pane without it offers no graph-editing control.
+   */
+  addNodes?(nodes: readonly PlannedNode[]): Promise<string[]>;
+  /**
+   * Sets params on an existing node as one undo step; rejects when the node is
+   * not in the open graph, so the pane can add a new one instead.
+   */
+  setParams?(nodeId: string, params: Record<string, string>): Promise<void>;
 }
 
 /**
@@ -58,7 +81,13 @@ export type PaneInput =
       nodeId?: string;
     }
   /** A model to load into the 3D pane; format inferred from the URL when omitted. */
-  | { kind: "model"; url: string; format?: ModelFormat }
+  | {
+      kind: "model";
+      url: string;
+      format?: ModelFormat;
+      /** The graph's own path for the model (a value.path or a node's path param), for nodes that take a file path. */
+      path?: string;
+    }
   /** A 3D instance table: per-instance colors and isolation (3D pane). */
   | { kind: "instances"; data: TableSlice }
   /** A bounded, ordered visualization recipe from view3d.scene and its downstream nodes. */

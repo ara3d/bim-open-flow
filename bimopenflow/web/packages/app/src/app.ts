@@ -39,6 +39,7 @@ import { setCardDensity as applyCardDensity } from "@bimopenflow/graph";
 import { loadCardDensity, saveCardDensity } from "./cardDensityChoice.js";
 import { installCanvasPalette, paletteClientPoint, paletteKeyOpens } from "./canvasPalette.js";
 import { addNodeActions, freeSpot } from "./addNodePlan.js";
+import { planNodes, planSetParams, type PlannedNode } from "./paneEdits.js";
 import { createStepList, stepListModel } from "./stepList.js";
 import { createProblemsPanel } from "./problemsPanel.js";
 import { graphProblems } from "./graphProblems.js";
@@ -220,6 +221,17 @@ export function createApp(root: HTMLElement, api: ApiClient, options: AppOptions
     },
     resolveAsset: makePaneContext(resultApi, "").resolveAsset,
     requestEntityProperties: makePaneContext(resultApi, "").requestEntityProperties,
+    // A pane's graph edits go through the store like a palette gesture: one batch, one undo step (TKT-320).
+    addNodes: async (nodes: readonly PlannedNode[]): Promise<string[]> => {
+      if (!currentId) throw new Error("Open a flow first");
+      const plan = planNodes(store.getState(), catalog, nodes);
+      store.dispatch(plan.action);
+      return plan.ids;
+    },
+    setParams: async (nodeId: string, params: Record<string, string>): Promise<void> => {
+      if (!currentId) throw new Error("Open a flow first");
+      store.dispatch(planSetParams(store.getState(), nodeId, params));
+    },
   };
 
   // Model list for path -> catalog id resolution, fetched lazily and

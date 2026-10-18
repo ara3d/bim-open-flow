@@ -2,6 +2,7 @@ export type {
   ModelFormat,
   Pane,
   PaneContext,
+  PlannedNode,
   PaneEvent,
   PaneInput,
 } from "./pane";

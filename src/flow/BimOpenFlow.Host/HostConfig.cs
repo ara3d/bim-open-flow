@@ -7,14 +7,16 @@ namespace BimOpenFlow.Host;
 /// Host settings: where models live, where converted BOS files cache, where the
 /// analysis library persists, and the HTTP port. Values resolve in layers:
 /// defaults, then an optional appsettings.json in the base directory, then
-/// BIMOPENFLOW_* environment variables, then command-line arguments.
+/// BIMOPENFLOW_* environment variables, then command-line arguments. WebDir, when set, is a
+/// folder of built web pages the host serves at its root beside /api (see StaticWeb).
 /// </summary>
 public sealed record HostConfig(
     IReadOnlyList<string> ModelRoots,
     string CacheDir,
     string StoreDir,
     int Port,
-    string Profile = HostConfig.TablesProfile)
+    string Profile = HostConfig.TablesProfile,
+    string? WebDir = null)
 {
     // Matches the web editor's default proxy target (bimopenflow/web/packages/app/vite.config.ts),
     // so the host and the editor agree on a port without either side passing --port or BOF_HOST.
@@ -44,7 +46,7 @@ public sealed record HostConfig(
         return config;
     }
 
-    /// <summary>Optional file: {"modelRoots": [...], "cacheDir": "...", "storeDir": "...", "port": n, "profile": "name"}.</summary>
+    /// <summary>Optional file: {"modelRoots": [...], "cacheDir": "...", "storeDir": "...", "port": n, "profile": "name", "webDir": "..."}.</summary>
     public HostConfig ApplySettingsFile(string path)
     {
         if (!File.Exists(path))
@@ -60,6 +62,7 @@ public sealed record HostConfig(
             StoreDir = StringOr(root, "storeDir", StoreDir),
             Port = root.TryGetProperty("port", out var port) ? port.GetInt32() : Port,
             Profile = StringOr(root, "profile", Profile),
+            WebDir = root.TryGetProperty("webDir", out var web) ? web.GetString() : WebDir,
         };
     }
 
@@ -71,9 +74,10 @@ public sealed record HostConfig(
             StoreDir = Environment.GetEnvironmentVariable("BIMOPENFLOW_STORE_DIR") ?? StoreDir,
             Port = ParsePort(Environment.GetEnvironmentVariable("BIMOPENFLOW_PORT")) ?? Port,
             Profile = Environment.GetEnvironmentVariable("BIMOPENFLOW_PROFILE") ?? Profile,
+            WebDir = Environment.GetEnvironmentVariable("BIMOPENFLOW_WEB_DIR") ?? WebDir,
         };
 
-    /// <summary>--models a;b --cache dir --store dir --port n --profile name</summary>
+    /// <summary>--models a;b --cache dir --store dir --port n --profile name --web dir</summary>
     public HostConfig ApplyArgs(string[] args)
     {
         var config = this;
@@ -92,8 +96,9 @@ public sealed record HostConfig(
                     Port = ParsePort(value) ?? throw new ArgumentException($"Invalid port '{value}'"),
                 },
                 "--profile" => config with { Profile = value },
+                "--web" => config with { WebDir = value },
                 _ => throw new ArgumentException(
-                    $"Unknown option '{args[i]}'. Expected --models, --cache, --store, --port, or --profile."),
+                    $"Unknown option '{args[i]}'. Expected --models, --cache, --store, --port, --profile, or --web."),
             };
         }
         return config;

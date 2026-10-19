@@ -80,6 +80,8 @@ public static class HostComposition
             DuckDbTableProbe.Tables, relations: new RelationHostResults(services.Relations), sessions: services.Sessions,
             editor: services.Editor);
         app.Urls.Add($"http://127.0.0.1:{config.Port}");
+        if (config.WebDir is { } web)
+            StaticWeb.Use(app, web);
         return new(config, services, app);
     }
 }
